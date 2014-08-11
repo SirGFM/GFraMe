@@ -1,0 +1,13 @@
+
+################################################################################
+##                                                                            ##
+##                       GFraMe - Game FraMework                              ##
+##                              by SirGFM                                     ##
+##                                                                            ##
+################################################################################
+
+This framework is based on SDL2.
+It's still on development, but I'm already versioning it... just in case.
+I'll later write a decent README (and fix the Makefile, which I haven't tried
+on Windows for some time...). Everything has been done on Linux, so far (more
+specifically, Ubuntu 12.04 and 14.04).

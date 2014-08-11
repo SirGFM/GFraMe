@@ -1,4 +1,6 @@
 # Object files
+./obj/
+./example-game/obj/
 *.o
 *.ko
 *.obj
@@ -15,12 +17,19 @@
 *.dylib
 
 # Executables
+./bin/
+./example-game/bin/
 *.exe
 *.out
 *.app
 *.i*86
 *.x86_64
 *.hex
+
+# Assets
+./example-game/assets/xcf/
+*.png
+*.xcf
 
 # =========================
 # Operating System Files
