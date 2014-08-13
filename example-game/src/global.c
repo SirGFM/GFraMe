@@ -37,8 +37,8 @@ GFraMe_ret global_init() {
 	GFraMe_ret rv;
 	char *filename;
 	unsigned char *pixels = NULL;
-	const int atlas_w = 96;
-	const int atlas_h = 256;
+	const int atlas_w = 64;
+	const int atlas_h = 64;
 	
 	// Init the texture, so nothing happens on error
 	GFraMe_texture_init(&gl_atlas);
@@ -59,8 +59,8 @@ GFraMe_ret global_init() {
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to create texture", _ret);
 	// Create the spritesets (i.e., make some basic calculations)
 	GFraMe_spriteset_init(&gl_sset16, &gl_atlas, 16, 16);
-	GFraMe_spriteset_init(&gl_sset32, &gl_atlas, 32, 32);
-	GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
+	//GFraMe_spriteset_init(&gl_sset32, &gl_atlas, 32, 32);
+	//GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
 _ret:
 	if (pixels)
 		free(pixels);

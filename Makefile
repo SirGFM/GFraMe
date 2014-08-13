@@ -56,7 +56,8 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
        $(OBJDIR)/gframe_assets.o $(OBJDIR)/gframe_object.o \
        $(OBJDIR)/gframe_screen.o $(OBJDIR)/gframe_sprite.o \
        $(OBJDIR)/gframe_spriteset.o $(OBJDIR)/gframe_texture.o \
-       $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o
+       $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o \
+	   $(OBJDIR)/gframe_tilemap.o
 
 all: static
 

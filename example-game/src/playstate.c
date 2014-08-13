@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_sprite.h>
+#include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
 #include "global.h"
 #include "playstate.h"
@@ -22,6 +23,10 @@ GFraMe_sprite pl;
  * Target that the player will jump/dash toward
  */
 GFraMe_sprite tgt;
+/**
+ * Background (image and for collision [when implemented])
+ */
+GFraMe_tilemap bg;
 /**
  * Floor collideable; doesn't need gfx
  */
@@ -43,7 +48,14 @@ void ps_do_update();
  * Renders the state
  */
 void ps_do_draw();
+/**
+ *
+ */
 void ps_on_click(int X, int Y);
+/**
+ * Called before exiting the loop to clean up any allocated resource.
+ */
+void ps_cleanup();
 
 /**
  * Initialize and run the play state loop
@@ -55,20 +67,40 @@ void ps_loop() {
 		ps_do_update();
 		ps_do_draw();
 	}
+	ps_cleanup();
 }
 
 void ps_init() {
+	char bg_data[20*15] = {
+0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,
+5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
+4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
+5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
+4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
+};
 	// Initialize the player
-	GFraMe_sprite_init(&pl, 10, 10, 16, 16, &gl_sset16, 0, 0);
-	pl.cur_tile = 75;
+	GFraMe_sprite_init(&pl, 10, 10, 8, 14, &gl_sset16, 4, 0);
+	pl.cur_tile = 8;
 	pl.obj.ay = 500;
 	// Initialize the target
 	GFraMe_sprite_init(&tgt, -16, -16, 16, 16, &gl_sset16, 0, 0);
-	tgt.cur_tile = 76;
+	tgt.cur_tile = 9;
 	tgt.id = 0;
+	// Initialize the tilemap
+	GFraMe_tilemap_init(&bg, 20, 15, bg_data, &gl_sset16, NULL, 0);
 	// Create the floor for collisions
 	GFraMe_object_clear(&ground);
-	GFraMe_object_set_y(&ground, 164);
+	GFraMe_object_set_y(&ground, 160);
 	GFraMe_object_set_hitbox(&ground, GFraMe_set_hitbox_upper_left,
 							 0, 0, GFraMe_buffer_w, 16);
 	// Initialize the timer and clean the events accumulated on the queue
@@ -121,6 +153,7 @@ void ps_do_update() {
 
 void ps_do_draw() {
 	GFraMe_event_draw_begin();
+		GFraMe_tilemap_draw(&bg);
 		GFraMe_sprite_draw(&pl);
 		if (tgt.id)
 			GFraMe_sprite_draw(&tgt);
@@ -137,5 +170,9 @@ void ps_on_click(int X, int Y) {
 		tgt.id = 1;
 		GFraMe_object_set_pos(&tgt.obj, X, Y);
 	}
+}
+
+void ps_cleanup() {
+	GFraMe_tilemap_clear(&bg);
 }
 

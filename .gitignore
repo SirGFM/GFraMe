@@ -19,6 +19,7 @@
 # Executables
 ./bin/
 ./example-game/bin/
+./example-game/bin/Linux/bugsquasher
 *.exe
 *.out
 *.app
@@ -34,7 +35,6 @@
 # =========================
 # Operating System Files
 # =========================
-
 # OSX
 # =========================
 
@@ -43,7 +43,7 @@
 .LSOverride
 
 # Icon must ends with two \r.
-Icon
+Icon
 
 # Thumbnails
 ._*
