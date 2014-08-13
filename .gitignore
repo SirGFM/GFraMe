@@ -18,8 +18,8 @@
 
 # Executables
 ./bin/
-./example-game/bin/
 ./example-game/bin/Linux/bugsquasher
+example-game/bin/
 *.exe
 *.out
 *.app

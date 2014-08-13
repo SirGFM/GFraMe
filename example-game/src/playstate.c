@@ -15,6 +15,11 @@ GFraMe_event_setup();
 //====================================================//
 // Local (to this state) variable (sprites and stuff) //
 //====================================================//
+#define MAX_ENEMIES	32
+/**
+ * Array for every enemy (possibly) on the screen
+ */
+GFraMe_sprite enemies[MAX_ENEMIES];
 /**
  * Player's sprite
  */
@@ -71,6 +76,8 @@ void ps_loop() {
 }
 
 void ps_init() {
+	int i;
+	// Tilemap data for the background
 	char bg_data[20*15] = {
 0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
 1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
@@ -86,7 +93,7 @@ void ps_init() {
 5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
 4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
 5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
-4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
+4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5
 };
 	// Initialize the player
 	GFraMe_sprite_init(&pl, 10, 10, 8, 14, &gl_sset16, 4, 0);
@@ -103,6 +110,12 @@ void ps_init() {
 	GFraMe_object_set_y(&ground, 160);
 	GFraMe_object_set_hitbox(&ground, GFraMe_set_hitbox_upper_left,
 							 0, 0, GFraMe_buffer_w, 16);
+	// Initialize every enemy as non existing
+	i = 0;
+	while (i < MAX_ENEMIES) {
+		enemies[i].id = 0;
+		i++;
+	}
 	// Initialize the timer and clean the events accumulated on the queue
 	GFraMe_event_init(60, 60);
 }
@@ -119,6 +132,7 @@ void ps_event_handler() {
 }
 
 void ps_do_update() {
+	int i;
 	int pljump;
 	GFraMe_event_update_begin();
 		pljump = GFraMe_util_absd(pl.obj.vy) < 32.0;
@@ -148,13 +162,35 @@ void ps_do_update() {
 			pl.obj.vy = 0.0;
 			tgt.id = 0;
 		}
+		// Update each enemy that has a type (set in 'id' field) and collide it with the player
+		i = 0;
+		while (i < MAX_ENEMIES) {
+			if (enemies[i].id) {
+				GFraMe_sprite_update(enemies + i, GFraMe_event_elapsed);
+				if (GFraMe_object_overlap(&enemies[i].obj, &pl.obj, GFraMe_collision_full) == GFraMe_ret_ok) {
+					// TODO Do something on collision
+				}
+			}
+			i++;
+		}
 	GFraMe_event_update_end();
 }
 
 void ps_do_draw() {
+	int i;
 	GFraMe_event_draw_begin();
+		// Draw the tilemap
 		GFraMe_tilemap_draw(&bg);
+		// Draw each enemy that has a type (set in 'id' field)
+		i = 0;
+		while (i < MAX_ENEMIES) {
+			if (enemies[i].id)
+				GFraMe_sprite_draw(enemies + i);
+			i++;
+		}
+		// Draw the player
 		GFraMe_sprite_draw(&pl);
+		// Draw the target, only if visible (lazily set as 'id' field)
 		if (tgt.id)
 			GFraMe_sprite_draw(&tgt);
 	GFraMe_event_draw_end();
