@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe_util.h>
 #include <math.h>
+#include <stdlib.h>
 
 /**
  * Super complex integration routine
@@ -34,5 +35,14 @@ double GFraMe_util_absd(double val) {
  */
 double GFraMe_util_sqrtd(double val) {
 	return (double)sqrt((float)val);
+}
+
+/**
+ * Return an pseudo-random number.
+ * @return	The pseudo-random integer
+ */
+int GFraMe_randomi() {
+	// TODO change the generator!
+	return rand();
 }
 

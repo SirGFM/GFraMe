@@ -1,12 +1,15 @@
 /**
  * @src/playstate.c
  */
+#include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
+#include "enemies.h"
 #include "global.h"
+#include "player.h"
 #include "playstate.h"
 
 // Define some variables needed by the events module
@@ -15,6 +18,10 @@ GFraMe_event_setup();
 //====================================================//
 // Local (to this state) variable (sprites and stuff) //
 //====================================================//
+/**
+ * Timer used to spawn stuff
+ */
+GFraMe_accumulator acc_timer;
 #define MAX_ENEMIES	32
 /**
  * Array for every enemy (possibly) on the screen
@@ -23,11 +30,11 @@ GFraMe_sprite enemies[MAX_ENEMIES];
 /**
  * Player's sprite
  */
-GFraMe_sprite pl;
+//GFraMe_sprite pl;
 /**
  * Target that the player will jump/dash toward
  */
-GFraMe_sprite tgt;
+//GFraMe_sprite tgt;
 /**
  * Background (image and for collision [when implemented])
  */
@@ -96,13 +103,7 @@ void ps_init() {
 4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5
 };
 	// Initialize the player
-	GFraMe_sprite_init(&pl, 10, 10, 8, 14, &gl_sset16, 4, 0);
-	pl.cur_tile = 8;
-	pl.obj.ay = 500;
-	// Initialize the target
-	GFraMe_sprite_init(&tgt, -16, -16, 16, 16, &gl_sset16, 0, 0);
-	tgt.cur_tile = 9;
-	tgt.id = 0;
+	player_init();
 	// Initialize the tilemap
 	GFraMe_tilemap_init(&bg, 20, 15, bg_data, &gl_sset16, NULL, 0);
 	// Create the floor for collisions
@@ -116,6 +117,8 @@ void ps_init() {
 		enemies[i].id = 0;
 		i++;
 	}
+	// Initialize the spawn timer
+	GFraMe_accumulator_init_fps(&acc_timer, 1, 1);
 	// Initialize the timer and clean the events accumulated on the queue
 	GFraMe_event_init(60, 60);
 }
@@ -123,6 +126,7 @@ void ps_init() {
 void ps_event_handler() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
+			GFraMe_accumulator_update(&acc_timer, __dt__);
 		GFraMe_event_on_mouse_down();
 			ps_on_click(GFraMe_event_mouse_x-8, GFraMe_event_mouse_y-8);
 		GFraMe_event_on_quit();
@@ -133,41 +137,46 @@ void ps_event_handler() {
 
 void ps_do_update() {
 	int i;
-	int pljump;
+	//int pljump;
 	GFraMe_event_update_begin();
-		pljump = GFraMe_util_absd(pl.obj.vy) < 32.0;
-		// Update the player's sprite
-		if (pl.obj.hit & GFraMe_direction_down) {
-			if (pl.obj.vy >= 0.0 && pl.obj.ax == 0.0f && pl.obj.vx != 0.0)
-				pl.obj.ax = -pl.obj.vx * 4.0;
-			else if(pl.obj.ax != 0.0&& GFraMe_util_absd(pl.obj.vx) <= 16.0){
-				pl.obj.vx = 0.0;
-				pl.obj.ax = 0.0;
+		if (GFraMe_accumulator_loop(&acc_timer)) {
+			i = 0;
+			while (i < MAX_ENEMIES) {
+				if (!enemies[i].id) {
+					enemies_spawn_random(enemies+i);
+					break;
+				}
+				i++;
 			}
 		}
-		else if (pljump && tgt.id) {
-			double X = tgt.obj.x - pl.obj.x;
-			double Y = tgt.obj.y - pl.obj.y;
-			double dist = GFraMe_util_sqrtd(X*X + Y*Y);
-			pl.obj.vx = pl.obj.vx / 4.0 + X / dist * 200;
-			pl.obj.vy = Y / dist * 200;
-		}
-		else if (pljump && !tgt.id) {
+		// Check if the player is near the appex, and should slowdown
+		if (player_slowdown())
 			GFraMe_event_elapsed >>= 2;
-		}
-		GFraMe_sprite_update(&pl, GFraMe_event_elapsed);
+		// Then, update the player
+		player_update(GFraMe_event_elapsed);
 		// Collide the player with the floor
-		if (GFraMe_object_overlap(&ground, &pl.obj, GFraMe_first_fixed)
-			== GFraMe_ret_ok) {
-			pl.obj.vy = 0.0;
-			tgt.id = 0;
-		}
+		if (GFraMe_object_overlap(&ground, player_get_object(), GFraMe_first_fixed)
+			== GFraMe_ret_ok)
+			player_on_ground();
 		// Update each enemy that has a type (set in 'id' field) and collide it with the player
 		i = 0;
 		while (i < MAX_ENEMIES) {
 			if (enemies[i].id) {
-				GFraMe_sprite_update(enemies + i, GFraMe_event_elapsed);
-				if (GFraMe_object_overlap(&enemies[i].obj, &pl.obj, GFraMe_collision_full) == GFraMe_ret_ok) {
+				GFraMe_sprite *en = enemies + i;
+				GFraMe_sprite_update(en, GFraMe_event_elapsed);
+				if (en->obj.x > 320) {
+					en->id = 0;
+					i++;
+					continue;
+				}
+				if (GFraMe_object_overlap(&en->obj, player_get_object(), GFraMe_dont_collide) == GFraMe_ret_ok) {
+					//if (pl.obj.y < 144 &&
+					//	(pl.obj.hit & GFraMe_direction_down)) {
+						//pl.obj.vy = -200;
+					if (player_on_squash() == GFraMe_ret_ok)
+						en->id = 0;
+						//tgt.id = 0;
+					//}
 					// TODO Do something on collision
 				}
 			}
@@ -189,14 +198,18 @@ void ps_do_draw() {
 			i++;
 		}
 		// Draw the player
-		GFraMe_sprite_draw(&pl);
+		player_draw();
+		//GFraMe_sprite_draw(&pl);
 		// Draw the target, only if visible (lazily set as 'id' field)
-		if (tgt.id)
-			GFraMe_sprite_draw(&tgt);
+		//if (tgt.id)
+		//	GFraMe_sprite_draw(&tgt);
 	GFraMe_event_draw_end();
 }
 
 void ps_on_click(int X, int Y) {
+	if (player_jump(X) == GFraMe_ret_failed)
+		player_set_target(X, Y);
+/*
 	if (pl.obj.hit & GFraMe_direction_down) {
 		pl.obj.vy = -200.0;
 		pl.obj.vx = X - pl.obj.x;
@@ -206,6 +219,7 @@ void ps_on_click(int X, int Y) {
 		tgt.id = 1;
 		GFraMe_object_set_pos(&tgt.obj, X, Y);
 	}
+*/
 }
 
 void ps_cleanup() {

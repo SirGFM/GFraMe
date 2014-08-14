@@ -4,9 +4,26 @@
 #include <GFraMe/GFraMe_animation.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_object.h>
+#ifdef DEBUG
+#include <GFraMe/GFraMe_screen.h>
+#endif
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
+#ifdef DEBUG
+#include <SDL2/SDL_video.h>
+#endif
+
+#ifdef DEBUG
+/**
+ * Context where the bounding box shall be rendered; debug-mode only
+ */
+extern SDL_Renderer *GFraMe_renderer;
+#endif
+/**
+ * Whether the bounding box should be drawn
+ */
+int GFraMe_draw_debug = 0;
 
 /**
  * Initilialize a sprite with its most basic features;
@@ -70,6 +87,23 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 	// Simply draw the current frame at the current position
 	GFraMe_spriteset_draw(spr->sset, spr->cur_tile,
 			spr->obj.x + spr->offset_x, spr->obj.y + spr->offset_y);
+#ifdef DEBUG
+	// If should draw the bounding box
+	if (GFraMe_draw_debug) {
+		// Get the sprite's hitbox
+		GFraMe_hitbox *hb = &spr->obj.hitbox;
+		
+		// Create a SDL_Rect at its position
+		SDL_Rect dbg_rect;
+		dbg_rect.x = spr->obj.x + hb->cx - hb->hw;
+		dbg_rect.y = spr->obj.y + hb->cy - hb->hh;
+		dbg_rect.w = hb->hw * 2;
+		dbg_rect.h = hb->hh * 2;
+		// Render it to the screen, in red
+		SDL_SetRenderDrawColor(GFraMe_renderer, 0xff, 0x00, 0x00, 0xff);
+		SDL_RenderDrawRect(GFraMe_renderer, &dbg_rect);
+	}
+#endif
 }
 
 /**

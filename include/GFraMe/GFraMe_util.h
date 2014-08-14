@@ -25,5 +25,11 @@ double GFraMe_util_absd(double val);
  */
 double GFraMe_util_sqrtd(double val);
 
+/**
+ * Return an pseudo-random number.
+ * @return	The pseudo-random integer
+ */
+int GFraMe_randomi();
+
 #endif
 

@@ -26,7 +26,7 @@ void player_init() {
 	// Draw debug!!
 	GFraMe_draw_debug = 1;
 	// Init the player itself
-	GFraMe_sprite_init(&player, 10, 10, 8, 14, &gl_sset16, 4, 0);
+	GFraMe_sprite_init(&player, 10, 10, 8, 14, &gl_sset16, -4, -2);
 	player.cur_tile = 8;
 	player.obj.ay = 500;
 	// Init the target

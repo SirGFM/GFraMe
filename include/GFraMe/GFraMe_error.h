@@ -27,7 +27,8 @@ enum enGFraMe_ret {
 	GFraMe_ret_no_overlap,
 	GFraMe_ret_render_failed,
 	GFraMe_ret_invalid_texture,
-	GFraMe_ret_stop_timer_failed
+	GFraMe_ret_stop_timer_failed,
+	GFraMe_ret_failed
 };
 typedef enum enGFraMe_ret GFraMe_ret;
 

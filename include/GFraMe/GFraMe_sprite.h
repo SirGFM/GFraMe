@@ -9,6 +9,11 @@
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
 
+/**
+ * Whether the bounding box should be drawn
+ */
+extern int GFraMe_draw_debug;
+
 struct stGFraMe_sprite {
 	/**
 	 * Handles the physics/positioning (yep, the actual structure!)

@@ -14,7 +14,7 @@ void enemies_bug_hard_init(GFraMe_sprite *en);
  * Simple macro to create an sprite that uses the 16x16 spriteset.
  */
 #define INIT_SPRITE16(spr, h) \
-	GFraMe_sprite_init(spr, -16, 144-h, 16, h, &gl_sset16, 0, 16-h); \
+	GFraMe_sprite_init(spr, -16, 160-h, 16, h, &gl_sset16, 0, h-16); \
 
 void enemies_spawn_random(GFraMe_sprite *en) {
 	int r = GFraMe_randomi() % 10;
