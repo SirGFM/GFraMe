@@ -28,7 +28,7 @@ ifeq ($(OS), Win)
     else
         LFLAGS += -L"/d/windows/mingw/mingw32/lib/"
     endif
-    LFLAGS += -lmingw32 -lGFraMe
+    LFLAGS += -L"$(LGFRAMEDIR)/bin/Win/" -lmingw32 -lGFraMe
     CFLAGS += -I"/d/windows/mingw/include"
 else
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Linux/" -lGFraMe -lm

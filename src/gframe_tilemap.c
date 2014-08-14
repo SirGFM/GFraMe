@@ -6,6 +6,7 @@
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /**
  * 
