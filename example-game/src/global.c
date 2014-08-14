@@ -6,6 +6,7 @@
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "global.h"
 
 /**
@@ -38,7 +39,7 @@ GFraMe_ret global_init() {
 	char *filename;
 	unsigned char *pixels = NULL;
 	const int atlas_w = 64;
-	const int atlas_h = 64;
+	const int atlas_h = 128;
 	
 	// Init the texture, so nothing happens on error
 	GFraMe_texture_init(&gl_atlas);
