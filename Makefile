@@ -19,7 +19,7 @@ ifndef $(OS)
     endif
 endif
 
-CFLAGS = -Wall -I"./include/" -fPIC -DHAVE_OPENGL
+CFLAGS = -Wall -I"./include/" -DHAVE_OPENGL
 LFLAGS = 
 ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
@@ -31,6 +31,7 @@ ifeq ($(OS), Win)
     CFLAGS += -I"/d/windows/mingw/include"
 else
     LFLAGS += -lm
+    CFLAGS += -fPIC
 endif
 LFLAGS += -lSDL2main -lSDL2
 
