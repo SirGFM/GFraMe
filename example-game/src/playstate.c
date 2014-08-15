@@ -28,14 +28,6 @@ GFraMe_accumulator acc_timer;
  */
 GFraMe_sprite enemies[MAX_ENEMIES];
 /**
- * Player's sprite
- */
-//GFraMe_sprite pl;
-/**
- * Target that the player will jump/dash toward
- */
-//GFraMe_sprite tgt;
-/**
  * Background (image and for collision [when implemented])
  */
 GFraMe_tilemap bg;
@@ -137,9 +129,9 @@ void ps_event_handler() {
 
 void ps_do_update() {
 	int i;
-	//int pljump;
 	GFraMe_event_update_begin();
 		if (GFraMe_accumulator_loop(&acc_timer)) {
+			int r;
 			i = 0;
 			while (i < MAX_ENEMIES) {
 				if (!enemies[i].id) {
@@ -147,6 +139,14 @@ void ps_do_update() {
 					break;
 				}
 				i++;
+			}
+			// Sets a new spawn time, depending on what was spawned
+			if (i < MAX_ENEMIES) {
+				// r = [-500, 500], with a step of 100
+				r = (GFraMe_util_randomi() % 11 - 5) * 100;
+				// easier enemies spawn faster! (also, 1s + r)
+				r = (1000 + r) / (3 - (enemies[i].id - 1) % 3);
+				GFraMe_accumulator_init_set(&acc_timer, r, r);
 			}
 		}
 		// Check if the player is near the appex, and should slowdown
@@ -209,17 +209,6 @@ void ps_do_draw() {
 void ps_on_click(int X, int Y) {
 	if (player_jump(X) == GFraMe_ret_failed)
 		player_set_target(X, Y);
-/*
-	if (pl.obj.hit & GFraMe_direction_down) {
-		pl.obj.vy = -200.0;
-		pl.obj.vx = X - pl.obj.x;
-		pl.obj.ax = 0.0;
-	}
-	else if (Y > 164 && GFraMe_util_absd(pl.obj.vy) < 64.0) {
-		tgt.id = 1;
-		GFraMe_object_set_pos(&tgt.obj, X, Y);
-	}
-*/
 }
 
 void ps_cleanup() {

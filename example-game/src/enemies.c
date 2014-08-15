@@ -17,7 +17,7 @@ void enemies_bug_hard_init(GFraMe_sprite *en);
 	GFraMe_sprite_init(spr, -16, 160-h, 16, h, &gl_sset16, 0, h-16); \
 
 void enemies_spawn_random(GFraMe_sprite *en) {
-	int r = GFraMe_randomi() % 10;
+	int r = GFraMe_util_randomi() % 10;
 	switch(r) {
 		case 0:
 		case 1:

@@ -41,7 +41,7 @@ double GFraMe_util_sqrtd(double val) {
  * Return an pseudo-random number.
  * @return	The pseudo-random integer
  */
-int GFraMe_randomi() {
+int GFraMe_util_randomi() {
 	// TODO change the generator!
 	return rand();
 }

@@ -55,17 +55,6 @@ void GFraMe_accumulator_set_fps(GFraMe_accumulator *acc, int fps,
 								int max_frames);
 
 /**
- * Change the fps an accumulator is run at, without clearing the
- * already accumulated time; this can only fail if fps is zero,
- * which is totally the user own fault!
- * @param	*acc	Accumulator to be set
- * @param	fps	How many frames per second should be issued
- * @param	max_frames	At most, how many frames can be accumulated
- */
-void GFraMe_accumulator_set_fps(GFraMe_accumulator *acc, int fps,
-								int max_frames);
-
-/**
  * Change an accumulator without clearing its accumulated time
  * which is totally the user own fault!
  * @param	*acc	Accumulator to be (re)started

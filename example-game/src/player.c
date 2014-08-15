@@ -21,6 +21,7 @@ static GFraMe_sprite tgt;
 static double jump_speed;
 static int cooldown;
 static int combo;
+static int did_combo;
 
 void player_init() {
 	// Draw debug!!
@@ -38,6 +39,7 @@ void player_init() {
 	// Set the timer (for consecutive jump) and counter
 	cooldown = 0;
 	combo = 0;
+	did_combo = 0;
 }
 
 void player_update(int ms) {
@@ -72,16 +74,23 @@ void player_draw() {
 }
 
 int player_slowdown() {
-	return cooldown > 0 || (!(player.obj.hit && GFraMe_direction_down) &&
+	int ret = (!(player.obj.hit && GFraMe_direction_down) &&
 			GFraMe_util_absd(player.obj.vy) < 32.0 && !tgt.id);
+	did_combo = did_combo && !ret;
+	return cooldown > 0 || ret;
 }
 
 void player_on_ground() {
-	player.obj.vy = 0.0;
+	jump_speed = BASE_JUMP;
 	tgt.id = 0;
 	combo = 0;
 	cooldown = 0;
-	jump_speed = BASE_JUMP;
+	player.obj.ax = 0.0;
+	if (did_combo)
+		player.obj.vy = -jump_speed;
+	else
+		player.obj.vy = 0.0;
+	did_combo = 0;
 }
 
 GFraMe_ret player_on_squash() {
@@ -90,13 +99,13 @@ GFraMe_ret player_on_squash() {
 		!(player.obj.hit & GFraMe_direction_down))
 		return GFraMe_ret_failed;
 	// Increase its speed
-	if (jump_speed < 500)
+	if (jump_speed < 350)
 		jump_speed += 25;
 	// Sets the cooldown for fast jumping
-	if (combo < 20)
-		cooldown = 300 - combo * 10;
+	if (combo < 10)
+		cooldown = 135 - combo * 10;
 	else
-		cooldown = 100;
+		cooldown = 35;
 	// Increment the combo counter
 	combo++;
 	// Make the player jump
@@ -106,10 +115,11 @@ GFraMe_ret player_on_squash() {
 }
 
 void player_set_target(int X, int Y) {
-	if (Y > 164 && (GFraMe_util_absd(player.obj.vy) < 64.0 ||
+	if (Y > 154 && (GFraMe_util_absd(player.obj.vy) < 64.0 ||
 					cooldown > 0)) {
 		tgt.id = 1;
 		GFraMe_object_set_pos(&tgt.obj, X, Y);
+		did_combo = cooldown > 0;
 		cooldown = 0;
 	}
 }
