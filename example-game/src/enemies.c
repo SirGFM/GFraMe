@@ -24,6 +24,12 @@ GFraMe_sprite enemies[MAX_ENEMIES];
  * Array with on animation for each enemy
  */
 GFraMe_animation en_animation[MAX_ENEMIES];
+/**
+ * Count for how many frames an enemy should be stunned after hit
+ */
+int stop_frames[MAX_ENEMIES];
+
+static void enemies_kill(int i);
 
 void enemies_bug_easy_init(GFraMe_sprite *en, GFraMe_animation *anim);
 void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim);
@@ -49,19 +55,18 @@ void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim);
 void enemies_init() {
 	int i = 0;
 	while (i < MAX_ENEMIES) {
-		enemies[i].is_active = 0;
-		enemies[i].is_visible = 0;
+		enemies_kill(i);
 		i++;
 	}
 }
 
-void enemies_update(GFraMe_sprite *en, int ms) {
+void enemies_update(int ms) {
 	int i;
 	i = 0;
 	while (i < MAX_ENEMIES) {
 		if (enemies[i].is_active) {
 			GFraMe_sprite *en = enemies + i;
-			GFraMe_sprite_update(en, GFraMe_event_elapsed);
+			GFraMe_sprite_update(en, ms);
 			if (en->obj.x > 320) {
 				en->id = 0;
 				en->is_active = 0;
@@ -70,14 +75,71 @@ void enemies_update(GFraMe_sprite *en, int ms) {
 				continue;
 			}
 		}
+		else if (stop_frames[i] > 0) {
+			stop_frames[i]--;
+			if (stop_frames[i] == 0) {
+				enemies[i].offset_y -= 4;
+				enemies[i].is_active = 1;
+			}
+		}
 		i++;
 	}
 }
 
-GFraMe_Object *enemies_get_object(int i) {
+void enemies_draw() {
+	int i;
+	i = 0;
+	while (i < MAX_ENEMIES) {
+		if (enemies[i].is_visible)
+			GFraMe_sprite_draw(enemies + i);
+		i++;
+	}
+}
+
+GFraMe_object *enemies_get_object(int i) {
 	if (i >= MAX_ENEMIES)
 		return NULL;
 	return &enemies[i].obj;
+}
+
+void enemies_on_hit(int i) {
+	enemies[i].hp--;
+	if (enemies[i].hp <= 0)
+		enemies_kill(i);
+	else {
+		stop_frames[i] = 4;
+		enemies[i].offset_y += 4;
+		enemies[i].is_active = 0;
+	}
+}
+
+static void enemies_kill(int i) {
+	enemies[i].id = 0;
+	enemies[i].is_active = 0;
+	enemies[i].is_visible = 0;
+	enemies[i].obj.x = 320;
+	stop_frames[i] = 0;
+}
+
+int enemies_do_spawn() {
+	int i;
+	int time = 1000;
+	i = 0;
+	while (i < MAX_ENEMIES) {
+		if (enemies[i].id == 0) {
+			enemies_spawn_random(enemies+i, en_animation+i);
+			break;
+		}
+		i++;
+	}
+	// Sets a new spawn time, depending on what was spawned
+	if (i < MAX_ENEMIES) {
+		// r = [-500, 500], with a step of 100
+		time = (GFraMe_util_randomi() % 11 - 5) * 100;
+		// easier enemies spawn faster! (also, 1s + r)
+		time = (1000 + time) / (3 - (enemies[i].id - 1) % 3);
+	}
+	return time;
 }
 
 void enemies_spawn_random(GFraMe_sprite *en, GFraMe_animation *anim) {

@@ -147,27 +147,12 @@ void ps_event_handler() {
 void ps_do_update() {
 	int i;
 	GFraMe_object *pl;
-	GFraMe_ojbect *en;
+	GFraMe_object *en;
 	
 	GFraMe_event_update_begin();
 		if (GFraMe_accumulator_loop(&acc_timer)) {
-			int r;
-			i = 0;
-			while (i < MAX_ENEMIES) {
-				if (!enemies[i].is_active) {
-					enemies_spawn_random(enemies+i, en_animation+i);
-					break;
-				}
-				i++;
-			}
-			// Sets a new spawn time, depending on what was spawned
-			if (i < MAX_ENEMIES) {
-				// r = [-500, 500], with a step of 100
-				r = (GFraMe_util_randomi() % 11 - 5) * 100;
-				// easier enemies spawn faster! (also, 1s + r)
-				r = (1000 + r) / (3 - (enemies[i].id - 1) % 3);
-				GFraMe_accumulator_init_set(&acc_timer, r, r);
-			}
+			int new_time = enemies_do_spawn();
+			GFraMe_accumulator_init_set(&acc_timer, new_time, new_time);
 		}
 		// Check if the player is near the appex, and should slowdown
 		if (player_slowdown())
@@ -175,76 +160,39 @@ void ps_do_update() {
 		// Then, update the player
 		player_update(GFraMe_event_elapsed);
 		// Collide the player with the floor
-		if (GFraMe_object_overlap(&ground, player_get_object(), GFraMe_first_fixed)
-			== GFraMe_ret_ok)
+		if (GFraMe_object_overlap(&ground, player_get_object(),
+								  GFraMe_first_fixed) == GFraMe_ret_ok)
 			player_on_ground();
 		// Update every enemy
-		enemies_update();
-		i = 0;
+		enemies_update(GFraMe_event_elapsed);
 		// Collide every enemy with the player
 		pl = player_get_object();
+		i = -1;
 		while (1) {
-			en = enemies_get_object(i++);
+			en = enemies_get_object(++i);
 			if (!en)
 				break;
-			if (GFraMe_object_overlap(&en->obj, player_get_object(), GFraMe_dont_collide) == GFraMe_ret_ok) {
+			else if (en->x > 320)
+				continue;
+			if (GFraMe_object_overlap(en, pl, GFraMe_dont_collide)
+				== GFraMe_ret_ok) {
 				if (player_on_squash() == GFraMe_ret_ok) {
-					en->hp--;
-					if (en->hp <= 0) {
-						en->id = 0;
-						en->is_active = 0;
-						en->is_visible = 0;
-					}
+					enemies_on_hit(i);
 				}
 				else {
 					// TODO Do something on collision
 				}
 			}
 		}
-		// Update each enemy that has a type (set in 'id' field) and collide it with the player
-		i = 0;
-		while (i < MAX_ENEMIES) {
-			if (enemies[i].is_active) {
-				GFraMe_sprite *en = enemies + i;
-				GFraMe_sprite_update(en, GFraMe_event_elapsed);
-				if (en->obj.x > 320) {
-					en->id = 0;
-					en->is_active = 0;
-					en->is_visible = 0;
-					i++;
-					continue;
-				}
-				if (GFraMe_object_overlap(&en->obj, player_get_object(), GFraMe_dont_collide) == GFraMe_ret_ok) {
-					if (player_on_squash() == GFraMe_ret_ok) {
-						en->hp--;
-						if (en->hp <= 0) {
-							en->id = 0;
-							en->is_active = 0;
-							en->is_visible = 0;
-						}
-					}
-					else {
-						// TODO Do something on collision
-					}
-				}
-			}
-			i++;
-		}
 	GFraMe_event_update_end();
 }
 
 void ps_do_draw() {
-	int i;
 	GFraMe_event_draw_begin();
 		// Draw the tilemap
 		GFraMe_tilemap_draw(&bg);
-		// Draw each enemy that has a type (set in 'id' field)
-		i = 0;
-		while (i < MAX_ENEMIES) {
-			if (enemies[i].is_visible)
-				GFraMe_sprite_draw(enemies + i);
-			i++;
-		}
+		// Draw every enemy
+		enemies_draw();
 		// Draw the player
 		player_draw();
 	GFraMe_event_draw_end();
