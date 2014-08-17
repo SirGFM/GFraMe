@@ -22,11 +22,15 @@ GFraMe_event_setup();
  * Timer used to spawn stuff
  */
 GFraMe_accumulator acc_timer;
-#define MAX_ENEMIES	32
+//#define MAX_ENEMIES	32
 /**
  * Array for every enemy (possibly) on the screen
  */
-GFraMe_sprite enemies[MAX_ENEMIES];
+//GFraMe_sprite enemies[MAX_ENEMIES];
+/**
+ * Array with on animation for each enemy
+ */
+//GFraMe_animation en_animation[MAX_ENEMIES];
 /**
  * Background (image and for collision [when implemented])
  */
@@ -83,7 +87,7 @@ void ps_init() {
 	while (i < 20*10) {
 		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
 		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
-		int col = i % 2 == 0; // even column = 1; odd = 0;
+		int col = i % 2 == 1; // even column = 0; odd column = 1;
 		bg_data[i] = 10 // The base BG tile
 					+ rng*2// Select from two type of BG
 					+(row == col);// Make a checkered board
@@ -106,24 +110,6 @@ void ps_init() {
 					-(rng)*4;
 		i++;
 	}
-
-/*
-0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
-0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
-0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
-0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
-0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
-2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,
-5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
-4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
-5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
-4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5
-};*/
 	// Initialize the player
 	player_init();
 	// Initialize the tilemap
@@ -134,12 +120,12 @@ void ps_init() {
 	GFraMe_object_set_hitbox(&ground, GFraMe_set_hitbox_upper_left,
 							 0, 0, GFraMe_buffer_w, 16);
 	// Initialize every enemy as non existing
-	i = 0;
-	while (i < MAX_ENEMIES) {
-		enemies[i].is_active = 0;
-		enemies[i].is_visible = 0;
-		i++;
-	}
+	//i = 0;
+	//while (i < MAX_ENEMIES) {
+	//	enemies[i].is_active = 0;
+	//	enemies[i].is_visible = 0;
+	//	i++;
+	//}
 	// Initialize the spawn timer
 	GFraMe_accumulator_init_fps(&acc_timer, 1, 1);
 	// Initialize the timer and clean the events accumulated on the queue
@@ -160,13 +146,16 @@ void ps_event_handler() {
 
 void ps_do_update() {
 	int i;
+	GFraMe_object *pl;
+	GFraMe_ojbect *en;
+	
 	GFraMe_event_update_begin();
 		if (GFraMe_accumulator_loop(&acc_timer)) {
 			int r;
 			i = 0;
 			while (i < MAX_ENEMIES) {
 				if (!enemies[i].is_active) {
-					enemies_spawn_random(enemies+i);
+					enemies_spawn_random(enemies+i, en_animation+i);
 					break;
 				}
 				i++;
@@ -189,6 +178,29 @@ void ps_do_update() {
 		if (GFraMe_object_overlap(&ground, player_get_object(), GFraMe_first_fixed)
 			== GFraMe_ret_ok)
 			player_on_ground();
+		// Update every enemy
+		enemies_update();
+		i = 0;
+		// Collide every enemy with the player
+		pl = player_get_object();
+		while (1) {
+			en = enemies_get_object(i++);
+			if (!en)
+				break;
+			if (GFraMe_object_overlap(&en->obj, player_get_object(), GFraMe_dont_collide) == GFraMe_ret_ok) {
+				if (player_on_squash() == GFraMe_ret_ok) {
+					en->hp--;
+					if (en->hp <= 0) {
+						en->id = 0;
+						en->is_active = 0;
+						en->is_visible = 0;
+					}
+				}
+				else {
+					// TODO Do something on collision
+				}
+			}
+		}
 		// Update each enemy that has a type (set in 'id' field) and collide it with the player
 		i = 0;
 		while (i < MAX_ENEMIES) {
