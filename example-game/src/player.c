@@ -1,6 +1,7 @@
 /**
  * @src/player.c
  */
+#include <GFraMe/GFraMe_animation.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_sprite.h>
@@ -17,6 +18,14 @@ static GFraMe_sprite player;
  * Target that the player will jump/dash toward
  */
 static GFraMe_sprite tgt;
+/**
+ * Target's animation
+ */
+static GFraMe_animation tgt_anim;
+/**
+ * Data for the target's animation
+ */
+static int tgt_anim_data[2] = {14, 15};
 
 static double jump_speed;
 static int cooldown;
@@ -32,7 +41,10 @@ void player_init() {
 	player.obj.ay = 500;
 	// Init the target
 	GFraMe_sprite_init(&tgt, -16, -16, 16, 16, &gl_sset16, 0, 0);
-	tgt.cur_tile = 9;
+	// Init the target's animation
+	GFraMe_animation_init(&tgt_anim, 12, tgt_anim_data, 2, 1);
+	GFraMe_sprite_set_animation(&tgt, &tgt_anim);
+	//tgt.cur_tile = 14;
 	tgt.id = 0;
 	// Set the players initial jump speed
 	jump_speed = BASE_JUMP;
@@ -95,8 +107,8 @@ void player_on_ground() {
 
 GFraMe_ret player_on_squash() {
 	// Check if the player did squash an enemy
-	if (player.obj.y + player.obj.hitbox.cy + player.obj.hitbox.hh >= 158 ||
-		!(player.obj.hit & GFraMe_direction_down))
+	if (player.obj.y + player.obj.hitbox.cy +player.obj.hitbox.hh >= 158 ||
+		!(player.obj.hit & GFraMe_direction_down) || player.obj.vy < 0)
 		return GFraMe_ret_failed;
 	// Increase its speed
 	if (jump_speed < 350)

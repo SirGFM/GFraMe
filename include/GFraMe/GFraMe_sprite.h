@@ -43,6 +43,18 @@ struct stGFraMe_sprite {
 	 * Unused; a possible utillity is for setting "types"
 	 */
 	int id;
+	/**
+	 * How much health points this sprite has; could be usefull
+	 */
+	int hp;
+	/**
+	 * Great for list of sprites; use this to disable drawing
+	 */
+	int is_visible;
+	/**
+	 * Great for list of sprites; use this to disable updating
+	 */
+	int is_active;
 };
 typedef struct stGFraMe_sprite GFraMe_sprite;
 

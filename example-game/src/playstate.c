@@ -77,7 +77,37 @@ void ps_loop() {
 void ps_init() {
 	int i;
 	// Tilemap data for the background
-	char bg_data[20*15] = {
+	char bg_data[20*15];
+	i = 0;
+	// Fill up the background with tiles
+	while (i < 20*10) {
+		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
+		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
+		int col = i % 2 == 0; // even column = 1; odd = 0;
+		bg_data[i] = 10 // The base BG tile
+					+ rng*2// Select from two type of BG
+					+(row == col);// Make a checkered board
+		i++;
+	}
+	// Fill the floor tiles
+	// Fill the first row with a specific type of tiles
+	while (i < 20*11) {
+		bg_data[i] = i % 2 == 1;
+		i++;
+	}
+	// Fill the rest with random data
+	while (i < 20*15) {
+		int rng = GFraMe_util_randomi() % 10 >= 8; // 80% = 0; 20% = 1;
+		int row = i / 20 % 2 == 1; // even row = 0; odd row = 1;
+		int col = i % 2 == 1; // even column = 0; odd = 1;
+		bg_data[i] = 6
+					+row*2
+					+col
+					-(rng)*4;
+		i++;
+	}
+
+/*
 0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
 1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
 0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
@@ -93,7 +123,7 @@ void ps_init() {
 4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,
 5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,
 4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5
-};
+};*/
 	// Initialize the player
 	player_init();
 	// Initialize the tilemap
@@ -106,7 +136,8 @@ void ps_init() {
 	// Initialize every enemy as non existing
 	i = 0;
 	while (i < MAX_ENEMIES) {
-		enemies[i].id = 0;
+		enemies[i].is_active = 0;
+		enemies[i].is_visible = 0;
 		i++;
 	}
 	// Initialize the spawn timer
@@ -134,7 +165,7 @@ void ps_do_update() {
 			int r;
 			i = 0;
 			while (i < MAX_ENEMIES) {
-				if (!enemies[i].id) {
+				if (!enemies[i].is_active) {
 					enemies_spawn_random(enemies+i);
 					break;
 				}
@@ -161,23 +192,28 @@ void ps_do_update() {
 		// Update each enemy that has a type (set in 'id' field) and collide it with the player
 		i = 0;
 		while (i < MAX_ENEMIES) {
-			if (enemies[i].id) {
+			if (enemies[i].is_active) {
 				GFraMe_sprite *en = enemies + i;
 				GFraMe_sprite_update(en, GFraMe_event_elapsed);
 				if (en->obj.x > 320) {
 					en->id = 0;
+					en->is_active = 0;
+					en->is_visible = 0;
 					i++;
 					continue;
 				}
 				if (GFraMe_object_overlap(&en->obj, player_get_object(), GFraMe_dont_collide) == GFraMe_ret_ok) {
-					//if (pl.obj.y < 144 &&
-					//	(pl.obj.hit & GFraMe_direction_down)) {
-						//pl.obj.vy = -200;
-					if (player_on_squash() == GFraMe_ret_ok)
-						en->id = 0;
-						//tgt.id = 0;
-					//}
-					// TODO Do something on collision
+					if (player_on_squash() == GFraMe_ret_ok) {
+						en->hp--;
+						if (en->hp <= 0) {
+							en->id = 0;
+							en->is_active = 0;
+							en->is_visible = 0;
+						}
+					}
+					else {
+						// TODO Do something on collision
+					}
 				}
 			}
 			i++;
@@ -193,16 +229,12 @@ void ps_do_draw() {
 		// Draw each enemy that has a type (set in 'id' field)
 		i = 0;
 		while (i < MAX_ENEMIES) {
-			if (enemies[i].id)
+			if (enemies[i].is_visible)
 				GFraMe_sprite_draw(enemies + i);
 			i++;
 		}
 		// Draw the player
 		player_draw();
-		//GFraMe_sprite_draw(&pl);
-		// Draw the target, only if visible (lazily set as 'id' field)
-		//if (tgt.id)
-		//	GFraMe_sprite_draw(&tgt);
 	GFraMe_event_draw_end();
 }
 

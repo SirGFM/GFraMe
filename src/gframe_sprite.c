@@ -53,8 +53,11 @@ void GFraMe_sprite_init(GFraMe_sprite *spr, int x, int y, int w, int h,
 	// Set the graphic's offset from the physical position
 	spr->offset_x = ox;
 	spr->offset_y = oy;
-	// Set id to zero because... whatever
+	// Set stuff to zero/one because... whatever
 	spr->id = 0;
+	spr->hp = 1;
+	spr->is_visible = 1;
+	spr->is_active = 1;
 }
 
 /**

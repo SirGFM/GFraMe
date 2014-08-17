@@ -12,7 +12,7 @@
  * @param	num_frames	How many frames there are in the animation
  * @param	do_loop	Whether it should loop (1) or not (0)
  */
-void GFrame_animation_init(
+void GFraMe_animation_init(
 	GFraMe_animation *anim,
 	int fps,
 	int const *frames,
@@ -64,6 +64,7 @@ GFraMe_ret GFraMe_animation_update(GFraMe_animation *anim, int ms) {
 				anim->index = 0;
 			}
 		}
+		anim->tile = anim->frames[anim->index];
 		// Also, return that a new frame was issued
 		return GFraMe_ret_anim_new_frame;
 	}
