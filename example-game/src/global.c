@@ -38,15 +38,15 @@ GFraMe_ret global_init() {
 	GFraMe_ret rv;
 	char *filename;
 	unsigned char *pixels = NULL;
-	const int atlas_w = 128;
-	const int atlas_h = 128;
+	const int atlas_w = 256;
+	const int atlas_h = 256;
 	
 	// Init the texture, so nothing happens on error
 	GFraMe_texture_init(&gl_atlas);
 	// Check for the 'compiled' texture
-	filename = GFraMe_assets_clean_filename("assets/new-atlas.dat");
+	filename = GFraMe_assets_clean_filename("assets/new-atlas-2.dat");
 	if (GFraMe_assets_check_file(filename) != GFraMe_ret_ok) {
-		char *bmpfn = GFraMe_assets_clean_filename("assets/new-atlas.bmp");
+		char *bmpfn = GFraMe_assets_clean_filename("assets/new-atlas-2.bmp");
 		GFraMe_log("Couldn't find atlas.dat... creating it...");
 		// Create the usable texture
 		rv = GFraMe_assets_bmp2dat(bmpfn, 0xff00ff, filename);

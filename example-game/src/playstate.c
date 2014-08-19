@@ -22,15 +22,6 @@ GFraMe_event_setup();
  * Timer used to spawn stuff
  */
 GFraMe_accumulator acc_timer;
-//#define MAX_ENEMIES	32
-/**
- * Array for every enemy (possibly) on the screen
- */
-//GFraMe_sprite enemies[MAX_ENEMIES];
-/**
- * Array with on animation for each enemy
- */
-//GFraMe_animation en_animation[MAX_ENEMIES];
 /**
  * Background (image and for collision [when implemented])
  */
@@ -88,26 +79,25 @@ void ps_init() {
 		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
 		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
 		int col = i % 2 == 1; // even column = 0; odd column = 1;
-		bg_data[i] = 10 // The base BG tile
-					+ rng*2// Select from two type of BG
+		bg_data[i] = 6      // The base BG tile
+					+rng*2  // Select from two type of BG
 					+(row == col);// Make a checkered board
 		i++;
 	}
 	// Fill the floor tiles
 	// Fill the first row with a specific type of tiles
 	while (i < 20*11) {
-		bg_data[i] = i % 2 == 1;
+		bg_data[i] = i % 2 == 0;
 		i++;
 	}
 	// Fill the rest with random data
 	while (i < 20*15) {
-		int rng = GFraMe_util_randomi() % 10 >= 8; // 80% = 0; 20% = 1;
-		int row = i / 20 % 2 == 1; // even row = 0; odd row = 1;
-		int col = i % 2 == 1; // even column = 0; odd = 1;
-		bg_data[i] = 6
-					+row*2
-					+col
-					-(rng)*4;
+		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
+		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
+		int col = i % 2 == 0; // even column = 1; odd = 0;
+		bg_data[i] = 2      // The base floor tile
+					+(row == col)
+					+(rng)*2;
 		i++;
 	}
 	// Initialize the player
@@ -120,12 +110,7 @@ void ps_init() {
 	GFraMe_object_set_hitbox(&ground, GFraMe_set_hitbox_upper_left,
 							 0, 0, GFraMe_buffer_w, 16);
 	// Initialize every enemy as non existing
-	//i = 0;
-	//while (i < MAX_ENEMIES) {
-	//	enemies[i].is_active = 0;
-	//	enemies[i].is_visible = 0;
-	//	i++;
-	//}
+	enemies_init();
 	// Initialize the spawn timer
 	GFraMe_accumulator_init_fps(&acc_timer, 1, 1);
 	// Initialize the timer and clean the events accumulated on the queue

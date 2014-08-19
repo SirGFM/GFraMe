@@ -55,6 +55,10 @@ struct stGFraMe_sprite {
 	 * Great for list of sprites; use this to disable updating
 	 */
 	int is_active;
+	/**
+	 * Whether it should be drawn flipped or not
+	 */
+	int flipped;
 };
 typedef struct stGFraMe_sprite GFraMe_sprite;
 

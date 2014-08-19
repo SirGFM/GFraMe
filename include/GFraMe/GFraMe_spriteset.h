@@ -64,10 +64,11 @@ void GFraMe_spriteset_init(GFraMe_spriteset *sset, GFraMe_texture *tex,
  * @param	tile	Index from the spriteset to be used
  * @param	x	Horizontal position, on the screen
  * @param	y	Vertical position, on the screen
+ * @param	flipped	Whether the tile should be drawn flipped or not
  * @return	0 - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x,
-								 int y);
+								 int y, int flipped);
 
 #endif
 

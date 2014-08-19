@@ -163,6 +163,42 @@ _ret:
 }
 
 /**
+ * Copy into the texture defined at lock (no check is made!!),
+ * flipping source horizontally
+ * @param	sx	Source upper-left horizontal position
+ * @param	sy	Source upper-left vertical position
+ * @param	sw	Source's rect width
+ * @param	sh	Source's rect height
+ * @param	dx	Destination upper-left horizontal position
+ * @param	dy	Destionation upper-left vertical position
+ * @param	dw	Destination's rect width
+ * @param	dh	Destionation's rect height
+ * @param	*tex	Source texture for copying
+ */
+GFraMe_ret GFraMe_texture_l_copy_flipped(int sx, int sy, int sw, int sh,
+						  int dx, int dy, int dw, int dh,
+						  GFraMe_texture *tex) {
+	int rv = 0;
+	SDL_Rect src;
+	SDL_Rect dst;
+	// Set up src info
+	src.x = sx;
+	src.y = sy;
+	src.w = sw;
+	src.h = sh;
+	// Set up dst info
+	dst.x = dx;
+	dst.y = dy;
+	dst.w = dw;
+	dst.h = dh;
+	// Copy it
+	rv = SDL_RenderCopyEx(GFraMe_renderer, tex->texture, &src, &dst, 0.0, NULL, SDL_FLIP_HORIZONTAL);
+	GFraMe_SDLassertRet(rv == 0, "Failed to copy", _ret);
+_ret:
+	return rv;
+}
+
+/**
  * Copies portion of a texture into another texture
  * @param	sx	Source upper-left horizontal position
  * @param	sy	Source upper-left vertical position

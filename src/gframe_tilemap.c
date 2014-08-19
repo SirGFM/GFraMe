@@ -100,7 +100,7 @@ GFraMe_ret GFraMe_tilemap_draw(GFraMe_tilemap *tmap) {
 			rv = GFraMe_spriteset_draw(tmap->sset,
 								  tmap->data[i + j*tmap->width_in_tiles],
 								  tmap->x + i*tmap->sset->tw,
-								  tmap->y + j*tmap->sset->th);
+								  tmap->y + j*tmap->sset->th, 0);
 			GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to draw tilemap",
 							 _ret);
 			j++;

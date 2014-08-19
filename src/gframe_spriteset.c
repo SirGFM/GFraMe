@@ -37,9 +37,11 @@ void GFraMe_spriteset_init(GFraMe_spriteset *sset, GFraMe_texture *tex,
  * @param	tile	Index from the spriteset to be used
  * @param	x	Horizontal position, on the screen
  * @param	y	Vertical position, on the screen
+ * @param	flipped	Whether the tile should be drawn flipped or not
  * @return	GFraMe_ret_ok - Success; Anything else - Failure
  */
-GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x, int y){
+GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x,
+								 int y, int flipped){
 	GFraMe_ret rv = GFraMe_ret_ok;
 	// Source position, on the texture
 	int sx, sy;
@@ -51,8 +53,12 @@ GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x, int y)
 	sy = (tile / sset->columns) * sset->th;
 	// If no lock was performed (and rendering was initiated),
 	// GFraMe_texture_l_copy will copy to the screen
-	rv = GFraMe_texture_l_copy(sx, sy, sset->tw, sset->th,
-							    x,  y, sset->tw, sset->th, sset->tex);
+	if (!flipped)
+		rv = GFraMe_texture_l_copy(sx, sy, sset->tw, sset->th,
+								    x,  y, sset->tw, sset->th, sset->tex);
+	else
+		rv = GFraMe_texture_l_copy_flipped(sx, sy, sset->tw, sset->th,
+								    x,  y, sset->tw, sset->th, sset->tex);
 	GFraMe_assertRet(rv == 0, "Failed to render tile!", _ret);
 _ret:
 	return rv;

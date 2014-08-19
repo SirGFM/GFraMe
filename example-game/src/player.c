@@ -25,7 +25,7 @@ static GFraMe_animation tgt_anim;
 /**
  * Data for the target's animation
  */
-static int tgt_anim_data[2] = {14, 15};
+static int tgt_anim_data[4] = {10, 12, 13, 12};
 
 static double jump_speed;
 static int cooldown;
@@ -36,13 +36,13 @@ void player_init() {
 	// Draw debug!!
 	GFraMe_draw_debug = 1;
 	// Init the player itself
-	GFraMe_sprite_init(&player, 10, 10, 8, 14, &gl_sset16, -4, -2);
+	GFraMe_sprite_init(&player, 10, 10, 14, 24, &gl_sset32, -6, -6);
 	player.cur_tile = 8;
 	player.obj.ay = 500;
 	// Init the target
 	GFraMe_sprite_init(&tgt, -16, -16, 16, 16, &gl_sset16, 0, 0);
 	// Init the target's animation
-	GFraMe_animation_init(&tgt_anim, 12, tgt_anim_data, 2, 1);
+	GFraMe_animation_init(&tgt_anim, 12, tgt_anim_data, 4, 1);
 	GFraMe_sprite_set_animation(&tgt, &tgt_anim);
 	//tgt.cur_tile = 14;
 	tgt.id = 0;
@@ -71,6 +71,8 @@ void player_update(int ms) {
 		double dist = GFraMe_util_sqrtd(X*X + Y*Y);
 		player.obj.vx = player.obj.vx / 4.0 + X / dist * jump_speed;
 		player.obj.vy = Y / dist * jump_speed;
+		if (player.obj.vx != 0.0)
+			player.flipped = player.obj.vx < 0.0;
 	}
 	GFraMe_sprite_update(&player, ms);
 	if (cooldown > 0)
@@ -103,6 +105,7 @@ void player_on_ground() {
 	else
 		player.obj.vy = 0.0;
 	did_combo = 0;
+	player.cur_tile = 8;
 }
 
 GFraMe_ret player_on_squash() {
@@ -123,6 +126,8 @@ GFraMe_ret player_on_squash() {
 	// Make the player jump
 	player.obj.vy = -jump_speed;
 	tgt.id = 0;
+	if (player.obj.vx != 0.0)
+		player.flipped = player.obj.vx < 0.0;
 	return GFraMe_ret_ok;
 }
 
@@ -144,6 +149,9 @@ GFraMe_ret player_jump(int X) {
 	player.obj.vy = -jump_speed;
 	player.obj.vx = X - player.obj.x;
 	player.obj.ax = 0.0;
+	player.cur_tile = 9;
+	if (player.obj.vx != 0.0)
+		player.flipped = player.obj.vx < 0.0;
 	return GFraMe_ret_ok;
 }
 

@@ -11,10 +11,11 @@
 
 #define MAX_ENEMIES	32
 
-static int bug01_anim_data[2] = {4, 5};
-static int bug02_anim_data[2] = {6, 7};
-static int bug03_anim_data[2] = {8, 9};
-static int beetle01_anim_data[2] = {10, 11};
+static int bug01_anim_data[2] = {15, 16};
+static int bug02_anim_data[2] = {18, 19};
+static int bug03_anim_data[2] = {21, 22};
+static int beetle01_anim_data[2] = {24, 25};
+static int beetle02_anim_data[2] = {32, 33};
 
 /**
  * Array for every enemy (possibly) on the screen
@@ -36,6 +37,7 @@ void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim);
 void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim);
 
 void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim);
+void enemies_beetle_norm_init(GFraMe_sprite *en, GFraMe_animation *anim);
 
 /**
  * Simple macro to create an sprite that uses the 16x16 spriteset.
@@ -110,6 +112,13 @@ void enemies_on_hit(int i) {
 		stop_frames[i] = 4;
 		enemies[i].offset_y += 4;
 		enemies[i].is_active = 0;
+		switch (enemies[i].id) {
+			case 1: enemies[i].cur_tile = 17; break;
+			case 2: enemies[i].cur_tile = 20; break;
+			case 3: enemies[i].cur_tile = 23; break;
+			case 4: enemies[i].cur_tile = 31; break;
+			case 5: enemies[i].cur_tile = 39; break;
+		}
 	}
 }
 
@@ -117,7 +126,7 @@ static void enemies_kill(int i) {
 	enemies[i].id = 0;
 	enemies[i].is_active = 0;
 	enemies[i].is_visible = 0;
-	enemies[i].obj.x = 320;
+	enemies[i].obj.x = 640;
 	stop_frames[i] = 0;
 }
 
@@ -148,20 +157,22 @@ void enemies_spawn_random(GFraMe_sprite *en, GFraMe_animation *anim) {
 		case 0:
 		case 1:
 		case 2:
+			enemies_bug_easy_init(en, anim);
+		break;
 		case 3:
 		case 4:
 		case 5:
-			enemies_bug_easy_init(en, anim);
+			enemies_bug_norm_init(en, anim);
 		break;
 		case 6:
+			enemies_bug_hard_init(en, anim);
+		break;
 		case 7:
 		case 8:
-		//case 9:
-			enemies_bug_norm_init(en, anim);
-			//enemies_beetle_easy_init(en, anim);
+			enemies_beetle_easy_init(en, anim);
 		break;
 		case 9:
-			enemies_bug_hard_init(en, anim);
+			enemies_beetle_norm_init(en, anim);
 	}
 }
 
@@ -188,9 +199,17 @@ void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 
 void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	INIT_SPRITE32(en, 17, anim, 8, beetle01_anim_data, 2);
-	en->id = 7;
+	en->id = 4;
 	en->hp = 3;
-	en->cur_tile = 10;
 	en->obj.vx = 100;
+	en->offset_y += 8;
+}
+
+void enemies_beetle_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
+	INIT_SPRITE32(en, 17, anim, 8, beetle02_anim_data, 2);
+	en->id = 5;
+	en->hp = 5;
+	en->obj.vx = 120;
+	en->offset_y += 8;
 }
 

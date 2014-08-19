@@ -74,6 +74,22 @@ void GFraMe_texture_unlock();
 GFraMe_ret GFraMe_texture_l_copy(int sx, int sy, int sw, int sh,
 						  int dx, int dy, int dw, int dh,
 						  GFraMe_texture *tex);
+/**
+ * Copy into the texture defined at lock (no check is made!!),
+ * flipping source horizontally
+ * @param	sx	Source upper-left horizontal position
+ * @param	sy	Source upper-left vertical position
+ * @param	sw	Source's rect width
+ * @param	sh	Source's rect height
+ * @param	dx	Destination upper-left horizontal position
+ * @param	dy	Destionation upper-left vertical position
+ * @param	dw	Destination's rect width
+ * @param	dh	Destionation's rect height
+ * @param	*tex	Source texture for copying
+ */
+GFraMe_ret GFraMe_texture_l_copy_flipped(int sx, int sy, int sw, int sh,
+						  int dx, int dy, int dw, int dh,
+						  GFraMe_texture *tex);
 
 /**
  * Copies portion of a texture into another texture

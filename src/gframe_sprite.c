@@ -58,6 +58,7 @@ void GFraMe_sprite_init(GFraMe_sprite *spr, int x, int y, int w, int h,
 	spr->hp = 1;
 	spr->is_visible = 1;
 	spr->is_active = 1;
+	spr->flipped = 0;
 }
 
 /**
@@ -87,9 +88,16 @@ void GFraMe_sprite_update(GFraMe_sprite *spr, int ms) {
  * @param	*spr	Sprite to be drawn
  */
 void GFraMe_sprite_draw(GFraMe_sprite *spr) {
+	int x = spr->obj.x;
 	// Simply draw the current frame at the current position
+	if (!spr->flipped)
+		x += spr->offset_x;
+	else
+		x += -(spr->sset->tw - ((int)spr->obj.hitbox.hw * 2.0))
+			 - spr->offset_x;
 	GFraMe_spriteset_draw(spr->sset, spr->cur_tile,
-			spr->obj.x + spr->offset_x, spr->obj.y + spr->offset_y);
+			x, spr->obj.y + spr->offset_y,
+			spr->flipped);
 #ifdef DEBUG
 	// If should draw the bounding box
 	if (GFraMe_draw_debug) {
