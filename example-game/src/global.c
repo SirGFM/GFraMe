@@ -14,6 +14,10 @@
  */
 int gl_running = 0;
 /**
+ * Reference to the atlas with 8x8 sprites
+ */
+GFraMe_spriteset gl_sset8;
+/**
  * Reference to the atlas with 16x16 sprites
  */
 GFraMe_spriteset gl_sset16;
@@ -59,6 +63,7 @@ GFraMe_ret global_init() {
 	rv = GFraMe_texture_load(&gl_atlas, atlas_w, atlas_h, pixels);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to create texture", _ret);
 	// Create the spritesets (i.e., make some basic calculations)
+	GFraMe_spriteset_init(&gl_sset8, &gl_atlas, 8, 8);
 	GFraMe_spriteset_init(&gl_sset16, &gl_atlas, 16, 16);
 	GFraMe_spriteset_init(&gl_sset32, &gl_atlas, 32, 32);
 	//GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);

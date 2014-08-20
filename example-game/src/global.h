@@ -7,9 +7,18 @@
 #include <GFraMe/GFraMe_spriteset.h>
 
 /**
+ * Function that maps a character to its tile counterpart
+ */
+#define CHAR2TILE(x)	(x - '!')
+
+/**
  * Whether the main loop is running
  */
 extern int gl_running;
+/**
+ * Reference to the atlas with 8x8 sprites
+ */
+extern GFraMe_spriteset gl_sset8;
 /**
  * Reference to the atlas with 16x16 sprites
  */

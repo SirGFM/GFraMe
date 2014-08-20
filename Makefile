@@ -1,5 +1,5 @@
 
-CC = cc
+CC = gcc
 .SUFFIXES=.c .o
 
 TARGET = libGFraMe

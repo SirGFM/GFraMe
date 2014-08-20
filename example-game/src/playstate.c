@@ -10,6 +10,7 @@
 #include "enemies.h"
 #include "global.h"
 #include "player.h"
+#include "score.h"
 #include "playstate.h"
 
 // Define some variables needed by the events module
@@ -26,6 +27,10 @@ GFraMe_accumulator acc_timer;
  * Background (image and for collision [when implemented])
  */
 GFraMe_tilemap bg;
+/**
+ * Tilemap data for the background
+ */
+char bg_data[20*15];
 /**
  * Floor collideable; doesn't need gfx
  */
@@ -69,25 +74,24 @@ void ps_loop() {
 	ps_cleanup();
 }
 
+#define BASE_TILE	16
 void ps_init() {
 	int i;
-	// Tilemap data for the background
-	char bg_data[20*15];
 	i = 0;
 	// Fill up the background with tiles
 	while (i < 20*10) {
 		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
 		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
 		int col = i % 2 == 1; // even column = 0; odd column = 1;
-		bg_data[i] = 6      // The base BG tile
-					+rng*2  // Select from two type of BG
+		bg_data[i] = BASE_TILE+6  // The base BG tile
+					+rng*2		  // Select from two type of BG
 					+(row == col);// Make a checkered board
 		i++;
 	}
 	// Fill the floor tiles
 	// Fill the first row with a specific type of tiles
 	while (i < 20*11) {
-		bg_data[i] = i % 2 == 0;
+		bg_data[i] = BASE_TILE + (i % 2 == 0);
 		i++;
 	}
 	// Fill the rest with random data
@@ -95,7 +99,7 @@ void ps_init() {
 		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
 		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
 		int col = i % 2 == 0; // even column = 1; odd = 0;
-		bg_data[i] = 2      // The base floor tile
+		bg_data[i] = BASE_TILE + 2 // The base floor tile
 					+(row == col)
 					+(rng)*2;
 		i++;
@@ -111,6 +115,8 @@ void ps_init() {
 							 0, 0, GFraMe_buffer_w, 16);
 	// Initialize every enemy as non existing
 	enemies_init();
+	// Initialize the score subsystem
+	score_init();
 	// Initialize the spawn timer
 	GFraMe_accumulator_init_fps(&acc_timer, 1, 1);
 	// Initialize the timer and clean the events accumulated on the queue
@@ -169,6 +175,8 @@ void ps_do_update() {
 				}
 			}
 		}
+		// Update the current displaying score
+		score_update(GFraMe_event_elapsed);
 	GFraMe_event_update_end();
 }
 
@@ -180,6 +188,8 @@ void ps_do_draw() {
 		enemies_draw();
 		// Draw the player
 		player_draw();
+		// Draw the current score
+		score_draw();
 	GFraMe_event_draw_end();
 }
 

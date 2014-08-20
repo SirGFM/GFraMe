@@ -1,5 +1,5 @@
 
-CC = cc
+CC = gcc
 .SUFFIXES=.c .o
 
 TARGET = bugsquasher
@@ -55,7 +55,7 @@ OBJDIR = $(BOBJDIR)/$(OS)
 BINDIR = bin/$(OS)
 
 OBJS = $(OBJDIR)/main.o $(OBJDIR)/global.o $(OBJDIR)/playstate.o \
-       $(OBJDIR)/enemies.o $(OBJDIR)/player.o
+       $(OBJDIR)/enemies.o $(OBJDIR)/player.o $(OBJDIR)/score.o
 
 all: $(BINDIR)/$(TARGET)
 

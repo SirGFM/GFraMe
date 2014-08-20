@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "global.h"
 #include "player.h"
+#include "score.h"
 #include "enemies.h"
 
 #define MAX_ENEMIES	32
@@ -123,6 +124,10 @@ void enemies_on_hit(int i) {
 }
 
 static void enemies_kill(int i) {
+	if (enemies[i].id <= 3)
+		score_inc(35 * enemies[i].id);
+	else if (enemies[i].id <= 5)
+		score_inc(50 * enemies[i].id);
 	enemies[i].id = 0;
 	enemies[i].is_active = 0;
 	enemies[i].is_visible = 0;
