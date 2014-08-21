@@ -7,6 +7,7 @@
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_util.h>
 #include "global.h"
+#include "multiplier.h"
 #include "player.h"
 
 #define BASE_JUMP	200.0
@@ -100,10 +101,14 @@ void player_on_ground() {
 	combo = 0;
 	cooldown = 0;
 	player.obj.ax = 0.0;
-	if (did_combo)
+	if (did_combo) {
+		multi_half();
 		player.obj.vy = -jump_speed;
-	else
+	}
+	else {
+		multi_reset();
 		player.obj.vy = 0.0;
+	}
 	did_combo = 0;
 	player.cur_tile = 8;
 }

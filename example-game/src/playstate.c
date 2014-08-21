@@ -10,6 +10,7 @@
 #include "enemies.h"
 #include "global.h"
 #include "player.h"
+#include "multiplier.h"
 #include "score.h"
 #include "playstate.h"
 
@@ -35,6 +36,20 @@ char bg_data[20*15];
  * Floor collideable; doesn't need gfx
  */
 GFraMe_object ground;
+/**
+ * Whether the intro screen has given place to the actual playstate
+ */
+int game_init = 0;
+/**
+ * Whether the game should restart when it leaves the loop
+ */
+int restart = 0;
+
+static GFraMe_tilemap init_text;
+static char init_data[20];
+static void init_eh();
+static void init_update();
+static void init_draw();
 
 /**
  * Initializes the play state (i.e., reset positions and stuff)
@@ -65,12 +80,22 @@ void ps_cleanup();
  * Initialize and run the play state loop
  */
 void ps_loop() {
+_begin:
 	ps_init();
+	while (gl_running && !game_init) {
+		init_eh();
+		init_update();
+		init_draw();
+	}
 	while (gl_running) {
 		ps_event_handler();
 		ps_do_update();
 		ps_do_draw();
 	}
+	// TODO display stats
+	// I don't care what you say, this isn't bad design!
+	if (restart)
+		goto _begin;
 	ps_cleanup();
 }
 
@@ -81,7 +106,7 @@ void ps_init() {
 	// Fill up the background with tiles
 	while (i < 20*10) {
 		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
-		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
+		int row = i / 20 % 2 == 1; // even row = 1; odd row = 0;
 		int col = i % 2 == 1; // even column = 0; odd column = 1;
 		bg_data[i] = BASE_TILE+6  // The base BG tile
 					+rng*2		  // Select from two type of BG
@@ -117,10 +142,48 @@ void ps_init() {
 	enemies_init();
 	// Initialize the score subsystem
 	score_init();
+	// Initialize the multiplier subsystem
+	multi_init();
 	// Initialize the spawn timer
 	GFraMe_accumulator_init_fps(&acc_timer, 1, 1);
 	// Initialize the timer and clean the events accumulated on the queue
 	GFraMe_event_init(60, 60);
+	// Clean restart flag
+	restart = 0;
+	game_init = 0;
+	// Set init text
+	GFraMe_tilemap_init(&init_text, 20, 1, init_data, &gl_sset8, NULL, 0);
+	init_text.x = (320 - 20*8) / 2;
+	init_text.y = 240 - 32 - 12;
+	i = 0;
+	init_data[i++] = CHAR2TILE('-');
+	init_data[i++] = CHAR2TILE('-');
+	init_data[i++] = CHAR2TILE(' ');
+#ifndef MOBILE
+	init_data[i++] = CHAR2TILE('C');
+	init_data[i++] = CHAR2TILE('L');
+	init_data[i++] = CHAR2TILE('I');
+	init_data[i++] = CHAR2TILE('C');
+	init_data[i++] = CHAR2TILE('K');
+#else
+	init_data[i++] = CHAR2TILE('T');
+	init_data[i++] = CHAR2TILE('O');
+	init_data[i++] = CHAR2TILE('U');
+	init_data[i++] = CHAR2TILE('C');
+	init_data[i++] = CHAR2TILE('H');
+#endif
+	init_data[i++] = CHAR2TILE(' ');
+	init_data[i++] = CHAR2TILE('T');
+	init_data[i++] = CHAR2TILE('O');
+	init_data[i++] = CHAR2TILE(' ');
+	init_data[i++] = CHAR2TILE('S');
+	init_data[i++] = CHAR2TILE('T');
+	init_data[i++] = CHAR2TILE('A');
+	init_data[i++] = CHAR2TILE('R');
+	init_data[i++] = CHAR2TILE('T');
+	init_data[i++] = CHAR2TILE(' ');
+	init_data[i++] = CHAR2TILE('-');
+	init_data[i++] = CHAR2TILE('-');
 }
 
 void ps_event_handler() {
@@ -177,6 +240,8 @@ void ps_do_update() {
 		}
 		// Update the current displaying score
 		score_update(GFraMe_event_elapsed);
+		// Update the current multiplier
+		multi_update(GFraMe_event_elapsed);
 	GFraMe_event_update_end();
 }
 
@@ -190,6 +255,8 @@ void ps_do_draw() {
 		player_draw();
 		// Draw the current score
 		score_draw();
+		// Draw the current multiplier
+		multi_draw();
 	GFraMe_event_draw_end();
 }
 
@@ -200,5 +267,29 @@ void ps_on_click(int X, int Y) {
 
 void ps_cleanup() {
 	GFraMe_tilemap_clear(&bg);
+}
+
+static void init_eh() {
+	GFraMe_event_begin();
+		GFraMe_event_on_timer();
+			GFraMe_accumulator_update(&acc_timer, __dt__);
+		GFraMe_event_on_mouse_down();
+			game_init = 1;
+		GFraMe_event_on_quit();
+			GFraMe_log("Received quit!");
+			gl_running = 0;
+	GFraMe_event_end();
+}
+static void init_update() {
+	GFraMe_event_update_begin();
+	GFraMe_event_update_end();
+}
+static void init_draw() {
+	GFraMe_event_draw_begin();
+		// Draw the tilemap
+		GFraMe_tilemap_draw(&bg);
+		// Draw start message
+		GFraMe_tilemap_draw(&init_text);
+	GFraMe_event_draw_end();
 }
 

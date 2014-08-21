@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "global.h"
 #include "player.h"
+#include "multiplier.h"
 #include "score.h"
 #include "enemies.h"
 
@@ -71,8 +72,9 @@ void enemies_update(int ms) {
 			GFraMe_sprite *en = enemies + i;
 			GFraMe_sprite_update(en, ms);
 			// just died, should fall for a few frames
-			if (stop_frames[i]++ > 30)
+			if (stop_frames[i]++ > 30) {
 				enemies_kill(i);
+			}
 		}
 		else if (enemies[i].is_active) {
 			GFraMe_sprite *en = enemies + i;
@@ -81,8 +83,6 @@ void enemies_update(int ms) {
 				en->id = 0;
 				en->is_active = 0;
 				en->is_visible = 0;
-				i++;
-				continue;
 			}
 		}
 		else if (stop_frames[i] > 0) {
@@ -133,9 +133,9 @@ void enemies_on_hit(int i) {
 		enemies[i].anim = NULL;
 		//enemies_kill(i);
 		if (enemies[i].id <= 3)
-			score_inc(35 * enemies[i].id);
+			score_inc((int)(35 * enemies[i].id * multi_get()));
 		else if (enemies[i].id <= 5)
-			score_inc(50 * enemies[i].id);
+			score_inc((int)(50 * enemies[i].id * multi_get()));
 		enemies[i].id = 0;
 	}
 	else {
@@ -151,6 +151,7 @@ static void enemies_kill(int i) {
 	enemies[i].is_visible = 0;
 	enemies[i].obj.x = 640;
 	stop_frames[i] = 0;
+	multi_inc();
 }
 
 int enemies_do_spawn() {
@@ -205,6 +206,7 @@ void enemies_bug_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 1;
 	en->hp = 1;
 	en->obj.vx = 80;
+	en->offset_y += 2;
 }
 
 void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -212,6 +214,7 @@ void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 2;
 	en->hp = 2;
 	en->obj.vx = 115;
+	en->offset_y += 2;
 }
 
 void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -219,6 +222,7 @@ void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 3;
 	en->hp = 3;
 	en->obj.vx = 125;
+	en->offset_y += 2;
 }
 
 void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {

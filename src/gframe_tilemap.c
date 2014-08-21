@@ -22,8 +22,6 @@ GFraMe_ret GFraMe_tilemap_init(GFraMe_tilemap *tmap, int width_in_tiles,
 							   int height_in_tiles, char *data,
 							   GFraMe_spriteset *sset, char *collideable, 
 							   int col_len) {
-	// int i;
-	int max = width_in_tiles * height_in_tiles;
 	GFraMe_ret rv = GFraMe_ret_ok;
 	// Init every alloc'ed pointer with NULL
 	tmap->data = NULL;
@@ -31,18 +29,10 @@ GFraMe_ret GFraMe_tilemap_init(GFraMe_tilemap *tmap, int width_in_tiles,
 	// Copy tilemap's limits
 	tmap->width_in_tiles = width_in_tiles;
 	tmap->height_in_tiles = height_in_tiles;
-	// Alloc tilemap's buffer
-	//GFraMe_assertRV(data, "Invalid tilemap data", rv = GFraMe_ret_bad_param, _ret);
-	//tmap->data = (char*)malloc(max);
+	// Store the tilemap data
 	tmap->data = data;
 	GFraMe_assertRV(tmap->data, "Failed to alloc assign data",
 					rv = GFraMe_ret_memory_error, _ret);
-	// Copy it
-	//i = 0;
-	//while (i < max) {
-	//	tmap->data[i] = data[i];
-	//	i++;
-	//}
 	// TODO check collideable array and create the minimum amount
 	// of objects to cover the complete area
 	// Copy the spriteset
