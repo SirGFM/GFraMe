@@ -67,7 +67,14 @@ void enemies_update(int ms) {
 	int i;
 	i = 0;
 	while (i < MAX_ENEMIES) {
-		if (enemies[i].is_active) {
+		if (enemies[i].id == 0 && enemies[i].is_active) {
+			GFraMe_sprite *en = enemies + i;
+			GFraMe_sprite_update(en, ms);
+			// just died, should fall for a few frames
+			if (stop_frames[i]++ > 30)
+				enemies_kill(i);
+		}
+		else if (enemies[i].is_active) {
 			GFraMe_sprite *en = enemies + i;
 			GFraMe_sprite_update(en, ms);
 			if (en->obj.x > 320) {
@@ -105,29 +112,40 @@ GFraMe_object *enemies_get_object(int i) {
 	return &enemies[i].obj;
 }
 
+int enemies_is_alive(int i) {
+	return enemies[i].id != 0 && enemies[i].is_active;
+}
+
 void enemies_on_hit(int i) {
 	enemies[i].hp--;
-	if (enemies[i].hp <= 0)
-		enemies_kill(i);
+	switch (enemies[i].id) {
+		case 1: enemies[i].cur_tile = 17; break;
+		case 2: enemies[i].cur_tile = 20; break;
+		case 3: enemies[i].cur_tile = 23; break;
+		case 4: enemies[i].cur_tile = 31; break;
+		case 5: enemies[i].cur_tile = 39; break;
+	}
+	if (enemies[i].hp <= 0) {
+		stop_frames[i] = 0;
+		enemies[i].offset_y += 4;
+		enemies[i].obj.vy = 50;
+		enemies[i].obj.vx = 0;
+		enemies[i].anim = NULL;
+		//enemies_kill(i);
+		if (enemies[i].id <= 3)
+			score_inc(35 * enemies[i].id);
+		else if (enemies[i].id <= 5)
+			score_inc(50 * enemies[i].id);
+		enemies[i].id = 0;
+	}
 	else {
 		stop_frames[i] = 4;
 		enemies[i].offset_y += 4;
 		enemies[i].is_active = 0;
-		switch (enemies[i].id) {
-			case 1: enemies[i].cur_tile = 17; break;
-			case 2: enemies[i].cur_tile = 20; break;
-			case 3: enemies[i].cur_tile = 23; break;
-			case 4: enemies[i].cur_tile = 31; break;
-			case 5: enemies[i].cur_tile = 39; break;
-		}
 	}
 }
 
 static void enemies_kill(int i) {
-	if (enemies[i].id <= 3)
-		score_inc(35 * enemies[i].id);
-	else if (enemies[i].id <= 5)
-		score_inc(50 * enemies[i].id);
 	enemies[i].id = 0;
 	enemies[i].is_active = 0;
 	enemies[i].is_visible = 0;
@@ -140,8 +158,9 @@ int enemies_do_spawn() {
 	int time = 1000;
 	i = 0;
 	while (i < MAX_ENEMIES) {
-		if (enemies[i].id == 0) {
+		if (enemies[i].id == 0 && !enemies[i].is_active) {
 			enemies_spawn_random(enemies+i, en_animation+i);
+			enemies[i].obj.vy = 0;
 			break;
 		}
 		i++;

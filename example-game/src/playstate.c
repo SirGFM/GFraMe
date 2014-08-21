@@ -163,7 +163,7 @@ void ps_do_update() {
 			en = enemies_get_object(++i);
 			if (!en)
 				break;
-			else if (en->x > 320)
+			else if (!enemies_is_alive(i))
 				continue;
 			if (GFraMe_object_overlap(en, pl, GFraMe_dont_collide)
 				== GFraMe_ret_ok) {

@@ -12,6 +12,7 @@ void enemies_init();
 void enemies_update(int ms);
 void enemies_draw();
 GFraMe_object *enemies_get_object(int i);
+int enemies_is_alive(int i);
 void enemies_on_hit(int i);
 int enemies_do_spawn();
 void enemies_spawn_random(GFraMe_sprite *en, GFraMe_animation *anim);
