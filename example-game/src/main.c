@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_screen.h>
 #include "global.h"
+#include "menustate.h"
 #include "playstate.h"
 
 int main(int argc, char *argv[]) {
@@ -21,7 +22,9 @@ int main(int argc, char *argv[]) {
 	// Run the main loop
 	gl_running = 1;
 	while (gl_running) {
-		ps_loop();
+		ms_loop();
+		if (gl_running)
+			ps_loop();
 	}
 	
 _exit:

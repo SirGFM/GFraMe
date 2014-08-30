@@ -206,7 +206,6 @@ void enemies_bug_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 1;
 	en->hp = 1;
 	en->obj.vx = 80;
-	en->offset_y += 2;
 }
 
 void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -214,7 +213,6 @@ void enemies_bug_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 2;
 	en->hp = 2;
 	en->obj.vx = 115;
-	en->offset_y += 2;
 }
 
 void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -222,7 +220,6 @@ void enemies_bug_hard_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 3;
 	en->hp = 3;
 	en->obj.vx = 125;
-	en->offset_y += 2;
 }
 
 void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -230,7 +227,7 @@ void enemies_beetle_easy_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 4;
 	en->hp = 3;
 	en->obj.vx = 100;
-	en->offset_y += 8;
+	en->offset_y += 7;
 }
 
 void enemies_beetle_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
@@ -238,6 +235,6 @@ void enemies_beetle_norm_init(GFraMe_sprite *en, GFraMe_animation *anim) {
 	en->id = 5;
 	en->hp = 5;
 	en->obj.vx = 120;
-	en->offset_y += 8;
+	en->offset_y += 7;
 }
 
