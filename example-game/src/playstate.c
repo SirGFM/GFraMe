@@ -25,13 +25,26 @@ GFraMe_event_setup();
  */
 GFraMe_accumulator acc_timer;
 /**
- * Background (image and for collision [when implemented])
+ * Background
  */
 GFraMe_tilemap bg;
 /**
+ * Floor (image and for collision [when implemented])
+ */
+GFraMe_tilemap floor_tm;
+#define	BG_W	40
+#define BG_H	10
+/**
  * Tilemap data for the background
  */
-char bg_data[20*15];
+char bg_data[BG_W * BG_H];
+#define	F_W	20
+#define	F_H	6
+#define F_Y	144
+/**
+ * Tilemap data for the floor
+ */
+char floor_data[F_W * F_H];
 /**
  * Floor collideable; doesn't need gfx
  */
@@ -99,40 +112,52 @@ _begin:
 	ps_cleanup();
 }
 
-#define BASE_TILE	16
+#define BASE_BG_TILE	32
+#define BASE_FLOOR_TILE	21
 void ps_init() {
 	int i;
 	i = 0;
 	// Fill up the background with tiles
-	while (i < 20*10) {
-		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
-		int row = i / 20 % 2 == 1; // even row = 1; odd row = 0;
-		int col = i % 2 == 1; // even column = 0; odd column = 1;
-		bg_data[i] = BASE_TILE+6  // The base BG tile
-					+rng*2		  // Select from two type of BG
-					+(row == col);// Make a checkered board
+	while (i < BG_W*5) {
+		bg_data[i] = BASE_BG_TILE + i / BG_W;
 		i++;
 	}
-	// Fill the floor tiles
-	// Fill the first row with a specific type of tiles
-	while (i < 20*11) {
-		bg_data[i] = BASE_TILE + (i % 2 == 0);
+	while (i < BG_W * 6) {
+		bg_data[i] = BASE_BG_TILE + i / BG_W - 1;
 		i++;
 	}
-	// Fill the rest with random data
-	while (i < 20*15) {
-		int rng = GFraMe_util_randomi() % 10 < 8; // 80% = 1; 20% = 0;
-		int row = i / 20 % 2 == 0; // even row = 1; odd row = 0;
-		int col = i % 2 == 0; // even column = 1; odd = 0;
-		bg_data[i] = BASE_TILE + 2 // The base floor tile
-					+(row == col)
-					+(rng)*2;
+	while (i < BG_W*BG_H) {
+		bg_data[i] = BASE_BG_TILE + i / BG_W - 1;
+		i++;
+	}
+	// Fill up the floor tiles
+	i = 0;
+	// Top row
+	while (i < F_W) {
+		floor_data[i] = BASE_FLOOR_TILE + i % 2;
+		i++;
+	}
+	// Second row
+	while (i < F_W*2) {
+		floor_data[i] = BASE_FLOOR_TILE + i % 2 + 2;
+		i++;
+	}
+	// Every other row
+	while (i < F_W*F_H) {
+		floor_data[i] = BASE_FLOOR_TILE + 4;
+		if (i / F_W % 2 == 0)
+			floor_data[i] += i % 2 == 0;
+		else
+			floor_data[i] += i % 2 == 1;
 		i++;
 	}
 	// Initialize the player
 	player_init();
 	// Initialize the tilemap
-	GFraMe_tilemap_init(&bg, 20, 15, bg_data, &gl_sset16, NULL, 0);
+	GFraMe_tilemap_init(&bg, BG_W, BG_H, bg_data, &gl_sset8x16, NULL, 0);
+	// Initialize the tilemap
+	GFraMe_tilemap_init(&floor_tm, F_W, F_H, floor_data, &gl_sset16, NULL, 0);
+	floor_tm.y = F_Y;
 	// Create the floor for collisions
 	GFraMe_object_clear(&ground);
 	GFraMe_object_set_y(&ground, 160);
@@ -249,6 +274,7 @@ void ps_do_draw() {
 	GFraMe_event_draw_begin();
 		// Draw the tilemap
 		GFraMe_tilemap_draw(&bg);
+		GFraMe_tilemap_draw(&floor_tm);
 		// Draw every enemy
 		enemies_draw();
 		// Draw the player
@@ -288,6 +314,7 @@ static void init_draw() {
 	GFraMe_event_draw_begin();
 		// Draw the tilemap
 		GFraMe_tilemap_draw(&bg);
+		GFraMe_tilemap_draw(&floor_tm);
 		// Draw start message
 		GFraMe_tilemap_draw(&init_text);
 	GFraMe_event_draw_end();

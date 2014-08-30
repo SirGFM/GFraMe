@@ -26,7 +26,7 @@ static GFraMe_animation tgt_anim;
 /**
  * Data for the target's animation
  */
-static int tgt_anim_data[4] = {26, 28, 29, 28};
+static int tgt_anim_data[4] = {27, 28, 29, 28};
 
 static double jump_speed;
 static int cooldown;

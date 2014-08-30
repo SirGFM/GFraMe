@@ -16,6 +16,10 @@
  */
 extern int gl_running;
 /**
+ * Reference to the atlas with 8x16 sprites
+ */
+extern GFraMe_spriteset gl_sset8x16;
+/**
  * Reference to the atlas with 8x8 sprites
  */
 extern GFraMe_spriteset gl_sset8;
