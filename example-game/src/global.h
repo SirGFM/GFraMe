@@ -32,6 +32,10 @@ extern GFraMe_spriteset gl_sset16;
  */
 extern GFraMe_spriteset gl_sset32;
 /**
+ * Reference to the atlas with 32x64 sprites
+ */
+extern GFraMe_spriteset gl_sset32x64;
+/**
  * Reference to the atlas with 64x64 sprites
  */
 extern GFraMe_spriteset gl_sset64;

@@ -30,6 +30,10 @@ GFraMe_spriteset gl_sset16;
  */
 GFraMe_spriteset gl_sset32;
 /**
+ * Reference to the atlas with 32x64 sprites
+ */
+GFraMe_spriteset gl_sset32x64;
+/**
  * Reference to the atlas with 64x64 sprites
  */
 GFraMe_spriteset gl_sset64;
@@ -71,6 +75,7 @@ GFraMe_ret global_init() {
 	GFraMe_spriteset_init(&gl_sset8, &gl_atlas, 8, 8);
 	GFraMe_spriteset_init(&gl_sset16, &gl_atlas, 16, 16);
 	GFraMe_spriteset_init(&gl_sset32, &gl_atlas, 32, 32);
+	GFraMe_spriteset_init(&gl_sset32x64, &gl_atlas, 32, 64);
 	GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
 _ret:
 	if (pixels)
