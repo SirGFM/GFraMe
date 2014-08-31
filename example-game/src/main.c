@@ -1,6 +1,7 @@
 /**
  * @src/main.c
  */
+#include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_screen.h>
 #include "global.h"
@@ -14,6 +15,9 @@ int main(int argc, char *argv[]) {
 					 GFraMe_window_resizable
 					 , 60);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the framework", _exit);
+	// Init the audio player
+	rv = GFraMe_audio_player_init();
+	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the audio", _exit);
 	// Load the textures
 	rv = global_init();
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to create global stuff", _exit);
@@ -28,6 +32,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 _exit:
+	GFraMe_audio_player_clear();
 	global_clear();
 	GFraMe_quit();
 	return rv;
