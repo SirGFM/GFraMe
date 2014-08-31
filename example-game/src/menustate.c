@@ -25,7 +25,7 @@ static int state;
 
 static int game_init;
 
-static int time;
+static double time;
 static GFraMe_accumulator timer;
 
 static GFraMe_tilemap init_text;
@@ -51,6 +51,7 @@ static GFraMe_sprite SQUASHER[MAX_SQUASHER];
 static void menu_init();
 static void menu_event();
 static void menu_update();
+static void menu_update_exit();
 static void menu_draw();
 
 void ms_loop() {
@@ -59,8 +60,8 @@ void ms_loop() {
 		menu_event();
 		switch (state) {
 			case ENTER:
-				time += GFraMe_event_elapsed;
-				if (time >= 1500)
+				time += (double)GFraMe_event_elapsed / 1000.0;
+				if (time >= 1.5)
 					state = GOTO_LOOP;
 				else {
 					menu_update();
@@ -88,6 +89,31 @@ void ms_loop() {
 				state = LOOP;
 			break;
 			case LOOP: menu_update(); break;
+			case GOTO_EXIT: {
+				#define SPR_ACC(TYPE, LETTER) \
+					TYPE[LETTER].obj.ay = -8 * TYPE[LETTER].obj.hitbox.hh - 2*TYPE[LETTER].obj.y
+				SPR_ACC(BUG, B);
+				SPR_ACC(BUG, u);
+				SPR_ACC(BUG, g);
+				SPR_ACC(SQUASHER, S);
+				SPR_ACC(SQUASHER, q);
+				SPR_ACC(SQUASHER, u2);
+				SPR_ACC(SQUASHER, a);
+				SPR_ACC(SQUASHER, s);
+				SPR_ACC(SQUASHER, h);
+				SPR_ACC(SQUASHER, e);
+				SPR_ACC(SQUASHER, r);
+				#undef SPR_ACC
+				GFraMe_accumulator_init_time(&timer, 250, 400);
+				time = 0.0;
+				state = EXIT;
+			} break;
+			case EXIT: {
+				menu_update_exit();
+				time += (double)GFraMe_event_elapsed / 1000.0;
+				if (time > 1.5)
+					game_init = 1;
+			};
 		}
 		menu_draw();
 	}
@@ -170,13 +196,15 @@ static void menu_event() {
 		GFraMe_event_on_mouse_down();
 			switch (state) {
 				case ENTER: state = GOTO_LOOP; break;
-				case LOOP: game_init = 1; break;
+				case LOOP: state = GOTO_EXIT; break;
+				case EXIT: game_init = 1; break;
 			}
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
 			gl_running = 0;
 	GFraMe_event_end();
 }
+
 static void menu_update() {
 	GFraMe_event_update_begin();
 		int i;
@@ -196,6 +224,7 @@ static void menu_update() {
 		}
 	GFraMe_event_update_end();
 }
+
 static void menu_draw() {
 	GFraMe_event_draw_begin();
 		int i;
@@ -215,5 +244,25 @@ static void menu_draw() {
 			i++;
 		}
 	GFraMe_event_draw_end();
+}
+
+static void menu_update_exit() {
+	GFraMe_event_update_begin();
+		int i;
+		GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
+		if (GFraMe_accumulator_loop(&timer)) {
+			is_text_visible = !is_text_visible;
+		}
+		i = 0;
+		while (i < MAX_BUG) {
+			GFraMe_sprite_update(BUG + i, GFraMe_event_elapsed);
+			i++;
+		}
+		i = 0;
+		while (i < MAX_SQUASHER) {
+			GFraMe_sprite_update(SQUASHER + i, GFraMe_event_elapsed);
+			i++;
+		}
+	GFraMe_event_update_end();
 }
 

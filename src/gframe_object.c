@@ -211,7 +211,7 @@ GFraMe_ret GFraMe_object_overlap(GFraMe_object *o1, GFraMe_object *o2,
 			switch (mode) {
 				case GFraMe_first_fixed:  cur = o2; other = o1; break;
 				case GFraMe_second_fixed: cur = o1; other = o2; break;
-				default: /* nop, stop bitching, compiler! */;
+				default: goto _aftercol; // Avoids accessing null objects
 			}
 			// If they weren't overlapping horizontally, separate it
 			if (hcol) {
@@ -230,6 +230,7 @@ GFraMe_ret GFraMe_object_overlap(GFraMe_object *o1, GFraMe_object *o2,
 				cur->y = (int)cur->dy;
 			}
 		}
+_aftercol:
 		// TODO this will probably clear overlap after one frame...
 		// is it a problem?
 		

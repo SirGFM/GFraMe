@@ -108,9 +108,9 @@ void player_on_ground() {
 	else {
 		multi_reset();
 		player.obj.vy = 0.0;
+		player.cur_tile = 8;
 	}
 	did_combo = 0;
-	player.cur_tile = 8;
 }
 
 GFraMe_ret player_on_squash() {
