@@ -2,6 +2,7 @@
  * @src/player.c
  */
 #include <GFraMe/GFraMe_animation.h>
+#include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_sprite.h>
@@ -155,6 +156,7 @@ GFraMe_ret player_jump(int X) {
 	player.obj.vx = X - player.obj.x;
 	player.obj.ax = 0.0;
 	player.cur_tile = 9;
+	GFraMe_audio_play(&jump, 1.0);
 	if (player.obj.vx != 0.0)
 		player.flipped = player.obj.vx < 0.0;
 	return GFraMe_ret_ok;

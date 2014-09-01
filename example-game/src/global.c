@@ -2,6 +2,7 @@
  * @src/global.c
  */
 #include <GFraMe/GFraMe_assets.h>
+#include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
@@ -37,6 +38,7 @@ GFraMe_spriteset gl_sset32x64;
  * Reference to the atlas with 64x64 sprites
  */
 GFraMe_spriteset gl_sset64;
+GFraMe_audio jump;
 
 /**
  * Atlas with every in-game sprite
@@ -77,6 +79,9 @@ GFraMe_ret global_init() {
 	GFraMe_spriteset_init(&gl_sset32, &gl_atlas, 32, 32);
 	GFraMe_spriteset_init(&gl_sset32x64, &gl_atlas, 32, 64);
 	GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
+	
+	filename = GFraMe_assets_clean_filename("assets/jump.wav");
+	rv = GFraMe_audio_init(&jump, filename, 0, 0);
 _ret:
 	if (pixels)
 		free(pixels);
@@ -88,5 +93,6 @@ _ret:
  */
 void global_clear() {
 	GFraMe_texture_clear(&gl_atlas);
+	GFraMe_audio_clear(&jump);
 }
 

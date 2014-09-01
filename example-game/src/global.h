@@ -4,6 +4,7 @@
 #ifndef __GLOBAL_H_
 #define __GLOBAL_H_
 
+#include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_spriteset.h>
 
 /**
@@ -39,6 +40,8 @@ extern GFraMe_spriteset gl_sset32x64;
  * Reference to the atlas with 64x64 sprites
  */
 extern GFraMe_spriteset gl_sset64;
+
+extern GFraMe_audio jump;
 
 /**
  * Initialize global stuff (like graphics)
