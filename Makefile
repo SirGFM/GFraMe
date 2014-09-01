@@ -51,6 +51,7 @@ VPATH = src/
 SRCDIR = src
 BOBJDIR = obj
 OBJDIR = $(BOBJDIR)/$(OS)
+WDATADIR = $(OBJDIR)/wavtodata
 BINDIR = bin/$(OS)
 
 OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
@@ -58,8 +59,9 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
        $(OBJDIR)/gframe_screen.o $(OBJDIR)/gframe_sprite.o \
        $(OBJDIR)/gframe_spriteset.o $(OBJDIR)/gframe_texture.o \
        $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o \
-	   $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
-	   $(OBJDIR)/gframe_audio_player.o
+       $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
+       $(OBJDIR)/gframe_audio_player.o \
+	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 
 all: static
 
@@ -72,10 +74,11 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-MAKEDIRS: | $(OBJDIR) $(BINDIR)
+MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
+	mkdir -p $(WDATADIR)
 	mkdir -p $(BINDIR)
 
 .PHONY: clean mostlyclean
