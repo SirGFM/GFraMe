@@ -26,6 +26,10 @@ struct stGFraMe_audio {
 	 * Whether it's a looping audio or not
 	 */
 	int loop;
+	/**
+	 * Whether the audio has two channels or only one
+	 */
+	int stereo;
 };
 typedef struct stGFraMe_audio GFraMe_audio;
 
@@ -38,7 +42,7 @@ typedef struct stGFraMe_audio GFraMe_audio;
  * @param	loop_pos	Sample that should be jumped to on loop
  * @return	GFraMe_ok if the audio loaded correctly
  */
-GFraMe_ret GFraMe_audio_init(GFraMe_audio *aud, char *wavfile, char *datfile, int loop, int loop_pos);
+GFraMe_ret GFraMe_audio_init(GFraMe_audio *aud, char *wavfile, char *datfile, int loop, int loop_pos, int stereo);
 /**
  * Clear up memory allocated by the audio
  * @param	*aud	Struct which should be cleared

@@ -6,6 +6,7 @@
 #include <GFraMe/GFraMe_error.h>
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <string.h>
 
 struct stGFraMe_audio_ll {
 	struct stGFraMe_audio_ll *next;
@@ -28,6 +29,7 @@ static GFraMe_audio_ll* GFraMe_audio_player_remove(GFraMe_audio_ll *prev,
 											GFraMe_audio_ll *node);
 static GFraMe_audio_ll* GFraMe_audio_player_get_new_audio_ll(GFraMe_audio *aud, double volume);
 static int GFraMe_audio_player_mix(GFraMe_audio_ll *node, Uint8 *dst, int len);
+static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int len);
 
 GFraMe_ret GFraMe_audio_player_init() {
 	GFraMe_ret rv = GFraMe_ret_ok;
@@ -160,9 +162,13 @@ static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 	// TODO lock_cur
 	node = cur;
 	// TODO unlock_cur
+	memset(stream, 0x0, len);
 	while (node) {
 		int remove;
-		remove = GFraMe_audio_player_mix(node, stream, len);
+		if (node->audio->stereo)
+			remove = GFraMe_audio_player_mix(node, stream, len);
+		else
+			remove = GFraMe_audio_player_mix_mono(node, stream, len);
 		if (remove)
 			node = GFraMe_audio_player_remove(prev, node);
 		else {
@@ -197,6 +203,40 @@ static int GFraMe_audio_player_mix(GFraMe_audio_ll *node, Uint8 *dst, int len) {
 		dst[i+3] += (Uint8)((chan2>>8)&0xff);
 		
 		i += 4;
+		// If the sample is over
+		if (i + node->pos > node->audio->len) {
+			// Loop it
+			if (node->audio->loop) {
+				len -= i;
+				i = 0;
+				node->pos = node->audio->loop_pos;
+			}
+			else
+				// Issue it to be recycled
+				return 1;
+		}
+	}
+	// Update the sample position
+	node->pos += i;
+	return 0;
+}
+
+static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int len) {
+	int i = 0;
+	len /= 2;
+	while (i < len) {
+		// Get the data to be put into both channels
+		Sint16 chan = node->audio->buf[i + node->pos]
+					 | ((node->audio->buf[i + node->pos + 1] << 8) & 0xff00);
+		// Modify its volume
+		chan = (Sint16)(chan*node->volume*0.5);
+		// Add it to the channel
+		dst[2*i] += (Uint8)(chan&0xff);
+		dst[2*i+1] += (Uint8)((chan>>8)&0xff);
+		dst[2*i+2] += dst[2*i];
+		dst[2*i+3] += dst[2*i+1];
+		
+		i += 2;
 		// If the sample is over
 		if (i + node->pos > node->audio->len) {
 			// Loop it

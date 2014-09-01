@@ -51,6 +51,7 @@ static GFraMe_texture gl_atlas;
 GFraMe_ret global_init() {
 	GFraMe_ret rv;
 	char *filename;
+	char *filename2;
 	unsigned char *pixels = NULL;
 	const int atlas_w = 256;
 	const int atlas_h = 256;
@@ -81,7 +82,8 @@ GFraMe_ret global_init() {
 	GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
 	
 	filename = GFraMe_assets_clean_filename("assets/jump.wav");
-	rv = GFraMe_audio_init(&jump, filename, 0, 0);
+	filename2 = GFraMe_assets_clean_filename("assets/jump.dat");
+	rv = GFraMe_audio_init(&jump, filename, filename2, 0, 0, 1);
 _ret:
 	if (pixels)
 		free(pixels);
