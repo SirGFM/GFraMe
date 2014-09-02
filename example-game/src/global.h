@@ -41,7 +41,13 @@ extern GFraMe_spriteset gl_sset32x64;
  */
 extern GFraMe_spriteset gl_sset64;
 
-extern GFraMe_audio jump;
+extern GFraMe_audio gl_jump;
+extern GFraMe_audio gl_death;
+extern GFraMe_audio gl_hit;
+extern GFraMe_audio gl_start;
+extern GFraMe_audio gl_charge;
+extern GFraMe_audio gl_floor;
+extern GFraMe_audio gl_song;
 
 /**
  * Initialize global stuff (like graphics)

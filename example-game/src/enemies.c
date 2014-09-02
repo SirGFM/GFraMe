@@ -2,6 +2,7 @@
  * @src/enemies.c
  */
 #include <GFraMe/GFraMe_animation.h>
+#include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_util.h>
 #include <stdio.h>
@@ -126,6 +127,7 @@ void enemies_on_hit(int i) {
 		case 5: enemies[i].cur_tile = 39; break;
 	}
 	if (enemies[i].hp <= 0) {
+		GFraMe_audio_play(&gl_death, 0.5);
 		stop_frames[i] = 0;
 		enemies[i].offset_y += 4;
 		enemies[i].obj.vy = 50;
@@ -139,6 +141,7 @@ void enemies_on_hit(int i) {
 		enemies[i].id = 0;
 	}
 	else {
+		GFraMe_audio_play(&gl_hit, 0.5);
 		stop_frames[i] = 4;
 		enemies[i].offset_y += 4;
 		enemies[i].is_active = 0;

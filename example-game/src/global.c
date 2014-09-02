@@ -38,7 +38,14 @@ GFraMe_spriteset gl_sset32x64;
  * Reference to the atlas with 64x64 sprites
  */
 GFraMe_spriteset gl_sset64;
-GFraMe_audio jump;
+
+GFraMe_audio gl_jump;
+GFraMe_audio gl_death;
+GFraMe_audio gl_hit;
+GFraMe_audio gl_start;
+GFraMe_audio gl_charge;
+GFraMe_audio gl_floor;
+GFraMe_audio gl_song;
 
 /**
  * Atlas with every in-game sprite
@@ -83,7 +90,39 @@ GFraMe_ret global_init() {
 	
 	filename = GFraMe_assets_clean_filename("assets/jump.wav");
 	filename2 = GFraMe_assets_clean_filename("assets/jump.dat");
-	rv = GFraMe_audio_init(&jump, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_jump, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/death.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/death.dat");
+	rv = GFraMe_audio_init(&gl_death, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/hit.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/hit.dat");
+	rv = GFraMe_audio_init(&gl_hit, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/start.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/start.dat");
+	rv = GFraMe_audio_init(&gl_start, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/charge.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/charge.dat");
+	rv = GFraMe_audio_init(&gl_charge, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/floor.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/floor.dat");
+	rv = GFraMe_audio_init(&gl_floor, filename, filename2, 0, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
+	
+	filename = GFraMe_assets_clean_filename("assets/song01.wav");
+	filename2 = GFraMe_assets_clean_filename("assets/song01.dat");
+	rv = GFraMe_audio_init(&gl_song, filename, filename2, 1, 0, 1);
+	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open music", _ret);
+	gl_song.loop_pos = gl_song.len / 2;
 _ret:
 	if (pixels)
 		free(pixels);
@@ -95,6 +134,13 @@ _ret:
  */
 void global_clear() {
 	GFraMe_texture_clear(&gl_atlas);
-	GFraMe_audio_clear(&jump);
+	
+	GFraMe_audio_clear(&gl_jump);
+	GFraMe_audio_clear(&gl_death);
+	GFraMe_audio_clear(&gl_hit);
+	GFraMe_audio_clear(&gl_start);
+	GFraMe_audio_clear(&gl_charge);
+	GFraMe_audio_clear(&gl_floor);
+	GFraMe_audio_clear(&gl_song);
 }
 

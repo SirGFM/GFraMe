@@ -22,6 +22,8 @@ int main(int argc, char *argv[]) {
 	rv = global_init();
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to create global stuff", _exit);
 	
+	GFraMe_audio_player_play_bgm(&gl_song, 0.625);
+	
 	// TODO clear events (there may be a few frames issued)
 	// Run the main loop
 	gl_running = 1;

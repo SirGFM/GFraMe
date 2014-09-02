@@ -105,6 +105,7 @@ void player_on_ground() {
 	if (did_combo) {
 		multi_half();
 		player.obj.vy = -jump_speed;
+		GFraMe_audio_play(&gl_floor, 0.5);
 	}
 	else {
 		multi_reset();
@@ -144,6 +145,7 @@ void player_set_target(int X, int Y) {
 		GFraMe_object_set_pos(&tgt.obj, X, Y);
 		did_combo = cooldown > 0;
 		cooldown = 0;
+		GFraMe_audio_play(&gl_charge, 0.25);
 	}
 }
 
@@ -156,7 +158,7 @@ GFraMe_ret player_jump(int X) {
 	player.obj.vx = X - player.obj.x;
 	player.obj.ax = 0.0;
 	player.cur_tile = 9;
-	GFraMe_audio_play(&jump, 1.0);
+	GFraMe_audio_play(&gl_jump, 0.5);
 	if (player.obj.vx != 0.0)
 		player.flipped = player.obj.vx < 0.0;
 	return GFraMe_ret_ok;

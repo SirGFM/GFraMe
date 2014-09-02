@@ -70,3 +70,5 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+example-game/assets/song01.wav
+example-game/assets/song01.dat

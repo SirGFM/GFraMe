@@ -2,6 +2,7 @@
  * @src/menustate.h
  */
 #include <GFraMe/GFraMe_accumulator.h>
+#include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
@@ -107,6 +108,7 @@ void ms_loop() {
 				GFraMe_accumulator_init_time(&timer, 250, 400);
 				time = 0.0;
 				state = EXIT;
+				GFraMe_audio_play(&gl_start, 0.75);
 			} break;
 			case EXIT: {
 				menu_update_exit();

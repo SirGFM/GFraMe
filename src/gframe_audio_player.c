@@ -5,7 +5,10 @@
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_thread.h>
+#include <SDL2/SDL.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct stGFraMe_audio_ll {
@@ -17,6 +20,9 @@ struct stGFraMe_audio_ll {
 typedef struct stGFraMe_audio_ll GFraMe_audio_ll;
 
 static int did_audio_init = 0;
+static SDL_sem *sem_cur;
+static SDL_sem *sem_rec;
+static SDL_sem *sem_bgm;
 static SDL_AudioDeviceID dev = 0;
 static SDL_AudioSpec spec;
 int count;
@@ -66,6 +72,16 @@ GFraMe_ret GFraMe_audio_player_init() {
 	bgm.next = NULL;
 	bgm.audio = NULL;
 	count = 0;
+	
+	sem_cur = SDL_CreateSemaphore(1);
+	GFraMe_SDLassertRV(sem_cur != NULL, "Failed to create semaphore",
+					 rv = GFraMe_ret_failed, _ret);
+	sem_rec = SDL_CreateSemaphore(1);
+	GFraMe_SDLassertRV(sem_rec != NULL, "Failed to create semaphore",
+					 rv = GFraMe_ret_failed, _ret);
+	sem_bgm = SDL_CreateSemaphore(1);
+	GFraMe_SDLassertRV(sem_bgm != NULL, "Failed to create semaphore",
+					 rv = GFraMe_ret_failed, _ret);
 _ret:
 	return rv;
 }
@@ -73,6 +89,9 @@ _ret:
 void GFraMe_audio_player_clear() {
 	if (dev != 0)
 		SDL_CloseAudioDevice(dev);
+	SDL_DestroySemaphore(sem_cur);
+	SDL_DestroySemaphore(sem_rec);
+	SDL_DestroySemaphore(sem_bgm);
 	dev = 0;
 	if (did_audio_init) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
@@ -96,14 +115,16 @@ SDL_AudioSpec* GFraMe_audio_player_get_spec() {
 
 void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 	if (aud != bgm.audio) {
-		// TODO lock_bgm
-		if (aud && !bgm.audio)
+		SDL_SemWait(sem_bgm);
+		if (aud && !bgm.audio) {
+			SDL_PauseAudioDevice(dev, 0);
 			count++;
+		}
 		else if (!aud && bgm.audio)
 			count--;
 		bgm.audio = aud;
 		bgm.pos = 0;
-		// TODO unlock_bgm
+		SDL_SemPost(sem_bgm);
 	}
 	bgm.volume = volume;
 }
@@ -111,10 +132,10 @@ void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 void GFraMe_audio_player_push(GFraMe_audio *aud, double volume) {
 	GFraMe_audio_ll *node;
 	node = GFraMe_audio_player_get_new_audio_ll(aud, volume);
-	// TODO lock_cur
+	SDL_SemWait(sem_cur);
 	node->next = cur;
 	cur = node;
-	// TODO unlock_cur
+	SDL_SemPost(sem_cur);
 	count++;
 	SDL_PauseAudioDevice(dev, 0);
 }
@@ -127,29 +148,29 @@ static GFraMe_audio_ll* GFraMe_audio_player_remove(GFraMe_audio_ll *prev,
 		ret = prev->next;
 	}
 	else {
-		// TODO lock_cur
+		SDL_SemWait(sem_cur);
 		cur = node->next;
 		ret = cur;
-		// TODO lock_recycle
+		SDL_SemPost(sem_cur);
 	}
-	// TODO unlock_cur
+	SDL_SemWait(sem_rec);
 	node->next = recycle;
 	recycle = node;
-	// TODO unlock_recycle
+	SDL_SemPost(sem_rec);
 	return ret;
 }
 
 static GFraMe_audio_ll* GFraMe_audio_player_get_new_audio_ll(GFraMe_audio *aud,
 															 double volume) {
 	GFraMe_audio_ll *node;
-	// TODO lock_recycle
+	SDL_SemWait(sem_rec);
 	if (!recycle)
 		node = (GFraMe_audio_ll*)malloc(sizeof(GFraMe_audio_ll));
 	else {
 		node = recycle;
 		recycle = recycle->next;
 	}
-	// TODO unlock_recycle
+	SDL_SemPost(sem_rec);
 	node->audio = aud;
 	node->pos = 0;
 	node->volume = volume;
@@ -159,9 +180,9 @@ static GFraMe_audio_ll* GFraMe_audio_player_get_new_audio_ll(GFraMe_audio *aud,
 static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 	GFraMe_audio_ll *node;
 	GFraMe_audio_ll *prev = NULL;
-	// TODO lock_cur
+	SDL_SemPost(sem_cur);
 	node = cur;
-	// TODO unlock_cur
+	SDL_SemPost(sem_cur);
 	memset(stream, 0x0, len);
 	while (node) {
 		int remove;
@@ -176,11 +197,11 @@ static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 			node = node->next;
 		}
 	}
-	// TODO lock_bgm
+	SDL_SemWait(sem_bgm);
 	if (bgm.audio) {
 		GFraMe_audio_player_mix(&bgm, stream, len);
 	}
-	// TODO unlock_bgm
+	SDL_SemPost(sem_bgm);
 	if (!cur && !bgm.audio)
 		SDL_PauseAudioDevice(dev, 1);
 }
@@ -189,13 +210,13 @@ static int GFraMe_audio_player_mix(GFraMe_audio_ll *node, Uint8 *dst, int len) {
 	int i = 0;
 	while (i < len) {
 		// Get the data to be put into both channels
-		Sint16 chan1 = node->audio->buf[i + node->pos]
+		Sint16 chan1 = (node->audio->buf[i + node->pos] & 0x00ff)
 					 | ((node->audio->buf[i + node->pos + 1] << 8) & 0xff00);
-		Sint16 chan2 = node->audio->buf[i + node->pos + 3]
-					 | ((node->audio->buf[i + node->pos + 4] << 8) & 0xff00);
+		Sint16 chan2 = (node->audio->buf[i + node->pos + 2] & 0x00ff)
+					 | ((node->audio->buf[i + node->pos + 3] << 8) & 0xff00);
 		// Modify its volume
-		chan1 = (Sint16)(chan1*node->volume);
-		chan2 = (Sint16)(chan2*node->volume);
+		chan1 = ((Sint16)(chan1*node->volume))&0xffff;
+		chan2 = ((Sint16)(chan2*node->volume))&0xffff;
 		// Add it to the channel
 		dst[i] += (Uint8)(chan1&0xff);
 		dst[i+1] += (Uint8)((chan1>>8)&0xff);
