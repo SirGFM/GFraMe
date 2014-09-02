@@ -38,8 +38,8 @@ void player_init() {
 	// Draw debug!!
 	GFraMe_draw_debug = 1;
 	// Init the player itself
-	GFraMe_sprite_init(&player, 10, 10, 14, 24, &gl_sset32, -6, -9);
-	player.cur_tile = 8;
+	GFraMe_sprite_init(&player, (320-32)/2, 120, 14, 24, &gl_sset32, -6, -9);
+	player.cur_tile = 13;
 	player.obj.ay = 500;
 	// Init the target
 	GFraMe_sprite_init(&tgt, -16, -16, 16, 16, &gl_sset16, 0, 0);
@@ -110,7 +110,7 @@ void player_on_ground() {
 	else {
 		multi_reset();
 		player.obj.vy = 0.0;
-		player.cur_tile = 8;
+		player.cur_tile = 13;
 	}
 	did_combo = 0;
 }
@@ -157,7 +157,7 @@ GFraMe_ret player_jump(int X) {
 	player.obj.vy = -jump_speed;
 	player.obj.vx = X - player.obj.x;
 	player.obj.ax = 0.0;
-	player.cur_tile = 9;
+	player.cur_tile = 14;
 	GFraMe_audio_play(&gl_jump, 0.5);
 	if (player.obj.vx != 0.0)
 		player.flipped = player.obj.vx < 0.0;
