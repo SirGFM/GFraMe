@@ -4,10 +4,12 @@
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_event.h>
+#include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
 #include "background.h"
+#include "button.h"
 #include "global.h"
 #include "score.h"
 #include "menustate.h"
@@ -32,6 +34,11 @@ static GFraMe_accumulator timer;
 static GFraMe_tilemap init_text;
 static char init_data[20];
 static int is_text_visible;
+
+static Button gfm_bt;
+static Button bt_1_1;
+static Button bt_prop;
+static Button bt_free;
 
 #define BUG_X	110
 #define BUG_Y	29
@@ -128,6 +135,11 @@ static void menu_init() {
 	time = 0;
 	// Initialize the background
 	background_init();
+	// Initialize the buttons
+	button_init(&gfm_bt, 0, 240-44, 60, 61, 61, -1);
+	button_init(&bt_1_1, 320-44*3, 240-44, 8, 9, 10, 38);
+	button_init(&bt_prop, 320-44*2, 240-44, 8, 9, 10, 39);
+	button_init(&bt_free, 320-44, 240-44, 8, 9, 10, 54);
 	// Set init text
 	is_text_visible = 1;
 	GFraMe_tilemap_init(&init_text, 20, 1, init_data, &gl_sset8, NULL, 0);
@@ -195,12 +207,13 @@ static void menu_init() {
 static void menu_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
+		GFraMe_event_on_mouse_moved();
 		GFraMe_event_on_mouse_down();
 			switch (state) {
 				case ENTER: state = GOTO_LOOP; break;
-				case LOOP: state = GOTO_EXIT; break;
 				case EXIT: game_init = 1; break;
 			}
+		GFraMe_event_on_mouse_up();
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
 			gl_running = 0;
@@ -213,6 +226,29 @@ static void menu_update() {
 		GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
 		if (GFraMe_accumulator_loop(&timer)) {
 			is_text_visible = !is_text_visible;
+		}
+		// Update the buttons
+		if (state == LOOP) {
+			button_update(&gfm_bt, GFraMe_event_elapsed, GFraMe_event_mouse_x,
+						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
+			button_update(&bt_1_1, GFraMe_event_elapsed, GFraMe_event_mouse_x,
+						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
+			button_update(&bt_prop, GFraMe_event_elapsed, GFraMe_event_mouse_x,
+						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
+			button_update(&bt_free, GFraMe_event_elapsed, GFraMe_event_mouse_x,
+						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
+			if (gfm_bt.justReleased) {
+			}
+			else if (bt_1_1.justReleased)
+				GFraMe_screen_set_pixel_perfect(0, 1);
+			else if (bt_prop.justReleased) 
+				GFraMe_screen_set_keep_ratio(0, 1);
+			else if (bt_free.justReleased)
+				GFraMe_screen_set_maximize_double(1);
+			else if (!(gfm_bt.wasPressed || bt_1_1.wasPressed
+					|| bt_prop.wasPressed || bt_free.wasPressed)
+					&& GFraMe_event_mouse_pressed)
+				state = GOTO_EXIT; break;
 		}
 		i = 0;
 		while (i < MAX_BUG) {
@@ -232,6 +268,13 @@ static void menu_draw() {
 		int i;
 		// Draw the background
 		background_draw();
+		// Draw the buttons
+		if (state == LOOP) {
+			button_draw(&gfm_bt);
+			button_draw(&bt_1_1);
+			button_draw(&bt_prop);
+			button_draw(&bt_free);
+		}
 		// Draw start message
 		if (is_text_visible)
 			GFraMe_tilemap_draw(&init_text);

@@ -62,12 +62,19 @@ int GFraMe_buffer_h = 0;
  * Ratio between backbuffer's actual dimensions and
  *virtual screen dimensions
  */
-double GFraMe_screen_ratio = 0.0;
+double GFraMe_screen_ratio_h = 0.0;
+double GFraMe_screen_ratio_v = 0.0;
 
 static Uint8 GFraMe_bg_r = 0xA0;
 static Uint8 GFraMe_bg_g = 0xA0;
 static Uint8 GFraMe_bg_b = 0xA0;
 static Uint8 GFraMe_bg_a = 0xFF;
+
+static void GFraMe_screen_cache_dimensions();
+/**
+ * Try to set the device to a given width & height
+ */
+static void GFraMe_set_screen_ratio();
 
 /**
  * Initialize SDL, already creating a window and a backbuffer.
@@ -113,6 +120,9 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *name,
 	// Store window dimensions
 	GFraMe_window_w = sw;
 	GFraMe_window_h = sh;
+	// Store backbuffer dimensions
+	GFraMe_screen_w = vw;
+	GFraMe_screen_h = vh;
 	// Create a renderer
 	GFraMe_renderer = SDL_CreateRenderer(GFraMe_window, -1,
 					SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
@@ -123,9 +133,6 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *name,
 			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, vw, vh);
 	GFraMe_SDLassertRV(GFraMe_screen, "Couldn't create backbuffer",
 					   rv = GFraMe_ret_backbuffer_creation_failed, _ret);
-	// Store backbuffer dimensions
-	GFraMe_screen_w = vw;
-	GFraMe_screen_h = vh;
 	// Set backbuffer dimensions and position
 	GFraMe_set_screen_ratio();
 	// Create a timer
@@ -196,8 +203,8 @@ _ret:
 void GFraMe_screen_point_to_world(int *x, int *y) {
 	GFraMe_assertRet(x != NULL, "Invalid 'x' parameter", _exit);
 	GFraMe_assertRet(y != NULL, "Invalid 'y' parameter", _exit);
-	*x = (int)((*x - GFraMe_buffer_x) / GFraMe_screen_ratio);
-	*y = (int)((*y - GFraMe_buffer_y) / GFraMe_screen_ratio);
+	*x = (int)((*x - GFraMe_buffer_x) / GFraMe_screen_ratio_h);
+	*y = (int)((*y - GFraMe_buffer_y) / GFraMe_screen_ratio_v);
 	return;
 _exit:
 	*x = -1;
@@ -205,58 +212,182 @@ _exit:
 }
 
 /**
- * Try to set the device to a given width & height
+ * Store the dimensions on a SDL_rect, used during rendering
  */
-void GFraMe_set_screen_ratio() {
-	// This was me being lazy, and I'm not sorry
-	#define dmw ((double)GFraMe_window_w)
-	#define dmh ((double)GFraMe_window_h)
-	#define dw ((double)GFraMe_screen_w)
-	#define dh ((double)GFraMe_screen_h)
-	#define mw GFraMe_window_w
-	#define mh GFraMe_window_h
-	#define w GFraMe_screen_w
-	#define h GFraMe_screen_h
-	#define x GFraMe_buffer_x
-	#define y GFraMe_buffer_y
-	#define r GFraMe_screen_ratio
-	// If vertical (device sideway) can be maximized
-	if (dh / dmh * dw <= dmw)
-		r = dmh / dh;
-	// Else, try to maximize it on the horizontal
-	else if (dw / dmw * dh <= dmh)
-		r = dmw / dw;
-	// If everything fail, do an actual letterboxing
-	else {
-		int hr = h / mh;
-		int hw = w / mw;
-		if (hr < hw)
-			r = hr;
-		else
-			r = hw;
-	}
-	// Center the backbuffer
-	x = (mw - w * r) / 2;
-	y = (mh - h * r) / 2;
-	// Set the backbuffer dimensions
-	GFraMe_buffer_w = w * r;
-	GFraMe_buffer_h = h * r;
-	GFraMe_log("Final dimensions - x:%i y:%i width:%i height:%i multi:%.4f"
-			   , x, y, GFraMe_buffer_w, GFraMe_buffer_h, r);
-	#undef dmh
-	#undef dmw
-	#undef dh
-	#undef dw
-	#undef mh
-	#undef mw
-	#undef h
-	#undef w
-	#undef x
-	#undef y
+static void GFraMe_screen_cache_dimensions() {
 	buffer_rect.x = GFraMe_buffer_x;
 	buffer_rect.y = GFraMe_buffer_y;
 	buffer_rect.w = GFraMe_buffer_w;
 	buffer_rect.h = GFraMe_buffer_h;
+}
+
+/**
+ * Set the destination dimensions keeping a perfect (i.e, integer) aspect ratio
+ * @param	max_zoom	Maximum zoom value or a value equal to or less than 0
+ *for any zoom
+ * @param	update_window	Whether the windows dimensions should be updated
+ * @return	The new zoom level or 0 on failure
+ */
+int GFraMe_screen_set_pixel_perfect(int max_zoom, int update_window) {
+	int w = 0, h = 0, zoom, hratio, vratio;
+	// Get the actual window's dimension
+	if (update_window) {
+		SDL_GetWindowSize(GFraMe_window, &w, &h);
+		GFraMe_window_w = w;
+		GFraMe_window_h = h;
+	}
+	else {
+		w = GFraMe_window_w;
+		h = GFraMe_window_h;
+	}
+	// Check each possible ratio
+	hratio = (int)( (double)w / (double)GFraMe_screen_w );
+	vratio = (int)( (double)h / (double)GFraMe_screen_h );
+	// Get the lesser one
+	if (hratio < vratio)
+		zoom = hratio;
+	else
+		zoom = vratio;
+	// Check if it's a valid zoom
+	if (max_zoom > 0 && zoom > max_zoom)
+		zoom = max_zoom;
+	GFraMe_assertRet(zoom != 0, "Invalid aspect ratio", _ret);
+	// Letterbox the game
+	GFraMe_buffer_x = (w - GFraMe_screen_w * zoom) / 2;
+	GFraMe_buffer_y = (h - GFraMe_screen_h * zoom) / 2;
+	GFraMe_buffer_w = GFraMe_screen_w * zoom;
+	GFraMe_buffer_h = GFraMe_screen_h * zoom;
+	GFraMe_screen_ratio_h = zoom;
+	GFraMe_screen_ratio_v = zoom;
+	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i multi:%i"
+	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
+	           , GFraMe_buffer_h, zoom);
+	GFraMe_screen_cache_dimensions();
+_ret:
+	return zoom;
+}
+
+/**
+ * Resize the game while keeping the original aspect ratio
+ * @param	max_zoom	Maximum zoom value or a value equal to or less than 0
+ *for any zoom
+ * @param	update_window	Whether the windows dimensions should be updated
+ * @return	The new zoom level or 0 on failure
+ */
+double GFraMe_screen_set_keep_ratio(int max_zoom, int update_window) {
+	int w = 0, h = 0;
+	double zoom, hratio, vratio;
+	// Get the actual window's dimension
+	if (update_window) {
+		SDL_GetWindowSize(GFraMe_window, &w, &h);
+		GFraMe_window_w = w;
+		GFraMe_window_h = h;
+	}
+	else {
+		w = GFraMe_window_w;
+		h = GFraMe_window_h;
+	}
+	// Check each possible ratio
+	hratio = (double)w / (double)GFraMe_screen_w;
+	vratio = (double)h / (double)GFraMe_screen_h;
+	if (vratio * GFraMe_screen_w <= w)
+		zoom = vratio;
+	else if (hratio * GFraMe_screen_h <= h)
+		zoom = hratio;
+	else
+		zoom = 0;
+	if (max_zoom > 0 && zoom > max_zoom)
+		zoom = max_zoom;
+	GFraMe_assertRet(zoom, "Invalid aspect ratio", _ret);
+	// Letterbox the game
+	GFraMe_buffer_x = (w - GFraMe_screen_w * zoom) / 2;
+	GFraMe_buffer_y = (h - GFraMe_screen_h * zoom) / 2;
+	GFraMe_buffer_w = GFraMe_screen_w * zoom;
+	GFraMe_buffer_h = GFraMe_screen_h * zoom;
+	GFraMe_screen_ratio_h = zoom;
+	GFraMe_screen_ratio_v= zoom;
+	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i multi:%.4f"
+	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
+	           , GFraMe_buffer_h, zoom);
+	GFraMe_screen_cache_dimensions();
+_ret:
+	return zoom;
+}
+
+/**
+ * Resize the screen filling the greatest area possible, but ignoring the
+ *original aspect ratio. This shouldn't be used at all! Ò.Ó
+ * This version restrict the zoom the biggest integer possible.
+ * @param	update_window	Whether the windows dimensions should be updated
+ */
+void GFraMe_screen_set_maximize_int(int update_window) {
+	int w = 0, h = 0;
+	// Get the actual window's dimension
+	if (update_window) {
+		SDL_GetWindowSize(GFraMe_window, &w, &h);
+		GFraMe_window_w = w;
+		GFraMe_window_h = h;
+	}
+	else {
+		w = GFraMe_window_w;
+		h = GFraMe_window_h;
+	}
+	// Get the current zoom level
+	GFraMe_screen_ratio_h = (int)( (double)w / GFraMe_screen_w);
+	GFraMe_screen_ratio_v = (int)( (double)h / GFraMe_screen_h);
+	// Letterbox the game
+	GFraMe_buffer_x = 0;
+	GFraMe_buffer_y = 0;
+	GFraMe_buffer_w = w;
+	GFraMe_buffer_h = h;
+	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i"
+	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
+	           , GFraMe_buffer_h);
+	GFraMe_screen_cache_dimensions();
+}
+
+/**
+ * Resize the screen filling the greatest area possible, but ignoring the
+ *original aspect ratio. This shouldn't be used at all! Ò.Ó
+ * @param	update_window	Whether the windows dimensions should be updated
+ */
+void GFraMe_screen_set_maximize_double(int update_window) {
+	int w = 0, h = 0;
+	// Get the actual window's dimension
+	if (update_window) {
+		SDL_GetWindowSize(GFraMe_window, &w, &h);
+		GFraMe_window_w = w;
+		GFraMe_window_h = h;
+	}
+	else {
+		w = GFraMe_window_w;
+		h = GFraMe_window_h;
+	}
+	// Letterbox the game
+	GFraMe_buffer_x = 0;
+	GFraMe_buffer_y = 0;
+	GFraMe_buffer_w = w;
+	GFraMe_buffer_h = h;
+	GFraMe_screen_ratio_h = (double)w / GFraMe_screen_w;
+	GFraMe_screen_ratio_v = (double)h / GFraMe_screen_h;
+	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i"
+	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
+	           , GFraMe_buffer_h);
+	GFraMe_screen_cache_dimensions();
+}
+
+/**
+ * Try to set the device to a given width & height
+ */
+static void GFraMe_set_screen_ratio() {
+	int i_zoom;
+	double d_zoom;
+	d_zoom = GFraMe_screen_set_keep_ratio(0, 0);
+	i_zoom = (int)d_zoom;
+	if ((double)i_zoom != d_zoom)
+		d_zoom = (double)GFraMe_screen_set_pixel_perfect(0, 0);
+	if (d_zoom == 0)
+		GFraMe_screen_set_maximize_double(0);
 }
 
 /**
@@ -299,6 +430,8 @@ void GFraMe_finish_render() {
 	// Set clear color
 	SDL_SetRenderDrawColor(GFraMe_renderer, GFraMe_bg_r, GFraMe_bg_g,
 						   GFraMe_bg_b, GFraMe_bg_a);
+	// Clear the bg
+	SDL_RenderClear(GFraMe_renderer);
 	// Render the backbuffer
 	SDL_RenderCopy(GFraMe_renderer, GFraMe_screen, NULL, &buffer_rect);
 	// Switch buffers (blit to the screen)

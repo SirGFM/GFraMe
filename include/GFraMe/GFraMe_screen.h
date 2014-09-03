@@ -50,7 +50,8 @@ extern int GFraMe_buffer_h;
  * Ratio between backbuffer's actual dimensions and
  *virtual screen dimensions
  */
-extern double GFraMe_screen_ratio;
+extern double GFraMe_screen_ratio_h;
+extern double GFraMe_screen_ratio_v;
 
 /**
  * Initialize SDL, already creating a window and a backbuffer.
@@ -91,9 +92,37 @@ GFraMe_ret GFraMe_getDevDimensions(int *ret_width, int *ret_height);
 void GFraMe_screen_point_to_world(int *x, int *y);
 
 /**
- * Try to set the device to a given width & height
+ * Set the destination dimensions keeping a perfect (i.e, integer) aspect ratio
+ * @param	max_zoom	Maximum zoom value or a value equal to or less than 0
+ *for any zoom
+ * @param	update_window	Whether the windows dimensions should be updated
+ * @return	The new zoom level or 0 on failure
  */
-void GFraMe_set_screen_ratio();
+int GFraMe_screen_set_pixel_perfect(int max_zoom, int update_window);
+
+/**
+ * Resize the game while keeping the original aspect ratio
+ * @param	max_zoom	Maximum zoom value or a value equal to or less than 0
+ *for any zoom
+ * @param	update_window	Whether the windows dimensions should be updated
+ * @return	The new zoom level or 0 on failure
+ */
+double GFraMe_screen_set_keep_ratio(int max_zoom, int update_window);
+
+/**
+ * Resize the screen filling the greatest area possible, but ignoring the
+ *original aspect ratio. This shouldn't be used at all! Ò.Ó
+ * This version restrict the zoom the biggest integer possible.
+ * @param	update_window	Whether the windows dimensions should be updated
+ */
+void GFraMe_screen_set_maximize_int(int update_window);
+
+/**
+ * Resize the screen filling the greatest area possible, but ignoring the
+ *original aspect ratio. This shouldn't be used at all! Ò.Ó
+ * @param	update_window	Whether the windows dimensions should be updated
+ */
+void GFraMe_screen_set_maximize_double(int update_window);
 
 /**
  * Set the color used to clear the screen

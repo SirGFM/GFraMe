@@ -79,6 +79,7 @@ void ps_event_handler() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 			GFraMe_accumulator_update(&acc_timer, __dt__);
+		GFraMe_event_on_mouse_moved();
 		GFraMe_event_on_mouse_down();
 			ps_on_click(GFraMe_event_mouse_x-8, GFraMe_event_mouse_y-8);
 		GFraMe_event_on_quit();
