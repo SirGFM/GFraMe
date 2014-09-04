@@ -33,6 +33,7 @@ static double jump_speed;
 static int cooldown;
 static int combo;
 static int did_combo;
+static double time;
 
 void player_init() {
 	// Draw debug!!
@@ -71,10 +72,11 @@ void player_update(int ms) {
 		double X = tgt.obj.x - player.obj.x;
 		double Y = tgt.obj.y - player.obj.y;
 		double dist = GFraMe_util_sqrtd(X*X + Y*Y);
-		player.obj.vx = player.obj.vx / 4.0 + X / dist * jump_speed;
-		player.obj.vy = Y / dist * jump_speed;
+		player.obj.vx = player.obj.vx / 4.0 + X / dist * jump_speed + player.obj.ay*time*time*0.25;
+		player.obj.vy = Y / dist * jump_speed + player.obj.ay*time*time*0.5;
 		if (player.obj.vx != 0.0)
 			player.flipped = player.obj.vx < 0.0;
+		time += (double)ms / 1000.0;
 	}
 	GFraMe_sprite_update(&player, ms);
 	if (cooldown > 0)
@@ -146,6 +148,7 @@ void player_set_target(int X, int Y) {
 		did_combo = cooldown > 0;
 		cooldown = 0;
 		GFraMe_audio_play(&gl_charge, 0.25);
+		time = 0.0;
 	}
 }
 

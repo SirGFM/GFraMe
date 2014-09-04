@@ -32,6 +32,17 @@ double GFraMe_util_sqrtd(double val);
 int GFraMe_util_randomi();
 
 /**
+ * Convert a string into a data buffer, to easily display messages
+ * through a tilemap.
+ * 
+ * @param	*data	Buffer to be modified with the string's data
+ * @param	*str	String to be converted to tiles
+ * @param	first_tile	First ASCII character ('!') posiiton on the spriteset
+ * @return	First position, on the buffer, after the string.
+ */
+char* GFraMe_str2tiles(char *data, char *str, int first_tile);
+
+/**
  * Open a web browser with the requested url;
  * only works on Windows, Linux and Android
  */

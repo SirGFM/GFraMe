@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_tilemap.h>
+#include <GFraMe/GFraMe_util.h>
 #include "global.h"
 
 /**
@@ -26,27 +27,17 @@ static double i_val;
  */
 static double mod;
 
+/**
+ * Current highscore
+ */
+static int highscore = 0;
+static int hs_time;
+
 void score_init() {
-	int i = 0;
+	char *tmp;
 	// Assign basic tilemap data
-	score_data[i++] = CHAR2TILE(' ');
-	score_data[i++] = CHAR2TILE(' ');
-	score_data[i++] = CHAR2TILE('S');
-	score_data[i++] = CHAR2TILE('C');
-	score_data[i++] = CHAR2TILE('O');
-	score_data[i++] = CHAR2TILE('R');
-	score_data[i++] = CHAR2TILE('E');
-	score_data[i++] = CHAR2TILE(' ');
-	score_data[i++] = CHAR2TILE(' ');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
-	score_data[i++] = CHAR2TILE('0');
+	tmp = GFraMe_str2tiles(score_data, "  SCORE  ", 0);
+	tmp = GFraMe_str2tiles(tmp, "000000000", 0);
 	// Initialize the tilemap
 	GFraMe_tilemap_init(&score, 9, 2, score_data, &gl_sset8, NULL, 0);
 	score.x = 320 - 8*10;
@@ -54,6 +45,25 @@ void score_init() {
 	// Resets the score
 	cur_score = 0;
 	i_val = 0;
+	hs_time = 0;
+}
+
+void highscore_init() {
+	char *tmp;
+	score_init();
+	// Reassign tilemap data
+	tmp = GFraMe_str2tiles(score_data, "HIGHSCORE", 0);
+	// Set flashing time, if passed the score
+	if (cur_score > highscore)
+		hs_time = 250;
+}
+
+void highscore_update(int ms) {
+	if (hs_time > 0) {
+		hs_time -= ms;
+		if (hs_time <= 0)
+			hs_time += 500;
+	}
 }
 
 void score_update(int ms) {
@@ -76,10 +86,14 @@ void score_update(int ms) {
 			tmp /= 10;
 		}
 	}
+	highscore_update(ms);
 }
 
 void score_inc(int val) {
 	double dif;
+	// Flash the score if it just passed the highscore
+	if (cur_score <= highscore && cur_score + val > highscore)
+		hs_time = 250;
 	// Update the current score
 	cur_score += val;
 	// Calculate how fast it should increase per second
@@ -91,6 +105,9 @@ void score_inc(int val) {
 }
 
 GFraMe_ret score_draw() {
-	return GFraMe_tilemap_draw(&score);
+	if (hs_time < 250)
+		return GFraMe_tilemap_draw(&score);
+	else
+		return GFraMe_ret_ok;
 }
 

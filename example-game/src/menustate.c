@@ -144,6 +144,8 @@ static void menu_init() {
 	button_init(&bt_1_1, 320-44*3, 240-44, 8, 9, 10, 38);
 	button_init(&bt_prop, 320-44*2, 240-44, 8, 9, 10, 39);
 	button_init(&bt_free, 320-44, 240-44, 8, 9, 10, 54);
+	// Initialize the highscore
+	highscore_init();
 	// Set init text
 	is_text_visible = 1;
 	GFraMe_tilemap_init(&init_text, 20, 1, init_data, &gl_sset8, NULL, 0);
@@ -233,6 +235,7 @@ static void menu_update() {
 		}
 		// Update the buttons
 		if (state == LOOP) {
+			highscore_update(GFraMe_event_elapsed);
 			button_update(&gfm_bt, GFraMe_event_elapsed, GFraMe_event_mouse_x,
 						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
 			button_update(&bt_1_1, GFraMe_event_elapsed, GFraMe_event_mouse_x,
@@ -284,6 +287,7 @@ static void menu_draw() {
 			button_draw(&bt_1_1);
 			button_draw(&bt_prop);
 			button_draw(&bt_free);
+			score_draw();
 		}
 		// Draw start message
 		if (is_text_visible)

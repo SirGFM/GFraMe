@@ -65,6 +65,24 @@ char* GFraMe_util_strcat(char *dst, char *src, int *len) {
 	return dst;
 }
 
+/**
+ * Convert a string into a data buffer, to easily display messages
+ * through a tilemap.
+ * 
+ * @param	*data	Buffer to be modified with the string's data
+ * @param	*str	String to be converted to tiles
+ * @param	first_tile	First ASCII character ('!') posiiton on the spriteset
+ * @return	First position, on the buffer, after the string.
+ */
+char* GFraMe_str2tiles(char *data, char *str, int first_tile) {
+	while (*str) {
+		*data = (char)(*str - '!' + first_tile);
+		data++;
+		str++;
+	}
+	return data;
+}
+
 void GFraMe_util_open_browser(char *url) {
 	char buf[1024];
 	char *tmp;

@@ -11,5 +11,8 @@ void score_update(int ms);
 void score_inc(int val);
 GFraMe_ret score_draw();
 
+void highscore_init();
+void highscore_update(int ms);
+
 #endif
 
