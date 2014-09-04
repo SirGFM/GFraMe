@@ -4,15 +4,19 @@
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_event.h>
+#include <GFraMe/GFraMe_messagebox.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
+#include <stdlib.h>
 #include "background.h"
 #include "button.h"
 #include "global.h"
 #include "score.h"
 #include "menustate.h"
+
+#include <SDL2/SDL_video.h>
 
 // Define some variables needed by the events module
 GFraMe_event_setup();
@@ -238,6 +242,12 @@ static void menu_update() {
 			button_update(&bt_free, GFraMe_event_elapsed, GFraMe_event_mouse_x,
 						  GFraMe_event_mouse_y, GFraMe_event_mouse_pressed);
 			if (gfm_bt.justReleased) {
+				GFraMe_button_ret res;
+				res = GFraMe_messagebox_OkCancel("Open author's website?",
+									"Go to http://gfmgamecorner.wordpres.com?",
+									"Open", "Cancel");
+				if (res == GFraMe_button_ret_ok)
+					GFraMe_util_open_browser("http://gfmgamecorner.wordpress.com/");
 			}
 			else if (bt_1_1.justReleased)
 				GFraMe_screen_set_pixel_perfect(0, 1);

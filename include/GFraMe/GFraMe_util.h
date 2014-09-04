@@ -31,5 +31,11 @@ double GFraMe_util_sqrtd(double val);
  */
 int GFraMe_util_randomi();
 
+/**
+ * Open a web browser with the requested url;
+ * only works on Windows, Linux and Android
+ */
+void GFraMe_util_open_browser(char *url);
+
 #endif
 

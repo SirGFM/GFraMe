@@ -438,3 +438,10 @@ void GFraMe_finish_render() {
 	SDL_RenderPresent(GFraMe_renderer);
 }
 
+/**
+ * Get the window reference
+ */
+SDL_Window *GFraMe_screen_get_window() {
+	return GFraMe_window;
+}
+

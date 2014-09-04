@@ -2,6 +2,7 @@
  * @src/gframe_util.c
  */
 #include <GFraMe/GFraMe_util.h>
+#include <SDL2/SDL_platform.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -44,5 +45,40 @@ double GFraMe_util_sqrtd(double val) {
 int GFraMe_util_randomi() {
 	// TODO change the generator!
 	return rand();
+}
+
+int GFraMe_util_strcmp(const char *str1, const char *str2) {
+	while (*str1 && *str2 && *str1 == *str2) {
+		str1++;
+		str2++;
+	}
+	return !*str1 && !*str2;
+}
+
+char* GFraMe_util_strcat(char *dst, char *src, int *len) {
+	while (*src && *len > 0) {
+		*dst = *src;
+		src++;
+		dst++;
+		(*len)--;
+	}
+	return dst;
+}
+
+void GFraMe_util_open_browser(char *url) {
+	char buf[1024];
+	char *tmp;
+	int len = 1024;
+	const char *plat = SDL_GetPlatform();
+	if (GFraMe_util_strcmp(plat, "Windows"))
+		tmp = GFraMe_util_strcat(buf, "start ", &len);
+	else if (GFraMe_util_strcmp(plat, "Linux"))
+		tmp = GFraMe_util_strcat(buf, "xdg-open ", &len);
+	else if (GFraMe_util_strcmp(plat, "Android"))
+		tmp = GFraMe_util_strcat(buf, "am start -a android.intent.action.VIEW -d ", &len);
+	else
+		return;
+	tmp = GFraMe_util_strcat(tmp, url, &len);
+	system(buf);
 }
 

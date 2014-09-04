@@ -18,7 +18,10 @@ void printFmt(struct fmt *f) {
 		case 3: printf("IEEE FLOAT"); break;
 		case 6: printf("???"); break;
 		case 7: printf("???"); break;
-		case 0xfffe: printf("CUSTOM"); break;
+		default: 
+			if ((int)f->fmt == 0xfffe)
+				printf("CUSTOM");
+		break;
 	}
 	
 	printf("\nNumber of channels: %i\n", f->nchan);
