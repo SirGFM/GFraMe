@@ -52,11 +52,12 @@ void ps_on_click(int X, int Y);
  */
 void ps_loop() {
 	ps_init();
-	while (gl_running) {
+	while (gl_running && player_get_object()->y < 260) {
 		ps_event_handler();
 		ps_do_update();
 		ps_do_draw();
 	}
+	highscore_save();
 	// TODO display stats
 }
 

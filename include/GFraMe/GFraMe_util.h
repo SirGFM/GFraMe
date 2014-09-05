@@ -31,6 +31,10 @@ double GFraMe_util_sqrtd(double val);
  */
 int GFraMe_util_randomi();
 
+int GFraMe_util_strlen(const char *str);
+int GFraMe_util_strcmp(const char *str1, const char *str2);
+char* GFraMe_util_strcat(char *dst, char *src, int *len);
+
 /**
  * Convert a string into a data buffer, to easily display messages
  * through a tilemap.

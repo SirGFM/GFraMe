@@ -13,6 +13,7 @@ GFraMe_ret score_draw();
 
 void highscore_init();
 void highscore_update(int ms);
+void highscore_save();
 
 #endif
 

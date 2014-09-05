@@ -60,7 +60,8 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
        $(OBJDIR)/gframe_spriteset.o $(OBJDIR)/gframe_texture.o \
        $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o \
        $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
-       $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o\
+       $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o \
+	   $(OBJDIR)/gframe_save.o \
 	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 
 all: static

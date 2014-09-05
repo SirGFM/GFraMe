@@ -2,10 +2,12 @@
  * @src/score.c
  */
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_save.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
 #include "global.h"
 
+static GFraMe_save sav;
 /**
  * Tilemap for the score
  */
@@ -50,12 +52,43 @@ void score_init() {
 
 void highscore_init() {
 	char *tmp;
-	score_init();
+	int i;
+	
+	// Set flashing time, if passed the score
+	if (cur_score > highscore) {
+		score_init();
+		hs_time = 250;
+	}
+	else
+		score_init();
+	
 	// Reassign tilemap data
 	tmp = GFraMe_str2tiles(score_data, "HIGHSCORE", 0);
-	// Set flashing time, if passed the score
-	if (cur_score > highscore)
-		hs_time = 250;
+	
+	GFraMe_save_bind(&sav, "bugsquasher.sav");
+	if (GFraMe_save_read(&sav, "hs", &highscore, sizeof(int), 1) == GFraMe_ret_failed)
+		highscore = 0;
+	GFraMe_save_close(&sav);
+	
+	if (highscore > 0) {
+		tmp += 8;
+		i = highscore;
+		while (i > 0) {
+			// Update each digit on the tilemap
+			*tmp-- = CHAR2TILE((i % 10) + '0');
+			i /= 10;
+		}
+	}
+}
+
+void highscore_save() {
+	if (cur_score > highscore) {
+		if (cur_score > 999999999)
+			cur_score = 999999999;
+		GFraMe_save_bind(&sav, "bugsquasher.sav");
+		GFraMe_save_write(&sav, "hs", &cur_score, sizeof(int), 1);
+		GFraMe_save_close(&sav);
+	}
 }
 
 void highscore_update(int ms) {

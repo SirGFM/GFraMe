@@ -47,6 +47,12 @@ int GFraMe_util_randomi() {
 	return rand();
 }
 
+int GFraMe_util_strlen(const char *str) {
+	int len = 0;
+	while (*(str++)) len++;
+	return len;
+}
+
 int GFraMe_util_strcmp(const char *str1, const char *str2) {
 	while (*str1 && *str2 && *str1 == *str2) {
 		str1++;
@@ -62,6 +68,8 @@ char* GFraMe_util_strcat(char *dst, char *src, int *len) {
 		dst++;
 		(*len)--;
 	}
+	if (*len > 0)
+		*dst = '\0';
 	return dst;
 }
 

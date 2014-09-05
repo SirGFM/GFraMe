@@ -66,6 +66,8 @@ static void menu_update();
 static void menu_update_exit();
 static void menu_draw();
 
+static int can_switch;
+
 void ms_loop() {
 	menu_init();
 	while (game_init == 0 && gl_running) {
@@ -137,6 +139,8 @@ static void menu_init() {
 	i = 0;
 	game_init = 0;
 	time = 0;
+	state = ENTER;
+	can_switch = 0;
 	// Initialize the background
 	background_init();
 	// Initialize the buttons
@@ -217,6 +221,7 @@ static void menu_event() {
 		GFraMe_event_on_mouse_down();
 			switch (state) {
 				case ENTER: state = GOTO_LOOP; break;
+				case LOOP: if (can_switch) state = GOTO_EXIT; break;
 				case EXIT: game_init = 1; break;
 			}
 		GFraMe_event_on_mouse_up();
@@ -258,10 +263,13 @@ static void menu_update() {
 				GFraMe_screen_set_keep_ratio(0, 1);
 			else if (bt_free.justReleased)
 				GFraMe_screen_set_maximize_double(1);
-			else if (!(gfm_bt.wasPressed || bt_1_1.wasPressed
-					|| bt_prop.wasPressed || bt_free.wasPressed)
-					&& GFraMe_event_mouse_pressed)
-				state = GOTO_EXIT; break;
+			if (  gfm_bt.state == RELEASED
+					&& bt_1_1.state == RELEASED
+					&& bt_prop.state == RELEASED
+					&& bt_free.state == RELEASED)
+				can_switch = 1;
+			else
+				can_switch = 0;
 		}
 		i = 0;
 		while (i < MAX_BUG) {
