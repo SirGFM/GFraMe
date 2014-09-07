@@ -7,6 +7,7 @@
 #include <GFraMe/GFraMe_messagebox.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
+#include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_tween.h>
 #include <GFraMe/GFraMe_util.h>
@@ -114,41 +115,75 @@ static void menu_init() {
 	// Init every sprite
 	i = 0;
 	while (i < MAX_SPRITES) {
+		GFraMe_spriteset *sset;
+		int X, Y, h, tile;
+		double time;
 		GFraMe_sprite *spr = title + i;
-		GFraMe_object *obj = GFraMe_sprite_get_object(spr);
+		//GFraMe_object *obj = GFraMe_sprite_get_object(spr);
 		GFraMe_tween *tw = GFraMe_sprite_get_tween(spr);
 		if (i == BUG_B) {
-			GFraMe_sprite_init(spr, BUG_X, BUG_Y, 32, 64,&gl_sset32x64,0,0);
-			spr->cur_tile = 8*3;
+			X = BUG_X;
+			Y = BUG_Y;
+			h = 64;
+			sset = &gl_sset32x64;
+			tile = 8*3;
+			time = 1.25;
+			//GFraMe_sprite_init(spr, BUG_X, BUG_Y, 32, 64,&gl_sset32x64,0,0);
+			//spr->cur_tile = 8*3;
 		}
 		else if (i == SQS_S) {
-			GFraMe_sprite_init(spr, SQS_X, SQS_Y, 32, 64,&gl_sset32x64,0,0);
-			spr->cur_tile = 8*3+1;
+			X = SQS_X;
+			Y = SQS_Y;
+			h = 64;
+			sset = &gl_sset32x64;
+			tile = 8*3 + 1;
+			time = 0.75;
+			//GFraMe_sprite_init(spr, SQS_X, SQS_Y, 32, 64,&gl_sset32x64,0,0);
+			//spr->cur_tile = 8*3+1;
 		}
 		else if (i < SQS_S) {
-			GFraMe_sprite_init(spr, BUG_X,BUG_Y+VDIST,32,32,&gl_sset32,0,0);
-			spr->cur_tile = 8*5 + i - BUG_u;
+			X = BUG_X + i*HDIST;
+			Y = BUG_Y + VDIST;
+			h = 32;
+			sset = &gl_sset32;
+			tile = 8*5 + i - BUG_u;
+			time = 1.25;
+			//GFraMe_sprite_init(spr, BUG_X,BUG_Y+VDIST,32,32,&gl_sset32,0,0);
+			//spr->cur_tile = 8*5 + i - BUG_u;
 		}
 		else {
-			GFraMe_sprite_init(spr, SQS_X,SQS_Y+VDIST,32,32,&gl_sset32,0,0);
-			if (i == SQS_u)
-				spr->cur_tile = 8*5;
-			else
-				spr->cur_tile = 8*5 + i - SQS_S;
+			X = SQS_X + (i - SQS_S) * HDIST;
+			Y = SQS_Y + VDIST;
+			h = 32;
+			sset = &gl_sset32;
+			tile = 8*5;
+			time = 0.75;
+			if (i != SQS_u)
+				tile += i - SQS_S;
+			if (i == SQS_q)
+				tile++;
+			//GFraMe_sprite_init(spr, SQS_X,SQS_Y+VDIST,32,32,&gl_sset32,0,0);
+			//if (i == SQS_u)
+			//	spr->cur_tile = 8*5;
+			//else
+			//	spr->cur_tile = 8*5 + i - SQS_S;
 		}
-		if (i == SQS_q)
-			spr->cur_tile++;
+		GFraMe_sprite_init(spr, X, Y, 32, h, sset, 0, 0);
+		spr->cur_tile = tile;
+		GFraMe_tween_init(tw, X, -64, X, Y, time, GFraMe_tween_lerp);
+		//if (i == SQS_q)
+		//	spr->cur_tile++;
 		// Set horizontal position and tween
-		if (i < SQS_S) {
-			GFraMe_object_set_x(obj, obj->x + i * HDIST);
-			GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 1.5,
-							  GFraMe_tween_lerp);
-		}
-		else {
-			GFraMe_object_set_x(obj, obj->x + (i - SQS_S) * HDIST);
-			GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 0.75,
-							  GFraMe_tween_lerp);
-		}
+		//if (i < SQS_S) {
+		//	GFraMe_object_set_x(obj, obj->x + i * HDIST);
+		//	GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 1.5,
+		//					  GFraMe_tween_lerp);
+		//}
+		//else {
+		//	GFraMe_object_set_x(obj, obj->x + (i - SQS_S) * HDIST);
+		//	GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 0.75,
+		//					  GFraMe_tween_lerp);
+		//}
 		i++;
 	}
 	// Init the timer
