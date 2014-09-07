@@ -1,6 +1,7 @@
 /**
  * @src/button.c
  */
+#include <GFraMe/GFraMe_pointer.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include "global.h"
@@ -24,15 +25,20 @@ void button_init(Button *bt, int x, int y, int rel, int over,
 	bt->base.cur_tile = rel;
 }
 
-void button_update(Button *bt, int ms, int mouseX, int mouseY,
-				   int pressed) {
+void button_update(Button *bt, int ms) {
 	int isOver;
+	int mouseX, mouseY, pressed;
+	
+	mouseX = GFraMe_pointer_x;
+	mouseY = GFraMe_pointer_y;
+	pressed = GFraMe_pointer_pressed;
 	
 	bt->justReleased = 0;
 	isOver = mouseX >= bt->base.obj.x
 		  && mouseX <= bt->base.obj.x + bt->base.obj.hitbox.hw * 2
 		  && mouseY >= bt->base.obj.y
 		  && mouseY <= bt->base.obj.y + bt->base.obj.hitbox.hh * 2;
+	bt->wasPressed = bt->state == PRESSED;
 	
 	if (!isOver) {
 		bt->state = RELEASED;
@@ -44,15 +50,12 @@ void button_update(Button *bt, int ms, int mouseX, int mouseY,
 		bt->base.cur_tile = bt->pressed;
 		bt->label.offset_y = 2;
 	}
-	else if (bt->wasPressed) {
-		bt->justReleased = 1;
-	}
 	else if (bt->state != OVER) {
 		bt->state = OVER;
 		bt->base.cur_tile = bt->over;
 		bt->label.offset_y = 1;
 	}
-	bt->wasPressed = isOver && pressed;
+	bt->justReleased = bt->wasPressed && !pressed;
 }
 
 void button_draw(Button *bt) {

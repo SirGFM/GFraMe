@@ -6,6 +6,7 @@
 
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_pointer.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_events.h>
@@ -14,9 +15,6 @@
 #define __lasttime__	__FILE__##__gframe_event_lasttime
 #define	__updacc__		__FILE__##__gframe_upd_acc
 #define __drawacc__		__FILE__##__gframe_draw_acc
-#define GFraMe_event_mouse_x	__FILE__##__gframe_mouse_x
-#define GFraMe_event_mouse_y	__FILE__##__gframe_mouse_y
-#define GFraMe_event_mouse_pressed	__FILE__##__gframe_mouse_pressed
 #define GFraMe_event_elapsed	__FILE__##__gframe_elapsed_time
 
 #define GFraMe_event_setup() \
@@ -24,10 +22,7 @@
 	static Uint32 __lasttime__; \
 	static GFraMe_accumulator __updacc__; \
 	static GFraMe_accumulator __drawacc__; \
-	static int GFraMe_event_elapsed; \
-	static int GFraMe_event_mouse_x; \
-	static int GFraMe_event_mouse_y; \
-	static int GFraMe_event_mouse_pressed
+	static int GFraMe_event_elapsed
 
 #define GFraMe_event_init(update_fps, draw_fps) \
 	__lasttime__ = SDL_GetTicks(); \
@@ -56,40 +51,45 @@
 #define GFraMe_event_on_mouse_up() \
 			break; \
 			case SDL_MOUSEBUTTONUP: \
-				GFraMe_event_mouse_pressed = 0;
+				GFraMe_pointer_pressed = 0; \
+				GFraMe_pointer_finger_ev = 0
 
 #define GFraMe_event_on_mouse_down() \
 			break; \
 			case SDL_MOUSEBUTTONDOWN: \
-				GFraMe_event_mouse_pressed = 1;\
+				GFraMe_pointer_pressed = 1; \
+				GFraMe_pointer_finger_ev = 0
 
 #define GFraMe_event_on_mouse_moved() \
 			break; \
 			case SDL_MOUSEMOTION: \
-				GFraMe_event_mouse_x = (event.motion.x - GFraMe_buffer_x) / GFraMe_screen_ratio_h; \
-				if (GFraMe_event_mouse_x < 0) \
-					GFraMe_event_mouse_x = 0; \
-				else if (GFraMe_event_mouse_x > GFraMe_buffer_w) \
-					GFraMe_event_mouse_x = GFraMe_buffer_w - 1; \
-				GFraMe_event_mouse_y = (event.motion.y - GFraMe_buffer_y) / GFraMe_screen_ratio_v; \
-				if (GFraMe_event_mouse_y < 0) \
-					GFraMe_event_mouse_y = 0; \
-				else if (GFraMe_event_mouse_y > GFraMe_buffer_h) \
-					GFraMe_event_mouse_y = GFraMe_buffer_h - 1
+				GFraMe_pointer_x = (event.motion.x - GFraMe_buffer_x) / GFraMe_screen_ratio_h; \
+				if (GFraMe_pointer_x < 0) \
+					GFraMe_pointer_x = 0; \
+				else if (GFraMe_pointer_x > GFraMe_buffer_w) \
+					GFraMe_pointer_x = GFraMe_buffer_w - 1; \
+				GFraMe_pointer_y = (event.motion.y - GFraMe_buffer_y) / GFraMe_screen_ratio_v; \
+				if (GFraMe_pointer_y < 0) \
+					GFraMe_pointer_y = 0; \
+				else if (GFraMe_pointer_y > GFraMe_buffer_h) \
+					GFraMe_pointer_y = GFraMe_buffer_h - 1; \
+				GFraMe_pointer_finger_ev = 0
 
 #define GFraMe_event_on_finger_down() \
 			break; \
 			case SDL_FINGERDOWN: \
-				GFraMe_event_mouse_pressed = 1;\
-				GFraMe_event_mouse_x = (int)((event.tfinger.x * GFraMe_window_w - GFraMe_buffer_x) / GFraMe_screen_ratio_h); \
-				GFraMe_event_mouse_y = (int)((event.tfinger.y * GFraMe_window_h - GFraMe_buffer_y) / GFraMe_screen_ratio_v)
+				GFraMe_pointer_x = (int)((event.tfinger.x * GFraMe_window_w - GFraMe_buffer_x) / GFraMe_screen_ratio_h); \
+				GFraMe_pointer_y = (int)((event.tfinger.y * GFraMe_window_h - GFraMe_buffer_y) / GFraMe_screen_ratio_v); \
+				GFraMe_pointer_pressed = 1; \
+				GFraMe_pointer_finger_ev = 1
 
 #define GFraMe_event_on_finger_up() \
 			break; \
 			case SDL_FINGERUP: \
-				GFraMe_event_mouse_x = -1; \
-				GFraMe_event_mouse_y = -1; \
-				GFraMe_event_mouse_pressed = 0;
+				GFraMe_pointer_x = -1; \
+				GFraMe_pointer_y = -1; \
+				GFraMe_pointer_pressed = 0; \
+				GFraMe_pointer_finger_ev = 1
 
 #define GFraMe_event_on_key_down() \
 			break; \

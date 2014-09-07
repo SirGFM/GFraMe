@@ -28,8 +28,7 @@ typedef struct stButton Button;
 
 void button_init(Button *bt, int x, int y, int rel, int over,
 				 int press, int label);
-void button_update(Button *bt, int ms, int mouseX, int mouseY,
-				   int pressed);
+void button_update(Button *bt, int ms);
 void button_draw(Button *bt);
 
 #endif

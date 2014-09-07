@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_object.h>
+#include <GFraMe/GFraMe_pointer.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
@@ -82,7 +83,7 @@ void ps_event_handler() {
 			GFraMe_accumulator_update(&acc_timer, __dt__);
 		GFraMe_event_on_mouse_moved();
 		GFraMe_event_on_mouse_down();
-			ps_on_click(GFraMe_event_mouse_x-8, GFraMe_event_mouse_y-8);
+			ps_on_click(GFraMe_pointer_x-8, GFraMe_pointer_y-8);
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
 			gl_running = 0;

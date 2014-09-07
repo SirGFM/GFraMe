@@ -62,7 +62,7 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
        $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
        $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o \
 	   $(OBJDIR)/gframe_save.o $(OBJDIR)/gframe_hitbox.o \
-	   $(OBJDIR)/gframe_tween.o \
+	   $(OBJDIR)/gframe_tween.o $(OBJDIR)/gframe_pointer.o \
 	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 
 all: static
