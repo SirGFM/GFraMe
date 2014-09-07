@@ -382,12 +382,12 @@ void GFraMe_screen_set_maximize_double(int update_window) {
 static void GFraMe_set_screen_ratio() {
 	int i_zoom;
 	double d_zoom;
-	d_zoom = GFraMe_screen_set_keep_ratio(0, 0);
+	d_zoom = GFraMe_screen_set_keep_ratio(0, 1);
 	i_zoom = (int)d_zoom;
 	if ((double)i_zoom != d_zoom)
-		d_zoom = (double)GFraMe_screen_set_pixel_perfect(0, 0);
+		d_zoom = (double)GFraMe_screen_set_pixel_perfect(0, 1);
 	if (d_zoom == 0)
-		GFraMe_screen_set_maximize_double(0);
+		GFraMe_screen_set_maximize_double(1);
 }
 
 /**

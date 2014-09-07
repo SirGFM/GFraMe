@@ -86,8 +86,8 @@
 #define GFraMe_event_on_finger_up() \
 			break; \
 			case SDL_FINGERUP: \
-				GFraMe_pointer_x = -1; \
-				GFraMe_pointer_y = -1; \
+				/* GFraMe_pointer_x = -1; */ \
+				/* GFraMe_pointer_y = -1; */ \
 				GFraMe_pointer_pressed = 0; \
 				GFraMe_pointer_finger_ev = 1
 

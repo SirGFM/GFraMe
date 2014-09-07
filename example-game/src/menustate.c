@@ -169,13 +169,16 @@ static void menu_init() {
 static void menu_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
-		GFraMe_event_on_mouse_moved();
+#ifdef MOBILE
 		GFraMe_event_on_finger_down();
 			requestSwitch = 1;
 		GFraMe_event_on_finger_up();
+#else
+		GFraMe_event_on_mouse_moved();
 		GFraMe_event_on_mouse_down();
 			requestSwitch = 1;
 		GFraMe_event_on_mouse_up();
+#endif
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
 			gl_running = 0;

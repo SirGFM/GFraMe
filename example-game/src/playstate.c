@@ -81,9 +81,14 @@ void ps_event_handler() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 			GFraMe_accumulator_update(&acc_timer, __dt__);
+#ifdef MOBILE
+		GFraMe_event_on_finger_down();
+			ps_on_click(GFraMe_pointer_x-8, GFraMe_pointer_y-8);
+#else
 		GFraMe_event_on_mouse_moved();
 		GFraMe_event_on_mouse_down();
 			ps_on_click(GFraMe_pointer_x-8, GFraMe_pointer_y-8);
+#endif
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
 			gl_running = 0;
