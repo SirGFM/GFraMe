@@ -80,10 +80,16 @@
 #define GFraMe_event_on_finger_down() \
 			break; \
 			case SDL_FINGERDOWN: \
-				int finger_x, finger_y; \
-				GFraMe_mouse_pressed = 1;\
-				finger_x = (int)((event.tfinger.x * GFraMe_window_w - GFraMe_buffer_x) / GFraMe_screen_ratio); \
-				finger_y = (int)((event.tfinger.y * GFraMe_window_h - GFraMe_buffer_y) / GFraMe_screen_ratio)
+				GFraMe_event_mouse_pressed = 1;\
+				GFraMe_event_mouse_x = (int)((event.tfinger.x * GFraMe_window_w - GFraMe_buffer_x) / GFraMe_screen_ratio_h); \
+				GFraMe_event_mouse_y = (int)((event.tfinger.y * GFraMe_window_h - GFraMe_buffer_y) / GFraMe_screen_ratio_v)
+
+#define GFraMe_event_on_finger_up() \
+			break; \
+			case SDL_FINGERUP: \
+				GFraMe_event_mouse_x = -1; \
+				GFraMe_event_mouse_y = -1; \
+				GFraMe_event_mouse_pressed = 0;
 
 #define GFraMe_event_on_key_down() \
 			break; \

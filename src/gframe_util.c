@@ -108,3 +108,7 @@ void GFraMe_util_open_browser(char *url) {
 	system(buf);
 }
 
+double GFraMe_util_lerp(int a, int b, double time) {
+	return (double)a * (1 - time) + (double)b * time;
+}
+

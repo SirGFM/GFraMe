@@ -1,5 +1,5 @@
 /**
- * @src/menustate.h
+ * @src/menustate.c
  */
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_audio.h>
@@ -8,6 +8,7 @@
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
+#include <GFraMe/GFraMe_tween.h>
 #include <GFraMe/GFraMe_util.h>
 #include <stdlib.h>
 #include "background.h"
@@ -16,28 +17,24 @@
 #include "score.h"
 #include "menustate.h"
 
-#include <SDL2/SDL_video.h>
-
 // Define some variables needed by the events module
 GFraMe_event_setup();
 
 enum {
 	ENTER,
-	GOTO_LOOP,
 	LOOP,
-	GOTO_EXIT,
 	EXIT
 };
 static int state;
 
 static int game_init;
 
-static double time;
 static GFraMe_accumulator timer;
 
 static GFraMe_tilemap init_text;
 static char init_data[20];
 static int is_text_visible;
+static int requestSwitch;
 
 static Button gfm_bt;
 static Button bt_1_1;
@@ -46,101 +43,51 @@ static Button bt_free;
 
 #define BUG_X	110
 #define BUG_Y	29
-#define SQUASHER_X	16
-#define SQUASHER_Y	65
+#define SQS_X	16
+#define SQS_Y	65
 #define VDIST	16
 #define HDIST	37
 enum {
-	B=0,u,g, MAX_BUG
+	BUG_B,
+	BUG_u,
+	BUG_g,
+	SQS_S,
+	SQS_q,
+	SQS_u,
+	SQS_a,
+	SQS_s,
+	SQS_h,
+	SQS_e,
+	SQS_r,
+	MAX_SPRITES
 };
-enum {
-	S=0,q,u2,a,s,h,e,r,
-	MAX_SQUASHER
-};
-static GFraMe_sprite BUG[MAX_BUG];
-static GFraMe_sprite SQUASHER[MAX_SQUASHER];
+static GFraMe_sprite title[MAX_SPRITES];
 
 static void menu_init();
 static void menu_event();
 static void menu_update();
-static void menu_update_exit();
 static void menu_draw();
-
-static int can_switch;
+static void menu_switch_state();
 
 void ms_loop() {
 	menu_init();
 	while (game_init == 0 && gl_running) {
+		requestSwitch = 0;
 		menu_event();
-		switch (state) {
-			case ENTER:
-				time += (double)GFraMe_event_elapsed / 1000.0;
-				if (time >= 1.5)
-					state = GOTO_LOOP;
-				else {
-					menu_update();
-					is_text_visible = 0;
-				}
-			break;
-			case GOTO_LOOP:
-				#define SPR_POS(TYPE, LETTER) \
-					GFraMe_object_set_pos(&TYPE[LETTER].obj, \
-										  TYPE##_X + HDIST * LETTER, \
-										  TYPE##_Y + VDIST*(LETTER != 0));\
-					TYPE[LETTER].obj.vy = 0
-				SPR_POS(BUG, B);
-				SPR_POS(BUG, u);
-				SPR_POS(BUG, g);
-				SPR_POS(SQUASHER, S);
-				SPR_POS(SQUASHER, q);
-				SPR_POS(SQUASHER, u2);
-				SPR_POS(SQUASHER, a);
-				SPR_POS(SQUASHER, s);
-				SPR_POS(SQUASHER, h);
-				SPR_POS(SQUASHER, e);
-				SPR_POS(SQUASHER, r);
-				#undef SPR_POS
-				state = LOOP;
-			break;
-			case LOOP: menu_update(); break;
-			case GOTO_EXIT: {
-				#define SPR_ACC(TYPE, LETTER) \
-					TYPE[LETTER].obj.ay = -8 * TYPE[LETTER].obj.hitbox.hh - 2*TYPE[LETTER].obj.y
-				SPR_ACC(BUG, B);
-				SPR_ACC(BUG, u);
-				SPR_ACC(BUG, g);
-				SPR_ACC(SQUASHER, S);
-				SPR_ACC(SQUASHER, q);
-				SPR_ACC(SQUASHER, u2);
-				SPR_ACC(SQUASHER, a);
-				SPR_ACC(SQUASHER, s);
-				SPR_ACC(SQUASHER, h);
-				SPR_ACC(SQUASHER, e);
-				SPR_ACC(SQUASHER, r);
-				#undef SPR_ACC
-				GFraMe_accumulator_init_time(&timer, 250, 400);
-				time = 0.0;
-				state = EXIT;
-				GFraMe_audio_play(&gl_start, 0.75);
-			} break;
-			case EXIT: {
-				menu_update_exit();
-				time += (double)GFraMe_event_elapsed / 1000.0;
-				if (time > 1.5)
-					game_init = 1;
-			};
-		}
+		menu_update();
 		menu_draw();
+		menu_switch_state();
 	}
 }
 
 static void menu_init() {
 	int i;
-	i = 0;
+	int len;
+	char tmp[20];
+	char *ptC;
 	game_init = 0;
-	time = 0;
 	state = ENTER;
-	can_switch = 0;
+	requestSwitch = 0;
 	// Initialize the background
 	background_init();
 	// Initialize the buttons
@@ -154,62 +101,57 @@ static void menu_init() {
 	is_text_visible = 1;
 	GFraMe_tilemap_init(&init_text, 20, 1, init_data, &gl_sset8, NULL, 0);
 	init_text.x = (320 - 20*8) / 2;
-	init_text.y = 240 - 32 - 12;
-	i = 0;
-	init_data[i++] = CHAR2TILE('-');
-	init_data[i++] = CHAR2TILE('-');
-	init_data[i++] = CHAR2TILE(' ');
-#ifndef MOBILE
-	init_data[i++] = CHAR2TILE('C');
-	init_data[i++] = CHAR2TILE('L');
-	init_data[i++] = CHAR2TILE('I');
-	init_data[i++] = CHAR2TILE('C');
-	init_data[i++] = CHAR2TILE('K');
+	init_text.y = 240 - 32 - 16 - 24;
+	len = 20;
+	ptC = GFraMe_util_strcat(tmp, "-- ", &len);
+#ifdef MOBILE
+	ptC = GFraMe_util_strcat(ptC, "TOUCH", &len);
 #else
-	init_data[i++] = CHAR2TILE('T');
-	init_data[i++] = CHAR2TILE('O');
-	init_data[i++] = CHAR2TILE('U');
-	init_data[i++] = CHAR2TILE('C');
-	init_data[i++] = CHAR2TILE('H');
+	ptC = GFraMe_util_strcat(ptC, "CLICK", &len);
 #endif
-	init_data[i++] = CHAR2TILE(' ');
-	init_data[i++] = CHAR2TILE('T');
-	init_data[i++] = CHAR2TILE('O');
-	init_data[i++] = CHAR2TILE(' ');
-	init_data[i++] = CHAR2TILE('S');
-	init_data[i++] = CHAR2TILE('T');
-	init_data[i++] = CHAR2TILE('A');
-	init_data[i++] = CHAR2TILE('R');
-	init_data[i++] = CHAR2TILE('T');
-	init_data[i++] = CHAR2TILE(' ');
-	init_data[i++] = CHAR2TILE('-');
-	init_data[i++] = CHAR2TILE('-');
-	// Initialize the title
-	#define INIT_SPR(TYPE, LETTER, H, SSET, TILE) \
-		GFraMe_sprite_init(TYPE + LETTER, TYPE##_X + HDIST*LETTER, \
-						   -H, 32, H, \
-						   &gl_sset##SSET, 0, 0); \
-		TYPE[LETTER].cur_tile = TILE; \
-		TYPE[LETTER].obj.vy = H + TYPE##_Y + VDIST*(LETTER != 0); \
-		if (TYPE == SQUASHER) { \
-			GFraMe_object_set_y(&TYPE[LETTER].obj, \
-								(int)(TYPE[LETTER].obj.y \
-									  - TYPE[LETTER].obj.vy)); \
-			TYPE[LETTER].obj.vy *= 2; \
+	ptC = GFraMe_util_strcat(ptC, " TO START --", &len);
+	GFraMe_str2tiles(init_data, tmp, 0);
+	// Init every sprite
+	i = 0;
+	while (i < MAX_SPRITES) {
+		GFraMe_sprite *spr = title + i;
+		GFraMe_object *obj = GFraMe_sprite_get_object(spr);
+		GFraMe_tween *tw = GFraMe_sprite_get_tween(spr);
+		if (i == BUG_B) {
+			GFraMe_sprite_init(spr, BUG_X, BUG_Y, 32, 64,&gl_sset32x64,0,0);
+			spr->cur_tile = 8*3;
 		}
-	INIT_SPR(BUG, B, 64, 32x64, 8*3);
-	INIT_SPR(BUG, u, 32, 32, 8*5);
-	INIT_SPR(BUG, g, 32, 32, 8*5+1);
-	INIT_SPR(SQUASHER, S, 64, 32x64, 8*3+1);
-	INIT_SPR(SQUASHER, u2, 32, 32, 8*5);
-	INIT_SPR(SQUASHER, q, 32, 32, 8*5+2);
-	INIT_SPR(SQUASHER, a, 32, 32, 8*5+3);
-	INIT_SPR(SQUASHER, s, 32, 32, 8*5+4);
-	INIT_SPR(SQUASHER, h, 32, 32, 8*5+5);
-	INIT_SPR(SQUASHER, e, 32, 32, 8*5+6);
-	INIT_SPR(SQUASHER, r, 32, 32, 8*5+7);
-	#undef INIT_SPR
-	// Initialize the timer and clean the events accumulated on the queue
+		else if (i == SQS_S) {
+			GFraMe_sprite_init(spr, SQS_X, SQS_Y, 32, 64,&gl_sset32x64,0,0);
+			spr->cur_tile = 8*3+1;
+		}
+		else if (i < SQS_S) {
+			GFraMe_sprite_init(spr, BUG_X,BUG_Y+VDIST,32,32,&gl_sset32,0,0);
+			spr->cur_tile = 8*5 + i - BUG_u;
+		}
+		else {
+			GFraMe_sprite_init(spr, SQS_X,SQS_Y+VDIST,32,32,&gl_sset32,0,0);
+			if (i == SQS_u)
+				spr->cur_tile = 8*5;
+			else
+				spr->cur_tile = 8*5 + i - SQS_S;
+		}
+		if (i == SQS_q)
+			spr->cur_tile++;
+		// Set horizontal position and tween
+		if (i < SQS_S) {
+			GFraMe_object_set_x(obj, obj->x + i * HDIST);
+			GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 1.5,
+							  GFraMe_tween_lerp);
+		}
+		else {
+			GFraMe_object_set_x(obj, obj->x + (i - SQS_S) * HDIST);
+			GFraMe_tween_init(tw, obj->x, -64, obj->x, obj->y, 0.75,
+							  GFraMe_tween_lerp);
+		}
+		i++;
+	}
+	// Init the timer
 	GFraMe_accumulator_init_time(&timer, 500, 900);
 	GFraMe_event_init(60, 60);
 }
@@ -218,12 +160,11 @@ static void menu_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 		GFraMe_event_on_mouse_moved();
+		GFraMe_event_on_finger_down();
+			requestSwitch = 1;
+		GFraMe_event_on_finger_up();
 		GFraMe_event_on_mouse_down();
-			switch (state) {
-				case ENTER: state = GOTO_LOOP; break;
-				case LOOP: if (can_switch) state = GOTO_EXIT; break;
-				case EXIT: game_init = 1; break;
-			}
+			requestSwitch = 1;
 		GFraMe_event_on_mouse_up();
 		GFraMe_event_on_quit();
 			GFraMe_log("Received quit!");
@@ -232,11 +173,16 @@ static void menu_event() {
 }
 
 static void menu_update() {
+	int i;
 	GFraMe_event_update_begin();
-		int i;
 		GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
 		if (GFraMe_accumulator_loop(&timer)) {
 			is_text_visible = !is_text_visible;
+		}
+		i = 0;
+		while (i < MAX_SPRITES) {
+			GFraMe_sprite_update(title + i, GFraMe_event_elapsed);
+			i++;
 		}
 		// Update the buttons
 		if (state == LOOP) {
@@ -263,23 +209,6 @@ static void menu_update() {
 				GFraMe_screen_set_keep_ratio(0, 1);
 			else if (bt_free.justReleased)
 				GFraMe_screen_set_maximize_double(1);
-			if (  gfm_bt.state == RELEASED
-					&& bt_1_1.state == RELEASED
-					&& bt_prop.state == RELEASED
-					&& bt_free.state == RELEASED)
-				can_switch = 1;
-			else
-				can_switch = 0;
-		}
-		i = 0;
-		while (i < MAX_BUG) {
-			GFraMe_sprite_update(BUG + i, GFraMe_event_elapsed);
-			i++;
-		}
-		i = 0;
-		while (i < MAX_SQUASHER) {
-			GFraMe_sprite_update(SQUASHER + i, GFraMe_event_elapsed);
-			i++;
 		}
 	GFraMe_event_update_end();
 }
@@ -301,35 +230,56 @@ static void menu_draw() {
 		if (is_text_visible)
 			GFraMe_tilemap_draw(&init_text);
 		i = 0;
-		while (i < MAX_BUG) {
-			GFraMe_sprite_draw(BUG + i);
-			i++;
-		}
-		i = 0;
-		while (i < MAX_SQUASHER) {
-			GFraMe_sprite_draw(SQUASHER + i);
+		while (i < MAX_SPRITES) {
+			GFraMe_sprite_draw(title + i);
 			i++;
 		}
 	GFraMe_event_draw_end();
 }
 
-static void menu_update_exit() {
-	GFraMe_event_update_begin();
+static void menu_switch_state() {
+	if (state == LOOP) {
+		if (   gfm_bt.state != RELEASED
+			|| bt_1_1.state != RELEASED
+			|| bt_prop.state != RELEASED
+			|| bt_free.state != RELEASED
+			|| !requestSwitch)
+		return;
+	}
+	else if (requestSwitch)
+		{}
+	else if (!GFraMe_tween_is_complete(GFraMe_sprite_get_tween(title)))
+		return;
+	
+	if (state == ENTER) {
 		int i;
-		GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
-		if (GFraMe_accumulator_loop(&timer)) {
-			is_text_visible = !is_text_visible;
-		}
 		i = 0;
-		while (i < MAX_BUG) {
-			GFraMe_sprite_update(BUG + i, GFraMe_event_elapsed);
+		while (i < MAX_SPRITES) {
+			GFraMe_object *obj = GFraMe_sprite_get_object(title + i);
+			GFraMe_tween *tw = GFraMe_sprite_get_tween(title + i);
+			GFraMe_object_set_y(obj, tw->toY);
+			GFraMe_tween_clear(tw);
 			i++;
 		}
+	}
+	else if (state == LOOP) {
+		int i;
 		i = 0;
-		while (i < MAX_SQUASHER) {
-			GFraMe_sprite_update(SQUASHER + i, GFraMe_event_elapsed);
+		while (i < MAX_SPRITES) {
+			double time;
+			GFraMe_object *obj = GFraMe_sprite_get_object(title + i);
+			GFraMe_tween *tw = GFraMe_sprite_get_tween(title + i);
+			if (i < SQS_S)
+				time = 1.5;
+			else
+				time = 0.75;
+			GFraMe_tween_init(tw, obj->x, obj->y, obj->x, -64, time,
+							  GFraMe_tween_lerp);
 			i++;
 		}
-	GFraMe_event_update_end();
+	}
+	else
+		game_init = 1;
+	state++;
 }
 

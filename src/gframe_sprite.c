@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe_animation.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_hitbox.h>
 #include <GFraMe/GFraMe_object.h>
 #ifdef DEBUG
 #include <GFraMe/GFraMe_screen.h>
@@ -43,8 +44,8 @@ void GFraMe_sprite_init(GFraMe_sprite *spr, int x, int y, int w, int h,
 	GFraMe_object_clear(&(spr->obj));
 	GFraMe_object_set_pos(&(spr->obj), x, y);
 	// And modify its hitbox
-	GFraMe_object_set_hitbox(&(spr->obj), GFraMe_set_hitbox_upper_left,
-							 0, 0, w, h);
+	GFraMe_hitbox_set(GFraMe_sprite_get_hitbox(spr),
+					  GFraMe_hitbox_upper_left, 0, 0, w, h);
 	// Now, set the sprite graphics
 	spr->sset = sset;
 	spr->cur_tile = 0;
@@ -127,5 +128,16 @@ void GFraMe_sprite_set_animation(GFraMe_sprite *spr,
 	// Simply change the current animation and tile
 	spr->anim = anim;
 	spr->cur_tile = anim->tile;
+}
+
+GFraMe_hitbox* GFraMe_sprite_get_hitbox(GFraMe_sprite *spr) {
+	return &spr->obj.hitbox;
+}
+
+GFraMe_object* GFraMe_sprite_get_object(GFraMe_sprite *spr) {
+	return &spr->obj;
+}
+GFraMe_tween* GFraMe_sprite_get_tween(GFraMe_sprite *spr) {
+	return &spr->obj.tween;
 }
 

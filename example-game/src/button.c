@@ -34,29 +34,23 @@ void button_update(Button *bt, int ms, int mouseX, int mouseY,
 		  && mouseY >= bt->base.obj.y
 		  && mouseY <= bt->base.obj.y + bt->base.obj.hitbox.hh * 2;
 	
-	switch (bt->state) {
-		case RELEASED: {
-			bt->label.offset_y = 0;
-			bt->base.cur_tile = bt->released;
-			if (isOver)
-				bt->state = OVER;
-		}break;
-		case OVER: {
-			bt->base.cur_tile = bt->over;
-			bt->label.offset_y = 1;
-			if (!isOver)
-				bt->state = RELEASED;
-			else if (pressed)
-				bt->state = PRESSED;
-		}break;
-		case PRESSED: {
-			bt->base.cur_tile = bt->pressed;
-			bt->label.offset_y = 2;
-			if (bt->wasPressed && !pressed)
-				bt->justReleased = 1;
-			if (bt->justReleased || !isOver)
-				bt->state = RELEASED;
-		}break;
+	if (!isOver) {
+		bt->state = RELEASED;
+		bt->label.offset_y = 0;
+		bt->base.cur_tile = bt->released;
+	}
+	else if (pressed) {
+		bt->state = PRESSED;
+		bt->base.cur_tile = bt->pressed;
+		bt->label.offset_y = 2;
+	}
+	else if (bt->wasPressed) {
+		bt->justReleased = 1;
+	}
+	else if (bt->state != OVER) {
+		bt->state = OVER;
+		bt->base.cur_tile = bt->over;
+		bt->label.offset_y = 1;
 	}
 	bt->wasPressed = isOver && pressed;
 }

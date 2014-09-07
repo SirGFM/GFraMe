@@ -5,6 +5,8 @@
 #define __GFRAME_OBJECT_H_
 
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_hitbox.h>
+#include <GFraMe/GFraMe_tween.h>
 
 #define GAME_HORIZONTAL_COLLISION	1
 #define GAME_VERTICAL_COLLISION		2
@@ -51,56 +53,6 @@ enum enGFraMe_collision_type {
 	GFraMe_collision_full
 };
 typedef enum enGFraMe_collision_type GFraMe_collision_type;
-
-/**
- * Enumeration that defines what the position passed to 'set_hitbox' means
- */
-enum stGFraMe_set_hitbox_anchor {
-	/**
-	 * Set the position as the center
-	 */
-	GFraMe_set_hitbox_center = 0,
-	/**
-	 * Set the position as the upper left corner
-	 */
-	GFraMe_set_hitbox_upper_left,
-	/**
-	 * Set the position as the upper right corner
-	 */
-	GFraMe_set_hitbox_upper_right,
-	/**
-	 * Set the position as the lower right corner
-	 */
-	GFraMe_set_hitbox_lower_right,
-	/**
-	 * Set the position as the lower left corner
-	 */
-	GFraMe_set_hitbox_lower_left
-};
-typedef enum stGFraMe_set_hitbox_anchor GFraMe_set_hitbox_anchor;
-
-/**
- * Strucure that defines an object hitbox
- */
-struct stGFraMe_hitbox {
-	/**
-	 * Offset to horizontal center
-	 */
-	double cx;
-	/**
-	 * Offset to vertical center
-	 */
-	double cy;
-	/**
-	 * Half width
-	 */
-	double hw;
-	/**
-	 * Half height
-	 */
-	double hh;
-};
-typedef struct stGFraMe_hitbox GFraMe_hitbox;
 
 struct stGFraMe_object {
 	/**
@@ -157,6 +109,10 @@ struct stGFraMe_object {
 	 * The object's hitbox
 	 */
 	GFraMe_hitbox hitbox;
+	/**
+	 * The object's tween
+	 */
+	GFraMe_tween tween;
 };
 typedef struct stGFraMe_object GFraMe_object;
 
@@ -189,15 +145,6 @@ void GFraMe_object_set_y(GFraMe_object *obj, int Y);
 void GFraMe_object_set_pos(GFraMe_object *obj, int X, int Y);
 
 /**
- * Sets the object's hitbox as specified by the anchor;
- * notice, however, that it'll be stored as the center position
- * @param	*obj	The object
- */
-void GFraMe_object_set_hitbox(GFraMe_object *obj,
-							  GFraMe_set_hitbox_anchor anchor,
-							  int x, int y, int w, int h);
-
-/**
  * Updates an object's position, velocity and collision state
  * @param	*obj	Object to be update
  * @param	ms	How long this frame took
@@ -213,6 +160,10 @@ void GFraMe_object_update(GFraMe_object *obj, int ms);
  */
 GFraMe_ret GFraMe_object_overlap(GFraMe_object *o1, GFraMe_object *o2,
 						   GFraMe_collision_type mode);
+
+GFraMe_hitbox *GFraMe_object_get_hitbox(GFraMe_object *obj);
+
+GFraMe_tween *GFraMe_object_get_tween(GFraMe_object *obj);
 
 #endif
 

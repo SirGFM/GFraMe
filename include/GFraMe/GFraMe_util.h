@@ -52,5 +52,7 @@ char* GFraMe_str2tiles(char *data, char *str, int first_tile);
  */
 void GFraMe_util_open_browser(char *url);
 
+double GFraMe_util_lerp(int a, int b, double time);
+
 #endif
 

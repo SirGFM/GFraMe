@@ -82,8 +82,8 @@ void background_init() {
 	// Create the floor for collisions
 	GFraMe_object_clear(&ground);
 	GFraMe_object_set_y(&ground, 160);
-	GFraMe_object_set_hitbox(&ground, GFraMe_set_hitbox_upper_left,
-							 0, 0, GFraMe_buffer_w, 16);
+	GFraMe_hitbox_set(GFraMe_object_get_hitbox(&ground),
+					  GFraMe_hitbox_upper_left, 0, 0, GFraMe_buffer_w, 16);
 }
 
 void background_draw() {

@@ -2,7 +2,9 @@
  * @src/gframe_object.c
  */
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_hitbox.h>
 #include <GFraMe/GFraMe_object.h>
+#include <GFraMe/GFraMe_tween.h>
 #include <GFraMe/GFraMe_util.h>
 
 /**
@@ -22,7 +24,10 @@ void GFraMe_object_clear(GFraMe_object *obj) {
 	// Reset collision
 	obj->hit = GFraMe_direction_none;
 	// Reset the hitbox
-	GFraMe_object_set_hitbox(obj, GFraMe_set_hitbox_center, 0, 0, 0, 0);
+	GFraMe_hitbox_set(GFraMe_object_get_hitbox(obj), GFraMe_hitbox_center, 
+					  0, 0, 0, 0);
+	// Clear any tween
+	GFraMe_tween_clear(GFraMe_object_get_tween(obj));
 }
 
 /**
@@ -65,59 +70,39 @@ void GFraMe_object_set_pos(GFraMe_object *obj, int X, int Y) {
 }
 
 /**
- * Sets the object's hitbox as specified by the anchor;
- * notice, however, that it'll be stored as the center position
- * @param	*obj	The object
- */
-void GFraMe_object_set_hitbox(GFraMe_object *obj,
-							  GFraMe_set_hitbox_anchor anchor,
-							  int x, int y, int w, int h) {
-	// Macro to set center and make code cleaner
-	#define center(X, Y) \
-		obj->hitbox.cx = X; \
-		obj->hitbox.cy = Y
-	// Sets the hitbox dimensions
-	obj->hitbox.hw = w * 0.5;
-	obj->hitbox.hh = h * 0.5;
-	// Now, set it's central position, according to the anchor
-	switch (anchor) {
-		case GFraMe_set_hitbox_center:      center(x        , y        ); break;
-		case GFraMe_set_hitbox_upper_left:  center(x + w*0.5, y + h*0.5); break;
-		case GFraMe_set_hitbox_upper_right: center(x - w*0.5, y + h*0.5); break;
-		case GFraMe_set_hitbox_lower_right: center(x - w*0.5, y - h*0.5); break;
-		case GFraMe_set_hitbox_lower_left:  center(x + w*0.5, y - h*0.5); break;
-		default: center(0.0, 0.0); break;
-	}
-	// Clear the macro so it doesn't mess any other code
-	#undef center
-}
-
-/**
  * Updates an object's position, velocity and collision state
  * @param	*obj	Object to be update
  * @param	ms	How long this frame took
  */
 void GFraMe_object_update(GFraMe_object *obj, int ms) {
+	GFraMe_tween *tw;
 	// Get the time in a nicer way to the integration
 	double time = ((double)ms) / 1000.0;
 	// Update last position (really important to collision)
 	obj->ldx = obj->dx;
 	obj->ldy = obj->dy;
-	// Integrate the speed horizontally
-	if (obj->ax != 0.0)
-		obj->vx += GFraMe_util_integrate(obj->ax, time);
-	// Integrate the position horizontally
-	if (obj->vx != 0.0)
-		obj->dx += GFraMe_util_integrate(obj->vx, time);
-	// Integrate the velocity vertically
-	if (obj->ay != 0.0)
-		obj->vy += GFraMe_util_integrate(obj->ay, time);
-	// Integrate the position vertically
-	if (obj->vy != 0.0)
-		obj->dy += GFraMe_util_integrate(obj->vy, time);
-	// Set the actual display position
-	obj->x = (int)obj->dx;
-	obj->y = (int)obj->dy;
+	// Try to update the position by tweening
+	tw = GFraMe_object_get_tween(obj);
+	if (GFraMe_tween_update(tw, time) == GFraMe_tween_ret_ok) {
+		GFraMe_tween_set_obj(tw, obj);
+	}
+	else {
+		// Integrate the speed horizontally
+		if (obj->ax != 0.0)
+			obj->vx += GFraMe_util_integrate(obj->ax, time);
+		// Integrate the position horizontally
+		if (obj->vx != 0.0)
+			obj->dx += GFraMe_util_integrate(obj->vx, time);
+		// Integrate the velocity vertically
+		if (obj->ay != 0.0)
+			obj->vy += GFraMe_util_integrate(obj->ay, time);
+		// Integrate the position vertically
+		if (obj->vy != 0.0)
+			obj->dy += GFraMe_util_integrate(obj->vy, time);
+		// Set the actual display position
+		obj->x = (int)obj->dx;
+		obj->y = (int)obj->dy;
+	}
 	// Update the direction hit/that was hit
 	obj->hit = (obj->hit << GFM_LAST_BITS) & GFraMe_direction_last;
 }
@@ -264,5 +249,13 @@ _aftercol:
 	}
 	// Return result
 	return rv;
+}
+
+GFraMe_hitbox *GFraMe_object_get_hitbox(GFraMe_object *obj) {
+	return &obj->hitbox;
+}
+
+GFraMe_tween *GFraMe_object_get_tween(GFraMe_object *obj) {
+	return &obj->tween;
 }
 

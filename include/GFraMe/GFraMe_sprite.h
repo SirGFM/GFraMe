@@ -5,6 +5,7 @@
 #define __GFRAME_SPRITE_H_
 
 #include <GFraMe/GFraMe_animation.h>
+#include <GFraMe/GFraMe_hitbox.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
@@ -98,6 +99,10 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr);
  */
 void GFraMe_sprite_set_animation(GFraMe_sprite *spr,
 								 GFraMe_animation *anim);
+
+GFraMe_hitbox* GFraMe_sprite_get_hitbox(GFraMe_sprite *spr);
+GFraMe_object* GFraMe_sprite_get_object(GFraMe_sprite *spr);
+GFraMe_tween* GFraMe_sprite_get_tween(GFraMe_sprite *spr);
 
 #endif
 
