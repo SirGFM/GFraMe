@@ -6,7 +6,7 @@
 #include <GFraMe/GFraMe_error.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
-#include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +29,11 @@ int count;
 static GFraMe_audio_ll *cur;
 static GFraMe_audio_ll *recycle;
 static GFraMe_audio_ll bgm;
+
+#ifdef MOBILE
+static int did_add_filter = 0;
+int OnBackgroundForeground(void *userdata, SDL_Event *event);
+#endif
 
 static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len);
 static GFraMe_audio_ll* GFraMe_audio_player_remove(GFraMe_audio_ll *prev,
@@ -82,6 +87,11 @@ GFraMe_ret GFraMe_audio_player_init() {
 	sem_bgm = SDL_CreateSemaphore(1);
 	GFraMe_SDLassertRV(sem_bgm != NULL, "Failed to create semaphore",
 					 rv = GFraMe_ret_failed, _ret);
+#ifdef MOBILE
+	if (!did_add_filter)
+		SDL_SetEventFilter(OnBackgroundForeground, NULL);
+	did_add_filter = 1;
+#endif
 _ret:
 	return rv;
 }
@@ -275,4 +285,15 @@ static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int l
 	node->pos += i;
 	return 0;
 }
+
+#ifdef MOBILE
+int OnBackgroundForeground(void *userdata, SDL_Event *event) {
+	if (event->type == SDL_APP_WILLENTERBACKGROUND) {
+		SDL_PauseAudioDevice(dev, 1);
+	}
+	else if (event->type == SDL_APP_WILLENTERFOREGROUND) {
+		SDL_PauseAudioDevice(dev, 0);
+	}
+}
+#endif
 

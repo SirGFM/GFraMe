@@ -57,7 +57,7 @@ BINDIR = bin/$(OS)
 OBJS = $(OBJDIR)/main.o $(OBJDIR)/global.o $(OBJDIR)/playstate.o \
        $(OBJDIR)/enemies.o $(OBJDIR)/player.o $(OBJDIR)/score.o \
 	   $(OBJDIR)/multiplier.o $(OBJDIR)/background.o $(OBJDIR)/menustate.o \
-	   $(OBJDIR)/button.o
+	   $(OBJDIR)/button.o $(OBJDIR)/gameover.o
 
 all: $(BINDIR)/$(TARGET)
 

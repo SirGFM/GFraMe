@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_screen.h>
+#include "gameover.h"
 #include "global.h"
 #include "menustate.h"
 #include "playstate.h"
@@ -29,8 +30,8 @@ int main(int argc, char *argv[]) {
 	gl_running = 1;
 	while (gl_running) {
 		ms_loop();
-		if (gl_running)
-			ps_loop();
+		ps_loop();
+		gos_loop();
 	}
 	
 _exit:

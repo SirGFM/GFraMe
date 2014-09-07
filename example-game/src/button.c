@@ -40,20 +40,22 @@ void button_update(Button *bt, int ms) {
 		  && mouseY <= bt->base.obj.y + bt->base.obj.hitbox.hh * 2;
 	bt->wasPressed = bt->state == PRESSED;
 	
-	if (!isOver) {
-		bt->state = RELEASED;
-		bt->label.offset_y = 0;
-		bt->base.cur_tile = bt->released;
-	}
-	else if (pressed) {
+	if (isOver && pressed) {
 		bt->state = PRESSED;
 		bt->base.cur_tile = bt->pressed;
 		bt->label.offset_y = 2;
 	}
-	else if (bt->state != OVER) {
+#ifndef MOBILE
+	else if (isOver && bt->state != OVER) {
 		bt->state = OVER;
 		bt->base.cur_tile = bt->over;
 		bt->label.offset_y = 1;
+	}
+#endif
+	else if (!isOver) {
+		bt->state = RELEASED;
+		bt->label.offset_y = 0;
+		bt->base.cur_tile = bt->released;
 	}
 	bt->justReleased = bt->wasPressed && !pressed;
 }
