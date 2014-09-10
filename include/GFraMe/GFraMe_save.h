@@ -6,7 +6,7 @@
 
 #include <SDL2/SDL_rwops.h>
 
-#define GFraMe_save_max_len	256
+#define GFraMe_save_max_len	512
 
 enum enGFraMe_save_ret {
 	GFraMe_save_ret_ok = 0,

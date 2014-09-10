@@ -13,6 +13,8 @@ void GFraMe_audio_player_clear();
 SDL_AudioSpec* GFraMe_audio_player_get_spec();
 void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume);
 void GFraMe_audio_player_push(GFraMe_audio *aud, double volume);
+void GFraMe_audio_player_pause();
+void GFraMe_audio_player_play();
 
 #endif
 

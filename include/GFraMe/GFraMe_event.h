@@ -112,6 +112,14 @@
 			break; \
 			case SDL_QUIT: 
 
+#define GFraMe_event_on_bg() \
+			break; \
+			case SDL_APP_WILLENTERBACKGROUND:
+
+#define GFraMe_event_on_fg() \
+			break; \
+			case SDL_APP_WILLENTERFOREGROUND:
+
 #define GFraMe_event_end() \
 			break; \
 			default: break;\

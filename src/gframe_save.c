@@ -5,6 +5,7 @@
 #include <GFraMe/GFraMe_save.h>
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL_rwops.h>
+#include <SDL2/SDL_system.h>
 #include <stdio.h>
 
 // (BYTE)ID_LEN (ID_LEN)ID (BYTE)DATA_LEN (DATA_LEN)DATA
@@ -18,7 +19,11 @@ GFraMe_ret GFraMe_save_bind(GFraMe_save *sv, char *filename) {
 	int len = GFraMe_save_max_len;
 	char *tmp;
 	// Truncate the filename to the maximum length
-	tmp = GFraMe_util_strcat(sv->filename, filename, &len);
+	tmp = sv->filename;
+#if defined(__ANDROID__) && __ANDROID__
+	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetInternalStoragePath(), &len);
+#endif
+	tmp = GFraMe_util_strcat(tmp, filename, &len);
 	if (len <= 0)
 		*(tmp-1) = '\0';
 	// Try to open the file (create it, if it doesn't exists)

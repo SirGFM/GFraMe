@@ -117,6 +117,10 @@ static void gameover_event() {
 		GFraMe_event_on_timer();
 			GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
 #ifdef MOBILE
+		GFraMe_event_on_bg();
+			GFraMe_audio_player_pause();
+		GFraMe_event_on_fg();
+			GFraMe_audio_player_play();
 		GFraMe_event_on_finger_down();
 #else
 		GFraMe_event_on_mouse_down();

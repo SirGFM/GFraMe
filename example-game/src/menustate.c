@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe_accumulator.h>
 #include <GFraMe/GFraMe_audio.h>
+#include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_messagebox.h>
 #ifdef MOBILE
@@ -175,8 +176,11 @@ static void menu_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 #ifdef MOBILE
+		GFraMe_event_on_bg();
+			GFraMe_audio_player_pause();
+		GFraMe_event_on_fg();
+			GFraMe_audio_player_play();
 		GFraMe_event_on_finger_down();
-			//requestSwitch = 1;
 		GFraMe_event_on_finger_up();
 #else
 		GFraMe_event_on_mouse_moved();
@@ -209,7 +213,7 @@ static void menu_update() {
 			button_update(&bt_1_1, GFraMe_event_elapsed);
 			button_update(&bt_prop, GFraMe_event_elapsed);
 			button_update(&bt_free, GFraMe_event_elapsed);
-			#ifdef MOBILE
+#ifdef MOBILE
 			requestSwitch = 0;
 			
 			#define GFraMe_reset_pointer()	\
@@ -246,7 +250,7 @@ static void menu_update() {
 			else if (GFraMe_pointer_pressed) {
 				requestSwitch = 1;
 			}
-			#else
+#else
 			if (gfm_bt.justReleased) {
 				GFraMe_button_ret res;
 				GFraMe_log("Will call messagebox");
@@ -266,7 +270,7 @@ _endbt:
 				GFraMe_screen_set_keep_ratio(0, 1);
 			else if (bt_free.justReleased)
 				GFraMe_screen_set_maximize_double(1);
-			#endif
+#endif
 		}
 	GFraMe_event_update_end();
 }
