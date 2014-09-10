@@ -5,6 +5,9 @@
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_messagebox.h>
+#ifdef MOBILE
+#include <GFraMe/GFraMe_mobile.h>
+#endif
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_spriteset.h>
@@ -41,6 +44,7 @@ static Button gfm_bt;
 static Button bt_1_1;
 static Button bt_prop;
 static Button bt_free;
+static int cur_bt;
 
 #define BUG_X	110
 #define BUG_Y	29
@@ -86,6 +90,7 @@ static void menu_init() {
 	int len;
 	char tmp[20];
 	char *ptC;
+	cur_bt = 0;
 	game_init = 0;
 	state = ENTER;
 	requestSwitch = 0;
@@ -171,7 +176,7 @@ static void menu_event() {
 		GFraMe_event_on_timer();
 #ifdef MOBILE
 		GFraMe_event_on_finger_down();
-			requestSwitch = 1;
+			//requestSwitch = 1;
 		GFraMe_event_on_finger_up();
 #else
 		GFraMe_event_on_mouse_moved();
@@ -204,20 +209,64 @@ static void menu_update() {
 			button_update(&bt_1_1, GFraMe_event_elapsed);
 			button_update(&bt_prop, GFraMe_event_elapsed);
 			button_update(&bt_free, GFraMe_event_elapsed);
+			#ifdef MOBILE
+			requestSwitch = 0;
+			
+			#define GFraMe_reset_pointer()	\
+					GFraMe_pointer_x = -1; \
+					GFraMe_pointer_y = -1; \
+					GFraMe_pointer_pressed = 0
+				
+			if (gfm_bt.state != RELEASED) {
+				if (gfm_bt.justReleased) {
+					GFraMe_mobile_call_void_function("gotoGFMGameCorner");
+					GFraMe_reset_pointer();
+				}
+			}
+			else if (bt_1_1.state != RELEASED) {
+				if (bt_1_1.justReleased) {
+					GFraMe_screen_set_pixel_perfect(0, 1);
+					GFraMe_reset_pointer();
+				}
+			}
+			else if (bt_prop.state != RELEASED) {
+				if (bt_prop.justReleased) {
+					GFraMe_screen_set_keep_ratio(0, 1);
+					GFraMe_reset_pointer();
+				}
+			}
+			else if (bt_free.state != RELEASED) {
+				if (bt_free.justReleased) {
+					GFraMe_screen_set_maximize_double(1);
+					GFraMe_pointer_x = -1;
+					GFraMe_pointer_y = -1;
+					GFraMe_pointer_pressed = 0;
+				}
+			}
+			else if (GFraMe_pointer_pressed) {
+				requestSwitch = 1;
+			}
+			#else
 			if (gfm_bt.justReleased) {
 				GFraMe_button_ret res;
+				GFraMe_log("Will call messagebox");
 				res = GFraMe_messagebox_OkCancel("Open author's website?",
 									"Go to http://gfmgamecorner.wordpres.com?",
 									"Open", "Cancel");
+				GFraMe_log("Called messagebox: %i", res);
+				GFraMe_SDLassertRet(res != GFraMe_button_ret_failed, 
+									"Failed to create messagebox", _endbt);
+_endbt:
 				if (res == GFraMe_button_ret_ok)
 					GFraMe_util_open_browser("http://gfmgamecorner.wordpress.com/");
 			}
 			else if (bt_1_1.justReleased)
 				GFraMe_screen_set_pixel_perfect(0, 1);
-			else if (bt_prop.justReleased) 
+			else if (bt_prop.justReleased)
 				GFraMe_screen_set_keep_ratio(0, 1);
 			else if (bt_free.justReleased)
 				GFraMe_screen_set_maximize_double(1);
+			#endif
 		}
 	GFraMe_event_update_end();
 }
