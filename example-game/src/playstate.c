@@ -5,6 +5,7 @@
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_object.h>
 #include <GFraMe/GFraMe_pointer.h>
+#include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
@@ -163,7 +164,14 @@ void ps_do_draw() {
 }
 
 void ps_on_click(int X, int Y) {
-	if (player_jump(X) == GFraMe_ret_failed)
+	if (X > GFraMe_screen_w)
+		X = GFraMe_screen_w - 8;
+	else if (X < 0)
+		X = -8;
+	if (player_jump(X) == GFraMe_ret_failed) {
+		if (Y > GFraMe_screen_h)
+			Y = GFraMe_screen_h - 8;
 		player_set_target(X, Y);
+	}
 }
 

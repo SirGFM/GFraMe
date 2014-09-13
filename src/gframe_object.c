@@ -201,16 +201,22 @@ GFraMe_ret GFraMe_object_overlap(GFraMe_object *o1, GFraMe_object *o2,
 			// If they weren't overlapping horizontally, separate it
 			if (hcol) {
 				// Position it exactly grazing horizontally
-				cur->dx = other->dx + other->hitbox.cx -
-						  hmax - cur->hitbox.cx;
+				cur->dx = other->dx + other->hitbox.cx;
+				if (cur->ldx + cur->hitbox.cx > other->ldx + other->hitbox.cx)
+					cur->dx += hmax + cur->hitbox.cx;
+				else
+					cur->dx -= hmax + cur->hitbox.cx;
 				// Update the actual position!!
 				cur->x = (int)cur->dx;
 			}
 			// If they weren't overlapping vertically, separate it
 			if (vcol) {
 				// Position it exactly grazing vertically
-				cur->dy = other->dy + other->hitbox.cy -
-						  vmax - cur->hitbox.cy;
+				cur->dy = other->dy + other->hitbox.cy;
+				if (cur->ldy + cur->hitbox.cy > other->ldy + other->hitbox.cy)
+					cur->dy += vmax + cur->hitbox.cy;
+				else
+					cur->dy -= vmax + cur->hitbox.cy;
 				// Update the actual position!!
 				cur->y = (int)cur->dy;
 			}

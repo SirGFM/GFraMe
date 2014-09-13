@@ -5,8 +5,10 @@
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_object.h>
+#include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_util.h>
+#include "background.h"
 #include "global.h"
 #include "multiplier.h"
 #include "player.h"
@@ -92,8 +94,9 @@ void player_draw() {
 }
 
 int player_slowdown() {
-	int ret = (!(player.obj.hit && GFraMe_direction_down) &&
-			GFraMe_util_absd(player.obj.vy) < 32.0 && !tgt.id);
+	int ret = (player.obj.y < FLOOR_Y
+			   && !(player.obj.hit && GFraMe_direction_down)
+			   && GFraMe_util_absd(player.obj.vy) < 32.0 && !tgt.id);
 	did_combo = did_combo && !ret;
 	return cooldown > 0 || ret;
 }
@@ -113,6 +116,11 @@ void player_on_ground() {
 		multi_reset();
 		player.obj.vy = 0.0;
 		player.cur_tile = 13;
+		if (player.obj.x - player.obj.hitbox.cx - player.obj.hitbox.hw
+				> GFraMe_screen_w
+			|| player.obj.x + player.obj.hitbox.cx + player.obj.hitbox.hw
+				< 0)
+			player.obj.vx = 0;
 	}
 	did_combo = 0;
 }
@@ -141,8 +149,10 @@ GFraMe_ret player_on_squash() {
 }
 
 void player_set_target(int X, int Y) {
-	if (Y > 154 && (GFraMe_util_absd(player.obj.vy) < 64.0 ||
-					cooldown > 0)) {
+	if (player.obj.y + player.obj.hitbox.cy + player.obj.hitbox.hh < FLOOR_Y
+		&& Y > 154
+		&& (GFraMe_util_absd(player.obj.vy) < 64.0 || cooldown > 0)
+	) {
 		tgt.id = 1;
 		GFraMe_object_set_pos(&tgt.obj, X, Y);
 		did_combo = cooldown > 0;
