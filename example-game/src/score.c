@@ -129,6 +129,8 @@ void score_inc(int val) {
 		hs_time = 250;
 	// Update the current score
 	cur_score += val;
+	if (cur_score > 999999999)
+		cur_score = 999999999;
 	// Calculate how fast it should increase per second
 	dif = ((double)cur_score) - i_val;
 	mod = dif / 2.5;

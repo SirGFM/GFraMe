@@ -3,7 +3,6 @@
  */
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_screen.h>
-#include <GFraMe/GFraMe_timer.h>
 #include <SDL2/SDL.h>
 
 /**
@@ -18,10 +17,6 @@ SDL_Renderer *GFraMe_renderer = NULL;
  * Backbuffer where the game is rendered; is latter blitted into the window
  */
 static SDL_Texture *GFraMe_screen;
-/**
- * Timer used to issue new frames
- */
-static GFraMe_timer timer = 0;
 /**
  * Window region where the backbuffer is rendered
  */
@@ -84,22 +79,12 @@ static void GFraMe_set_screen_ratio();
  * @param	sh	Window's height(screen height);if 0, uses the device height
  * @param	name	Window's title
  * @param	flags	Window creation flags
- * @param	fps		At how many frames per second the game should run;
- *				  notice that this is independent from update and render
- *				  rate, those should be set on each state
  * @return	0 - Success; Anything else - Failure
  */
-GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *name,
-				GFraMe_window_flags flags, int fps) {
+GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
+				GFraMe_window_flags flags) {
 	GFraMe_ret rv = GFraMe_ret_ok;
-	int w = 0, h = 0, ms = 0;
-#ifdef DEBUG
-	// Set logging, if debug
-	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
-#endif
-	// Initialize SDL2
-	rv = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
-	GFraMe_SDLassertRV(rv >= 0, "Couldn't initialize SDL", rv = GFraMe_ret_sdl_init_failed, _ret);
+	int w = 0, h = 0;
 	// Get the device dimensions, in case it's needed
 	rv = GFraMe_getDevDimensions(&w, &h);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to get device dimensions", _ret);
@@ -135,11 +120,6 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *name,
 					   rv = GFraMe_ret_backbuffer_creation_failed, _ret);
 	// Set backbuffer dimensions and position
 	GFraMe_set_screen_ratio();
-	// Create a timer
-	ms = GFraMe_timer_get_ms(fps);
-	GFraMe_assertRV(ms > 0, "Requested FPS is too low", rv = GFraMe_ret_fps_req_low, _ret);
-	rv = GFraMe_timer_init(ms, &timer);
-	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to create timer", _ret);
 _ret:
 	return rv;
 }
@@ -147,11 +127,7 @@ _ret:
 /**
  * Clean up memory allocated by init
  */
-void GFraMe_quit() {
-	if (timer) {
-		GFraMe_timer_stop(timer);
-		timer = 0;
-	}
+void GFraMe_screen_clean() {
 	if (GFraMe_screen) {
 		SDL_DestroyTexture(GFraMe_screen);
 		GFraMe_screen = NULL;
@@ -164,7 +140,6 @@ void GFraMe_quit() {
 		SDL_DestroyWindow(GFraMe_window);
 		GFraMe_window  = NULL;
 	}
-	SDL_Quit();
 }
 
 /**

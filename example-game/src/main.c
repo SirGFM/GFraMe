@@ -1,9 +1,10 @@
 /**
  * @src/main.c
  */
+#include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
-#include <GFraMe/GFraMe_screen.h>
+//#include <GFraMe/GFraMe_screen.h>
 #include "gameover.h"
 #include "global.h"
 #include "menustate.h"
@@ -12,9 +13,8 @@
 int main(int argc, char *argv[]) {
 	GFraMe_ret rv;
 	// Init the framework
-	rv = GFraMe_init(320, 240, 640, 480, "Bug Squasher",
-					 GFraMe_window_resizable
-					 , 60);
+	rv = GFraMe_init(320, 240, 640, 480, "com.wordpress.gfmgamecorner",
+					 "BugSquasher", GFraMe_window_resizable, 60, 1, 0);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the framework", _exit);
 	// Init the audio player
 	rv = GFraMe_audio_player_init();

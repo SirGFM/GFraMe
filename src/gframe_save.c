@@ -1,9 +1,11 @@
 /**
  * @src/gframe.c
  */
+#include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_save.h>
 #include <GFraMe/GFraMe_util.h>
+#include <SDL2/SDL_filesystem.h>
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_system.h>
 #include <stdio.h>
@@ -22,6 +24,12 @@ GFraMe_ret GFraMe_save_bind(GFraMe_save *sv, char *filename) {
 	tmp = sv->filename;
 #if defined(__ANDROID__) && __ANDROID__
 	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetInternalStoragePath(), &len);
+#else
+	char *sdl_path = SDL_GetPrefPath(GFraMe_org, GFraMe_title);
+	if (sdl_path) {
+		tmp = GFraMe_util_strcat(tmp, sdl_path, &len);
+		SDL_free(sdl_path);
+	}
 #endif
 	tmp = GFraMe_util_strcat(tmp, filename, &len);
 	if (len <= 0)

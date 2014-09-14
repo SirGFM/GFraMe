@@ -8,10 +8,25 @@
 
 #define GFraMe_save_max_len	512
 
+/**
+ * Possibles return code from save operations
+ */
 enum enGFraMe_save_ret {
+	/**
+	 * Function was successful
+	 */
 	GFraMe_save_ret_ok = 0,
-	GFraMe_save_ret_eof, // end of file
+	/**
+	 * Reached end of file
+	 */
+	GFraMe_save_ret_eof,
+	/**
+	 * File is empty
+	 */
 	GFraMe_save_ret_empty,
+	/**
+	 * 
+	 */
 	GFraMe_save_ret_fno, // file not opened
 	GFraMe_save_ret_id_not_found,
 	GFraMe_save_ret_failed
@@ -27,7 +42,13 @@ enum enGFraMe_save_state {
 };
 typedef enum enGFraMe_save_state GFraMe_save_state;
 
+/**
+ * Simple structure to store a save file info
+ */
 struct stGFraMe_save {
+	/**
+	 * Current 
+	 */
 	SDL_RWops *file;
 	char filename[GFraMe_save_max_len];
 	int size;

@@ -61,18 +61,15 @@ extern double GFraMe_screen_ratio_v;
  * @param	sh	Window's height(screen height);if 0, uses the device height
  * @param	name	Window's title
  * @param	flags	Window creation flags
- * @param	fps		At how many frames per second the game should run;
- *				  notice that this is independent from update and render
- *				  rate, those should be set on each state
  * @return	GFraMe_ret_ok - Success; Anything else - Failure
  */
-GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *name,
-				GFraMe_window_flags flags, int fps);
+GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
+				GFraMe_window_flags flags);
 
 /**
  * Clean up memory allocated by init
  */
-void GFraMe_quit();
+void GFraMe_screen_clean();
 
 /**
  * Get the dimensions of the first connected display
