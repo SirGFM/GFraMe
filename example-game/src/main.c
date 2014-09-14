@@ -4,7 +4,6 @@
 #include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
-//#include <GFraMe/GFraMe_screen.h>
 #include "gameover.h"
 #include "global.h"
 #include "menustate.h"
@@ -12,6 +11,7 @@
 
 int main(int argc, char *argv[]) {
 	GFraMe_ret rv;
+	
 	// Init the framework
 	rv = GFraMe_init(320, 240, 640, 480, "com.wordpress.gfmgamecorner",
 					 "BugSquasher", GFraMe_window_resizable, 60, 1, 0);

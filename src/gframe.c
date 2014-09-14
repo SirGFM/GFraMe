@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_timer.h>
 #include <GFraMe/GFraMe_util.h>
@@ -49,6 +50,8 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	GFraMe_util_strcat(GFraMe_org, org, &len);
 	len = GFraMe_max_game_title_len;
 	GFraMe_util_strcat(GFraMe_title, name, &len);
+	if (log_to_file)
+		GFraMe_log_init(log_append);
 #ifdef DEBUG
 	// Set logging, if debug
 	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
@@ -76,6 +79,7 @@ void GFraMe_quit() {
 		timer = 0;
 	}
 	GFraMe_screen_clean();
+	GFraMe_log_close();
 	SDL_Quit();
 }
 

@@ -19,7 +19,8 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
        ../GFraMe/gframe_audio_player.c ../GFraMe/gframe_messagebox.c \
        ../GFraMe/gframe_save.c ../GFraMe/gframe_hitbox.c \
 	   ../GFraMe/gframe_tween.c ../GFraMe/gframe_pointer.c \
-	   ../GFraMe/gframe_mobile.c \
+	   ../GFraMe/gframe_mobile.c ../GFraMe/gframe_log.c \
+	   ../GFraMe/gframe.c \
        ../GFraMe/wavtodata/chunk.c ../GFraMe/wavtodata/fmt.c \
        ../GFraMe/wavtodata/wavtodata.c \
        main.c global.c playstate.c enemies.c player.c \
