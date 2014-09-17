@@ -19,6 +19,8 @@ ifndef $(OS)
     endif
 endif
 
+WINICON = ./assets/icons/win/icon.o
+ICON = 
 CFLAGS = -Wall -I"./include/" -DHAVE_OPENGL
 LFLAGS = 
 LGFRAMEDIR = "../"
@@ -30,6 +32,7 @@ ifeq ($(OS), Win)
     endif
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Win/" -lmingw32 -lGFraMe
     CFLAGS += -I"/d/windows/mingw/include"
+    ICON = $(WINICON)
 else
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Linux/" -lGFraMe -lm
 endif
@@ -61,8 +64,8 @@ OBJS = $(OBJDIR)/main.o $(OBJDIR)/global.o $(OBJDIR)/playstate.o \
 
 all: $(BINDIR)/$(TARGET)
 
-$(BINDIR)/$(TARGET): MAKEDIRS libGFraMe $(OBJS)
-	$(CC) $(CFLAGS) -o $(BINDIR)/$(TARGET) $(OBJS) $(LFLAGS)
+$(BINDIR)/$(TARGET): MAKEDIRS libGFraMe $(ICON) $(OBJS)
+	$(CC) $(CFLAGS) -o $(BINDIR)/$(TARGET) $(OBJS) $(ICON) $(LFLAGS)
 
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -75,6 +78,9 @@ $(OBJDIR):
 
 libGFraMe:
 	make --directory=$(LGFRAMEDIR)
+
+$(WINICON):
+	windres assets/icons/win/icon.rc $(WINICON)
 
 .PHONY: clean mostlyclean
 clean:
