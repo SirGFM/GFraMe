@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_log.h>
 #include "gameover.h"
 #include "global.h"
 #include "menustate.h"
@@ -35,6 +36,11 @@ int main(int argc, char *argv[]) {
 	}
 	
 _exit:
+#ifdef MOBILE
+GFraMe_log("asd");
+	GFraMe_log_close();
+GFraMe_log("qwe");
+#endif
 	GFraMe_audio_player_clear();
 	global_clear();
 	GFraMe_quit();

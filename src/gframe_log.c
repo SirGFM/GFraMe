@@ -2,6 +2,7 @@
  * @src/gframe_log.c
  */
 #include <GFraMe/GFraMe.h>
+#include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL_log.h>
@@ -27,6 +28,7 @@ void GFraMe_log_init(int append) {
 	char *tmp;
 	time_t _time;
 	char *_ctime;
+	GFraMe_log("log_init()");
 	
 	// Create the file  path
 	tmp = GFraMe_log_filename;
@@ -66,6 +68,7 @@ void GFraMe_log_init(int append) {
 void GFraMe_log_close() {
 	time_t _time;
 	char *_ctime;
+	GFraMe_log("log_close()");
 	
 	// Get current time
 	time(&_time);
