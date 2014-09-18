@@ -11,7 +11,17 @@ void GFraMe_log_close();
 void GFraMe_log_private(char * fmt, ...);
 
 #define GFraMe_new_log(message, ...) \
-  GFraMe_log_private("@%s:%d - "message,__FILE__,__LINE__, ##__VA_ARGS__)
+  GFraMe_log_private("@%s:%d - "message"\n",__FILE__,__LINE__, ##__VA_ARGS__)
 
 #endif
 
+/**
+ * Files where logging was updated:
+ *  - gframe.c
+ *  - gframe_audio_player.c
+ * Files where logging was deemed unnecessary:
+ *  - gframe_accumulator.c
+ *  - gframe_animation.c
+ */
+ 
+ // screen: log window format

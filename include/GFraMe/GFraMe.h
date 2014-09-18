@@ -6,6 +6,11 @@
 
 #include <GFraMe/GFraMe_screen.h>
 
+#define GFraMe_major_version	0
+#define GFraMe_minor_version	1
+#define GFraMe_fix_version		0
+#define GFraMe_version	"0.1.0"
+
 #define GFraMe_max_org_len	80
 /**
  * "Organization" name. Is used as part of paths.

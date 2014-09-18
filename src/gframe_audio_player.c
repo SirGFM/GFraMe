@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_log.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
 #include <SDL2/SDL_events.h>
@@ -61,16 +62,17 @@ GFraMe_ret GFraMe_audio_player_init() {
 	dev = SDL_OpenAudioDevice(NULL, 0, &wanted, &spec, 0);
 	GFraMe_SDLassertRV(dev > 0, "Failed to open audio device",
 					 rv = GFraMe_ret_failed, _ret);
-	GFraMe_log("=============================");
-	GFraMe_log("| Audio info:");
-	GFraMe_log("-----------------------------");
-	GFraMe_log("|   Frequency: %i", spec.freq);
+	GFraMe_new_log("Initializing audio...");
+	GFraMe_new_log("=============================");
+	GFraMe_new_log("| Audio info:");
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log("|   Frequency: %i", spec.freq);
 	if (spec.format == AUDIO_S16LSB)
-		GFraMe_log("|   Format: signed 16 bits little endian");
-	GFraMe_log("|   Channels: %i", spec.channels);
-	GFraMe_log("|   Samples: %i", spec.samples);
-	// GFraMe_log("|   Bytes per sample: %i\n", bytesPerSample);
-	GFraMe_log("=============================\n");
+		GFraMe_new_log("|   Format: signed 16 bits little endian");
+	GFraMe_new_log("|   Channels: %i", spec.channels);
+	GFraMe_new_log("|   Samples: %i", spec.samples);
+	// GFraMe_new_log("|   Bytes per sample: %i\n", bytesPerSample);
+	GFraMe_new_log("=============================");
 	
 	cur = NULL;
 	recycle = NULL;
@@ -102,6 +104,7 @@ void GFraMe_audio_player_clear() {
 	SDL_DestroySemaphore(sem_cur);
 	SDL_DestroySemaphore(sem_rec);
 	SDL_DestroySemaphore(sem_bgm);
+	GFraMe_new_log("Closing audio...");
 	dev = 0;
 	if (did_audio_init) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
@@ -127,7 +130,7 @@ void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 	if (aud != bgm.audio) {
 		SDL_SemWait(sem_bgm);
 		if (aud && !bgm.audio) {
-			SDL_PauseAudioDevice(dev, 0);
+			GFraMe_audio_player_play();
 			count++;
 		}
 		else if (!aud && bgm.audio)
@@ -140,14 +143,17 @@ void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 }
 
 void GFraMe_audio_player_push(GFraMe_audio *aud, double volume) {
+	int start_audio = 0;
 	GFraMe_audio_ll *node;
 	node = GFraMe_audio_player_get_new_audio_ll(aud, volume);
 	SDL_SemWait(sem_cur);
 	node->next = cur;
+	start_audio = !cur && !bgm.audio;
 	cur = node;
 	SDL_SemPost(sem_cur);
 	count++;
-	SDL_PauseAudioDevice(dev, 0);
+	if (start_audio)
+		GFraMe_audio_player_play();
 }
 
 static GFraMe_audio_ll* GFraMe_audio_player_remove(GFraMe_audio_ll *prev,
@@ -213,7 +219,7 @@ static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 	}
 	SDL_SemPost(sem_bgm);
 	if (!cur && !bgm.audio)
-		SDL_PauseAudioDevice(dev, 1);
+		GFraMe_audio_player_pause();
 }
 
 static int GFraMe_audio_player_mix(GFraMe_audio_ll *node, Uint8 *dst, int len) {
@@ -287,10 +293,12 @@ static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int l
 }
 
 void GFraMe_audio_player_pause() {
+	GFraMe_new_log("Pause audio...");
 	SDL_PauseAudioDevice(dev, 1);
 }
 
 void GFraMe_audio_player_play() {
+	GFraMe_new_log("Play audio...");
 	SDL_PauseAudioDevice(dev, 0);
 }
 

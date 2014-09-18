@@ -10,6 +10,7 @@
 #include <SDL2/SDL_system.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <time.h>
 
 int GFraMe_log_to_file = 0;
 char GFraMe_log_filename[GFraMe_log_max_filename];
@@ -24,6 +25,9 @@ FILE *logfile = NULL;
 void GFraMe_log_init(int append) {
 	int len = GFraMe_log_max_filename;
 	char *tmp;
+	time_t _time;
+	char *_ctime;
+	
 	// Create the file  path
 	tmp = GFraMe_log_filename;
 #if defined(__ANDROID__) && __ANDROID__
@@ -45,9 +49,34 @@ void GFraMe_log_init(int append) {
 		logfile = fopen(GFraMe_log_filename, "w");
 	if (logfile)
 		GFraMe_log_to_file = 1;
+	// Get current time
+	time(&_time);
+	_ctime = ctime(&_time);
+	_ctime[GFraMe_util_strlen(_ctime)-1] = '\0';
+	// Print initialization message
+	fprintf(logfile,
+"============================================================================\n"
+	"  %s \n"
+	"  Made with GFraMe %s\n"
+	"  Started to run at: %s\n"
+"----------------------------------------------------------------------------\n",
+	GFraMe_title, GFraMe_version, _ctime);
 }
 
 void GFraMe_log_close() {
+	time_t _time;
+	char *_ctime;
+	
+	// Get current time
+	time(&_time);
+	_ctime = ctime(&_time);
+	_ctime[GFraMe_util_strlen(_ctime)-1] = '\0';
+	// Print closing message
+	fprintf(logfile,
+"----------------------------------------------------------------------------\n"
+	"  Closing game at: %s\n"
+"============================================================================\n",
+	_ctime);
 	if (logfile) {
 		fclose(logfile);
 		logfile = NULL;

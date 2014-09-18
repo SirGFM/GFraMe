@@ -2,6 +2,7 @@
  * @src/gframe_screen.c
  */
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <SDL2/SDL.h>
 
@@ -66,6 +67,7 @@ static Uint8 GFraMe_bg_b = 0xA0;
 static Uint8 GFraMe_bg_a = 0xFF;
 
 static void GFraMe_screen_cache_dimensions();
+static void GFraMe_screen_log_dimensions(int zoom);
 /**
  * Try to set the device to a given width & height
  */
@@ -234,9 +236,7 @@ int GFraMe_screen_set_pixel_perfect(int max_zoom, int update_window) {
 	GFraMe_buffer_h = GFraMe_screen_h * zoom;
 	GFraMe_screen_ratio_h = zoom;
 	GFraMe_screen_ratio_v = zoom;
-	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i multi:%i"
-	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
-	           , GFraMe_buffer_h, zoom);
+	GFraMe_screen_log_dimensions(zoom);
 	GFraMe_screen_cache_dimensions();
 _ret:
 	return zoom;
@@ -281,9 +281,7 @@ double GFraMe_screen_set_keep_ratio(int max_zoom, int update_window) {
 	GFraMe_buffer_h = GFraMe_screen_h * zoom;
 	GFraMe_screen_ratio_h = zoom;
 	GFraMe_screen_ratio_v= zoom;
-	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i multi:%.4f"
-	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
-	           , GFraMe_buffer_h, zoom);
+	GFraMe_screen_log_dimensions(zoom);
 	GFraMe_screen_cache_dimensions();
 _ret:
 	return zoom;
@@ -315,9 +313,7 @@ void GFraMe_screen_set_maximize_int(int update_window) {
 	GFraMe_buffer_y = 0;
 	GFraMe_buffer_w = w;
 	GFraMe_buffer_h = h;
-	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i"
-	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
-	           , GFraMe_buffer_h);
+	GFraMe_screen_log_dimensions(0);
 	GFraMe_screen_cache_dimensions();
 }
 
@@ -345,9 +341,7 @@ void GFraMe_screen_set_maximize_double(int update_window) {
 	GFraMe_buffer_h = h;
 	GFraMe_screen_ratio_h = (double)w / GFraMe_screen_w;
 	GFraMe_screen_ratio_v = (double)h / GFraMe_screen_h;
-	GFraMe_log("New dimensions - x:%i y:%i width:%i height:%i"
-	           , GFraMe_buffer_x, GFraMe_buffer_y, GFraMe_buffer_w
-	           , GFraMe_buffer_h);
+	GFraMe_screen_log_dimensions(0);
 	GFraMe_screen_cache_dimensions();
 }
 
@@ -420,3 +414,15 @@ SDL_Window *GFraMe_screen_get_window() {
 	return GFraMe_window;
 }
 
+static void GFraMe_screen_log_dimensions(int zoom) {
+	GFraMe_new_log("=============================");
+	GFraMe_new_log("| Screen dimensions");
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log("|   x: %i", GFraMe_buffer_x);
+	GFraMe_new_log("|   y: %i", GFraMe_buffer_y);
+	GFraMe_new_log("|   width: %i", GFraMe_buffer_w);
+	GFraMe_new_log("|   height: %i", GFraMe_buffer_h);
+	if (zoom != 0)
+		GFraMe_new_log("|   multi: %i", zoom);
+	GFraMe_new_log("=============================");
+}
