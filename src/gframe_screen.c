@@ -68,6 +68,7 @@ static Uint8 GFraMe_bg_a = 0xFF;
 
 static void GFraMe_screen_cache_dimensions();
 static void GFraMe_screen_log_dimensions(int zoom);
+static void GFraMe_screen_log_format();
 /**
  * Try to set the device to a given width & height
  */
@@ -120,6 +121,7 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, vw, vh);
 	GFraMe_SDLassertRV(GFraMe_screen, "Couldn't create backbuffer",
 					   rv = GFraMe_ret_backbuffer_creation_failed, _ret);
+	GFraMe_screen_log_format();
 	// Set backbuffer dimensions and position
 	GFraMe_set_screen_ratio();
 _ret:
@@ -425,4 +427,101 @@ static void GFraMe_screen_log_dimensions(int zoom) {
 	if (zoom != 0)
 		GFraMe_new_log("|   multi: %i", zoom);
 	GFraMe_new_log("=============================");
+	GFraMe_new_log("");
 }
+
+char* GFraMe_screen_print_pixelformat(Uint32 pfmt) {
+	switch(pfmt) {
+		case SDL_PIXELFORMAT_UNKNOWN: return "unknown";
+		case SDL_PIXELFORMAT_INDEX1LSB: return "index 1 LSB";
+		case SDL_PIXELFORMAT_INDEX1MSB: return "index 1 MSB";
+		case SDL_PIXELFORMAT_INDEX4LSB: return "index 4 LSB";
+		case SDL_PIXELFORMAT_INDEX4MSB: return "index 4 MSB";
+		case SDL_PIXELFORMAT_INDEX8: return "index 8";
+		case SDL_PIXELFORMAT_RGB332: return "RGB 332";
+		case SDL_PIXELFORMAT_RGB444: return "RGB 444";
+		case SDL_PIXELFORMAT_RGB555: return "RGB 555";
+		case SDL_PIXELFORMAT_BGR555: return "BGR 555";
+		case SDL_PIXELFORMAT_ARGB4444: return "ARGB4444";
+		case SDL_PIXELFORMAT_RGBA4444: return "RGBA 4444";
+		case SDL_PIXELFORMAT_ABGR4444: return "ABGR 4444";
+		case SDL_PIXELFORMAT_BGRA4444: return "BGRA 4444";
+		case SDL_PIXELFORMAT_ARGB1555: return "ARGB 1555";
+		case SDL_PIXELFORMAT_RGBA5551: return "RGBA 5551";
+		case SDL_PIXELFORMAT_ABGR1555: return "ABGR 1555";
+		case SDL_PIXELFORMAT_BGRA5551: return "BGRA 5551";
+		case SDL_PIXELFORMAT_RGB565: return "RGB 565";
+		case SDL_PIXELFORMAT_BGR565: return "BGR 565";
+		case SDL_PIXELFORMAT_RGB24: return "RGB 24";
+		case SDL_PIXELFORMAT_BGR24: return "BGR 24";
+		case SDL_PIXELFORMAT_RGB888: return "RGB 888";
+		case SDL_PIXELFORMAT_RGBX8888: return "RGBX 8888";
+		case SDL_PIXELFORMAT_BGR888: return "BGR 888";
+		case SDL_PIXELFORMAT_BGRX8888: return "BGRX 8888";
+		case SDL_PIXELFORMAT_ARGB8888: return "ARGB 8888";
+		case SDL_PIXELFORMAT_RGBA8888: return "RGBA 8888";
+		case SDL_PIXELFORMAT_ABGR8888: return "ABGR 8888";
+		case SDL_PIXELFORMAT_BGRA8888: return "BGRA 8888";
+		case SDL_PIXELFORMAT_ARGB2101010: return "ARGB 2 10 10 10";
+		case SDL_PIXELFORMAT_YV12: return "YV12";
+		case SDL_PIXELFORMAT_IYUV: return "IYUV";
+		case SDL_PIXELFORMAT_YUY2: return "YUY2";
+		case SDL_PIXELFORMAT_UYVY: return "UYVY";
+		case SDL_PIXELFORMAT_YVYU: return "YVYU";
+		default: return "unknown";
+	}
+}
+
+static char* GFraMe_screen_print_access(int access) {
+	switch (access) {
+		case SDL_TEXTUREACCESS_STATIC: return "static";
+		case SDL_TEXTUREACCESS_STREAMING: return "streaming";
+		case SDL_TEXTUREACCESS_TARGET: return "target";
+		default: return "unknown";
+	}
+}
+
+static void GFraMe_screen_log_format() {
+	SDL_RendererInfo info;
+	int i, access, w, h;
+	Uint32 format;
+	
+	SDL_GetRendererInfo(GFraMe_renderer, &info);
+	SDL_QueryTexture(GFraMe_screen, &format, &access, &w, &h);
+	
+	GFraMe_new_log("=============================");
+	GFraMe_new_log(" | Renderer/Window info");
+	GFraMe_new_log("-----------------------------");
+	if (info.flags & SDL_RENDERER_SOFTWARE)
+		GFraMe_new_log(" |   Supports software rendering");
+	if (info.flags & SDL_RENDERER_ACCELERATED)
+		GFraMe_new_log(" |   Supports hardware acceleration");
+	if (info.flags & SDL_RENDERER_PRESENTVSYNC)
+		GFraMe_new_log(" |   Supports vsync");
+	if (info.flags & SDL_RENDERER_TARGETTEXTURE)
+		GFraMe_new_log(" |   Supports rendering to texture");
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log(" |   Pixel format: %s", GFraMe_screen_print_pixelformat(
+		SDL_GetWindowPixelFormat(GFraMe_window)));
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log(" |   Available texture formats:");
+	i = 0;
+	while (i < info.num_texture_formats) {
+		GFraMe_new_log(" |     %s", GFraMe_screen_print_pixelformat(
+			info.texture_formats[i]));
+		i++;
+	}
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log(" |   Max texture width: %i", info.max_texture_width);
+	GFraMe_new_log(" |   Max texture height: %i", info.max_texture_height);
+	GFraMe_new_log("-----------------------------");
+	GFraMe_new_log(" |   Backbuffer info:");
+	GFraMe_new_log(" |     Pixel format: %s", GFraMe_screen_print_pixelformat(
+		format));
+	GFraMe_new_log(" |     Access mode: %s", GFraMe_screen_print_access(access));
+	GFraMe_new_log(" |     Width: %i", w);
+	GFraMe_new_log(" |     Height: %i", h);
+	GFraMe_new_log("=============================");
+	GFraMe_new_log("");
+}
+

@@ -63,6 +63,7 @@ GFraMe_ret GFraMe_audio_player_init() {
 	GFraMe_SDLassertRV(dev > 0, "Failed to open audio device",
 					 rv = GFraMe_ret_failed, _ret);
 	GFraMe_new_log("Initializing audio...");
+	GFraMe_new_log("");
 	GFraMe_new_log("=============================");
 	GFraMe_new_log("| Audio info:");
 	GFraMe_new_log("-----------------------------");
@@ -73,6 +74,7 @@ GFraMe_ret GFraMe_audio_player_init() {
 	GFraMe_new_log("|   Samples: %i", spec.samples);
 	// GFraMe_new_log("|   Bytes per sample: %i\n", bytesPerSample);
 	GFraMe_new_log("=============================");
+	GFraMe_new_log("");
 	
 	cur = NULL;
 	recycle = NULL;
@@ -105,6 +107,7 @@ void GFraMe_audio_player_clear() {
 	SDL_DestroySemaphore(sem_rec);
 	SDL_DestroySemaphore(sem_bgm);
 	GFraMe_new_log("Closing audio...");
+	GFraMe_new_log("");
 	dev = 0;
 	if (did_audio_init) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
@@ -294,11 +297,13 @@ static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int l
 
 void GFraMe_audio_player_pause() {
 	GFraMe_new_log("Pause audio...");
+	GFraMe_new_log("");
 	SDL_PauseAudioDevice(dev, 1);
 }
 
 void GFraMe_audio_player_play() {
 	GFraMe_new_log("Play audio...");
+	GFraMe_new_log("");
 	SDL_PauseAudioDevice(dev, 0);
 }
 
