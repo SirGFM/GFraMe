@@ -54,5 +54,7 @@ void GFraMe_util_open_browser(char *url);
 
 double GFraMe_util_lerp(int a, int b, double time);
 
+char* GFraMe_util_get_local_path(char *str, int *len);
+
 #endif
 

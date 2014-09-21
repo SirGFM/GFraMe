@@ -1,8 +1,11 @@
 /**
  * @src/gframe_util.c
  */
+#include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_util.h>
+#include <SDL2/SDL_filesystem.h>
 #include <SDL2/SDL_platform.h>
+#include <SDL2/SDL_system.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -110,5 +113,19 @@ void GFraMe_util_open_browser(char *url) {
 
 double GFraMe_util_lerp(int a, int b, double time) {
 	return (double)a * (1 - time) + (double)b * time;
+}
+
+char* GFraMe_util_get_local_path(char *str, int *len) {
+	char *tmp = str;
+#if defined(__ANDROID__) && __ANDROID__
+	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetInternalStoragePath(), len);
+#else
+	char *sdl_path = SDL_GetPrefPath(GFraMe_org, GFraMe_title);
+	if (sdl_path) {
+		tmp = GFraMe_util_strcat(tmp, sdl_path, len);
+		SDL_free(sdl_path);
+	}
+#endif
+	return tmp;
 }
 

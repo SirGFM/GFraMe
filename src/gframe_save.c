@@ -13,14 +13,24 @@
 #ifdef NEW_SAVE
 
 typedef struct {
+	/**
+	 * One of GFraMe_save_type
+	 */
 	char type;
-	char len0;
-	char len1;
-	char len2;
-	char len3;
+	/**
+	 * Length of the id
+	 */
 	char id_len;
-	char data_offset;
+	/**
+	 * Length of the stored data (in bytes)
+	 */
+	char len;
 } GFraMe_save_header;
+
+#define GFraMe_save_header_len	sizeof(GFraMe_save_header)
+#define GFraMe_save_max_id_len	256
+
+static char GFraMe_save_tmp_id[GFraMe_save_max_id_len];
 
 typedef struct {
 	GFraMe_save_header header;
@@ -28,6 +38,12 @@ typedef struct {
 	char *data;
 } GFraMe_save_slot;
 
+/**
+ * Get a valid slot for reading or writing and set the file descriptor
+ *position at the begining of the slot's data.
+ */
+static GFraMe_save_ret GFraMe_save_get_slot(GFraMe_save *sv, char *id,
+	GFraMe_save_slot &slot);
 static void GFraMe_save_get_file_size(GFraMe_save *sv);
 
 GFraMe_ret GFraMe_save_bind(GFraMe_save *sv, char *filename) {
@@ -96,7 +112,54 @@ GFraMe_ret GFraMe_save_read(GFraMe_save *sv, char *id,
 	srv = GFraMe_save_goto_ID_position(sv, id);
 }
 
-static GFraMe_save_ret GFraMe_save_goto_ID_position(GFraMe_save *sv, char *id) {
+static GFraMe_save_ret GFraMe_save_get_slot(GFraMe_save *sv, char *id,
+	GFraMe_save_slot &slot) {
+	GFraMe_save_ret srv;
+	GFraMe_save_header header;
+	int pos;
+	
+	GFraMe_assert(sv->size > 0, "File is empty!",
+		srv = GFraMe_save_ret_empty, _ret);
+	SDL_RWseek(sv->file, SEEK_SET, 0);
+	pos = 0;
+	
+	srv = GFraMe_save_ret_failed;
+	while (1) {
+		int read_len;
+		
+		GFraMe_assert(pos < sv->size, "Reached eof!",
+			srv = GFraMe_save_ret_eof, _ret);
+		
+		read_len = SDL_RWread(sv->file, &header, GFraMe_save_header_len, 1);
+		GFraMe_SDLassert(read_len == GFraMe_save_header_len,
+			"Failed to read id", srv = GFraMe_save_ret_failed, _ret);
+		pos += read_len;
+		
+		memset(GFraMe_save_tmp_id, 0x0, GFraMe_save_max_id_len);
+		read_len = SDL_RWread(sv->file, GFraMe_save_tmp_id, header.id_len, 1);
+		GFraMe_SDLassertRet(read_len == header.id_len,
+			"Failed to read id", srv = GFraMe_save_ret_failed, _ret);
+		pos += read_len;
+		
+		if (GFraMe_util_strcmp(id, GFraMe_save_tmp_id)) {
+			srv = GFraMe_save_ret_ok;
+			slot->header.type = header.type;
+			slot->header.id_len = header.id_len;
+			slot->header.len = header.len;
+			slot->id = GFraMe_save_tmp_id;
+			slot->data = NULL;
+			break;
+		}
+		
+		read_len = SDL_RWseek(sv->file, SEEK_CUR, header.len);
+		GFraMe_assert(read_len != -1, "Failed to seek!",
+			srv = GFraMe_save_ret_failed, _ret);
+		GFraMe_assert(read_len == pos + header.len, "Failed to seek!",
+			srv = GFraMe_save_ret_failed, _ret);
+		pos = read_len;
+	}
+_ret:
+	return srv;
 }
 
 static GFraMe_ret GFraMe_save_read_id(GFraMe_save *sv, char *id) {

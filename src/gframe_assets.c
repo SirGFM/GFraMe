@@ -14,13 +14,10 @@
  * @retrun	Filename with 'assets/' removed.
  */
 char* GFraMe_assets_clean_filename(char *filename) {
+	char *ret = filename;
 #ifdef MOBILE
 	// String to be removed from the begin of a filename
 	char *match = "assets/";
-#else
-	// Which should be empty, for non-mobile
-	char *match = "";
-#endif
 	// Copy it, so we can recover if it doesn't start with 'match'
 	char *tmp = filename;
 	// Move filename until it's after the match, or not matching anymore
@@ -31,9 +28,10 @@ char* GFraMe_assets_clean_filename(char *filename) {
 	// If the end of match was reached, return the new string
 	if (*match == '\0')
 		filename = tmp;
-	return filename;
+#else
+#endif
+	return ret;
 }
-
 
 /**
  * Check whether a file exists

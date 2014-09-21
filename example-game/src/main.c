@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 	GFraMe_ret rv;
 	
 	// Init the framework
-	rv = GFraMe_init(320, 240, 640, 480, "com.wordpress.gfmgamecorner",
+	rv = GFraMe_init(320, 240, 640, 480, "com.gfmgamecorner",
 					 "BugSquasher", GFraMe_window_resizable, 60, 1, 0);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the framework", _exit);
 	// Init the audio player

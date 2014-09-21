@@ -35,6 +35,7 @@ ifeq ($(OS), Win)
     ICON = $(WINICON)
 else
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Linux/" -lGFraMe -lm
+    APPDIR = $(HOME)/.local/share/com.gfmgamecorner/BugSquasher
 endif
 CFLAGS += -I"$(LGFRAMEDIR)/include/"
 LFLAGS += -lSDL2main -lSDL2
@@ -48,7 +49,7 @@ endif
 ifneq ($(RELEASE), yes)
     CFLAGS += -DDEBUG -O0 -g
 else
-    CFLAGS += -Winline -O1
+    CFLAGS += -Winline -O2
 endif
 
 VPATH = src/
@@ -81,6 +82,18 @@ libGFraMe:
 
 $(WINICON):
 	windres assets/icons/win/icon.rc $(WINICON)
+
+install: $(BINDIR)/$(TARGET)
+	mkdir -p $(APPDIR)/assets
+	sed "s@app-dir@$(APPDIR)@" assets/bugsquasher.desk.tmp > assets/bugsquasher.desktop.tmp
+	sed "s@app-name@$(TARGET)@" assets/bugsquasher.desktop.tmp > assets/bugsquasher.desktop
+	cp $(BINDIR)/$(TARGET) $(APPDIR)/
+	cp -r assets/*.dat $(APPDIR)/assets/
+	cp assets/desktop-icon.png $(APPDIR)/assets/
+	cp assets/bugsquasher.desktop $(HOME)/.local/share/applications/
+	sudo chmod 774 $(HOME)/.local/share/com.gfmgamecorner/BugSquasher/$(TARGET)
+	rm assets/bugsquasher.desktop.tmp
+	rm assets/bugsquasher.desktop
 
 .PHONY: clean mostlyclean
 clean:

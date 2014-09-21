@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Bug Squasher
+Version=1.0
+Comment=Bugs have invaded your game! Squash 'em!
+Exec=app-dir/app-name
+Icon=app-dir/assets/desktop-icon.png
+Terminal=false
+Type=Application
+Categories=Application;
