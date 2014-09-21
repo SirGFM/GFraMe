@@ -8,6 +8,16 @@
 
 #define GFraMe_save_max_len	512
 
+#ifdef NEW_SAVE
+
+typedef enum {
+	CHAR,
+	INT,
+	BYTES,
+} GFraMe_save_type;
+
+#endif
+
 /**
  * Possibles return code from save operations
  */
