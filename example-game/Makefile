@@ -49,7 +49,7 @@ endif
 ifneq ($(RELEASE), yes)
     CFLAGS += -DDEBUG -O0 -g
 else
-    CFLAGS += -Winline -O2
+    CFLAGS += -Winline -O1
 endif
 
 VPATH = src/
@@ -78,7 +78,7 @@ $(OBJDIR):
 	mkdir -p $(BINDIR)
 
 libGFraMe:
-	make --directory=$(LGFRAMEDIR)
+	make --directory=$(LGFRAMEDIR) RELEASE=$(RELEASE)
 
 $(WINICON):
 	windres assets/icons/win/icon.rc $(WINICON)

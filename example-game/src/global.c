@@ -57,25 +57,15 @@ static GFraMe_texture gl_atlas;
  */
 GFraMe_ret global_init() {
 	GFraMe_ret rv;
-	char *filename;
-	char *filename2;
 	unsigned char *pixels = NULL;
 	const int atlas_w = 256;
 	const int atlas_h = 256;
 	
 	// Init the texture, so nothing happens on error
 	GFraMe_texture_init(&gl_atlas);
-	// Check for the 'compiled' texture
-	filename = GFraMe_assets_clean_filename("assets/new-atlas-2.dat");
-	if (GFraMe_assets_check_file(filename) != GFraMe_ret_ok) {
-		char *bmpfn = GFraMe_assets_clean_filename("assets/new-atlas-2.bmp");
-		GFraMe_log("Couldn't find atlas.dat... creating it...");
-		// Create the usable texture
-		rv = GFraMe_assets_bmp2dat(bmpfn, 0xff00ff, filename);
-		GFraMe_assertRet(rv == 0, "Failed to create atlas.dat", _ret);
-	}
 	// Load the pixels of the texture
-	rv = GFraMe_assets_buffer_image(filename, atlas_w, atlas_h, (char**)(&pixels));
+	rv = GFraMe_assets_buffer_image("new-atlas-2", atlas_w, atlas_h,
+		(char**)(&pixels));
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to load pixels", _ret);
 	// Load the texture itself
 	rv = GFraMe_texture_load(&gl_atlas, atlas_w, atlas_h, pixels);
@@ -88,39 +78,25 @@ GFraMe_ret global_init() {
 	GFraMe_spriteset_init(&gl_sset32x64, &gl_atlas, 32, 64);
 	GFraMe_spriteset_init(&gl_sset64, &gl_atlas, 64, 64);
 	
-	filename = GFraMe_assets_clean_filename("assets/jump.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/jump.dat");
-	rv = GFraMe_audio_init(&gl_jump, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_jump, "jump", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/death.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/death.dat");
-	rv = GFraMe_audio_init(&gl_death, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_death, "death", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/hit.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/hit.dat");
-	rv = GFraMe_audio_init(&gl_hit, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_hit, "hit", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/start.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/start.dat");
-	rv = GFraMe_audio_init(&gl_start, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_start, "start", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/charge.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/charge.dat");
-	rv = GFraMe_audio_init(&gl_charge, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_charge, "charge", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/floor.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/floor.dat");
-	rv = GFraMe_audio_init(&gl_floor, filename, filename2, 0, 0, 1);
+	rv = GFraMe_audio_init(&gl_floor, "floor", 0, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open sfx", _ret);
 	
-	filename = GFraMe_assets_clean_filename("assets/song01.wav");
-	filename2 = GFraMe_assets_clean_filename("assets/song01.dat");
-	rv = GFraMe_audio_init(&gl_song, filename, filename2, 1, 0, 1);
+	rv = GFraMe_audio_init(&gl_song, "song01", 1, 0, 1);
 	GFraMe_assertRet(rv == GFraMe_ret_ok,"Failed to open music", _ret);
 	gl_song.loop_pos = gl_song.len / 2;
 _ret:
@@ -143,4 +119,3 @@ void global_clear() {
 	GFraMe_audio_clear(&gl_floor);
 	GFraMe_audio_clear(&gl_song);
 }
-

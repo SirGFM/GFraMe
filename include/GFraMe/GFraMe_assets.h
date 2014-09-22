@@ -7,14 +7,6 @@
 #include <GFraMe/GFraMe_error.h>
 
 /**
- * SDL already considers assets on a mobile device to be on a 'assets/'
- * folder, so this function removes it (if it was compiled for mobile)
- * @param	*filename	Original filename, that may begin with 'assets/'
- * @retrun	Filename with 'assets/' removed.
- */
-char* GFraMe_assets_clean_filename(char *filename);
-
-/**
  * Check whether a file exists
  * @param	*filename	File to be checked
  * GFraMe_ret_ok - Exists; GFraMe_ret_file_not_found - Doesn't exists
@@ -29,7 +21,10 @@ GFraMe_ret GFraMe_assets_check_file(char *fileName);
  * @param	**buf	Allocated buffer (caller freed!!)
  * @return	GFraMe_ret_ok - Success; Anything else - Failure
  */
-GFraMe_ret GFraMe_assets_buffer_image(char *filename, int width, int height, char **buf);
+GFraMe_ret GFraMe_assets_buffer_image(char *filename, int width, int height,
+	char **buf);
+
+GFraMe_ret GFraMe_assets_buffer_audio(char *filename, char **buf, int *len);
 
 /**
  * Someday I'll properly comment this, but it reads a 24 bits R8 G8 B8

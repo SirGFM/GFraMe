@@ -147,6 +147,30 @@ void GFraMe_screen_clean() {
 }
 
 /**
+ * Attach a 16x16 icon, of ARGB32 format, to the window.
+ * @param	*pixels	Buffer of pixels
+ */
+GFraMe_ret GFraMe_set_icon(char *pixels) {
+	GFraMe_ret rv;
+	SDL_Surface *surf = NULL;
+	
+	GFraMe_assertRV(GFraMe_window, "Window not yet initialized",
+		rv = GFraMe_ret_failed, _ret);
+	
+	surf = SDL_CreateRGBSurfaceFrom(pixels, 16, 16, 32, 16*4, 0x00ff0000,
+		0x0000ff00, 0x000000ff, 0xff000000);
+	GFraMe_SDLassertRV(surf, "Failed to create surface",
+		rv = GFraMe_ret_failed, _ret);
+	
+	SDL_SetWindowIcon(GFraMe_window, surf);
+	
+	rv = GFraMe_ret_ok;
+_ret:
+	return rv;
+}
+
+
+/**
  * Get the dimensions of the first connected display
  * @param	*ret_width	Integer where the width is returned
  * @param	*ret_height	Integer where the height is returned

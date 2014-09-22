@@ -82,7 +82,7 @@ void ps_event_handler() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 			GFraMe_accumulator_update(&acc_timer, __dt__);
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 		GFraMe_event_on_bg();
 			GFraMe_audio_player_pause();
 		GFraMe_event_on_fg();

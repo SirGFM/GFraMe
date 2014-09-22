@@ -5,17 +5,17 @@
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_hitbox.h>
 #include <GFraMe/GFraMe_object.h>
-#ifdef DEBUG
+#ifdef GFRAME_DEBUG
 #include <GFraMe/GFraMe_screen.h>
 #endif
 #include <GFraMe/GFraMe_sprite.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
-#ifdef DEBUG
+#ifdef GFRAME_DEBUG
 #include <SDL2/SDL_video.h>
 #endif
 
-#ifdef DEBUG
+#ifdef GFRAME_DEBUG
 /**
  * Context where the bounding box shall be rendered; debug-mode only
  */
@@ -99,7 +99,7 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 	GFraMe_spriteset_draw(spr->sset, spr->cur_tile,
 			x, spr->obj.y + spr->offset_y,
 			spr->flipped);
-#ifdef DEBUG
+#ifdef GFRAME_DEBUG
 	// If should draw the bounding box
 	if (GFraMe_draw_debug) {
 		// Get the sprite's hitbox

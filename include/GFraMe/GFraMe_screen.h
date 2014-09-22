@@ -72,13 +72,19 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 void GFraMe_screen_clean();
 
 /**
+ * Attach a 16x16 icon, of ARGB32 format, to the window.
+ * @param	*pixels	Buffer of pixels
+ */
+GFraMe_ret GFraMe_set_icon(char *pixels);
+
+
+/**
  * Get the dimensions of the first connected display
  * @param	*ret_width	Integer where the width is returned
  * @param	*ret_height	Integer where the height is returned
  * @return	GFraMe_ret_ok - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_getDevDimensions(int *ret_width, int *ret_height);
-
 /**
  * Converts a point from screen space to world space
  * @param	*x	Position with horizontal screen position and

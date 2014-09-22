@@ -17,6 +17,10 @@ char GFraMe_org[GFraMe_max_org_len];
  * Game's title. Is used as part of paths.
  */
 char GFraMe_title[GFraMe_max_game_title_len];
+/**
+ * Path to the directory where the game is running
+ */
+char GFraMe_path[GFraMe_max_path_len];
 
 /**
  * Timer used to issue new frames
@@ -50,20 +54,33 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	GFraMe_util_strcat(GFraMe_org, org, &len);
 	len = GFraMe_max_game_title_len;
 	GFraMe_util_strcat(GFraMe_title, name, &len);
+	
+#ifndef GFRAME_MOBILE
+	// Also, get current directory
+	char *tmp = SDL_GetBasePath();
+	GFraMe_SDLassertRV(tmp, "Couldn't get current running path",
+		rv = GFraMe_ret_failed, _ret);
+	len = GFraMe_max_path_len;
+	GFraMe_util_strcat(GFraMe_path, tmp, &len);
+	SDL_free(tmp);
+#endif
+	
 	if (log_to_file)
 		GFraMe_log_init(log_append);
-#ifdef DEBUG
+#ifdef GFRAME_DEBUG
 	// Set logging, if debug
 	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
 #endif
 	// Initialize SDL2
 	rv = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
-	GFraMe_SDLassertRV(rv >= 0, "Couldn't initialize SDL", rv = GFraMe_ret_sdl_init_failed, _ret);
+	GFraMe_SDLassertRV(rv >= 0, "Couldn't initialize SDL",
+		rv = GFraMe_ret_sdl_init_failed, _ret);
 	// Initialize the screen
 	GFraMe_screen_init(vw, vh, sw, sh, name, flags);
 	// Create a timer
 	ms = GFraMe_timer_get_ms(fps);
-	GFraMe_assertRV(ms > 0, "Requested FPS is too low", rv = GFraMe_ret_fps_req_low, _ret);
+	GFraMe_assertRV(ms > 0, "Requested FPS is too low",
+		rv = GFraMe_ret_fps_req_low, _ret);
 	rv = GFraMe_timer_init(ms, &timer);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to create timer", _ret);
 _ret:

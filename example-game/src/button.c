@@ -45,7 +45,7 @@ void button_update(Button *bt, int ms) {
 		bt->base.cur_tile = bt->pressed;
 		bt->label.offset_y = 2;
 	}
-#ifndef MOBILE
+#ifndef GFRAME_MOBILE
 	else if (isOver && bt->state != OVER) {
 		bt->state = OVER;
 		bt->base.cur_tile = bt->over;

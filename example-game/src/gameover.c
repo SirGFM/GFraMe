@@ -102,6 +102,7 @@ static void gameover_init() {
 			case GMO_o: tile = 8 * 3 + 3; break;
 			case GMO_v: tile = 8 * 6 + 5; break;
 			case GMO_r: tile = 8 * 5 + 7; break;
+			default: tile = 0;
 		}
 		GFraMe_sprite_init(spr, X, Y, 32, H, sset, 0, 0);
 		spr->cur_tile = tile;
@@ -116,7 +117,7 @@ static void gameover_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
 			GFraMe_accumulator_update(&timer, GFraMe_event_elapsed);
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 		GFraMe_event_on_bg();
 			GFraMe_audio_player_pause();
 		GFraMe_event_on_fg();

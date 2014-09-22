@@ -36,13 +36,13 @@ typedef struct stGFraMe_audio GFraMe_audio;
 /**
  * Loads an audio from a WAVE file into an GFraMe_audio
  * @param	*aud	Struct where the audio will be stored
- * @param	*wavfile	Filename of the audio source
- * @param	*datfile
+ * @param	*filename	Filename of the audio source
  * @param	loop	Whether the audio should loop or not
  * @param	loop_pos	Sample that should be jumped to on loop
  * @return	GFraMe_ok if the audio loaded correctly
  */
-GFraMe_ret GFraMe_audio_init(GFraMe_audio *aud, char *wavfile, char *datfile, int loop, int loop_pos, int stereo);
+GFraMe_ret GFraMe_audio_init(GFraMe_audio *aud, char *filename, int loop,
+	int loop_pos, int stereo);
 /**
  * Clear up memory allocated by the audio
  * @param	*aud	Struct which should be cleared

@@ -16,11 +16,18 @@
  * "Organization" name. Is used as part of paths.
  */
 extern char GFraMe_org[GFraMe_max_org_len];
+
 #define GFraMe_max_game_title_len 80
 /**
  * Game's title. Is used as part of paths.
  */
 extern char GFraMe_title[GFraMe_max_game_title_len];
+
+#define GFraMe_max_path_len	512
+/**
+ * Path to the directory where the game is running
+ */
+extern char GFraMe_path[GFraMe_max_path_len];
 
 /**
  * Initialize SDL, already creating a window and a backbuffer.

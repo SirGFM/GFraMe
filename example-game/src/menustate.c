@@ -6,7 +6,7 @@
 #include <GFraMe/GFraMe_audio_player.h>
 #include <GFraMe/GFraMe_event.h>
 #include <GFraMe/GFraMe_messagebox.h>
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 #include <GFraMe/GFraMe_mobile.h>
 #endif
 #include <GFraMe/GFraMe_screen.h>
@@ -111,7 +111,7 @@ static void menu_init() {
 	init_text.y = 240 - 32 - 16 - 24;
 	len = 20;
 	ptC = GFraMe_util_strcat(tmp, "-- ", &len);
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 	ptC = GFraMe_util_strcat(ptC, "TOUCH", &len);
 #else
 	ptC = GFraMe_util_strcat(ptC, "CLICK", &len);
@@ -175,7 +175,7 @@ static void menu_init() {
 static void menu_event() {
 	GFraMe_event_begin();
 		GFraMe_event_on_timer();
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 		GFraMe_event_on_bg();
 			GFraMe_audio_player_pause();
 		GFraMe_event_on_fg();
@@ -213,7 +213,7 @@ static void menu_update() {
 			button_update(&bt_1_1, GFraMe_event_elapsed);
 			button_update(&bt_prop, GFraMe_event_elapsed);
 			button_update(&bt_free, GFraMe_event_elapsed);
-#ifdef MOBILE
+#ifdef GFRAME_MOBILE
 			requestSwitch = 0;
 			
 			#define GFraMe_reset_pointer()	\
