@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the framework", _exit);
 	
 #ifndef GFRAME_MOBILE
-	//setIcon();
+	setIcon();
 #endif
 	
 	// Init the audio player

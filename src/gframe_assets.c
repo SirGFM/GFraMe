@@ -23,6 +23,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * SDL already considers assets on a mobile device to be on a 'assets/'

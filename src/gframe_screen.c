@@ -148,16 +148,27 @@ void GFraMe_screen_clean() {
 
 /**
  * Attach a 16x16 icon, of ARGB32 format, to the window.
- * @param	*pixels	Buffer of pixels
+ * @param	*pixels	Buffer of pixels in ARGB format
  */
 GFraMe_ret GFraMe_set_icon(char *pixels) {
 	GFraMe_ret rv;
 	SDL_Surface *surf = NULL;
+	Uint32 *pix32 = (Uint32*)pixels;
 	
 	GFraMe_assertRV(GFraMe_window, "Window not yet initialized",
 		rv = GFraMe_ret_failed, _ret);
 	
-	surf = SDL_CreateRGBSurfaceFrom(pixels, 16, 16, 32, 16*4, 0x00ff0000,
+	// Check if byte order is correct and fix it
+	if (SDL_BYTEORDER == SDL_LIL_ENDIAN) {
+		int i = 0;
+		int l = 16 * 16;
+		while (i < l) {
+			pix32[i] = SDL_Swap32(pix32[i]);
+			i++;
+		}
+	}
+	
+	surf = SDL_CreateRGBSurfaceFrom(pix32, 16, 16, 32, 16*4, 0x00ff0000,
 		0x0000ff00, 0x000000ff, 0xff000000);
 	GFraMe_SDLassertRV(surf, "Failed to create surface",
 		rv = GFraMe_ret_failed, _ret);

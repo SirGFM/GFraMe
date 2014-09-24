@@ -31,6 +31,9 @@ ifeq ($(OS), Win)
         LFLAGS += -L"/d/windows/mingw/mingw32/lib/"
     endif
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Win/" -lmingw32 -lGFraMe
+    ifeq ($(RELEASE), yes)
+        LFLAGS += -mwindows
+    endif
     CFLAGS += -I"/d/windows/mingw/include"
     ICON = $(WINICON)
 else
