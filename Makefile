@@ -44,7 +44,7 @@ endif
 ifneq ($(RELEASE), yes)
     CFLAGS += -DGFRAME_DEBUG -O0 -g
 else
-    CFLAGS += -Winline -O1
+    #CFLAGS += -Winline -O1
 endif
 
 VPATH = src/

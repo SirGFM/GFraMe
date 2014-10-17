@@ -2,6 +2,7 @@
  * @src/gframe_util.c
  */
 #include <GFraMe/GFraMe.h>
+#include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL_filesystem.h>
 #include <SDL2/SDL_platform.h>
@@ -50,29 +51,57 @@ int GFraMe_util_randomi() {
 	return rand();
 }
 
+/**
+ * Return a strings length.
+ */
 int GFraMe_util_strlen(const char *str) {
 	int len = 0;
 	while (*(str++)) len++;
 	return len;
 }
 
-int GFraMe_util_strcmp(const char *str1, const char *str2) {
+/**
+ * Compare two strings. If they are equal, return GFraMe_ok, GFraMe_failed
+ *otherwise.
+ */
+GFraMe_ret GFraMe_util_strcmp(const char *str1, const char *str2) {
+	GFraMe_ret rv;
+	
+	// Loop while both chars are equal and not '\0'
 	while (*str1 && *str2 && *str1 == *str2) {
 		str1++;
 		str2++;
 	}
-	return !*str1 && !*str2;
+	
+	// If both are '\0', both string were fully read and are equal
+	if (!*str1 && !*str2)
+		rv = GFraMe_ret_ok;
+	else
+		rv = GFraMe_ret_failed;
+	
+	return rv;
 }
 
+/**
+ * Concatenate two string. At most 'len' characters shall be appended to 'dst'.
+ *'dst' must point to the last character on the destiny buffer.
+ * The value returned is a pointer to the final position on the appended string,
+ *which allows for easy multiple calls to this function.
+ */
 char* GFraMe_util_strcat(char *dst, char *src, int *len) {
+	// Copy from src to dst until the last character was reached or there's no
+	//more space in 'dst'
 	while (*src && *len > 0) {
 		*dst = *src;
 		src++;
 		dst++;
 		(*len)--;
 	}
+	
+	// If there's still space in 'dst', put a '\0' on its end
 	if (*len > 0)
 		*dst = '\0';
+	
 	return dst;
 }
 
@@ -94,29 +123,59 @@ char* GFraMe_str2tiles(char *data, char *str, int first_tile) {
 	return data;
 }
 
-void GFraMe_util_open_browser(char *url) {
+/**
+ * Open an browser on the desired webpage.
+ * If run in an unsupported platform (as iOS), it'll return
+ *GFraMe_platform_not_supported. Otherwise, it'll return GFraMe_ok, even if the
+ *browser couldn't be opened.
+ */
+GFraMe_ret GFraMe_util_open_browser(char *url) {
 	char buf[1024];
 	char *tmp;
 	int len = 1024;
+	
+	// Get the current platform
 	const char *plat = SDL_GetPlatform();
-	if (GFraMe_util_strcmp(plat, "Windows"))
+	
+	// Set which command should be executed to open the browser
+	if (GFraMe_util_strcmp(plat, "Windows") == GFraMe_ret_ok)
 		tmp = GFraMe_util_strcat(buf, "start ", &len);
-	else if (GFraMe_util_strcmp(plat, "Linux"))
+	else if (GFraMe_util_strcmp(plat, "Linux") == GFraMe_ret_ok)
 		tmp = GFraMe_util_strcat(buf, "xdg-open ", &len);
-	else if (GFraMe_util_strcmp(plat, "Android"))
-		tmp = GFraMe_util_strcat(buf, "am start -a android.intent.action.VIEW -d ", &len);
+	else if (GFraMe_util_strcmp(plat, "Android") == GFraMe_ret_ok)
+		tmp = GFraMe_util_strcat(buf, "am start -a android.intent.action.VIEW "
+			"-d ", &len);
 	else
-		return;
+		return GFraMe_platform_not_supported;
+	
+	// Append the url to the command
 	tmp = GFraMe_util_strcat(tmp, url, &len);
+	// and execute it
 	system(buf);
+	
+	return GFraMe_ret_ok;
 }
 
+/**
+ * Interpolate linearly between two number.
+ */
 double GFraMe_util_lerp(int a, int b, double time) {
 	return (double)a * (1 - time) + (double)b * time;
 }
 
+/**
+ * Get the directory to this application's local files. It's set according to
+ *the organization and title set when initializing the game. The actual
+ *directory depends on the current OS:
+ *   - /data/data/organization|title/, on Android
+ *   - %APPDATA%/organization|title/, on Windows
+ *   - ~/.local/shared/organization|title/, on Linux
+ * 'str' points to the buffer where it'll be written, while 'len' must have how
+ *many free characters there are.
+ */
 char* GFraMe_util_get_local_path(char *str, int *len) {
 	char *tmp = str;
+	
 #if defined(__ANDROID__) && __ANDROID__
 	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetInternalStoragePath(), len);
 #else

@@ -44,10 +44,12 @@ static GFraMe_timer timer = 0;
  * @return	0 - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
-				char *name, GFraMe_window_flags flags, int fps,
-				int log_to_file, int log_append) {
+	char *name, GFraMe_window_flags flags, int fps,
+	int log_to_file, int log_append) {
+	
 	GFraMe_ret rv = GFraMe_ret_ok;
 	int ms = 0, len;
+	
 	// Store organization name and game's title so it can be used for
 	//logging and saving
 	len = GFraMe_max_org_len;
@@ -71,12 +73,17 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	// Set logging, if debug
 	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
 #endif
+	
 	// Initialize SDL2
 	rv = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
 	GFraMe_SDLassertRV(rv >= 0, "Couldn't initialize SDL",
 		rv = GFraMe_ret_sdl_init_failed, _ret);
+	
 	// Initialize the screen
-	GFraMe_screen_init(vw, vh, sw, sh, name, flags);
+	rv = GFraMe_screen_init(vw, vh, sw, sh, name, flags);
+	GFraMe_assertRV(rv == GFraMe_ret_ok, "Failed to initialize the screen",
+		rv=rv, _ret);
+	
 	// Create a timer
 	ms = GFraMe_timer_get_ms(fps);
 	GFraMe_assertRV(ms > 0, "Requested FPS is too low",

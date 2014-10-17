@@ -90,7 +90,8 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 	int w = 0, h = 0;
 	// Get the device dimensions, in case it's needed
 	rv = GFraMe_getDevDimensions(&w, &h);
-	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to get device dimensions", _ret);
+	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to get device dimensions",
+		_ret);
 	// If no valid width was passed, use default one
 	if (sw == 0)
 		sw = w;

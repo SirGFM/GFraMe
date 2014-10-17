@@ -28,7 +28,9 @@ enum enGFraMe_ret {
 	GFraMe_ret_render_failed,
 	GFraMe_ret_invalid_texture,
 	GFraMe_ret_stop_timer_failed,
-	GFraMe_ret_failed
+	GFraMe_ret_failed,
+	GFraMe_platform_not_supported,
+	GFraMe_buffer_too_small,
 };
 typedef enum enGFraMe_ret GFraMe_ret;
 

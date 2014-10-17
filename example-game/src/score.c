@@ -66,7 +66,8 @@ void highscore_init() {
 	tmp = GFraMe_str2tiles(score_data, "HIGHSCORE", 0);
 	
 	GFraMe_save_bind(&sav, "bugsquasher.sav");
-	if (GFraMe_save_read(&sav, "hs", &highscore, sizeof(int), 1) == GFraMe_ret_failed)
+	//if (GFraMe_save_read(&sav, "hs", &highscore, sizeof(int), 1) == GFraMe_ret_failed)
+	if (GFraMe_save_read_int(&sav, "highscore", &highscore) != GFraMe_ret_ok)
 		highscore = 0;
 	GFraMe_save_close(&sav);
 	
@@ -86,7 +87,8 @@ void highscore_save() {
 		if (cur_score > 999999999)
 			cur_score = 999999999;
 		GFraMe_save_bind(&sav, "bugsquasher.sav");
-		GFraMe_save_write(&sav, "hs", &cur_score, sizeof(int), 1);
+		//GFraMe_save_write(&sav, "hs", &cur_score, sizeof(int), 1);
+		GFraMe_save_write_int(&sav, "highscore", cur_score);
 		GFraMe_save_close(&sav);
 	}
 }
