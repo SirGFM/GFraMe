@@ -1,11 +1,20 @@
 /**
  * @src/score.c
  */
+#include <string.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_save.h>
 #include <GFraMe/GFraMe_tilemap.h>
 #include <GFraMe/GFraMe_util.h>
 #include "global.h"
+
+#ifdef GFRAME_MOBILE
+static GFraMe_save_ret old_save_goto_ID_position(GFraMe_save *sv, char *id);
+static GFraMe_ret old_save_read_id(GFraMe_save *sv, char *id);
+static GFraMe_ret old_save_read(GFraMe_save *sv, char *id,
+		void *data, int size, int count);
+#endif
 
 static GFraMe_save sav;
 /**
@@ -53,6 +62,7 @@ void score_init() {
 void highscore_init() {
 	char *tmp;
 	int i;
+	GFraMe_ret rv;
 	
 	// Set flashing time, if passed the score
 	if (cur_score > highscore) {
@@ -65,11 +75,31 @@ void highscore_init() {
 	// Reassign tilemap data
 	tmp = GFraMe_str2tiles(score_data, "HIGHSCORE", 0);
 	
-	GFraMe_save_bind(&sav, "bugsquasher.sav");
+	rv = GFraMe_save_bind(&sav, "bugsquasher.sav");
+#if 0
+#  ifdef GFRAME_MOBILE
+	if (rv == GFraMe_no_version_found) {
+		int iTmp;
+		rv = old_save_read(&sav, "hs", &iTmp, sizeof(int), 1);
+		GFraMe_save_erase(&sav);
+		
+		GFraMe_save_write_int(&sav, "GFraMe_V", 0x00010000);
+		GFraMe_save_close(&sav);
+		
+		GFraMe_save_bind(&sav, "bugsquasher.sav");
+		if (rv != GFraMe_ret_failed)
+			GFraMe_save_write_int(&sav, "highscore", iTmp);
+		GFraMe_save_close(&sav);
+		
+		GFraMe_save_bind(&sav, "bugsquasher.sav");
+	}
+#  endif
+#endif
 	//if (GFraMe_save_read(&sav, "hs", &highscore, sizeof(int), 1) == GFraMe_ret_failed)
 	if (GFraMe_save_read_int(&sav, "highscore", &highscore) != GFraMe_ret_ok)
 		highscore = 0;
 	GFraMe_save_close(&sav);
+	memset(&sav, 0x0, sizeof(GFraMe_save));
 	
 	if (highscore > 0) {
 		tmp += 8;
@@ -87,9 +117,15 @@ void highscore_save() {
 		if (cur_score > 999999999)
 			cur_score = 999999999;
 		GFraMe_save_bind(&sav, "bugsquasher.sav");
+	#ifdef GFRAME_MOBILE
+		GFraMe_save_erase(&sav);
+		GFraMe_save_close(&sav);
+		GFraMe_save_bind(&sav, "bugsquasher.sav");
+	#endif
 		//GFraMe_save_write(&sav, "hs", &cur_score, sizeof(int), 1);
 		GFraMe_save_write_int(&sav, "highscore", cur_score);
 		GFraMe_save_close(&sav);
+		memset(&sav, 0x0, sizeof(GFraMe_save));
 	}
 }
 
@@ -147,4 +183,79 @@ GFraMe_ret score_draw() {
 	else
 		return GFraMe_ret_ok;
 }
+
+#if 0
+#  ifdef GFRAME_MOBILE
+GFraMe_ret old_save_read(GFraMe_save *sv, char *id,
+		void *data, int size, int count) {
+	GFraMe_ret rv = GFraMe_ret_ok;
+	GFraMe_save_ret srv = GFraMe_save_ret_ok;
+	srv = old_save_goto_ID_position(sv, id);
+	if (srv == GFraMe_save_ret_ok) {
+		char tmp;
+		SDL_RWread(sv->file, &tmp, sizeof(char), 1);
+		if (tmp == size*count) {
+			GFraMe_new_log("YAY!!");
+			SDL_RWread(sv->file, data, size, count);
+			rv = GFraMe_ret_ok;
+		}
+		else
+			rv = GFraMe_ret_failed;
+	}
+	else
+		rv = GFraMe_ret_failed;
+	return rv;
+}
+
+static GFraMe_save_ret old_save_goto_ID_position(GFraMe_save *sv, char *id) {
+	int pos;
+	GFraMe_save_ret rv = GFraMe_save_ret_ok;
+	char buf[GFraMe_save_max_len];
+	// Check if the file isn't empty
+	GFraMe_assertRV(sv->size > 0, "File's empty",
+					rv = GFraMe_save_ret_empty, _ret);
+	// Go back to the file's begin
+	pos = SDL_RWseek(sv->file, 0, SEEK_SET);
+	GFraMe_assertRV(pos >= 0, "ERROR", rv = GFraMe_save_ret_failed, _ret);
+	while (1) {
+		int res;
+		char len;
+		GFraMe_assertRV(pos != sv->size, "ID not found",
+						rv = GFraMe_save_ret_id_not_found, _ret);
+		// Try to read the current id
+		rv = old_save_read_id(sv, buf);
+		GFraMe_assertRet(rv == GFraMe_save_ret_ok, "Failed to seek id", _ret);
+		// Exit loop if it was found
+		if (GFraMe_util_strcmp(id, buf) == GFraMe_ret_ok) {
+			GFraMe_new_log("Found a match!");
+			break;
+		}
+		// Skip the data
+		res = SDL_RWread(sv->file, &len, sizeof(char), 1);
+		GFraMe_assertRV(res > 0, "ERROR", rv = GFraMe_save_ret_failed, _ret);
+		pos = SDL_RWseek(sv->file, len, SEEK_CUR);
+	}
+	rv = GFraMe_save_ret_ok;
+_ret:
+	return rv;
+}
+
+static GFraMe_ret old_save_read_id(GFraMe_save *sv, char *id) {
+	int rv;
+	char id_len;
+	// Try to read the id length
+	rv = SDL_RWread(sv->file, &id_len, sizeof(char), 1);
+	GFraMe_SDLassertRet(rv == 1, "Couldn't read id len", _ret);
+	// Try to read the id
+	rv = SDL_RWread(sv->file, id, sizeof(char), id_len);
+	GFraMe_SDLassertRet(rv == id_len, "Failed to read id", _ret);
+	// id_len is at most 255, so no check is needed
+	id[(int)id_len] = '\0';
+	if (rv != 0)
+		GFraMe_new_log("Found id %s", id);
+_ret:
+	return (rv != 0)?GFraMe_ret_ok:GFraMe_ret_failed;
+}
+#  endif
+#endif
 

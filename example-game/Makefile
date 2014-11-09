@@ -38,7 +38,7 @@ ifeq ($(OS), Win)
     ICON = $(WINICON)
 else
     LFLAGS += -L"$(LGFRAMEDIR)/bin/Linux/" -lGFraMe -lm
-    APPDIR = $(HOME)/.local/share/com.gfmgamecorner/BugSquasher
+    #APPDIR = $(HOME)/.local/share/com.gfmgamecorner/BugSquasher
 endif
 CFLAGS += -I"$(LGFRAMEDIR)/include/"
 LFLAGS += -lSDL2main -lSDL2

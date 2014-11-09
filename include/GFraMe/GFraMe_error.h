@@ -31,6 +31,8 @@ enum enGFraMe_ret {
 	GFraMe_ret_failed,
 	GFraMe_platform_not_supported,
 	GFraMe_buffer_too_small,
+	GFraMe_no_version_found,
+	GFraMe_older_save_version,
 };
 typedef enum enGFraMe_ret GFraMe_ret;
 

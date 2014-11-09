@@ -177,7 +177,7 @@ char* GFraMe_util_get_local_path(char *str, int *len) {
 	char *tmp = str;
 	
 #if defined(__ANDROID__) && __ANDROID__
-	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetInternalStoragePath(), len);
+	tmp = GFraMe_util_strcat(tmp, SDL_AndroidGetExternalStoragePath(), len);
 #else
 	char *sdl_path = SDL_GetPrefPath(GFraMe_org, GFraMe_title);
 	if (sdl_path) {

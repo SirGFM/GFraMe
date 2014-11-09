@@ -67,6 +67,8 @@ typedef struct stGFraMe_save GFraMe_save;
  */
 GFraMe_ret GFraMe_save_bind(GFraMe_save *sv, char *filename);
 
+GFraMe_ret GFraMe_save_logcontent(GFraMe_save *sv);
+
 /**
  * Closes a previously bound context.
  * This assures that the content of the file was written to the disk.
