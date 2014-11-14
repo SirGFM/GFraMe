@@ -449,7 +449,6 @@ void GFraMe_init_render() {
  */
 void GFraMe_finish_render() {
 #ifdef GFRAME_OPENGL
-	GFraMe_opengl_prepareRender();
 	GFraMe_opengl_doRender();
 #else
 	// Detach the texture (attach it to the window)

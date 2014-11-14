@@ -20,7 +20,7 @@ static GLuint GFraMe_program;
 static GLuint GFraMe_locToGL;
 static GLuint GFraMe_texDimensions;
 static GLuint GFraMe_translation;
-static GLuint GFraMe_dimesion;
+static GLuint GFraMe_dimension;
 static GLuint GFraMe_texOffset;
 static GLuint GFraMe_sampler;
 
@@ -33,12 +33,15 @@ static GLuint GFraMe_bbFbo;
 static GLuint GFraMe_bbVbo;
 
 static PFNGLUSEPROGRAMPROC glUseProgram;
+static PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 static PFNGLUNIFORM2FPROC glUniform2f;
 static PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 static PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 static PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
 static PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
+#if defined(_WIN32) || defined(_WIN64)
 static PFNGLACTIVETEXTUREPROC glActiveTexture;
+#endif
 static PFNGLBINDSAMPLERPROC glBindSampler;
 static PFNGLDELETEPROGRAMPROC glDeleteProgram;
 static PFNGLBINDBUFFERPROC glBindBuffer;
@@ -67,21 +70,6 @@ static PFNGLGETSHADERIVPROC glGetShaderiv;
 static PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
 static PFNGLVALIDATEPROGRAMPROC glValidateProgram;
 
-/*
-static PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
-static PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
-static PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
-static PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
-static PFNGLDELETEOBJECTARBPROC glDeleteObjectARB;
-static PFNGLGETINFOLOGARBPROC glGetInfoLogARB;
-static PFNGLGETOBJECTPARAMETERIVARBPROC glGetObjectParameterivARB;
-static PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
-static PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
-static PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
-static PFNGLUNIFORM1IARBPROC glUniform1iARB;
-static PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
-*/
-
 extern SDL_Window *GFraMe_screen_get_window();
 
 static float GFraMe_worldMatrix[16] = 
@@ -101,7 +89,7 @@ static const char GFraMe_vertexShader[] =
   "uniform vec2 texDimensions;\n"       // width and height of the texture, but
                                         //as (1/width, 1/height)
   "uniform vec2 translation;\n"         // offset from (0,0) (world space)
-  "uniform float dimesion;\n"           // sprite dimension (e.g., 16 -> 16x16)
+  "uniform float dimension;\n"           // sprite dimension (e.g., 16 -> 16x16)
   "uniform vec2 texOffset;\n"           // tile position on the texture
   
   "out vec2 texCoord0;\n"
@@ -112,7 +100,7 @@ static const char GFraMe_vertexShader[] =
   "  vec2 pos;\n"
   
   "  pos  = vtx;\n"                     // 
-  "  pos *= dimesion;\n"                //
+  "  pos *= dimension;\n"                //
   "  pos += vec2(0.5f, 0.5f);\n"        // set the origin at the top left corner
   "  pos += translation;\n"             // 
   "  vec4 position = vec4(pos.x, pos.y,"// convert it to a vec4
@@ -120,40 +108,14 @@ static const char GFraMe_vertexShader[] =
   "  gl_Position = position*locToGL;\n" // output vertex to OpenGL
   //"  gl_position = vec4(vtx, -1.0f, 1.0f);\n"
   
-  //"	 texCoord0 = vtx;\n"
-  "  texCoord0 = vtx + vec2(0.5f,"      // now it's a square's vertex of side 1
+  "  texCoord = vtx + vec2(0.5f,"       // now it's a square's vertex of side 1
                              "0.5f);\n" //and origin (0,0)
-  "  texCoord0 *= texDimensions;\n"     // make it 1-pixel wide
-  "  texCoord0 *= dimesion;\n"          // make it "1-tile" wide
-  "  texCoord0 = texCoord+texOffset;\n" // select which tile to use
+  "  texCoord *= texDimensions;\n"      // make it 1-pixel wide
+  "  texCoord *= dimension;\n"          // make it "1-tile" wide
+  "  texCoord0 = texDimensions*texOffset"
+  "                +texCoord;\n"        // select which tile to use
+  //"	 texCoord0 = vtx;\n"
   "}\n";
-/*
-	"#version 330\n"
-	"layout(location = 0) in vec2 _pos;\n"
-	"layout(location = 1) in vec2 texCoord;\n"
-	
-	"uniform mat4 locToGL;\n"
-	"uniform vec2 scale;\n"
-	"uniform vec2 translation;\n"
-	"uniform vec2 rotation;\n"
-	"uniform vec2 texoffset;\n"
-	
-	"out vec2 texCoord0;\n"
-	
-	"void main()\n"
-	"{\n"
-	"	vec2 pos = _pos;\n"
-	"	mat2 rot;\n"
-	"	rot[0].xy = vec2(rotation.x, -rotation.y);\n"
-	"	rot[1].xy = rotation.yx;\n"
-	"	pos *= scale;\n"
-	"	pos *= rot;\n"
-	"	pos += translation;\n"
-	"	vec4 position = vec4(pos.x, pos.y, -1.0f, 1.0f);\n"
-	"	gl_Position = position*locToGL;\n"
-	"	texCoord0 = texCoord+texoffset;"
-	"}\n";
-*/
 
 static const char GFraMe_fragmentShader[] = 
 	"#version 330\n"
@@ -317,7 +279,7 @@ void GFraMe_opengl_prepareRender() {
 
 void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
 	glUniform2f(GFraMe_translation, (float)x, (float)y);
-	glUniform1f(GFraMe_dimesion, (float)d);
+	glUniform1f(GFraMe_dimension, (float)d);
 	glUniform2f(GFraMe_texOffset, (float)tx, (float)ty);
 	
 #if defined(GFRAME_DEBUG)
@@ -516,7 +478,7 @@ static GFraMe_ret GFraMe_opengl_createShaders() {
 	GFraMe_locToGL = glGetUniformLocation(GFraMe_program, "locToGL");
 	GFraMe_texDimensions = glGetUniformLocation(GFraMe_program,"texDimensions");
 	GFraMe_translation = glGetUniformLocation(GFraMe_program, "translation");
-	GFraMe_dimesion = glGetUniformLocation(GFraMe_program, "dimesion");
+	GFraMe_dimension = glGetUniformLocation(GFraMe_program, "dimension");
 	GFraMe_texOffset = glGetUniformLocation(GFraMe_program, "texOffset");
 	GFraMe_sampler = glGetUniformLocation(GFraMe_program, "gSampler");
 	
@@ -642,7 +604,9 @@ static GFraMe_ret GFraMe_opengl_loadFunctions() {
 	LOAD_PROC(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
 	LOAD_PROC(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer);
 	LOAD_PROC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
+#if defined(_WIN32) || defined(_WIN64)
 	LOAD_PROC(PFNGLACTIVETEXTUREPROC, glActiveTexture);
+#endif
 	LOAD_PROC(PFNGLBINDSAMPLERPROC, glBindSampler);
 	LOAD_PROC(PFNGLDELETEPROGRAMPROC, glDeleteProgram);
 	LOAD_PROC(PFNGLBINDBUFFERPROC, glBindBuffer);
@@ -734,3 +698,4 @@ static void GFrame_opengl_validateProgram(GLuint program) {
 	}
 }
 #endif
+
