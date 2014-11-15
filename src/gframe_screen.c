@@ -2,6 +2,7 @@
  * @src/gframe_screen.c
  */
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_opengl.h>
 #include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <SDL2/SDL.h>
@@ -10,6 +11,7 @@
  * Application window. Not much else to say
  */
 static SDL_Window *GFraMe_window = NULL;
+#if !defined(GFRAME_OPENGL)
 /**
  * Renderer used to (duh) render stuff
  */
@@ -18,6 +20,7 @@ SDL_Renderer *GFraMe_renderer = NULL;
  * Backbuffer where the game is rendered; is latter blitted into the window
  */
 static SDL_Texture *GFraMe_screen;
+#endif
 /**
  * Window region where the backbuffer is rendered
  */
@@ -98,6 +101,11 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 	// If no valid height was passed, use default one
 	if (sh == 0)
 		sh = h;
+	
+#if defined(GFRAME_OPENGL)
+	GFraMe_opengl_setAtt();
+#endif
+	
 	// Create a window
 	GFraMe_window = SDL_CreateWindow(name,
 							         SDL_WINDOWPOS_UNDEFINED,
@@ -112,6 +120,7 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 	// Store backbuffer dimensions
 	GFraMe_screen_w = vw;
 	GFraMe_screen_h = vh;
+#if !defined(GFRAME_OPENGL)
 	// Create a renderer
 	GFraMe_renderer = SDL_CreateRenderer(GFraMe_window, -1,
 					SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
@@ -122,6 +131,7 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, vw, vh);
 	GFraMe_SDLassertRV(GFraMe_screen, "Couldn't create backbuffer",
 					   rv = GFraMe_ret_backbuffer_creation_failed, _ret);
+#endif
 	GFraMe_screen_log_format();
 	// Set backbuffer dimensions and position
 	GFraMe_set_screen_ratio();
@@ -133,6 +143,7 @@ _ret:
  * Clean up memory allocated by init
  */
 void GFraMe_screen_clean() {
+#if !defined(GFRAME_OPENGL)
 	if (GFraMe_screen) {
 		SDL_DestroyTexture(GFraMe_screen);
 		GFraMe_screen = NULL;
@@ -141,6 +152,7 @@ void GFraMe_screen_clean() {
 		SDL_DestroyRenderer(GFraMe_renderer);
 		GFraMe_renderer = NULL;
 	}
+#endif
 	if (GFraMe_window) {
 		SDL_DestroyWindow(GFraMe_window);
 		GFraMe_window  = NULL;
@@ -416,6 +428,9 @@ void GFraMe_set_bg_color(char red, char green, char blue, char alpha) {
  * sets the backbuffer as the rendering target
  */
 void GFraMe_init_render() {
+#ifdef GFRAME_OPENGL
+	GFraMe_opengl_prepareRender();
+#else
 	// Attach texture to the renderer
 	SDL_SetRenderTarget(GFraMe_renderer, GFraMe_screen);
 	// Set clear color
@@ -423,6 +438,7 @@ void GFraMe_init_render() {
 						   GFraMe_bg_b, GFraMe_bg_a);
 	// Clear the backbuffer
 	SDL_RenderClear(GFraMe_renderer);
+#endif
 }
 
 // TODO add post effects to screen (flash, shake, etc)
@@ -432,6 +448,10 @@ void GFraMe_init_render() {
  * actually renders the back buffer to the screen
  */
 void GFraMe_finish_render() {
+#ifdef GFRAME_OPENGL
+	GFraMe_opengl_prepareRender();
+	GFraMe_opengl_doRender();
+#else
 	// Detach the texture (attach it to the window)
 	SDL_SetRenderTarget(GFraMe_renderer, NULL);
 	// Set clear color
@@ -443,6 +463,7 @@ void GFraMe_finish_render() {
 	SDL_RenderCopy(GFraMe_renderer, GFraMe_screen, NULL, &buffer_rect);
 	// Switch buffers (blit to the screen)
 	SDL_RenderPresent(GFraMe_renderer);
+#endif
 }
 
 /**
@@ -466,6 +487,7 @@ static void GFraMe_screen_log_dimensions(int zoom) {
 	GFraMe_new_log("");
 }
 
+#if !defined(GFRAME_OPENGL)
 char* GFraMe_screen_print_pixelformat(Uint32 pfmt) {
 	switch(pfmt) {
 		case SDL_PIXELFORMAT_UNKNOWN: return "unknown";
@@ -516,8 +538,10 @@ static char* GFraMe_screen_print_access(int access) {
 		default: return "unknown";
 	}
 }
+#endif
 
 static void GFraMe_screen_log_format() {
+#if !defined(GFRAME_OPENGL)
 	SDL_RendererInfo info;
 	int i, access, w, h;
 	Uint32 format;
@@ -559,5 +583,6 @@ static void GFraMe_screen_log_format() {
 	GFraMe_new_log(" |     Height: %i", h);
 	GFraMe_new_log("=============================");
 	GFraMe_new_log("");
+#endif
 }
 

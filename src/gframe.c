@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_log.h>
+#include <GFraMe/GFraMe_opengl.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_timer.h>
 #include <GFraMe/GFraMe_util.h>

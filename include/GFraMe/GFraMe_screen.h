@@ -8,8 +8,10 @@
 #include <SDL2/SDL_video.h>
 
 enum enGFraMe_window_flags {
+	GFraMe_window_none = 0,
 	GFraMe_window_maximized = SDL_WINDOW_MAXIMIZED,
 	GFraMe_window_resizable = SDL_WINDOW_RESIZABLE,
+	GFraMe_window_opengl = SDL_WINDOW_OPENGL,
 	GFraMe_window_fullscreen = SDL_WINDOW_FULLSCREEN
 };
 typedef enum enGFraMe_window_flags GFraMe_window_flags;

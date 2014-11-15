@@ -66,6 +66,12 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
 	   $(OBJDIR)/gframe.o $(OBJDIR)/gframe_log.o \
 	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 
+ifeq ($(USE_OPENGL), yes)
+    CFLAGS += -DGFRAME_OPENGL
+    
+    OBJS += $(OBJDIR)/gframe_opengl.o
+endif
+
 all: static
 
 static: MAKEDIRS $(BINDIR)/$(TARGET).a

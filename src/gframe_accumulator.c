@@ -27,7 +27,7 @@ void GFraMe_accumulator_init_fps(GFraMe_accumulator *acc, int fps,
 void GFraMe_accumulator_init_time(GFraMe_accumulator *acc, int time,
 								  int max_time) {
 	// Set everything as specified and set elapsed to zero
-	GFraMe_accumulator_init_set(acc, time, max_time);
+	GFraMe_accumulator_set_time(acc, time, max_time);
 	acc->elapsed = 0;
 }
 
@@ -54,7 +54,7 @@ void GFraMe_accumulator_set_fps(GFraMe_accumulator *acc, int fps,
  * @param	time	How long (in milliseconds) until a frame is issued
  * @param	max_time	At most, how long (in ms) can be accumulated
  */ 
-void GFraMe_accumulator_init_set(GFraMe_accumulator *acc, int time,
+void GFraMe_accumulator_set_time(GFraMe_accumulator *acc, int time,
 								  int max_time) {
 	// Set everything as specified
 	acc->timeout = time;

@@ -13,6 +13,8 @@
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_system.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 enum {
 	INT = 0,

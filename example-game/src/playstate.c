@@ -108,7 +108,7 @@ void ps_do_update() {
 	GFraMe_event_update_begin();
 		if (GFraMe_accumulator_loop(&acc_timer)) {
 			int new_time = enemies_do_spawn();
-			GFraMe_accumulator_init_set(&acc_timer, new_time, new_time);
+			GFraMe_accumulator_set_time(&acc_timer, new_time, new_time);
 		}
 		// Check if the player is near the appex, and should slowdown
 		if (player_slowdown())

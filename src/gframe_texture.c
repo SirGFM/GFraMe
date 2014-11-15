@@ -46,16 +46,21 @@ GFraMe_ret GFraMe_texture_create_blank(GFraMe_texture *out,
 								int width, int height) {
 	GFraMe_ret rv = GFraMe_ret_ok;
 	SDL_Texture *tex = NULL;
+#if !defined(GFRAME_OPENGL)
 	// Try to create a texture that can be drawn onto
 	tex = SDL_CreateTexture(GFraMe_renderer, SDL_PIXELFORMAT_ARGB8888,
 							SDL_TEXTUREACCESS_TARGET, width, height);
 	GFraMe_SDLassertRV(tex, "Couldn't create texture", rv = GFraMe_ret_texture_creation_failed, _ret);
+#endif
 	// Create a GFraMe_texture for returning
 	out->texture = tex;
 	out->w = width;
 	out->h = height;
 	out->is_target = 1;
+#if !defined(GFRAME_OPENGL)
 _ret:
+	return rv;
+#endif
 	return rv;
 }
 
@@ -71,6 +76,7 @@ GFraMe_ret GFraMe_texture_load(GFraMe_texture *out, int width, int height,
 						unsigned char *data) {
 	GFraMe_ret rv = GFraMe_ret_ok;
 	SDL_Texture *tex = NULL;
+#if !defined(GFRAME_OPENGL)
 	// Create a texture
 	tex = SDL_CreateTexture(GFraMe_renderer, SDL_PIXELFORMAT_ARGB8888,
 							SDL_TEXTUREACCESS_STATIC, width, height);
@@ -82,6 +88,7 @@ GFraMe_ret GFraMe_texture_load(GFraMe_texture *out, int width, int height,
 	// Make it translucent (where alpha == 0 [I think])
 	rv = SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
 	GFraMe_SDLassertRet(rv == 0, "Failed to set blend mode", _ret);
+#endif
 	// Create output texture
 	out->texture = tex;
 	out->w = width;
@@ -89,16 +96,23 @@ GFraMe_ret GFraMe_texture_load(GFraMe_texture *out, int width, int height,
 	out->is_target = 0;
 	// Clear up SDL texture
 	tex = NULL;
+#if !defined(GFRAME_OPENGL)
 _ret:
 	if (tex)
 		SDL_DestroyTexture(tex);
+#else
+	if (tex)
+		SDL_DestroyTexture(tex);
+#endif
 	return rv;
 }
 
+#if !defined(GFRAME_OPENGL)
 /**
  * Used by lock, unlock and copy to store the previous target
  */
 static SDL_Texture *prev_target = NULL;
+#endif
 
 /**
  * Set some internal state to use l_copy
@@ -107,6 +121,7 @@ static SDL_Texture *prev_target = NULL;
  */
 GFraMe_ret GFraMe_texture_lock(GFraMe_texture *tex) {
 	GFraMe_ret rv = GFraMe_ret_ok;
+#if !defined(GFRAME_OPENGL)
 	// Check if param is ok
 	GFraMe_assertRV(tex, "Bad parameter!", rv = GFraMe_ret_bad_param, _ret);
 	// Check if texture is target
@@ -118,13 +133,17 @@ GFraMe_ret GFraMe_texture_lock(GFraMe_texture *tex) {
 	SDL_SetRenderTarget(GFraMe_renderer, tex->texture);
 _ret:
 	return rv;
+#endif
+	return rv;
 }
 
 /**
  * Return state so everything renders correctly
  */
 void GFraMe_texture_unlock() {
+#if !defined(GFRAME_OPENGL)
 	SDL_SetRenderTarget(GFraMe_renderer, prev_target);
+#endif
 }
 
 /**
@@ -143,6 +162,7 @@ GFraMe_ret GFraMe_texture_l_copy(int sx, int sy, int sw, int sh,
 						  int dx, int dy, int dw, int dh,
 						  GFraMe_texture *tex) {
 	int rv = 0;
+#if !defined(GFRAME_OPENGL)
 	SDL_Rect src;
 	SDL_Rect dst;
 	// Set up src info
@@ -159,6 +179,8 @@ GFraMe_ret GFraMe_texture_l_copy(int sx, int sy, int sw, int sh,
 	rv = SDL_RenderCopy(GFraMe_renderer, tex->texture, &src, &dst);
 	GFraMe_SDLassertRet(rv == 0, "Failed to copy", _ret);
 _ret:
+	return rv;
+#endif
 	return rv;
 }
 
@@ -179,6 +201,7 @@ GFraMe_ret GFraMe_texture_l_copy_flipped(int sx, int sy, int sw, int sh,
 						  int dx, int dy, int dw, int dh,
 						  GFraMe_texture *tex) {
 	int rv = 0;
+#if !defined(GFRAME_OPENGL)
 	SDL_Rect src;
 	SDL_Rect dst;
 	// Set up src info
@@ -195,6 +218,8 @@ GFraMe_ret GFraMe_texture_l_copy_flipped(int sx, int sy, int sw, int sh,
 	rv = SDL_RenderCopyEx(GFraMe_renderer, tex->texture, &src, &dst, 0.0, NULL, SDL_FLIP_HORIZONTAL);
 	GFraMe_SDLassertRet(rv == 0, "Failed to copy", _ret);
 _ret:
+	return rv;
+#endif
 	return rv;
 }
 

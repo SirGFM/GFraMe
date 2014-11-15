@@ -2,6 +2,7 @@
  * @src/gframe_spriteset.c
  */
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_opengl.h>
 #include <GFraMe/GFraMe_screen.h>
 #include <GFraMe/GFraMe_spriteset.h>
 #include <GFraMe/GFraMe_texture.h>
@@ -53,12 +54,17 @@ GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x,
 	sy = (tile / sset->columns) * sset->th;
 	// If no lock was performed (and rendering was initiated),
 	// GFraMe_texture_l_copy will copy to the screen
+	
+#if defined(GFRAME_OPENGL)
+	GFraMe_opengl_renderSprite(x, y, sset->tw, sx, sy);
+#else
 	if (!flipped)
 		rv = GFraMe_texture_l_copy(sx, sy, sset->tw, sset->th,
 								    x,  y, sset->tw, sset->th, sset->tex);
 	else
 		rv = GFraMe_texture_l_copy_flipped(sx, sy, sset->tw, sset->th,
 								    x,  y, sset->tw, sset->th, sset->tex);
+#endif
 	GFraMe_assertRet(rv == 0, "Failed to render tile!", _ret);
 _ret:
 	return rv;
