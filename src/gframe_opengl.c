@@ -100,13 +100,13 @@ static const char GFraMe_vertexShader[] =
   "  vec2 pos;\n"
   
   "  pos  = vtx;\n"                     // 
-  "  pos *= dimension;\n"                //
-  "  pos += vec2(0.5f, 0.5f);\n"        // set the origin at the top left corner
+  "  pos *= dimension;\n"               //
+  "  pos += dimension*vec2(0.5f,"       //
+  "                            0.5f);\n"// set the origin at the top left corner
   "  pos += translation;\n"             // 
   "  vec4 position = vec4(pos.x, pos.y,"// convert it to a vec4
   "                     -1.0f, 1.0f);\n"
   "  gl_Position = position*locToGL;\n" // output vertex to OpenGL
-  //"  gl_position = vec4(vtx, -1.0f, 1.0f);\n"
   
   "  texCoord = vtx + vec2(0.5f,"       // now it's a square's vertex of side 1
                              "0.5f);\n" //and origin (0,0)
@@ -114,7 +114,6 @@ static const char GFraMe_vertexShader[] =
   "  texCoord *= dimension;\n"          // make it "1-tile" wide
   "  texCoord0 = texDimensions*texOffset"
   "                +texCoord;\n"        // select which tile to use
-  //"	 texCoord0 = vtx;\n"
   "}\n";
 
 static const char GFraMe_fragmentShader[] = 
@@ -126,7 +125,8 @@ static const char GFraMe_fragmentShader[] =
 	
 	"void main()\n"
 	"{\n"
-	"	outputColor = texture2D(gSampler, texCoord0.st);\n"
+	"  outputColor = texture2D(gSampler, texCoord0.st);\n"
+	"  outputColor.rb = outputColor.br;\n"
 	//"	outputColor = vec4(1.0f,0.0f,0.0f,1.0f);\n"
 	"}\n";
 
@@ -264,7 +264,7 @@ void GFraMe_opengl_setAtt() {
 }
 
 void GFraMe_opengl_prepareRender() {
-	glBindFramebuffer(GL_FRAMEBUFFER, GFraMe_bbFbo); 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); 
 	
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -290,6 +290,7 @@ void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
 }
 
 void GFraMe_opengl_doRender() {
+/*
 	//glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -314,6 +315,7 @@ void GFraMe_opengl_doRender() {
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	
 	//glBindTexture(GL_TEXTURE_2D, 0);
+	*/
 	glUseProgram(0);
 	SDL_GL_SwapWindow(GFraMe_screen_get_window());
 }
