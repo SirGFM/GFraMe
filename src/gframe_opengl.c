@@ -27,10 +27,13 @@ static GLuint GFraMe_sampler;
 static GLuint GFraMe_ppProgram;
 
 static GLuint GFraMe_ppSampler;
+static GLuint GFraMe_ppWindowDimensions;
+static GLuint GFraMe_ppTexDimensions;
 
 static GLuint GFraMe_bbTexture;
 static GLuint GFraMe_bbFbo;
 static GLuint GFraMe_bbVbo;
+static GLuint GFraMe_bbVao;
 
 static PFNGLUSEPROGRAMPROC glUseProgram;
 static PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
@@ -45,6 +48,7 @@ static PFNGLACTIVETEXTUREPROC glActiveTexture;
 static PFNGLBINDSAMPLERPROC glBindSampler;
 static PFNGLDELETEPROGRAMPROC glDeleteProgram;
 static PFNGLBINDBUFFERPROC glBindBuffer;
+static PFNGLUNIFORM1IPROC glUniform1i;
 static PFNGLUNIFORM1FPROC glUniform1f;
 static PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
 static PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
@@ -126,7 +130,7 @@ static const char GFraMe_fragmentShader[] =
 	"void main()\n"
 	"{\n"
 	"  outputColor = texture2D(gSampler, texCoord0.st);\n"
-	"  outputColor.rb = outputColor.br;\n"
+	//"  outputColor.rb = outputColor.br;\n"
 	//"	outputColor = vec4(1.0f,0.0f,0.0f,1.0f);\n"
 	"}\n";
 
@@ -135,20 +139,25 @@ static const char GFraMe_vertexPPShader[] =
 	"#version 330\n"
 	"layout(location = 0) in vec2 pos;\n"
 	"out vec2 _texCoord;\n"
+	"out vec2 tmp;\n"
 	
 	"void main()\n"
 	"{\n"
 	"	gl_Position = vec4(pos, -1.0f, 1.0f);\n"
-	"	_texCoord = 0.5f * (pos + vec2(1.0f, 1.0f));\n"
+	"	_texCoord = 0.5f * pos + vec2(0.5f, 0.5f);\n"
 	"	_texCoord.y *= -1.0f;\n"
+	"	tmp = pos + vec2(2.0, 4.0f);\n"
 	"}\n";
 
 static const char GFraMe_fragmentPPShader[] = 
 	"#version 330\n"
 	"in vec2 _texCoord;\n"
+	"in vec2 tmp;\n"
 	"out vec4 outputColor;\n"
 	
 	"uniform sampler2D gPpSampler;\n"
+	"uniform vec2 windowDimensions;\n"
+	"uniform vec2 ppTexDimensions;\n"
 //	"uniform float offsetY;\n"
 //	"uniform vec4 flashColor;\n"
 //	"uniform lowp float flashT;\n"
@@ -161,7 +170,6 @@ static const char GFraMe_fragmentPPShader[] =
 		// Shake effect
 //	"	texCoord.t += offsetY;\n"
 	"	lowp vec4 pixel = texture2D(gPpSampler, texCoord.st);\n"
-	"	pixel.rb = pixel.br;\n"
 		// Flash effect
 //	"	pixel = pixel*(1-flashT) + flashT*flashColor;\n"
 		// Fade effect
@@ -169,6 +177,7 @@ static const char GFraMe_fragmentPPShader[] =
 	
 	"	outputColor = pixel;\n"
 	//"	outputColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);\n"
+	//"	outputColor = vec4(tmp/8.0f, 0.0f, 1.0f);\n"
 	"}\n";
 
 static void GFraMe_opengl_createSpriteBuffers();
@@ -212,10 +221,6 @@ GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	
 	GFraMe_opengl_createSpriteBuffers();
 	
-	rv = GFraMe_opengl_createSpriteTexture(texF, texW, texH);
-	GFraMe_assertRV(rv == GFraMe_ret_ok, "OpenGL ctx ERR",
-		rv = GFraMe_ret_failed, __ret);
-	
 	GFraMe_opengl_createVertexArrayObject();
 	
 	rv = GFraMe_opengl_createShaders();
@@ -224,9 +229,19 @@ GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	
 	glUseProgram(GFraMe_program);
 	glUniform2f(GFraMe_texDimensions, 1.0f / texW, 1.0f / texH);
+	glUniform1i(GFraMe_sampler, 0);
+	
+	glUseProgram(GFraMe_ppProgram);
+	glUniform2f(GFraMe_ppTexDimensions, texW, texH);
+	glUniform1i(GFraMe_ppSampler, 1);
+	
 	glUseProgram(0);
 	
 	rv = GFraMe_opengl_createBackbuffer(winW, winH, sX, sY);
+	GFraMe_assertRV(rv == GFraMe_ret_ok, "OpenGL ctx ERR",
+		rv = GFraMe_ret_failed, __ret);
+	
+	rv = GFraMe_opengl_createSpriteTexture(texF, texW, texH);
 	GFraMe_assertRV(rv == GFraMe_ret_ok, "OpenGL ctx ERR",
 		rv = GFraMe_ret_failed, __ret);
 	
@@ -238,6 +253,7 @@ __ret:
 
 void GFraMe_opengl_clear() {
 	glDeleteTextures(1, &GFraMe_bbTexture);
+	glDeleteBuffers(1, &GFraMe_bbVao);
 	glDeleteFramebuffers(1, &GFraMe_bbFbo);
 	glDeleteBuffers(1, &GFraMe_bbVbo);
 	
@@ -264,7 +280,9 @@ void GFraMe_opengl_setAtt() {
 }
 
 void GFraMe_opengl_prepareRender() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+/*/
+	glBindFramebuffer(GL_FRAMEBUFFER, GFraMe_bbFbo); 
+/**/
 	
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -274,10 +292,12 @@ void GFraMe_opengl_prepareRender() {
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, GFraMe_spriteTex);
-	glBindSampler(GFraMe_sampler, GL_TEXTURE0);
+	//glBindSampler(GFraMe_sampler, GL_TEXTURE0);
+/**/
 }
 
 void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
+/**/
 	glUniform2f(GFraMe_translation, (float)x, (float)y);
 	glUniform1f(GFraMe_dimension, (float)d);
 	glUniform2f(GFraMe_texOffset, (float)tx, (float)ty);
@@ -287,11 +307,11 @@ void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
 #endif
 	
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+/**/
 }
 
 void GFraMe_opengl_doRender() {
-/*
-	//glBindTexture(GL_TEXTURE_2D, 0);
+/**
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
@@ -300,13 +320,11 @@ void GFraMe_opengl_doRender() {
 	
 	glUseProgram(GFraMe_ppProgram);
 	
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE0+1);
 	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
-	glBindSampler(GFraMe_ppSampler, GL_TEXTURE1);
+	//glBindSampler(GFraMe_ppSampler, GL_TEXTURE0+1);
 	
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_bbVbo);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindVertexArray(GFraMe_bbVao);
 	
 #if defined(GFRAME_DEBUG)
 	GFrame_opengl_validateProgram(GFraMe_ppProgram);
@@ -314,8 +332,9 @@ void GFraMe_opengl_doRender() {
 	
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	
-	//glBindTexture(GL_TEXTURE_2D, 0);
-	*/
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+/**/
 	glUseProgram(0);
 	SDL_GL_SwapWindow(GFraMe_screen_get_window());
 }
@@ -350,7 +369,6 @@ static GFraMe_ret GFraMe_opengl_createSpriteTexture(char *file, int width,
 		rv = GFraMe_ret_failed, __ret);
 	
 	// Load a texture
-	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &GFraMe_spriteTex);
 	glBindTexture(GL_TEXTURE_2D, GFraMe_spriteTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
@@ -371,12 +389,14 @@ static void GFraMe_opengl_createVertexArrayObject() {
 	
 	glBindVertexArray(GFraMe_spriteVao);
 	
-	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_spriteVbo);	
 	
 	glEnableVertexAttribArray(0);
 	
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_spriteVbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GFraMe_spriteIbo);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, 0);	
 	
 	glBindVertexArray(0);
 }
@@ -384,36 +404,52 @@ static void GFraMe_opengl_createVertexArrayObject() {
 static GFraMe_ret GFraMe_opengl_createBackbuffer(int w, int h, int sX, int sY) {
 
 	GFraMe_ret rv;
-	//GLenum status;
+	GLenum status;
 	GLfloat fbo_vertices[] = {-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f};
 	
-	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &GFraMe_bbTexture);
+	
 	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	
-	//glGenRenderbuffers(1, &(this->rbo_depth));
 	GFraMe_opengl_resetScreen(0, 0, w, h, sX, sY);
 	
 	glGenFramebuffers(1, &GFraMe_bbFbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, GFraMe_bbFbo);
+	
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 		GFraMe_bbTexture, 0);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, this->rbo_depth);
 	
-	//status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	//GFraMe_assertRV(status != GL_FRAMEBUFFER_COMPLETE, "BBUF ERR",
-	//	rv = GFraMe_ret_failed, __ret);
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		GFraMe_new_log("FUCK!\n");
+		return 1;
+	}
 	
-	glBindFramebuffer(GL_FRAMEBUFFER, GFraMe_bbFbo);
+	GFraMe_opengl_resetScreen(0, 0, w, h, sX, sY);
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 	glGenBuffers(1, &GFraMe_bbVbo);
 	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_bbVbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(fbo_vertices), fbo_vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	glGenVertexArrays(1, &GFraMe_bbVao);
+	glBindVertexArray(GFraMe_bbVao);
+	
+	glEnableVertexAttribArray(0);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_bbVbo);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	glBindVertexArray(0);
 	
 	rv = GFraMe_ret_ok;
 __ret:
@@ -441,14 +477,16 @@ static void GFraMe_opengl_resetScreen(float x, float y, float w, float h,
 	this->scaleY = ScaleY;
 */
 	
-	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)w, (int)h, 0, GL_RGBA,
-		GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ((int)w) / sX, ((int)h) / sY, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	
 	GFraMe_worldMatrix[0] = 2.0f / (float)w;
 	GFraMe_worldMatrix[5] = -2.0f / (float)h;
+	
+	glUseProgram(GFraMe_ppProgram);
+	glUniform2f(GFraMe_ppWindowDimensions, (float)w, (float)h);
 	
 	glUseProgram(GFraMe_program);
 	glUniformMatrix4fv(GFraMe_locToGL, 1, GL_FALSE, GFraMe_worldMatrix);
@@ -485,6 +523,10 @@ static GFraMe_ret GFraMe_opengl_createShaders() {
 	GFraMe_sampler = glGetUniformLocation(GFraMe_program, "gSampler");
 	
 	GFraMe_ppSampler = glGetUniformLocation(GFraMe_ppProgram, "gPpSampler");
+	GFraMe_ppWindowDimensions = glGetUniformLocation(GFraMe_ppProgram,
+		"windowDimensions");
+	GFraMe_ppTexDimensions = glGetUniformLocation(GFraMe_ppProgram,
+		"ppTexDimensions");
 	
 	rv = GFraMe_ret_ok;
 __ret:
@@ -612,6 +654,7 @@ static GFraMe_ret GFraMe_opengl_loadFunctions() {
 	LOAD_PROC(PFNGLBINDSAMPLERPROC, glBindSampler);
 	LOAD_PROC(PFNGLDELETEPROGRAMPROC, glDeleteProgram);
 	LOAD_PROC(PFNGLBINDBUFFERPROC, glBindBuffer);
+	LOAD_PROC(PFNGLUNIFORM1IPROC, glUniform1i);
 	LOAD_PROC(PFNGLUNIFORM1FPROC, glUniform1f);
 	LOAD_PROC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
 	LOAD_PROC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
