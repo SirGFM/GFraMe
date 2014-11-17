@@ -295,9 +295,11 @@ int GFraMe_assets_bmp2dat(char *inFile, int keycolor, char *outFile) {
 			datab[pos+3] = 0;
 		}
 		else {
-			datab[pos] = (char)red & 0xfe;
+			//datab[pos] = (char)red & 0xfe;
+			datab[pos+2] = (char)red & 0xfe;
 			datab[pos+1] = (char)green & 0xfe;
-			datab[pos+2] = (char)blue & 0xfe;
+			//datab[pos+2] = (char)blue & 0xfe;
+			datab[pos] = (char)blue & 0xfe;
 			datab[pos+3] = 0xff & 0xfe;
 		}
 		i++;

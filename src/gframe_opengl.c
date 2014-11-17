@@ -4,6 +4,68 @@
 #include <GFraMe/GFraMe_assets.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_log.h>
+#include "opengl/opengl_wrapper.h"
+
+extern SDL_Window *GFraMe_screen_get_window();
+
+#define ASSERT(rv) \
+	do { \
+		if (rv != GLW_SUCCESS) \
+			goto __ret; \
+	} while(0)
+
+GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
+	int winH, int sX, int sY) {
+	GLW_RV rv;
+	GFraMe_ret grv;
+	char *data = NULL;
+	
+	grv = GFraMe_assets_buffer_image(texF, texW, texH, &data);
+	GFraMe_assertRV(grv == GFraMe_ret_ok, "Failed to read file",
+		rv = GLW_FAILURE, __ret);
+
+	rv = glw_createCtx(GFraMe_screen_get_window());
+	ASSERT(rv);
+	
+	rv = glw_compileProgram();
+	ASSERT(rv);
+	
+	rv = glw_createSprite(texW, texH, data);
+	ASSERT(rv);
+	
+	rv = glw_createBackbuffer(winW / sX, winH / sY);
+	ASSERT(rv);
+	
+__ret:
+	if (data)
+		free(data);
+	if (rv == GLW_SUCCESS)
+		return GFraMe_ret_ok;
+	return GFraMe_ret_failed;
+}
+
+void GFraMe_opengl_clear() {
+	glw_cleanup();
+}
+
+void GFraMe_opengl_setAtt() {
+	glw_setAttr();
+}
+
+void GFraMe_opengl_prepareRender() {
+	glw_prepareRender();
+}
+
+void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
+	glw_renderSprite(x, y, d, tx, ty);
+}
+
+void GFraMe_opengl_doRender() {
+	glw_doRender(GFraMe_screen_get_window());
+}
+
+#if 0
+
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_video.h>
 #include <stdio.h>
@@ -123,15 +185,14 @@ static const char GFraMe_vertexShader[] =
 static const char GFraMe_fragmentShader[] = 
 	"#version 330\n"
 	"in vec2 texCoord0;\n"
-	"out vec4 outputColor;\n"
 	
 	"uniform sampler2D gSampler;\n"
 	
 	"void main()\n"
 	"{\n"
-	"  outputColor = texture2D(gSampler, texCoord0.st);\n"
-	//"  outputColor.rb = outputColor.br;\n"
-	//"	outputColor = vec4(1.0f,0.0f,0.0f,1.0f);\n"
+	"  gl_FragColor = texture2D(gSampler, texCoord0.st);\n"
+	//"  gl_FragColor.rb = outputColor.br;\n"
+	//"	gl_FragColor = vec4(1.0f,0.0f,0.0f,1.0f);\n"
 	"}\n";
 
 // Shaders for rendering the backbuffer to the screen (Post Process)
@@ -153,7 +214,6 @@ static const char GFraMe_fragmentPPShader[] =
 	"#version 330\n"
 	"in vec2 _texCoord;\n"
 	"in vec2 tmp;\n"
-	"out vec4 outputColor;\n"
 	
 	"uniform sampler2D gPpSampler;\n"
 	"uniform vec2 windowDimensions;\n"
@@ -168,16 +228,16 @@ static const char GFraMe_fragmentPPShader[] =
 	"	vec2 texCoord = _texCoord;\n"
 	
 		// Shake effect
-//	"	texCoord.t += offsetY;\n"
-	"	lowp vec4 pixel = texture2D(gPpSampler, texCoord.st);\n"
+//	"  texCoord.t += offsetY;\n"
+	"  lowp vec4 pixel = texture2D(gPpSampler, texCoord.st);\n"
 		// Flash effect
-//	"	pixel = pixel*(1-flashT) + flashT*flashColor;\n"
+//	"  pixel = pixel*(1-flashT) + flashT*flashColor;\n"
 		// Fade effect
-//	"	pixel = pixel*(1-fadeT) + fadeT*vec4(0.0f, 0.0f, 0.0f, 1.0f);\n"
+//	"  pixel = pixel*(1-fadeT) + fadeT*vec4(0.0f, 0.0f, 0.0f, 1.0f);\n"
 	
-	"	outputColor = pixel;\n"
-	//"	outputColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);\n"
-	//"	outputColor = vec4(tmp/8.0f, 0.0f, 1.0f);\n"
+	"  gl_FragColor = pixel;\n"
+	//"  glFragColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);\n"
+	//"  glFragColor = vec4(tmp/8.0f, 0.0f, 1.0f);\n"
 	"}\n";
 
 static void GFraMe_opengl_createSpriteBuffers();
@@ -202,7 +262,7 @@ static GLuint GFraMe_opengl_compileShader(GLenum eShaderType,
 
 static GFraMe_ret GFraMe_opengl_loadFunctions();
 
-static void GFrame_opengl_validateProgram(GLuint program);
+static void GFraMe_opengl_validateProgram(GLuint program);
 
 GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	int winH, int sX, int sY) {
@@ -218,6 +278,8 @@ GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
 	
 	GFraMe_opengl_createSpriteBuffers();
 	
@@ -233,7 +295,7 @@ GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	
 	glUseProgram(GFraMe_ppProgram);
 	glUniform2f(GFraMe_ppTexDimensions, texW, texH);
-	glUniform1i(GFraMe_ppSampler, 1);
+	glUniform1i(GFraMe_ppSampler, 0);
 	
 	glUseProgram(0);
 	
@@ -280,7 +342,7 @@ void GFraMe_opengl_setAtt() {
 }
 
 void GFraMe_opengl_prepareRender() {
-/*/
+/**/
 	glBindFramebuffer(GL_FRAMEBUFFER, GFraMe_bbFbo); 
 /**/
 	
@@ -303,7 +365,7 @@ void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
 	glUniform2f(GFraMe_texOffset, (float)tx, (float)ty);
 	
 #if defined(GFRAME_DEBUG)
-	GFrame_opengl_validateProgram(GFraMe_program);
+	GFraMe_opengl_validateProgram(GFraMe_program);
 #endif
 	
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
@@ -311,7 +373,7 @@ void GFraMe_opengl_renderSprite(int x, int y, int d, int tx, int ty) {
 }
 
 void GFraMe_opengl_doRender() {
-/**
+/**/
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
@@ -320,20 +382,20 @@ void GFraMe_opengl_doRender() {
 	
 	glUseProgram(GFraMe_ppProgram);
 	
-	glActiveTexture(GL_TEXTURE0+1);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
 	//glBindSampler(GFraMe_ppSampler, GL_TEXTURE0+1);
 	
 	glBindVertexArray(GFraMe_bbVao);
 	
 #if defined(GFRAME_DEBUG)
-	GFrame_opengl_validateProgram(GFraMe_ppProgram);
+	GFraMe_opengl_validateProgram(GFraMe_ppProgram);
 #endif
 	
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 	
 	glBindVertexArray(0);
-	glBindTexture(GL_TEXTURE_2D, 0);
 /**/
 	glUseProgram(0);
 	SDL_GL_SwapWindow(GFraMe_screen_get_window());
@@ -389,7 +451,6 @@ static void GFraMe_opengl_createVertexArrayObject() {
 	
 	glBindVertexArray(GFraMe_spriteVao);
 	
-	
 	glEnableVertexAttribArray(0);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_spriteVbo);
@@ -405,16 +466,9 @@ static GFraMe_ret GFraMe_opengl_createBackbuffer(int w, int h, int sX, int sY) {
 
 	GFraMe_ret rv;
 	GLenum status;
-	GLfloat fbo_vertices[] = {-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f};
+	GLfloat fbo_vertices[] = {-1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f, 1.0f,-1.0f};
 	
 	glGenTextures(1, &GFraMe_bbTexture);
-	
-	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
 	
 	GFraMe_opengl_resetScreen(0, 0, w, h, sX, sY);
 	
@@ -424,13 +478,11 @@ static GFraMe_ret GFraMe_opengl_createBackbuffer(int w, int h, int sX, int sY) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 		GFraMe_bbTexture, 0);
 	
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		GFraMe_new_log("FUCK!\n");
 		return 1;
 	}
-	
-	GFraMe_opengl_resetScreen(0, 0, w, h, sX, sY);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
@@ -445,9 +497,10 @@ static GFraMe_ret GFraMe_opengl_createBackbuffer(int w, int h, int sX, int sY) {
 	glEnableVertexAttribArray(0);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, GFraMe_bbVbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GFraMe_spriteIbo);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	glBindVertexArray(0);
 	
@@ -478,8 +531,14 @@ static void GFraMe_opengl_resetScreen(float x, float y, float w, float h,
 */
 	
 	glBindTexture(GL_TEXTURE_2D, GFraMe_bbTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ((int)w) / sX, ((int)h) / sY, 0,
 		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	
 	GFraMe_worldMatrix[0] = 2.0f / (float)w;
@@ -718,7 +777,7 @@ static GFraMe_ret GFraMe_opengl_loadFunctions() {
 }
 
 #if defined(GFRAME_DEBUG)
-static void GFrame_opengl_validateProgram(GLuint program) {
+static void GFraMe_opengl_validateProgram(GLuint program) {
 	GLint status;
 	
 	glValidateProgram(program);
@@ -730,6 +789,11 @@ static void GFrame_opengl_validateProgram(GLuint program) {
 		GLchar *strInfoLog;
 		
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
+		
+		if (infoLogLength == 0) {
+			GFraMe_new_log("Program error! (but no log)\n");
+			return;
+		}
 		
 		strInfoLog = (GLchar *)malloc(infoLogLength + 1);
 		if (!strInfoLog) {
@@ -744,3 +808,4 @@ static void GFrame_opengl_validateProgram(GLuint program) {
 }
 #endif
 
+#endif

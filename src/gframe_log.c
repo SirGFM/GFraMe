@@ -66,6 +66,7 @@ void GFraMe_log_init(int append) {
 }
 
 void GFraMe_log_close() {
+	FILE *fp;
 	time_t _time;
 	char *_ctime;
 	GFraMe_log("log_close()");
@@ -75,11 +76,17 @@ void GFraMe_log_close() {
 	_ctime = ctime(&_time);
 	_ctime[GFraMe_util_strlen(_ctime)-1] = '\0';
 	// Print closing message
-	fprintf(logfile,
-"\n----------------------------------------------------------------------------\n"
+	if (GFraMe_log_to_file && logfile)
+		fp = logfile;
+	else
+		fp = stdout;
+	
+	fprintf(fp,
+"\n"
+"----------------------------------------------------------------------------\n"
 	"  Closing game at: %s\n"
-"============================================================================\n",
-	_ctime);
+"============================================================================\n"
+	, _ctime);
 	if (logfile) {
 		fclose(logfile);
 		logfile = NULL;
