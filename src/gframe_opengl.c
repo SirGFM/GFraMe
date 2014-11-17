@@ -4,6 +4,7 @@
 #include <GFraMe/GFraMe_assets.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_log.h>
+#include <stdlib.h>
 #include "opengl/opengl_wrapper.h"
 
 extern SDL_Window *GFraMe_screen_get_window();
@@ -33,7 +34,7 @@ GFraMe_ret GFraMe_opengl_init(char *texF, int texW, int texH, int winW,
 	rv = glw_createSprite(texW, texH, data);
 	ASSERT(rv);
 	
-	rv = glw_createBackbuffer(winW / sX, winH / sY);
+	rv = glw_createBackbuffer(winW / sX, winH / sY, sX, sY);
 	ASSERT(rv);
 	
 __ret:

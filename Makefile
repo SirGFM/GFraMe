@@ -68,9 +68,6 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
 
 ifeq ($(USE_OPENGL), yes)
     CFLAGS += -DGFRAME_OPENGL
-    ifeq ($(RENDER_TO_BIG_BUFFER), yes)
-        CFLAGS += -DRENDER_TO_BIG_BUFFER -DHOR_SCALE=$(HOR_SCALE) -DVER_SCALE=$(VER_SCALE)
-    endif
     
     OBJS += $(OBJDIR)/gframe_opengl.o $(OBJDIR)/opengl/opengl_wrapper.o
 endif

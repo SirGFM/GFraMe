@@ -39,7 +39,7 @@ GLW_RV glw_createSprite(int width, int height, char *data);
 /**
  * Create all the needed buffers (and texture) to create a backbuffer
  */
-GLW_RV glw_createBackbuffer(int width, int height);
+GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY);
 
 /**
  * Setup the state to render sprites to the backbuffer

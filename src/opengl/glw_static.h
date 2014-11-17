@@ -9,7 +9,7 @@
 #define __GLW_STATIC_H_
 
 static SDL_GLContext *ctx;
-static float worldMatrix[16] = 
+static GLfloat worldMatrix[16] = 
 	{1.0f, 0.0f, 0.0f,-1.0f,
 	 0.0f, 1.0f, 0.0f, 1.0f,
 	 0.0f, 0.0f, 1.0f, 0.0f,

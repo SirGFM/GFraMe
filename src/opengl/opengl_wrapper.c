@@ -1,5 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "opengl_wrapper.h"
 // import a few functions implementations (and variable declarations),
 //to keep this source clean
@@ -11,20 +13,20 @@ void glw_setAttr() {
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 1);
+	//SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 1);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 }
 
 GLW_RV glw_createCtx(SDL_Window *wnd) {
-	
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	ctx = SDL_GL_CreateContext(wnd);
 	if (!ctx)
 		return GLW_FAILURE;
 	
 	glw_loadFunctions();
+	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	return GLW_SUCCESS;
 }
@@ -110,7 +112,7 @@ GLW_RV glw_createSprite(int width, int height, char *data) {
 	return GLW_SUCCESS;
 }
 
-GLW_RV glw_createBackbuffer(int width, int height) {
+GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY) {
 	float vbo_data[] = {-1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f, 1.0f,-1.0f};
 	GLshort ibo_data[] = {0,1,2, 2,3,0};
 	GLenum status;
@@ -153,16 +155,12 @@ GLW_RV glw_createBackbuffer(int width, int height) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	// TODO make the texture smaller than the destination window
 	glTexImage2D(GL_TEXTURE_2D,
 	             0,
 	             GL_RGBA,
-#if defined(RENDER_TO_BIG_BUFFER)
-				width * HOR_SCALE,
-				height * VER_SCALE,
-#else
-	             width,
-	             height,
-#endif
+	             width * sX,
+	             height * sY,
 	             0,
 	             GL_RGBA,
 	             GL_UNSIGNED_BYTE,
@@ -184,13 +182,8 @@ GLW_RV glw_createBackbuffer(int width, int height) {
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 		return GLW_FAILURE;
 	
-#if defined(RENDER_TO_BIG_BUFFER)
-	worldMatrix[0] = 2.0f / (float)width;// * HOR_SCALE;
-	worldMatrix[5] = -2.0f / (float)height;// * VER_SCALE;
-#else
 	worldMatrix[0] = 2.0f / (float)width;
 	worldMatrix[5] = -2.0f / (float)height;
-#endif
 	
 	glUseProgram(sprPrg);
 	glUniformMatrix4fv(sprLocToGL, 1, GL_FALSE, worldMatrix);
@@ -234,6 +227,7 @@ void glw_doRender(SDL_Window *wnd) {
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 	glBindVertexArray(0);
 	glUseProgram(0);
+	
 	SDL_GL_SwapWindow(wnd);
 }
 
