@@ -47,10 +47,17 @@ static char bbFs[] =
   "#version 330\n"
   "in vec2 texCoord;\n"
   "uniform sampler2D gSampler;\n"
-//  "uniform vec2 windowDimensions;\n"
-//  "uniform vec2 ppTexDimensions;\n"
+  "uniform vec2 texDimensions;\n"
   "void main() {\n"
-  "  vec4 pixel = texture2D(gSampler, texCoord.st);\n"
-  "  gl_FragColor = pixel;\n"
+  "  vec2 texPos = texCoord.st;\n"
+  "  vec3 pixel = texture2D(gSampler, texPos).rgb;\n"
+  
+  "  texPos.y += texDimensions.y;\n"
+  "  vec3 pixelBelow = texture2D(gSampler, texPos).rgb;\n"
+  
+  "  int y = int(gl_FragCoord.y - 0.5f);\n"
+  "  y = (1 + y % 3) >> 1;\n"
+  "  pixel = pixel * y + (pixel + pixelBelow) * 0.33f * (1 - y);\n"
+  "  gl_FragColor = vec4(pixel, 1.0f);\n"
   "}\n";
 

@@ -17,7 +17,9 @@ static GLfloat worldMatrix[16] =
 
 static GLuint sprVbo;
 static GLuint sprIbo;
+#if !defined(GFRAME_MOBILE)
 static GLuint sprVao;
+#endif
 static GLuint sprTex;
 static GLuint sprPrg;
 static GLuint sprLocToGL;
@@ -29,11 +31,14 @@ static GLuint sprSampler;
 
 static GLuint bbVbo;
 static GLuint bbIbo;
+#if !defined(GFRAME_MOBILE)
 static GLuint bbVao;
+#endif
 static GLuint bbTex;
 static GLuint bbFbo;
 static GLuint bbPrg;
 static GLuint bbSampler;
+static GLuint bbTexDimensions;
 
 #endif
 

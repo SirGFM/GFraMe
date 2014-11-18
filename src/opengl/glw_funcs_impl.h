@@ -1,4 +1,5 @@
 
+#if !defined(GFRAME_MOBILE)
 static PFNGLUSEPROGRAMPROC glUseProgram;
 static PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 static PFNGLUNIFORM2FPROC glUniform2f;
@@ -37,4 +38,5 @@ static PFNGLCOMPILESHADERPROC glCompileShader;
 static PFNGLGETSHADERIVPROC glGetShaderiv;
 static PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
 static PFNGLVALIDATEPROGRAMPROC glValidateProgram;
+#endif
 

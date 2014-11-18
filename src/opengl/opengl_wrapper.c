@@ -1,5 +1,9 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#if defined(GFRAME_MOBILE)
+#  include <SDL2/SDL_opengles2.h>
+#else
+#  include <SDL2/SDL_opengl.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include "opengl_wrapper.h"
@@ -15,6 +19,11 @@ void glw_setAttr() {
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 	//SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 1);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+#if defined(GFRAME_MOBILE)
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#endif
 }
 
 GLW_RV glw_createCtx(SDL_Window *wnd) {
@@ -52,6 +61,7 @@ GLW_RV glw_compileProgram() {
 	sprSampler = glGetUniformLocation(sprPrg, "gSampler");
 	
 	bbSampler = glGetUniformLocation(bbPrg, "gSampler");
+	bbTexDimensions = glGetUniformLocation(bbPrg, "texDimensions");
 	
 	return GLW_SUCCESS;
 }
@@ -76,6 +86,7 @@ GLW_RV glw_createSprite(int width, int height, char *data) {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ibo_data), ibo_data, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	
+#if !defined(GFRAME_MOBILE)
 	sprVao = 0;
 	glGenVertexArrays(1, &sprVao);
 	if (sprVao == 0)
@@ -86,6 +97,7 @@ GLW_RV glw_createSprite(int width, int height, char *data) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprIbo);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindVertexArray(0);
+#endif
 	
 	sprTex = 0;
 	glGenTextures(1, &sprTex);
@@ -133,6 +145,7 @@ GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY) {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ibo_data), ibo_data, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	
+#if !defined(GFRAME_MOBILE)
 	bbVao = 0;
 	glGenVertexArrays(1, &bbVao);
 	if (bbVao == 0)
@@ -143,14 +156,17 @@ GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bbIbo);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindVertexArray(0);
+#endif
 	
 	bbTex = 0;
 	glGenTextures(1, &bbTex);
 	if (bbTex == 0)
 		return GLW_FAILURE;
 	glBindTexture(GL_TEXTURE_2D, bbTex);
+#if !defined(GFRAME_MOBILE)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+#endif
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -187,6 +203,8 @@ GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY) {
 	
 	glUseProgram(sprPrg);
 	glUniformMatrix4fv(sprLocToGL, 1, GL_FALSE, worldMatrix);
+	glUseProgram(bbPrg);
+	glUniform2f(bbTexDimensions, 1.0f / (float)width, 1.0f / (float)height);
 	glUseProgram(0);
 	
 	return GLW_SUCCESS;
@@ -202,7 +220,14 @@ void glw_prepareRender() {
 	glBindTexture(GL_TEXTURE_2D, sprTex);
 	glUniform1i(sprSampler, 0);
 	
+#if !defined(GFRAME_MOBILE)
 	glBindVertexArray(sprVao);
+#else
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, sprVbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprIbo);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+#endif
 }
 
 void glw_renderSprite(int x, int y, int d, int tx, int ty) {
@@ -214,7 +239,9 @@ void glw_renderSprite(int x, int y, int d, int tx, int ty) {
 }
 
 void glw_doRender(SDL_Window *wnd) {
+#if !defined(GFRAME_MOBILE)
 	glBindVertexArray(0);
+#endif
 	glUseProgram(0);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -223,9 +250,18 @@ void glw_doRender(SDL_Window *wnd) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, bbTex);
 	glUniform1i(bbSampler, 0);
+#if !defined(GFRAME_MOBILE)
 	glBindVertexArray(bbVao);
+#else
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, bbVbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bbIbo);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+#endif
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+#if !defined(GFRAME_MOBILE)
 	glBindVertexArray(0);
+#endif
 	glUseProgram(0);
 	
 	SDL_GL_SwapWindow(wnd);
@@ -236,16 +272,20 @@ void glw_cleanup() {
 		glDeleteTextures(1, &bbTex);
 	if (bbFbo)
 		glDeleteFramebuffers(1, &bbFbo);
+#if !defined(GFRAME_MOBILE)
 	if (bbVao)
 		glDeleteBuffers(1, &bbVao);
+#endif
 	if (bbIbo)
 		glDeleteBuffers(1, &bbIbo);
 	if (bbVbo)
 		glDeleteBuffers(1, &bbVbo);
 	if (sprTex)
 		glDeleteTextures(1, &sprTex);
+#if !defined(GFRAME_MOBILE)
 	if (sprVao)
 		glDeleteBuffers(1, &sprVao);
+#endif
 	if (sprIbo)
 		glDeleteBuffers(1, &sprIbo);
 	if (sprVbo)

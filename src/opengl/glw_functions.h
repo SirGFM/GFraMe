@@ -1,9 +1,13 @@
-#include <SDL2/SDL_opengl.h>
 #include "glw_funcs_impl.h"
 
 static void glw_loadFunctions() {
+
+#if !defined(GFRAME_MOBILE)
 	#define LOAD_PROC(type, func) \
 		func = (type) SDL_GL_GetProcAddress( #func );
+#else
+	#define LOAD_PROC(foo, bar)
+#endif
 	
 	LOAD_PROC(PFNGLUSEPROGRAMPROC, glUseProgram);
 	LOAD_PROC(PFNGLUNIFORM2FPROC, glUniform2f);
