@@ -45,8 +45,8 @@ static GFraMe_timer timer = 0;
  * @return	0 - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
-	char *name, GFraMe_window_flags flags, int fps,
-	int log_to_file, int log_append) {
+	char *name, GFraMe_window_flags flags, GFraMe_wndext *ext,
+	int fps, int log_to_file, int log_append) {
 	
 	GFraMe_ret rv = GFraMe_ret_ok;
 	int ms = 0, len;
@@ -81,7 +81,7 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 		rv = GFraMe_ret_sdl_init_failed, _ret);
 	
 	// Initialize the screen
-	rv = GFraMe_screen_init(vw, vh, sw, sh, name, flags);
+	rv = GFraMe_screen_init(vw, vh, sw, sh, name, flags, ext);
 	GFraMe_assertRV(rv == GFraMe_ret_ok, "Failed to initialize the screen",
 		rv=rv, _ret);
 	

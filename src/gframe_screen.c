@@ -11,7 +11,7 @@
  * Application window. Not much else to say
  */
 static SDL_Window *GFraMe_window = NULL;
-#if !defined(GFRAME_OPENGL)
+//#if !defined(GFRAME_OPENGL)
 /**
  * Renderer used to (duh) render stuff
  */
@@ -20,7 +20,7 @@ SDL_Renderer *GFraMe_renderer = NULL;
  * Backbuffer where the game is rendered; is latter blitted into the window
  */
 static SDL_Texture *GFraMe_screen;
-#endif
+//#endif
 /**
  * Window region where the backbuffer is rendered
  */
@@ -88,7 +88,7 @@ static void GFraMe_set_screen_ratio();
  * @return	0 - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
-				GFraMe_window_flags flags) {
+				GFraMe_window_flags flags, GFraMe_wndext *ext) {
 	GFraMe_ret rv = GFraMe_ret_ok;
 	int w = 0, h = 0;
 	// Get the device dimensions, in case it's needed
@@ -104,6 +104,8 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 	
 #if defined(GFRAME_OPENGL)
 	GFraMe_opengl_setAtt();
+	// Force OpenGL
+	flags |= SDL_WINDOW_OPENGL;
 #endif
 	
 	// Create a window
@@ -120,7 +122,12 @@ GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
 	// Store backbuffer dimensions
 	GFraMe_screen_w = vw;
 	GFraMe_screen_h = vh;
-#if !defined(GFRAME_OPENGL)
+#if defined(GFRAME_OPENGL)
+	rv = GFraMe_opengl_init(ext->atlas, ext->atlasWidth, ext->atlasHeight,
+			sw, sh, sw / vw, sh / vh, ext->flags);
+	GFraMe_assertRV(rv == GFraMe_ret_ok, "Failed to init opengl",
+		rv = rv, _ret);
+#else
 	// Create a renderer
 	GFraMe_renderer = SDL_CreateRenderer(GFraMe_window, -1,
 					SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
@@ -143,7 +150,9 @@ _ret:
  * Clean up memory allocated by init
  */
 void GFraMe_screen_clean() {
-#if !defined(GFRAME_OPENGL)
+#if defined(GFRAME_OPENGL)
+	GFraMe_opengl_clear();
+#else
 	if (GFraMe_screen) {
 		SDL_DestroyTexture(GFraMe_screen);
 		GFraMe_screen = NULL;

@@ -25,7 +25,7 @@ static GLuint sprPrg;
 static GLuint sprLocToGL;
 static GLuint sprTexDimensions;
 static GLuint sprTranslation;
-static GLuint sprDimension;
+static GLuint sprDimensions;
 static GLuint sprTexOffset;
 static GLuint sprSampler;
 

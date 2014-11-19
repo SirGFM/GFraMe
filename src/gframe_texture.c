@@ -78,7 +78,7 @@ GFraMe_ret GFraMe_texture_load(GFraMe_texture *out, int width, int height,
 	SDL_Texture *tex = NULL;
 #if !defined(GFRAME_OPENGL)
 	// Create a texture
-	tex = SDL_CreateTexture(GFraMe_renderer, SDL_PIXELFORMAT_ARGB8888,
+	tex = SDL_CreateTexture(GFraMe_renderer, SDL_PIXELFORMAT_ABGR8888,
 							SDL_TEXTUREACCESS_STATIC, width, height);
 	GFraMe_SDLassertRV(tex, "Couldn't create texture", rv = GFraMe_ret_texture_creation_failed, _ret);
 	// Upload data to the texture
@@ -107,12 +107,12 @@ _ret:
 	return rv;
 }
 
-#if !defined(GFRAME_OPENGL)
+//#if !defined(GFRAME_OPENGL)
 /**
  * Used by lock, unlock and copy to store the previous target
  */
 static SDL_Texture *prev_target = NULL;
-#endif
+//#endif
 
 /**
  * Set some internal state to use l_copy

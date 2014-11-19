@@ -16,6 +16,23 @@ enum enGFraMe_window_flags {
 };
 typedef enum enGFraMe_window_flags GFraMe_window_flags;
 
+enum enGFraMe_window_extFlags {
+	GFraMe_wndext_none = 0,
+	GFraMe_wndext_scanline = 1
+};
+typedef enum enGFraMe_window_extFlags GFraMe_wndext_flags;
+
+/**
+ * Define a few extensions to be used with OpenGL
+ */
+struct enGFraMe_window_ext {
+	char *atlas;
+	int atlasWidth;
+	int atlasHeight;
+	GFraMe_wndext_flags flags;
+};
+typedef struct enGFraMe_window_ext GFraMe_wndext;
+
 /**
  * Window's width (read only)
  */
@@ -66,7 +83,7 @@ extern double GFraMe_screen_ratio_v;
  * @return	GFraMe_ret_ok - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_screen_init(int vw, int vh, int sw, int sh, char *name,
-				GFraMe_window_flags flags);
+				GFraMe_window_flags flags, GFraMe_wndext *ext);
 
 /**
  * Clean up memory allocated by init

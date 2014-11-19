@@ -46,8 +46,8 @@ extern char GFraMe_path[GFraMe_max_path_len];
  * @return	0 - Success; Anything else - Failure
  */
 GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
-				char *name, GFraMe_window_flags flags, int fps,
-				int log_to_file, int log_append);
+				char *name, GFraMe_window_flags flags, GFraMe_wndext *ext,
+				int fps, int log_to_file, int log_append);
 
 void GFraMe_quit();
 

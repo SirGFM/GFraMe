@@ -81,7 +81,7 @@ $(OBJDIR):
 	mkdir -p $(BINDIR)
 
 libGFraMe:
-	make --directory=$(LGFRAMEDIR) RELEASE=$(RELEASE)
+	make static --directory=$(LGFRAMEDIR) RELEASE=$(RELEASE)
 
 $(WINICON):
 	windres assets/icons/win/icon.rc $(WINICON)

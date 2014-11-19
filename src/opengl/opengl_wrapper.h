@@ -29,7 +29,7 @@ GLW_RV glw_createCtx(SDL_Window *wnd);
 /**
  * Compile both the sprite and backbuffer programs, as well as set its uniforms
  */
-GLW_RV glw_compileProgram();
+GLW_RV glw_compileProgram(int use_scanlines);
 
 /**
  * Create all the needed buffers to render a sprite
@@ -49,7 +49,7 @@ void glw_prepareRender();
 /**
  * Render one sprite to the backbuffer
  */
-void glw_renderSprite(int x, int y, int d, int tx, int ty);
+void glw_renderSprite(int x, int y, int dx, int dy, int tx, int ty);
 
 /**
  * Render the backbuffer to the screen

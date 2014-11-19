@@ -40,10 +40,13 @@ GLW_RV glw_createCtx(SDL_Window *wnd) {
 	return GLW_SUCCESS;
 }
 
-GLW_RV glw_compileProgram() {
+GLW_RV glw_compileProgram(int use_scanlines) {
 	char *sprShd[2] = {sprVs, sprFs};
 	char *bbShd[2] = {bbVs, bbFs};
 	GLenum types[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
+	
+	if (!use_scanlines)
+		bbShd[1] = bbFs_noSL;
 	
 	sprPrg = createProgram(types, sprShd, 2);
 	if (sprPrg == 0)
@@ -56,7 +59,7 @@ GLW_RV glw_compileProgram() {
 	sprLocToGL = glGetUniformLocation(sprPrg, "locToGL");
 	sprTexDimensions = glGetUniformLocation(sprPrg,"texDimensions");
 	sprTranslation = glGetUniformLocation(sprPrg, "translation");
-	sprDimension = glGetUniformLocation(sprPrg, "dimension");
+	sprDimensions = glGetUniformLocation(sprPrg, "dimensions");
 	sprTexOffset = glGetUniformLocation(sprPrg, "texOffset");
 	sprSampler = glGetUniformLocation(sprPrg, "gSampler");
 	
@@ -230,9 +233,9 @@ void glw_prepareRender() {
 #endif
 }
 
-void glw_renderSprite(int x, int y, int d, int tx, int ty) {
+void glw_renderSprite(int x, int y, int dx, int dy, int tx, int ty) {
 	glUniform2f(sprTranslation, (float)x, (float)y);
-	glUniform1f(sprDimension, (float)d);
+	glUniform2f(sprDimensions, (float)dx, (float)dy);
 	glUniform2f(sprTexOffset, (float)tx, (float)ty);
 	
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);

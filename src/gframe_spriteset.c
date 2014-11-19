@@ -56,7 +56,7 @@ GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x,
 	// GFraMe_texture_l_copy will copy to the screen
 	
 #if defined(GFRAME_OPENGL)
-	GFraMe_opengl_renderSprite(x, y, sset->tw, sx, sy);
+	GFraMe_opengl_renderSprite(x, y, sset->tw, sset->th, sx, sy);
 #else
 	if (!flipped)
 		rv = GFraMe_texture_l_copy(sx, sy, sset->tw, sset->th,

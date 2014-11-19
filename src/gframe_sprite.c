@@ -15,7 +15,7 @@
 #include <SDL2/SDL_video.h>
 #endif
 
-#ifdef GFRAME_DEBUG
+#if defined(GFRAME_DEBUG) && !defined(GFRAME_OPENGL)
 /**
  * Context where the bounding box shall be rendered; debug-mode only
  */
@@ -99,7 +99,7 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 	GFraMe_spriteset_draw(spr->sset, spr->cur_tile,
 			x, spr->obj.y + spr->offset_y,
 			spr->flipped);
-#ifdef GFRAME_DEBUG
+#if defined(GFRAME_DEBUG) && !defined(GFRAME_OPENGL)
 	// If should draw the bounding box
 	if (GFraMe_draw_debug) {
 		// Get the sprite's hitbox

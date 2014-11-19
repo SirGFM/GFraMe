@@ -19,6 +19,7 @@ ifndef $(OS)
     endif
 endif
 
+SO = 
 CFLAGS = -Wall -I"./include/" -DHAVE_OPENGL
 LFLAGS = 
 ifeq ($(OS), Win)
@@ -29,11 +30,15 @@ ifeq ($(OS), Win)
     endif
     LFLAGS += -lmingw32
     CFLAGS += -I"/d/windows/mingw/include"
+    SO = dll
 else
     LFLAGS += -lm
     CFLAGS += -fPIC
+    SO = so
 endif
 LFLAGS += -lSDL2main -lSDL2
+MJV = $(SO).1
+MNV = $(SO).1.0.0
 
 ifeq ($(ARCH), x64)
     CFLAGS += -m64
@@ -68,17 +73,27 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
 
 ifeq ($(USE_OPENGL), yes)
     CFLAGS += -DGFRAME_OPENGL
+    LFLAGS += -lGL
     
     OBJS += $(OBJDIR)/gframe_opengl.o $(OBJDIR)/opengl/opengl_wrapper.o
 endif
 
-all: static
+all: static shared
 
 static: MAKEDIRS $(BINDIR)/$(TARGET).a
+
+shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 
 $(BINDIR)/$(TARGET).a: $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).a
 	ar -cvq $(BINDIR)/$(TARGET).a $(OBJS)
+
+$(BINDIR)/$(TARGET).$(MNV): $(OBJS)
+	rm -f $(BINDIR)/$(TARGET).$(MNV)
+	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
+	ldconfig -n $(BINDIR)
+	cd $(BINDIR); ln -s $(TARGET).$(MJV) $(TARGET).$(SO)
 
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<

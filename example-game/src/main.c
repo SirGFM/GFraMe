@@ -16,10 +16,16 @@ void setIcon();
 
 int main(int argc, char *argv[]) {
 	GFraMe_ret rv;
+	GFraMe_wndext ext;
+	
+	ext.atlas = "new-atlas-2";
+	ext.atlasWidth = 256;
+	ext.atlasHeight = 256;
+	ext.flags = 0;
 	
 	// Init the framework
 	rv = GFraMe_init(320, 240, 640, 480, "com.gfmgamecorner",
-					 "BugSquasher", GFraMe_window_resizable, 60, 1, 0);
+		"BugSquasher", GFraMe_window_resizable, &ext, 60, 1, 0);
 	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to init the framework", _exit);
 	
 #ifndef GFRAME_MOBILE

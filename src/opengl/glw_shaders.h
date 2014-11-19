@@ -6,12 +6,12 @@ static char sprVs[] =
   "uniform mat4 locToGL;\n"
   "uniform vec2 texDimensions;\n"
   "uniform vec2 translation;\n"
-  "uniform float dimension;\n"
+  "uniform vec2 dimensions;\n"
   "uniform vec2 texOffset;\n"
   "void main() {\n"
   "  vec2 pos = vtx;\n"
-  "  pos *= dimension;\n"
-  "  pos += dimension*vec2(0.5f,"
+  "  pos *= dimensions;\n"
+  "  pos += dimensions*vec2(0.5f,"
   "                            0.5f);\n"
   "  pos += translation;\n"
   "  vec4 position = vec4(pos.x, pos.y,"
@@ -21,7 +21,7 @@ static char sprVs[] =
   "  vec2 _texCoord = vtx + vec2(0.5f,"
                              "0.5f);\n"
   "  _texCoord *= texDimensions;\n"
-  "  _texCoord *= dimension;\n"
+  "  _texCoord *= dimensions;\n"
   "  texCoord = texDimensions*texOffset"
   "                +_texCoord;\n"
   "}\n";
@@ -59,5 +59,14 @@ static char bbFs[] =
   "  y = (1 + y % 3) >> 1;\n"
   "  pixel = pixel * y + (pixel + pixelBelow) * 0.33f * (1 - y);\n"
   "  gl_FragColor = vec4(pixel, 1.0f);\n"
+  "}\n";
+
+static char bbFs_noSL[] = 
+  "#version 330\n"
+  "in vec2 texCoord;\n"
+  "uniform sampler2D gSampler;\n"
+  "uniform vec2 texDimensions;\n"
+  "void main() {\n"
+  "  gl_FragColor = texture2D(gSampler, texCoord.st);\n"
   "}\n";
 
