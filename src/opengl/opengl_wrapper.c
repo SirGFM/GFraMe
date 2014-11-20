@@ -4,6 +4,8 @@
 #else
 #  include <SDL2/SDL_opengl.h>
 #endif
+#include <GFraMe/GFraMe_screen.h>
+#include <GFraMe/GFraMe_log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "opengl_wrapper.h"
@@ -27,6 +29,7 @@ void glw_setAttr() {
 }
 
 GLW_RV glw_createCtx(SDL_Window *wnd) {
+	GLint vp[4];
 	
 	ctx = SDL_GL_CreateContext(wnd);
 	if (!ctx)
@@ -36,6 +39,18 @@ GLW_RV glw_createCtx(SDL_Window *wnd) {
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	glGetIntegerv(GL_VIEWPORT, vp);
+	
+	GFraMe_new_log(
+"=============================\n"
+" |  OpenGL viewport:\n"
+"-----------------------------\n"
+" |    x: %i\n"
+" |    y: %i\n"
+" |    w: %i\n"
+" |    h: %i\n"
+"=============================\n\n", vp[0], vp[1], vp[2], vp[3]);
 	
 	return GLW_SUCCESS;
 }
@@ -178,8 +193,8 @@ GLW_RV glw_createBackbuffer(int width, int height, int sX, int sY) {
 	glTexImage2D(GL_TEXTURE_2D,
 	             0,
 	             GL_RGBA,
-	             width * sX,
-	             height * sY,
+	             width,
+	             height,
 	             0,
 	             GL_RGBA,
 	             GL_UNSIGNED_BYTE,
@@ -218,6 +233,7 @@ void glw_prepareRender() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	
 	glUseProgram(sprPrg);
+	glViewport(0, 0, GFraMe_screen_w, GFraMe_screen_h);
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, sprTex);
@@ -249,7 +265,14 @@ void glw_doRender(SDL_Window *wnd) {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
+	
 	glUseProgram(bbPrg);
+	//glViewport(0, 0, GFraMe_window_w, GFraMe_window_h);
+	glViewport(GFraMe_buffer_x,
+	           GFraMe_buffer_y,
+	           GFraMe_buffer_w,
+			   GFraMe_buffer_h);
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, bbTex);
 	glUniform1i(bbSampler, 0);

@@ -251,10 +251,12 @@ _exit:
  * Store the dimensions on a SDL_rect, used during rendering
  */
 static void GFraMe_screen_cache_dimensions() {
+#if !defined(GFRAME_OPENGL)
 	buffer_rect.x = GFraMe_buffer_x;
 	buffer_rect.y = GFraMe_buffer_y;
 	buffer_rect.w = GFraMe_buffer_w;
 	buffer_rect.h = GFraMe_buffer_h;
+#endif
 }
 
 /**

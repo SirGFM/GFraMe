@@ -4,6 +4,10 @@ CC = gcc
 
 TARGET = bugsquasher
 
+ifndef $(TYPE)
+    TYPE=static
+endif
+
 ifndef $(ARCH)
     ARCH=$(shell uname -m)
     ifeq ($(ARCH), x86_64)
@@ -81,7 +85,7 @@ $(OBJDIR):
 	mkdir -p $(BINDIR)
 
 libGFraMe:
-	make static --directory=$(LGFRAMEDIR) RELEASE=$(RELEASE)
+	make $(TYPE) --directory=$(LGFRAMEDIR) RELEASE=$(RELEASE)
 
 $(WINICON):
 	windres assets/icons/win/icon.rc $(WINICON)
