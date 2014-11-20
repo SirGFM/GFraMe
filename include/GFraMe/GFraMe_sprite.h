@@ -40,6 +40,10 @@ struct stGFraMe_sprite {
 	 * Graphic's vertical offset (from physical position)
 	 */
 	int offset_y;
+	float scale_x;
+	float scale_y;
+	float angle;
+	float alpha;
 	/**
 	 * Unused; a possible utillity is for setting "types"
 	 */

@@ -74,9 +74,12 @@ GLW_RV glw_compileProgram(int use_scanlines) {
 	sprLocToGL = glGetUniformLocation(sprPrg, "locToGL");
 	sprTexDimensions = glGetUniformLocation(sprPrg,"texDimensions");
 	sprTranslation = glGetUniformLocation(sprPrg, "translation");
+	sprRotation = glGetUniformLocation(sprPrg, "rotation");
+	sprScale = glGetUniformLocation(sprPrg, "scale");
 	sprDimensions = glGetUniformLocation(sprPrg, "dimensions");
 	sprTexOffset = glGetUniformLocation(sprPrg, "texOffset");
 	sprSampler = glGetUniformLocation(sprPrg, "gSampler");
+	sprAlpha = glGetUniformLocation(sprPrg, "alpha");
 	
 	bbSampler = glGetUniformLocation(bbPrg, "gSampler");
 	bbTexDimensions = glGetUniformLocation(bbPrg, "texDimensions");
@@ -137,6 +140,9 @@ GLW_RV glw_createSprite(int width, int height, char *data) {
 	
 	glUseProgram(sprPrg);
 	glUniform2f(sprTexDimensions, 1.0f / (float)width, 1.0f / (float)height);
+	glUniform2f(sprRotation, 1.0f, 0.0f);
+	glUniform2f(sprScale, 1.0f, 1.0f);
+	glUniform1f(sprAlpha, 1.0f);
 	glUseProgram(0);
 	
 	return GLW_SUCCESS;
@@ -247,6 +253,18 @@ void glw_prepareRender() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprIbo);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 #endif
+}
+
+void glw_setRotation(float angle) {
+	glUniform2f(sprRotation, 1.0f, 0.0f);
+}
+
+void glw_setScale(float sX, float sY) {
+	glUniform2f(sprScale, sX, sY);
+}
+
+void glw_setAlpha(float alpha) {
+	glUniform1f(sprAlpha, alpha);
 }
 
 void glw_renderSprite(int x, int y, int dx, int dy, int tx, int ty) {

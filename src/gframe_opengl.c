@@ -58,6 +58,18 @@ void GFraMe_opengl_prepareRender() {
 	glw_prepareRender();
 }
 
+void GFraMe_opengl_setRotation(float rotation) {
+	glw_setRotation(rotation);
+}
+
+void GFraMe_opengl_setScale(float sX, float sY) {
+	glw_setScale(sX, sY);
+}
+
+void GFraMe_opengl_setAlpha(float alpha) {
+	glw_setAlpha(alpha);
+}
+
 void GFraMe_opengl_renderSprite(int x, int y, int dx, int dy, int tx, int ty) {
 	glw_renderSprite(x, y, dx, dy, tx, ty);
 }

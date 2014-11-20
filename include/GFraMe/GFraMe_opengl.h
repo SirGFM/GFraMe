@@ -16,6 +16,10 @@ void GFraMe_opengl_setAtt();
 
 void GFraMe_opengl_prepareRender();
 
+void GFraMe_opengl_setRotation(float rotation);
+void GFraMe_opengl_setScale(float sX, float sY);
+void GFraMe_opengl_setAlpha(float alpha);
+
 void GFraMe_opengl_renderSprite(int x, int y, int dx, int dy, int tx, int ty);
 
 void GFraMe_opengl_doRender();

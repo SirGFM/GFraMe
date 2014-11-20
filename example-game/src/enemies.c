@@ -73,6 +73,11 @@ void enemies_update(int ms) {
 			GFraMe_sprite *en = enemies + i;
 			GFraMe_sprite_update(en, ms);
 			// just died, should fall for a few frames
+			if (stop_frames[i] != 0) {
+				float tmp =  1.0f - (float)stop_frames[i] / 30.0f;
+				enemies[i].alpha = tmp;
+				enemies[i].scale_y = tmp;
+			}
 			if (stop_frames[i]++ > 30) {
 				enemies_kill(i);
 			}
@@ -89,8 +94,9 @@ void enemies_update(int ms) {
 		else if (stop_frames[i] > 0) {
 			stop_frames[i]--;
 			if (stop_frames[i] == 0) {
-				enemies[i].offset_y -= 4;
+				//enemies[i].offset_y -= 4;
 				enemies[i].is_active = 1;
+				enemies[i].scale_y = 1.0f;
 			}
 		}
 		i++;
@@ -143,8 +149,9 @@ void enemies_on_hit(int i) {
 	else {
 		GFraMe_audio_play(&gl_hit, 0.5);
 		stop_frames[i] = 4;
-		enemies[i].offset_y += 4;
+		//enemies[i].offset_y += 4;
 		enemies[i].is_active = 0;
+		enemies[i].scale_y = 0.8f;
 	}
 }
 

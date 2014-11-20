@@ -54,6 +54,11 @@ void GFraMe_sprite_init(GFraMe_sprite *spr, int x, int y, int w, int h,
 	// Set the graphic's offset from the physical position
 	spr->offset_x = ox;
 	spr->offset_y = oy;
+	// render stuff
+	spr->scale_x = 1.0f;
+	spr->scale_y = 1.0f;
+	spr->angle = 0.0f;
+	spr->alpha = 1.0f;
 	// Set stuff to zero/one because... whatever
 	spr->id = 0;
 	spr->hp = 1;
@@ -89,6 +94,24 @@ void GFraMe_sprite_update(GFraMe_sprite *spr, int ms) {
  * @param	*spr	Sprite to be drawn
  */
 void GFraMe_sprite_draw(GFraMe_sprite *spr) {
+#if defined(GFRAME_OPENGL)
+	GFraMe_ssetRenderCtx ctx;
+	
+	ctx.sY = spr->scale_y;
+	ctx.sX = spr->scale_x;
+	if (!spr->flipped)
+		ctx.x = spr->obj.x + spr->offset_x;
+	else {
+		ctx.x = spr->obj.x -(spr->sset->tw -(int)spr->obj.hitbox.hw * 2.0)
+			 - spr->offset_x;
+		ctx.sX *= -1;
+	}
+	ctx.y = spr->obj.y + spr->offset_y;
+	ctx.alpha = spr->alpha;
+	ctx.angle = spr->angle;
+	
+	GFraMe_spriteset_draw_ex(spr->sset, spr->cur_tile, &ctx);
+#else
 	int x = spr->obj.x;
 	// Simply draw the current frame at the current position
 	if (!spr->flipped)
@@ -99,7 +122,7 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 	GFraMe_spriteset_draw(spr->sset, spr->cur_tile,
 			x, spr->obj.y + spr->offset_y,
 			spr->flipped);
-#if defined(GFRAME_DEBUG) && !defined(GFRAME_OPENGL)
+#  if defined(GFRAME_DEBUG) && !defined(GFRAME_OPENGL)
 	// If should draw the bounding box
 	if (GFraMe_draw_debug) {
 		// Get the sprite's hitbox
@@ -115,6 +138,7 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 		SDL_SetRenderDrawColor(GFraMe_renderer, 0xff, 0x00, 0x00, 0xff);
 		SDL_RenderDrawRect(GFraMe_renderer, &dbg_rect);
 	}
+#  endif
 #endif
 }
 

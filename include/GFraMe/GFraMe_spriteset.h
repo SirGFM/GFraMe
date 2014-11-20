@@ -48,6 +48,16 @@ struct stGFraMe_spriteset {
 };
 typedef struct stGFraMe_spriteset GFraMe_spriteset;
 
+struct stGFraMe_ssetRenderCtx {
+	int x;
+	int y;
+	float angle;
+	float sX;
+	float sY;
+	float alpha;
+};
+typedef struct stGFraMe_ssetRenderCtx GFraMe_ssetRenderCtx;
+
 /**
  * Initialize a new spriteset
  * @param	*sset	Spriteset to be initialized
@@ -69,6 +79,15 @@ void GFraMe_spriteset_init(GFraMe_spriteset *sset, GFraMe_texture *tex,
  */
 GFraMe_ret GFraMe_spriteset_draw(GFraMe_spriteset *sset, int tile, int x,
 								 int y, int flipped);
+
+/**
+ * Render a frame from the spriteset to the screen
+ * @param	*sset	Spriteset used to render
+ * @param	tile	Index from the spriteset to be used
+ * @return	GFraMe_ret_ok - Success; Anything else - Failure
+ */
+GFraMe_ret GFraMe_spriteset_draw_ex(GFraMe_spriteset *sset, int tile,
+	GFraMe_ssetRenderCtx *ctx);
 
 #endif
 

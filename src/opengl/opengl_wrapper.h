@@ -51,6 +51,10 @@ void glw_prepareRender();
  */
 void glw_renderSprite(int x, int y, int dx, int dy, int tx, int ty);
 
+void glw_setRotation(float angle);
+void glw_setScale(float sX, float sY);
+void glw_setAlpha(float alpha);
+
 /**
  * Render the backbuffer to the screen
  */
