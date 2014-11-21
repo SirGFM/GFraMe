@@ -11,6 +11,11 @@
 #define GFraMe_fix_version		0
 #define GFraMe_version	"0.1.0"
 
+/**
+ * Whether there is OpenGL support or not
+ */
+extern int GFraMe_gl;
+
 #define GFraMe_max_org_len	80
 /**
  * "Organization" name. Is used as part of paths.

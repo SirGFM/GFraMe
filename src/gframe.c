@@ -10,6 +10,7 @@
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL.h>
 
+int GFraMe_gl;
 /**
  * "Organization" name. Is used as part of paths.
  */
@@ -51,6 +52,11 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	GFraMe_ret rv = GFraMe_ret_ok;
 	int ms = 0, len;
 	
+#ifdef GFRAME_OPENGL
+	GFraMe_gl = 1;
+#else
+	GFraMe_gl = 0;
+#endif
 	// Store organization name and game's title so it can be used for
 	//logging and saving
 	len = GFraMe_max_org_len;

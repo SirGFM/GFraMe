@@ -1,6 +1,7 @@
 /**
  * @src/enemies.c
  */
+#include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_animation.h>
 #include <GFraMe/GFraMe_audio.h>
 #include <GFraMe/GFraMe_sprite.h>
@@ -94,7 +95,8 @@ void enemies_update(int ms) {
 		else if (stop_frames[i] > 0) {
 			stop_frames[i]--;
 			if (stop_frames[i] == 0) {
-				//enemies[i].offset_y -= 4;
+				if (!GFraMe_gl)
+					enemies[i].offset_y -= 4;
 				enemies[i].is_active = 1;
 				enemies[i].scale_y = 1.0f;
 			}
@@ -149,7 +151,8 @@ void enemies_on_hit(int i) {
 	else {
 		GFraMe_audio_play(&gl_hit, 0.5);
 		stop_frames[i] = 4;
-		//enemies[i].offset_y += 4;
+		if (!GFraMe_gl)
+			enemies[i].offset_y += 4;
 		enemies[i].is_active = 0;
 		enemies[i].scale_y = 0.8f;
 	}
