@@ -1,0 +1,179 @@
+#!/bin/bash
+
+useOpenGL=
+templateDir=
+srcDir=
+projectName=
+appPackage=
+forceLandscape=
+mainClass=
+appName=
+appDir=
+target="android-10"
+
+usage() {
+  echo "config-android [...]"
+}
+checkParam() {
+  if [ -z $1 ]; then
+    echo $2
+    exit 2
+  fi
+}
+
+# TODO parse parameters
+for i in "$@"; do
+  case $i in
+    -use_opengl | -gl)
+      useOpenGL=1
+      target="android-12"
+    ;;
+    -outputDir | -o)
+      templateDir="${i#*=}"
+      shift
+    ;;
+    -srcDir | -s)
+      srcDir="${i#*=}"
+      shift
+    ;;
+    -projectName | -p)
+      projectName="${i#*=}"
+      shift
+    ;;
+    -appPackage | -pkg)
+      appPackage="${i#*=}"
+      shift
+    ;;
+    -landscape | -l)
+      forceLandscape=1
+    ;;
+    -mainClass | -c)
+      mainClass="${i#*=}"
+      shift
+    ;;
+    -appName | -n)
+      appName="${i#*=}"
+      shift
+    ;;
+    *)
+      echo "Unknown option $i"
+      usage
+      exit 1
+    ;;
+  esac
+done
+
+checkParam "$templateDir" "Destination directory not defined"
+checkParam "$srcDir" "Project's source directory not defined"
+checkParam "$projectName" "Project's name not defined"
+checkParam "$appPackage" "App's package not defined"
+checkParam "$mainClass" "Main class's name not defined"
+checkParam "$appName" "App name not defined"
+
+echo
+if [ -z "$useOpenGL" ]; then
+  echo "Setuping for Android 2.3.3"
+else
+  echo "Setuping for Android 4.1.0 and abover"
+fi
+
+if [ ! -z "$forceLandscape" ]; then
+  echo
+  echo "App will run in landscape mode"
+fi
+
+
+appDir=$(cat $appName | sed s\\[.]\\/\\g)
+
+if [ ! -d $templateDir ]; then
+  cp ./template-android $templateDir
+else
+  # Clear previous configurations
+  rm -rf $templateDir/jni/GFraMe/
+  rm -rf $templateDir/jni/include/GFraMe
+  rm  -f $templateDir/AndroidManifest.xml
+  rm  -f $templateDir/default.properties
+  # TODO check what else can deleted
+fi
+
+# Add the lib files to the android project
+mkdir -p $templateDir/jni/GFraMe
+cp -r ./src/* $templateDir/jni/GFraMe
+cp -r ./include/GFraMe/ $templateDir/jni/include/
+
+# Create the lib Makefile
+cp ./res/android-files/Android.mk.ini $templateDir/jni/GFraMe/Android.mk
+if [ ! -z "$useOpenGL" ]; then
+  cat ./res/android-files/Android.mk.gl >> $templateDir/jni/GFraMe/Android.mk
+fi
+cat ./res/android-files/Android.mk.end >> $templateDir/jni/GFraMe/Android.mk
+
+# Copy the source files (consider they are all in a single dir)
+mkdir $templateDir/jni/src/
+cp $srcDir/* jni/src/
+cp ./res/android-files/Android.mk.main $templateDir/jni/src/Android.mk
+
+# Modify settings
+cd $templateDir
+  android update project -p . -n $projectName -t $target
+cd -
+
+if [ -z "$useOpenGL" ]; then
+  cp ./res/android-files/default.properties $templateDir/default.properties
+else
+  cp ./res/android-files/default.properties.gl $templateDir/default.properties
+fi
+# TODO add keystore and alias
+
+# Add the Application.mk, with the correct version
+if [ -z "$useOpenGL" ]; then
+  cp ./res/android-files/Application.mk $templateDir/jni/Application.mk
+else
+  cp ./res/android-files/Application.mk.gl $templateDir/jni/Application.mk
+fi
+
+# Generate a proper AndroidManifest.xml
+if [ -z "$useOpenGL" ]; then
+  cp ./res/android-files/manifest/manifest.0 $templateDir/AndroidManifest.xml
+else
+  cp ./res/android-files/manifest/manifest.0.gl $templateDir/AndroidManifest.xml
+fi
+
+if [ ! -z "$forceLandscape" ]; then
+  cat ./res/android-files/manifest/manifest.1.landscape >> \
+    $templateDir/AndroidManifest.xml
+fi
+
+if [ -z "$useOpenGL" ]; then
+  cat ./res/android-files/manifest/manifest.2 >> \
+  	$templateDir/AndroidManifest.xml
+else
+  cat ./res/android-files/manifest/manifest.2.gl >> \
+    $templateDir/AndroidManifest.xml
+fi
+
+mkdir -p $templateDir/$appDir
+cp ./res/android-files/main.java $templateDir/$appDir/tmp.java
+sed s$'\001''appPackage'$'\001'$appPackage$'\001'g \
+  $templateDir/$appDir/tmp.java $templateDir/$appDir/tmp2.java
+sed s$'\001''MainClass'$'\001'$mainClass$'\001'g \
+  $templateDir/$appDir/tmp2.java $templateDir/$appDir/tmp3.java
+mv $templateDir/$appDir/tmp3.java $templateDir/$appDir/$mainClass".java"
+rm $templateDir/$appDir/tmp.java $templateDir/$appDir/tmp2.java
+
+sed s$'\001''org.libsdl.app'$'\001'$appPackage$'\001'g \
+  $templateDir/AndroidManifest.xml > $templateDir/manifest.tmp
+rm $templateDir/AndroidManifest.xml
+sed s$'\001''SDLActivity'$'\001'$mainClass$'\001'g \
+  $templateDir/manifest.tmp > $templateDir/manifest.tmp2
+# TODO modify the version
+mv $templateDir/manifest.tmp $template/AndroidManifest.xml
+rm $templateDir/manifest.tmp
+
+sed s$'\001''SDL App'$'\001'$appName$'\001'g \
+  $templateDir/res/values/strings.xml $templateDir/res/values/tmp.xml
+rm $templateDir/res/values/strings.xml
+mv $templateDir/res/values/tmp.xml $templateDir/res/values/strings.xml
+
+echo "[OK]"
+

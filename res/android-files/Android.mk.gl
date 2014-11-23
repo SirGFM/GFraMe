@@ -1,0 +1,3 @@
+       gframe_opengl.c opengl/opengl_wrapper.c
+
+LOCAL_CFLAGS := -DGFRAME_MOBILE -DGFRAME_OPENGL
