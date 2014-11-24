@@ -12,55 +12,85 @@ appDir=
 target="android-10"
 
 usage() {
-  echo "config-android [...]"
+  echo "Usage: config-android"
+  echo "                       --use_opengl|-gl"
+  echo "                       --outputDir|-o dir"
+  echo "                       --srcDir|-s src"
+  echo "                       --projectName|-p name"
+  echo "                       --appPackage|-pkg package"
+  echo "                       --landscape|-l"
+  echo "                       --mainClass|-c"
+  echo "                       --appName|-n"
 }
 checkParam() {
-  if [ -z $1 ]; then
+  if [ -z "$1" ]; then
     echo $2
+    usage
     exit 2
   fi
 }
 
-# TODO parse parameters
-for i in "$@"; do
-  case $i in
-    -use_opengl | -gl)
+#for i in "$@"; do
+#  case $i in
+while [[ $# > 1 ]]; do
+  key="$1"
+  case $key in
+    --use_opengl | -gl)
       useOpenGL=1
-      target="android-12"
+      target="android-14"
     ;;
-    -outputDir | -o)
-      templateDir="${i#*=}"
+    -o)
       shift
+      templateDir="$1"
     ;;
-    -srcDir | -s)
-      srcDir="${i#*=}"
+    --outputDir=*)
+      templateDir="${1#*=}"
+    ;;
+    -s)
       shift
+      srcDir="$1"
     ;;
-    -projectName | -p)
-      projectName="${i#*=}"
+    --srcDir=*)
+      srcDir="${1#*=}"
+    ;;
+    -p)
       shift
+      projectName="$1"
     ;;
-    -appPackage | -pkg)
-      appPackage="${i#*=}"
+    --projectName=*)
+      projectName="${1#*=}"
+    ;;
+    -pkg)
       shift
+      appPackage="$1"
     ;;
-    -landscape | -l)
+    --appPackage=*)
+      appPackage="${1#*=}"
+    ;;
+    --landscape | -l)
       forceLandscape=1
     ;;
-    -mainClass | -c)
-      mainClass="${i#*=}"
+    -c)
       shift
+      mainClass="$1"
     ;;
-    -appName | -n)
-      appName="${i#*=}"
+    --mainClass=*)
+      mainClass="${1#*=}"
+    ;;
+    -n)
       shift
+      appName="$1"
+    ;;
+    --appName=*)
+      appName="${1#*=}"
     ;;
     *)
-      echo "Unknown option $i"
+      echo "Unknown option $1"
       usage
       exit 1
     ;;
   esac
+  shift
 done
 
 checkParam "$templateDir" "Destination directory not defined"
@@ -70,25 +100,32 @@ checkParam "$appPackage" "App's package not defined"
 checkParam "$mainClass" "Main class's name not defined"
 checkParam "$appName" "App name not defined"
 
+appDir=$(echo "$appPackage" | sed s\\[.]\\/\\g)
+
 echo
 if [ -z "$useOpenGL" ]; then
   echo "Setuping for Android 2.3.3"
 else
   echo "Setuping for Android 4.1.0 and abover"
 fi
-
+echo "Output dir: $templateDir"
+echo "Source dir: $srcDir"
+echo "Project name: $projectName"
+echo "App package: $appPackage"
+echo "App source dir: $appDir"
+echo "Main class: $mainClass"
+echo "App name: $appName"
 if [ ! -z "$forceLandscape" ]; then
-  echo
   echo "App will run in landscape mode"
 fi
 
-
-appDir=$(cat $appName | sed s\\[.]\\/\\g)
-
+echo
 if [ ! -d $templateDir ]; then
-  cp ./template-android $templateDir
+  echo "Creating project directory..."
+  cp -r ./template-android $templateDir
 else
   # Clear previous configurations
+  echo "Cleaning project directory..."
   rm -rf $templateDir/jni/GFraMe/
   rm -rf $templateDir/jni/include/GFraMe
   rm  -f $templateDir/AndroidManifest.xml
@@ -97,11 +134,14 @@ else
 fi
 
 # Add the lib files to the android project
+echo "Copying library module"
 mkdir -p $templateDir/jni/GFraMe
 cp -r ./src/* $templateDir/jni/GFraMe
 cp -r ./include/GFraMe/ $templateDir/jni/include/
+cp ./res/android-files/Android.mk.jni $templateDir/jni/Android.mk
 
 # Create the lib Makefile
+echo "Creating library Makefile"
 cp ./res/android-files/Android.mk.ini $templateDir/jni/GFraMe/Android.mk
 if [ ! -z "$useOpenGL" ]; then
   cat ./res/android-files/Android.mk.gl >> $templateDir/jni/GFraMe/Android.mk
@@ -109,23 +149,13 @@ fi
 cat ./res/android-files/Android.mk.end >> $templateDir/jni/GFraMe/Android.mk
 
 # Copy the source files (consider they are all in a single dir)
-mkdir $templateDir/jni/src/
-cp $srcDir/* jni/src/
-cp ./res/android-files/Android.mk.main $templateDir/jni/src/Android.mk
-
-# Modify settings
-cd $templateDir
-  android update project -p . -n $projectName -t $target
-cd -
-
-if [ -z "$useOpenGL" ]; then
-  cp ./res/android-files/default.properties $templateDir/default.properties
-else
-  cp ./res/android-files/default.properties.gl $templateDir/default.properties
-fi
-# TODO add keystore and alias
+echo "Copying app's source to project directory"
+mkdir -p $templateDir/jni/src/
+cp $srcDir/* $templateDir/jni/src/
 
 # Add the Application.mk, with the correct version
+echo "Creating app's Makefile"
+cp ./res/android-files/Android.mk.main $templateDir/jni/src/Android.mk
 if [ -z "$useOpenGL" ]; then
   cp ./res/android-files/Application.mk $templateDir/jni/Application.mk
 else
@@ -133,6 +163,7 @@ else
 fi
 
 # Generate a proper AndroidManifest.xml
+echo "Creating AndroidManifest.xml"
 if [ -z "$useOpenGL" ]; then
   cp ./res/android-files/manifest/manifest.0 $templateDir/AndroidManifest.xml
 else
@@ -152,28 +183,45 @@ else
     $templateDir/AndroidManifest.xml
 fi
 
-mkdir -p $templateDir/$appDir
-cp ./res/android-files/main.java $templateDir/$appDir/tmp.java
-sed s$'\001''appPackage'$'\001'$appPackage$'\001'g \
-  $templateDir/$appDir/tmp.java $templateDir/$appDir/tmp2.java
-sed s$'\001''MainClass'$'\001'$mainClass$'\001'g \
-  $templateDir/$appDir/tmp2.java $templateDir/$appDir/tmp3.java
-mv $templateDir/$appDir/tmp3.java $templateDir/$appDir/$mainClass".java"
-rm $templateDir/$appDir/tmp.java $templateDir/$appDir/tmp2.java
+# Create the main java class for the app
+echo "Creating main java class"
+mkdir -p $templateDir/src/$appDir
+cp ./res/android-files/main.java $templateDir/src/$appDir/tmp.java
+sed s$'\001'"appPackage"$'\001'"$appPackage"$'\001'g \
+  $templateDir/src/$appDir/tmp.java > $templateDir/src/$appDir/tmp2.java
+sed s$'\001'"MainClass"$'\001'"$mainClass"$'\001'g \
+  $templateDir/src/$appDir/tmp2.java > $templateDir/src/$appDir/tmp3.java
+mv $templateDir/src/$appDir/tmp3.java $templateDir/src/$appDir/$mainClass".java"
+rm $templateDir/src/$appDir/tmp.java $templateDir/src/$appDir/tmp2.java
 
-sed s$'\001''org.libsdl.app'$'\001'$appPackage$'\001'g \
+# Modify the Manifest
+echo "Adding app details to manifest"
+sed s$'\001'"org.libsdl.app"$'\001'"$appPackage"$'\001'g \
   $templateDir/AndroidManifest.xml > $templateDir/manifest.tmp
 rm $templateDir/AndroidManifest.xml
-sed s$'\001''SDLActivity'$'\001'$mainClass$'\001'g \
+sed s$'\001'"SDLActivity"$'\001'"$mainClass"$'\001'g \
   $templateDir/manifest.tmp > $templateDir/manifest.tmp2
 # TODO modify the version
-mv $templateDir/manifest.tmp $template/AndroidManifest.xml
+mv $templateDir/manifest.tmp2 $templateDir/AndroidManifest.xml
 rm $templateDir/manifest.tmp
 
-sed s$'\001''SDL App'$'\001'$appName$'\001'g \
-  $templateDir/res/values/strings.xml $templateDir/res/values/tmp.xml
+sed s$'\001'"SDL App"$'\001'"$appName"$'\001'g \
+  $templateDir/res/values/strings.xml > $templateDir/res/values/tmp.xml
 rm $templateDir/res/values/strings.xml
 mv $templateDir/res/values/tmp.xml $templateDir/res/values/strings.xml
 
-echo "[OK]"
+# Modify settings
+echo "Updating project"
+cd $templateDir
+  android update project -p ./ -n $projectName -t $target
+cd -
+
+if [ -z "$useOpenGL" ]; then
+  cp ./res/android-files/default.properties $templateDir/default.properties
+else
+  cp ./res/android-files/default.properties.gl $templateDir/default.properties
+fi
+# TODO add keystore and alias
+
+echo "Done!"
 

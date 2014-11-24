@@ -9,7 +9,9 @@ SDL_PATH := ../SDL2-2.0.3
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include
 
 LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
-                   $(wildcard ./*.c)
+                   $(subst $(LOCAL_PATH)/../src/,, \
+                     $(wildcard $(LOCAL_PATH)/../src/*.c) \
+                   )
 
 LOCAL_SHARED_LIBRARIES := SDL2 GFraMe
 
