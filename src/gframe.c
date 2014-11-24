@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_keys.h>
 #include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_opengl.h>
 #include <GFraMe/GFraMe_screen.h>
@@ -73,6 +74,8 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	GFraMe_util_strcat(GFraMe_path, tmp, &len);
 	SDL_free(tmp);
 #endif
+    
+    GFraMe_key_init();
 	
 	if (log_to_file)
 		GFraMe_log_init(log_append);

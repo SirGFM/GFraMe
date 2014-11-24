@@ -8,6 +8,7 @@
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_pointer.h>
 #include <GFraMe/GFraMe_screen.h>
+#include <GFraMe/GFraMe_keys.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_events.h>
 
@@ -93,20 +94,13 @@
 
 #define GFraMe_event_on_key_down() \
 			break; \
-			case SDL_KEYDOWN:
+			case SDL_KEYDOWN: \
+                GFraMe_key_upd(&event, 1)
 
-/*
-				if (event.key.keysym.sym == SDLK_ESCAPE) {
-					done = SDL_TRUE;
-					rv = GAME_OK;
-					break;
-				}
-				else 
-				if (event.key.keysym.sym == SDLK_r) {
-					// reset the state
-					bs_playstate_reset();
-				}
-*/
+#define GFraMe_event_on_key_up() \
+			break; \
+			case SDL_KEYUP: \
+                GFraMe_key_upd(&event, 0)
 
 #define GFraMe_event_on_quit() \
 			break; \
