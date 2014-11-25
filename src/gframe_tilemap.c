@@ -88,10 +88,12 @@ GFraMe_ret GFraMe_tilemap_draw(GFraMe_tilemap *tmap) {
 		// Loop each column
 		j = 0;
 		while (j < tmap->height_in_tiles) {
-			rv = GFraMe_spriteset_draw(tmap->sset,
-								  tmap->data[i + j*tmap->width_in_tiles],
-								  tmap->x + i*tmap->sset->tw,
-								  tmap->y + j*tmap->sset->th, 0);
+			char tile = tmap->data[i + j*tmap->width_in_tiles];
+			if (tile > 0)
+				rv = GFraMe_spriteset_draw(tmap->sset,
+									tmap->data[i + j*tmap->width_in_tiles],
+									tmap->x + i*tmap->sset->tw,
+									tmap->y + j*tmap->sset->th, 0);
 			GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to draw tilemap",
 							 _ret);
 			j++;
