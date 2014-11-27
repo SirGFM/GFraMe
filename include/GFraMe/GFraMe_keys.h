@@ -105,6 +105,7 @@ struct stGFraMe_key {
 
 extern struct stGFraMe_key GFraMe_keys;
 
+void GFraMe_key_init();
 void GFraMe_key_upd(SDL_Event *event, char set);
 
 #endif

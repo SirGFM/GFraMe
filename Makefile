@@ -70,7 +70,7 @@ OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
        $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o \
 	   $(OBJDIR)/gframe_save.o $(OBJDIR)/gframe_hitbox.o \
 	   $(OBJDIR)/gframe_tween.o $(OBJDIR)/gframe_pointer.o \
-       $(OBJDIR)/gframe_keys.o \
+       $(OBJDIR)/gframe_keys.o $(OBJDIR)/gframe_controller.o \
 	   $(OBJDIR)/gframe.o $(OBJDIR)/gframe_log.o \
 	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 

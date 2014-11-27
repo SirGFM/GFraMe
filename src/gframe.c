@@ -75,7 +75,9 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 	SDL_free(tmp);
 #endif
     
+#if !defined(GFRAME_MOBILE)
     GFraMe_key_init();
+#endif
 	
 	if (log_to_file)
 		GFraMe_log_init(log_append);

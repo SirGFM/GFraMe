@@ -4,6 +4,9 @@
 #ifndef __GFRAME_CONTROLLER_H_
 #define __GFRAME_CONTROLLER_H_
 
+#include <GFraMe/GFraMe_error.h>
+#include <SDL2/SDL_events.h>
+
 struct stGFraMe_controller {
     char a :1;
     char b :1;
@@ -22,6 +25,7 @@ struct stGFraMe_controller {
     char select :1;
     char start :1;
     char home :1;
+    char dummy :7;
     float lx; // left horizontal axis
     float ly; // left vertical axis
     float rx; // right horizontal axis
@@ -30,6 +34,12 @@ struct stGFraMe_controller {
 
 extern struct stGFraMe_controller *GFraMe_controllers;
 extern int GFraMe_controller_max;
+
+void GFraMe_controller_init(int autoConnect);
+void GFraMe_controller_close();
+void GFraMe_controller_bind();
+void GFraMe_controller_unbind();
+void GFraMe_controller_update(SDL_Event *e);
 
 #endif
 
