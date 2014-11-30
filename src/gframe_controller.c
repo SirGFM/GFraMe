@@ -21,6 +21,7 @@ static SDL_GameController **sdl_controllers = 0;
 static int sdl_ctrlr_max = 0;
 
 void GFraMe_controller_init(int autoConnect) {
+    SDL_InitSubSystem(SDL_INIT_JOYSTICK);
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
     
     GFraMe_controller_auto = autoConnect;
@@ -37,6 +38,7 @@ void GFraMe_controller_close() {
     GFraMe_controller_unbind();
     
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+    SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
     
     GFraMe_controller_isInit = 0;
 }
@@ -78,10 +80,14 @@ void GFraMe_controller_bind() {
     i = 0;
     while (i < num) {
         SDL_GameController *c;
+        SDL_JoystickGUID guid;
+        char *mapping;
         
         c = SDL_GameControllerOpen(i);
         if (c)
             sdl_controllers[i] = c;
+        guid = SDL_JoystickGetDeviceGUID(i);
+        mapping = SDL_GameControllerMappingForGUID(guid);
         
         i++;
     }
@@ -142,7 +148,7 @@ void GFraMe_controller_update(SDL_Event *e) {
       GFraMe_controller *c;
       int val;
       
-      if (e->caxis.which >= GFraMe_controller_max);
+      if (e->caxis.which >= GFraMe_controller_max)
         break;
       c = &(GFraMe_controllers[e->caxis.which]);
       if (!c)
@@ -176,7 +182,7 @@ void GFraMe_controller_update(SDL_Event *e) {
     case SDL_CONTROLLERBUTTONUP: {
       GFraMe_controller *c;
       
-      if (e->cbutton.which >= GFraMe_controller_max);
+      if (e->cbutton.which >= GFraMe_controller_max)
         break;
       c = &(GFraMe_controllers[e->cbutton.which]);
       if (!c)

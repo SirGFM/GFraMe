@@ -131,7 +131,7 @@ $(OBJDIR):
 
 .PHONY: clean mostlyclean
 clean:
-	rm -f $(OBJECTS) $(BINDIR)/$(TARGET)*
+	rm -f $(OBJECTS) $(BINDIR)/$(TARGET)* $(BINDIR)/test_*
 	rm -rf $(OBJDIR)
 	rm -rf $(BINDIR)
 
