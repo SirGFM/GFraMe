@@ -14,6 +14,7 @@ typedef struct stGFraMe_controller GFraMe_controller;
 GFraMe_controller *GFraMe_controllers = 0;
 int GFraMe_controller_max = 0;
 
+static int GFraMe_controller_isInit = 0;
 static int GFraMe_controller_auto = 0;
 
 static SDL_GameController **sdl_controllers = 0;
@@ -25,12 +26,19 @@ void GFraMe_controller_init(int autoConnect) {
     GFraMe_controller_auto = autoConnect;
     
     GFraMe_controller_bind();
+    
+    GFraMe_controller_isInit = 1;
 }
 
 void GFraMe_controller_close() {
+    if (!GFraMe_controller_isInit)
+        return;
+    
     GFraMe_controller_unbind();
     
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+    
+    GFraMe_controller_isInit = 0;
 }
 
 /**
@@ -193,5 +201,47 @@ void GFraMe_controller_update(SDL_Event *e) {
       }
     } break;
   }
+}
+
+void GFraMe_controller_printStates() {
+    int i;
+    
+    GFraMe_new_log("\n\n=========================================");
+    GFraMe_new_log(" Controllers state");
+    GFraMe_new_log("-----------------------------------------");
+    GFraMe_new_log(" %i controller connecteds", GFraMe_controller_max);
+    
+    i = 0;
+    while (i < GFraMe_controller_max) {
+        GFraMe_controller *c;
+        #define PRINT_PRESSED(att) \
+            ((c->att)?"pressed":"not pressed")
+        
+        c = &(GFraMe_controllers[i]);
+        
+        GFraMe_new_log("-----------------------------------------");
+        GFraMe_new_log("  Controller %02d:", i);
+        GFraMe_new_log("    left axis: (%0.2f, %0.2f)", c->lx, c->ly);
+        GFraMe_new_log("    right axis: (%0.2f, %0.2f)", c->rx, c->ry);
+        GFraMe_new_log("       UP: %s", PRINT_PRESSED(up));
+        GFraMe_new_log("     DOWN: %s", PRINT_PRESSED(down));
+        GFraMe_new_log("     LEFT: %s", PRINT_PRESSED(left));
+        GFraMe_new_log("    RIGHT: %s", PRINT_PRESSED(right));
+        GFraMe_new_log("     A: %s", PRINT_PRESSED(a));
+        GFraMe_new_log("     B: %s", PRINT_PRESSED(b));
+        GFraMe_new_log("     X: %s", PRINT_PRESSED(x));
+        GFraMe_new_log("     Y: %s", PRINT_PRESSED(y));
+        GFraMe_new_log("    R1: %s", PRINT_PRESSED(r1));
+        GFraMe_new_log("    R2: %s", PRINT_PRESSED(r2));
+        GFraMe_new_log("    R3: %s", PRINT_PRESSED(r3));
+        GFraMe_new_log("    L1: %s", PRINT_PRESSED(l1));
+        GFraMe_new_log("    L2: %s", PRINT_PRESSED(l2));
+        GFraMe_new_log("    L3: %s", PRINT_PRESSED(l3));
+        GFraMe_new_log("     START: %s", PRINT_PRESSED(start));
+        GFraMe_new_log("    SELECT: %s", PRINT_PRESSED(select));
+        GFraMe_new_log("      HOME: %s", PRINT_PRESSED(home));
+        i++;
+    }
+    GFraMe_new_log("=========================================");
 }
 

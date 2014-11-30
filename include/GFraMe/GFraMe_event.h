@@ -5,6 +5,7 @@
 #define __GFRAME_EVENT_H_
 
 #include <GFraMe/GFraMe_accumulator.h>
+#include <GFraMe/GFraMe_controller.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_pointer.h>
 #include <GFraMe/GFraMe_screen.h>
@@ -96,6 +97,16 @@
 			break; \
 			case SDL_KEYDOWN: \
                 GFraMe_key_upd(&event, 1)
+
+#define GFraMe_event_on_controller() \
+            break; \
+            case SDL_CONTROLLERDEVICEADDED: \
+            case SDL_CONTROLLERDEVICEREMOVED: \
+            case SDL_CONTROLLERDEVICEREMAPPED: \
+            case SDL_CONTROLLERAXISMOTION: \
+            case SDL_CONTROLLERBUTTONDOWN: \
+            case SDL_CONTROLLERBUTTONUP: \
+                GFraMe_controller_update(&event)
 
 #define GFraMe_event_on_key_up() \
 			break; \

@@ -54,7 +54,11 @@ else
     #CFLAGS += -Winline -O1
 endif
 
-VPATH = src/
+ifeq ($(OS), Win)
+  VPATH = src/;tst/
+else
+  VPATH = src/:tst/
+endif
 SRCDIR = src
 BOBJDIR = obj
 OBJDIR = $(BOBJDIR)/$(OS)
@@ -85,11 +89,13 @@ ifeq ($(USE_OPENGL), yes)
     OBJS += $(OBJDIR)/gframe_opengl.o $(OBJDIR)/opengl/opengl_wrapper.o
 endif
 
-all: static shared
+all: static shared tests
 
 static: MAKEDIRS $(BINDIR)/$(TARGET).a
 
 shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
+
+tests: MAKEDIRS static $(BINDIR)/test_controller
 
 $(BINDIR)/$(TARGET).a: $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).a
@@ -113,6 +119,9 @@ $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
+
+$(BINDIR)/test_controller: $(OBJDIR)/gframe_test_controller.o
+	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_controller $(OBJDIR)/gframe_test_controller.o $(BINDIR)/$(TARGET).a $(LFLAGS)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)

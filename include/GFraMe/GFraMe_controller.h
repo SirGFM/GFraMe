@@ -40,6 +40,7 @@ void GFraMe_controller_close();
 void GFraMe_controller_bind();
 void GFraMe_controller_unbind();
 void GFraMe_controller_update(SDL_Event *e);
+void GFraMe_controller_printStates();
 
 #endif
 
