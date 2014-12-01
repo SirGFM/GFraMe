@@ -21,7 +21,6 @@ static SDL_GameController **sdl_controllers = 0;
 static int sdl_ctrlr_max = 0;
 
 void GFraMe_controller_init(int autoConnect) {
-    SDL_InitSubSystem(SDL_INIT_JOYSTICK);
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
     
     GFraMe_controller_auto = autoConnect;
@@ -38,7 +37,6 @@ void GFraMe_controller_close() {
     GFraMe_controller_unbind();
     
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
-    SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
     
     GFraMe_controller_isInit = 0;
 }
