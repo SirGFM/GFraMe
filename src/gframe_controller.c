@@ -71,8 +71,9 @@ void GFraMe_controller_bind() {
     GFraMe_controllers = 0;
     GFraMe_controller_max = 0;
     
-    sdl_controllers =
-        (SDL_GameController**)malloc(sizeof(SDL_GameController*)*num);
+    if (num > 0)
+        sdl_controllers =
+            (SDL_GameController**)malloc(sizeof(SDL_GameController*)*num);
     // TODO check!
     
     i = 0;
