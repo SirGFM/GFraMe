@@ -130,7 +130,7 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 		
 		// Create a SDL_Rect at its position
 		SDL_Rect dbg_rect;
-		dbg_rect.x = spr->obj.x + hb->cx - hb->hw;
+		dbg_rect.x = x + hb->cx - hb->hw;
 		dbg_rect.y = spr->obj.y + hb->cy - hb->hh;
 		dbg_rect.w = hb->hw * 2;
 		dbg_rect.h = hb->hh * 2;
