@@ -203,7 +203,7 @@ GFraMe_ret GFraMe_object_overlap(GFraMe_object *o1, GFraMe_object *o2,
 				// Position it exactly grazing horizontally
 				cur->dx = other->dx + other->hitbox.cx;
 				if (cur->ldx + cur->hitbox.cx > other->ldx + other->hitbox.cx)
-					cur->dx += hmax + cur->hitbox.cx;
+					cur->dx += hmax - cur->hitbox.cx;
 				else
 					cur->dx -= hmax + cur->hitbox.cx;
 				// Update the actual position!!
