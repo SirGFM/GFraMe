@@ -95,7 +95,7 @@ static: MAKEDIRS $(BINDIR)/$(TARGET).a
 
 shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 
-tests: MAKEDIRS static $(BINDIR)/test_controller
+tests: MAKEDIRS static $(BINDIR)/test_controller $(BINDIR)/test_collision
 
 $(BINDIR)/$(TARGET).a: $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).a
@@ -122,6 +122,9 @@ MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
 
 $(BINDIR)/test_controller: $(OBJDIR)/gframe_test_controller.o
 	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_controller $(OBJDIR)/gframe_test_controller.o $(BINDIR)/$(TARGET).a $(LFLAGS)
+
+$(BINDIR)/test_collision: $(OBJDIR)/gframe_test_collision.o
+	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_collision $(OBJDIR)/gframe_test_collision.o $(BINDIR)/$(TARGET).a $(LFLAGS)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
