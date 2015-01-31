@@ -108,7 +108,7 @@ ifeq ($(OS), Win)
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 else
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV)
+	rm -f $(BINDIR)/$(TARGET).$(MNV) $(TARGET).$(SO)
 	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 	ldconfig -n $(BINDIR)
