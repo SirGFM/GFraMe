@@ -100,9 +100,11 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr);
  * Change the sprite's animation
  * @param	*spr	Sprite to have it's animation changed
  * @param	*anim	Animation to be set as current
+ * @param dontReset Whether animation mustn't be reset
  */
 void GFraMe_sprite_set_animation(GFraMe_sprite *spr,
-								 GFraMe_animation *anim);
+                                 GFraMe_animation *anim,
+                                 int dontReset);
 
 GFraMe_hitbox* GFraMe_sprite_get_hitbox(GFraMe_sprite *spr);
 GFraMe_object* GFraMe_sprite_get_object(GFraMe_sprite *spr);

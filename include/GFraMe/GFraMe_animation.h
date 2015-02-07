@@ -70,6 +70,13 @@ void GFraMe_animation_init(
  * @return	GFraMe_ret_ok - if nothing happened; GFraMe_ret_anim_new_frame - if a new frame was issued; GFraMe_ret_anim_finished - if the animation finished running
  */
 GFraMe_ret GFraMe_animation_update(GFraMe_animation *anim, int ms);
+
+/**
+ * Resets a animation to its original state
+ * 
+ * @param	*anim	Current animation
+ */
+void GFraMe_animation_reset(GFraMe_animation *anim);
  
 #endif
 
