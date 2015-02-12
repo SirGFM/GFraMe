@@ -55,9 +55,11 @@ GFraMe_ret GFraMe_animation_update(GFraMe_animation *anim, int ms) {
         // Increase the current index
         anim->index++;
         // Check if it    s within the frames array
-        if (anim->index < anim->num_frames)
+        if (anim->index < anim->num_frames) {
             // and set the time for the next frame
             anim->acc += anim->frame_duration;
+            anim->tile = anim->frames[anim->index];
+        }
         else {
             // Otherwise, increment how many times it has finished
             anim->num_finished++;
@@ -65,9 +67,9 @@ GFraMe_ret GFraMe_animation_update(GFraMe_animation *anim, int ms) {
             if (anim->do_loop) {
                 anim->acc += anim->frame_duration;
                 anim->index = 0;
+                anim->tile = anim->frames[anim->index];
             }
         }
-        anim->tile = anim->frames[anim->index];
         // Also, return that a new frame was issued
         return GFraMe_ret_anim_new_frame;
     }
