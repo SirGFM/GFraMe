@@ -54,11 +54,7 @@ else
     #CFLAGS += -Winline -O1
 endif
 
-ifeq ($(OS), Win)
-  VPATH = src/;tst/
-else
-  VPATH = src/:tst/
-endif
+VPATH = src/:tst/
 SRCDIR = src
 BOBJDIR = obj
 OBJDIR = $(BOBJDIR)/$(OS)
