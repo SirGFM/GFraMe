@@ -97,6 +97,17 @@ void GFraMe_sprite_update(GFraMe_sprite *spr, int ms);
 void GFraMe_sprite_draw(GFraMe_sprite *spr);
 
 /**
+ * Draw a sprite from world space into screen space
+ * 
+ * @param *spr Sprite to be drawn
+ * @param cam_x The camera's horizontal position
+ * @param cam_y The camera's vertical position
+ * @param cam_w The camera's width
+ * @param cam_h The camera's height
+ */
+void GFraMe_sprite_draw_camera(GFraMe_sprite *spr, int cam_x, int cam_y, int cam_w, int cam_h);
+
+/**
  * Change the sprite's animation
  * @param	*spr	Sprite to have it's animation changed
  * @param	*anim	Animation to be set as current

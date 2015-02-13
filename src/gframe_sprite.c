@@ -143,6 +143,35 @@ void GFraMe_sprite_draw(GFraMe_sprite *spr) {
 }
 
 /**
+ * Draw a sprite from world space into screen space
+ * 
+ * @param *spr Sprite to be drawn
+ * @param cam_x The camera's horizontal position
+ * @param cam_y The camera's vertical position
+ * @param cam_w The camera's width
+ * @param cam_h The camera's height
+ */
+void GFraMe_sprite_draw_camera(GFraMe_sprite *spr, int cam_x, int cam_y, int cam_w, int cam_h) {
+    #define ASSERT(stmt) do { if (!(stmt)) goto __ret; } while(0)
+    
+    // Check that the sprite is inside the camera
+    ASSERT(spr->obj.x + spr->sset->w >= cam_x && spr->obj.x <= cam_x + cam_w);
+    ASSERT(spr->obj.y + spr->sset->h >= cam_y && spr->obj.y <= cam_y + cam_h);
+    
+    // Assign its screen position, render and revert
+    spr->obj.x -= cam_x;
+    spr->obj.y -= cam_y;
+    
+    GFraMe_sprite_draw(spr);
+    
+    spr->obj.x += cam_x;
+    spr->obj.y += cam_y;
+    
+__ret:
+    return;
+}
+
+/**
  * Change the sprite    s animation
  * @param *spr Sprite to have it    s animation changed
  * @param *anim Animation to be set as current
