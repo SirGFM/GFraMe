@@ -17,7 +17,7 @@ void GFraMe_object_clear(GFraMe_object *obj) {
 	GFraMe_object_set_y(obj, 0);
 	// Reset its velocity
 	obj->vx = 0.0;
-	obj->vx = 0.0;
+	obj->vy = 0.0;
 	// Reset its acceleration
 	obj->ax = 0.0;
 	obj->ay = 0.0;
