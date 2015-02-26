@@ -181,10 +181,10 @@ void GFraMe_sprite_set_animation(GFraMe_sprite *spr,
                                  GFraMe_animation *anim,
                                  int dontReset) {
     // Simply change the current animation and tile
-    spr->anim = anim;
-    spr->cur_tile = anim->tile;
     if (!dontReset)
         GFraMe_animation_reset(anim);
+    spr->anim = anim;
+    spr->cur_tile = anim->tile;
 }
 
 GFraMe_hitbox* GFraMe_sprite_get_hitbox(GFraMe_sprite *spr) {
