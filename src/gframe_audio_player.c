@@ -234,7 +234,7 @@ static int GFraMe_audio_player_mix(GFraMe_audio_ll *node, Uint8 *dst, int len) {
 		
 		i += 4;
 		// If the sample is over
-		if (i + node->pos > node->audio->len) {
+		if (i + node->pos >= node->audio->len) {
 			// Loop it
 			if (node->audio->loop) {
 				len -= i;
@@ -268,7 +268,7 @@ static int GFraMe_audio_player_mix_mono(GFraMe_audio_ll *node, Uint8 *dst, int l
 		
 		i += 2;
 		// If the sample is over
-		if (i + node->pos > node->audio->len) {
+		if (i + node->pos >= node->audio->len) {
 			// Loop it
 			if (node->audio->loop) {
 				len -= i;
