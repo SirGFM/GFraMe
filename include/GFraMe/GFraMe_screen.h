@@ -147,6 +147,29 @@ void GFraMe_screen_set_maximize_int(int update_window);
 void GFraMe_screen_set_maximize_double(int update_window);
 
 /**
+ * Exit fullscreen mode
+ * 
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_setWindowed();
+
+/**
+ * Enter fullscreen mode
+ * 
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_setFullscreen();
+
+/**
+ * Modify the window's dimensions
+ * 
+ * @param w New window's width
+ * @param h New window's height
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_set_window_size(int w, int h);
+
+/**
  * Set the color used to clear the screen
  * @param	red	Amount of red [0, 255]
  * @param	green	Amount of green [0, 255]

@@ -407,6 +407,82 @@ void GFraMe_screen_set_maximize_double(int update_window) {
 }
 
 /**
+ * Exit fullscreen mode
+ * 
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_setWindowed() {
+    GFraMe_ret rv;
+    int ret;
+    
+    ret = SDL_SetWindowFullscreen(GFraMe_window, 0);
+    GFraMe_SDLassertRV(ret == 0, "Failed to exit fullscreen!",
+        rv = GFraMe_ret_failed, __ret);
+    
+    rv = GFraMe_ret_ok;
+__ret:
+    return rv;
+}
+
+/**
+ * Enter fullscreen mode
+ * 
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_setFullscreen() {
+    GFraMe_ret rv;
+    int devW, devH, ret;
+    
+    ret = SDL_SetWindowFullscreen(GFraMe_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    GFraMe_SDLassertRV(ret == 0, "Failed to enter fullscreen!",
+        rv = GFraMe_ret_failed, __ret);
+    // Make pixels be nicely scaled
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+    //SDL_RenderSetLogicalSize(GFraMe_renderer, GFraMe_screen_w, GFraMe_screen_h);
+    
+    // Set the screen dimension
+	rv = GFraMe_getDevDimensions(&devW, &devH);
+	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to get the device dimensions",
+		__ret);
+    rv = GFraMe_screen_set_window_size(devW, devH);
+	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to set the screen dimensions",
+		__ret);
+    
+    rv = GFraMe_ret_ok;
+__ret:
+    return rv;
+}
+
+/**
+ * Modify the window's dimensions
+ * 
+ * @param w New window's width
+ * @param h New window's height
+ * @return GFraMe error code
+ */
+GFraMe_ret GFraMe_screen_set_window_size(int w, int h) {
+    GFraMe_ret rv;
+    int devW, devH;
+    // Get the device's dimensions
+	rv = GFraMe_getDevDimensions(&devW, &devH);
+	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to get the device dimensions",
+		__ret);
+    // Check that the new dimension fit into the device
+	GFraMe_assertRV(w <= devW, "Width greater than device's width",
+        rv = GFraMe_ret_failed, __ret);
+	GFraMe_assertRV(h <= devH, "Height greater than device's height",
+        rv = GFraMe_ret_failed, __ret);
+    // And modify it
+    SDL_SetWindowSize(GFraMe_window, w, h);
+	GFraMe_screen_log_dimensions(0);
+	GFraMe_screen_cache_dimensions();
+    
+    rv = GFraMe_ret_ok;
+__ret:
+    return rv;
+}
+
+/**
  * Try to set the device to a given width & height
  */
 static void GFraMe_set_screen_ratio() {
