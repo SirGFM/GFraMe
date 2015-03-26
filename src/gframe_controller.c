@@ -48,28 +48,10 @@ void GFraMe_controller_bind() {
     GFraMe_controller *tmp;
     int num, i;
     
+    tmp = 0;
     num = SDL_NumJoysticks();
     
-    i = 0;
-    while (i < sdl_ctrlr_max) {
-        SDL_GameController *c;
-        
-        c = sdl_controllers[i];
-        if (c)
-            SDL_GameControllerClose(c);
-        sdl_controllers[i] = 0;
-        
-        i++;
-    }
-    if (sdl_controllers);
-        free(sdl_controllers);
-    sdl_controllers = 0;
-    sdl_ctrlr_max = 0;
-    
-    if (GFraMe_controllers)
-        free(GFraMe_controllers);
-    GFraMe_controllers = 0;
-    GFraMe_controller_max = 0;
+    GFraMe_controller_unbind();
     
     if (num > 0)
         sdl_controllers =
@@ -92,10 +74,12 @@ void GFraMe_controller_bind() {
     }
     sdl_ctrlr_max = num;
     
-    tmp = (GFraMe_controller*)malloc(sizeof(GFraMe_controller)*num);
-    // TODO check
-    
-    memset(tmp, 0x0, sizeof(GFraMe_controller)*num);
+    if (num > 0) {
+        tmp = (GFraMe_controller*)malloc(sizeof(GFraMe_controller)*num);
+        // TODO check
+        
+        memset(tmp, 0x0, sizeof(GFraMe_controller)*num);
+    }
     GFraMe_controllers = tmp;
     GFraMe_controller_max = num;
     tmp = 0;
@@ -120,7 +104,7 @@ void GFraMe_controller_unbind() {
         
         i++;
     }
-    if (sdl_controllers);
+    if (sdl_controllers)
         free(sdl_controllers);
     sdl_controllers = 0;
     sdl_ctrlr_max = 0;
