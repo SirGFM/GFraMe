@@ -29,7 +29,7 @@
 #define GFraMe_event_init(update_fps, draw_fps) \
 	__lasttime__ = SDL_GetTicks(); \
 	GFraMe_accumulator_init_fps(&__updacc__, update_fps, 6); \
-	GFraMe_accumulator_init_fps(&__drawacc__, update_fps, 1); \
+	GFraMe_accumulator_init_fps(&__drawacc__, draw_fps, 1); \
 
 #define GFraMe_event_begin() \
 	SDL_Event event; \
