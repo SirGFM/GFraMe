@@ -135,6 +135,10 @@ void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 	bgm.volume = volume;
 }
 
+void GFraMe_audio_player_set_bgm_volume(double volume) {
+	bgm.volume = volume;
+}
+
 void GFraMe_audio_player_push(GFraMe_audio *aud, double volume) {
 	int start_audio = 0;
 	GFraMe_audio_ll *node;
@@ -208,7 +212,10 @@ static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 	}
 	SDL_SemWait(sem_bgm);
 	if (bgm.audio) {
-		GFraMe_audio_player_mix(&bgm, stream, len);
+		if (GFraMe_audio_player_mix(&bgm, stream, len)) {
+            bgm.audio = 0;
+            count--;
+        }
 	}
 	SDL_SemPost(sem_bgm);
 	if (!cur && !bgm.audio)
