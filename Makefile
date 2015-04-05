@@ -23,7 +23,6 @@ CC = gcc
           $(OBJDIR)/gframe_sprite.o       \
           $(OBJDIR)/gframe_spriteset.o    \
           $(OBJDIR)/gframe_texture.o      \
-          $(OBJDIR)/gframe_timer.o        \
           $(OBJDIR)/gframe_util.o         \
           $(OBJDIR)/gframe_tilemap.o      \
           $(OBJDIR)/gframe_audio.o        \
@@ -40,6 +39,11 @@ CC = gcc
     	  $(WDATADIR)/chunk.o             \
           $(WDATADIR)/fmt.o               \
           $(WDATADIR)/wavtodata.o
+# Add objects based on the current backend
+  ifndef ($(BACKEND))
+    OBJS +=                                    \
+            $(OBJDIR)/core/sdl2/gfmTimer.o 
+  endif
 # Add the objects used with OpenGL
   ifeq ($(USE_OPENGL), yes)
     OBJS +=                               \
@@ -283,11 +287,22 @@ $(BINDIR)/test_animation: $(OBJDIR)/gframe_test_animation.o
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 	mkdir -p $(OBJDIR)/opengl
+	mkdir -p $(OBJDIR)/core
+	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(WDATADIR)
 	mkdir -p $(BINDIR)
 #==============================================================================
 
-.PHONY: clean
+.PHONY: clean mostlyclean
 clean:
-	rm -f $(OBJS) $(BINDIR)/$(TARGET)* $(BINDIR)/test_*
+	rm -f $(OBJS)/core/*
+	rm -f $(OBJS)/core/sdl2*
+	rm -f $(OBJS)/opengl/*
+	rm -f $(OBJS)/*
+	rm -f $(BINDIR)/$(TARGET)*
+	rm -f $(BINDIR)/test_*
+
+mostlyclean:
+	rm -rf $(OBJS)
+	rm -rf $(BINDIR)
 

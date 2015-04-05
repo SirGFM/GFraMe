@@ -7,9 +7,37 @@
 #include <GFraMe/GFraMe_log.h>
 #include <GFraMe/GFraMe_opengl.h>
 #include <GFraMe/GFraMe_screen.h>
-#include <GFraMe/GFraMe_timer.h>
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL.h>
+
+#include <GFraMe/core/gfmTime_bkend.h>
+
+struct stGFMCtx {
+    // TODO specify backend
+    /** "Organization" name. Is used as part of paths. */
+    char GFraMe_org[GFraMe_max_org_len];
+    /** Game's title. Is used as part of paths. */
+    char GFraMe_title[GFraMe_max_game_title_len];
+#ifndef GFRAME_MOBILE
+    /** Directory where the game binary is being run from */
+    /** Path to the directory where the game is running */
+    char GFraMe_path[GFraMe_max_path_len];
+#endif
+    /** Timer used to issue new frames */
+    gfmTimer *timer;
+};
+
+/** 'Exportable' size of gfmStruct */
+const size_t sizeofGFMCtx = sizeof(struct stGFMCtx);
+
+//gfmRV gfm_getNew(gfmCtx *pCtx, 
+
+
+/* ========================================================================== */
+/* |                                                                        | */
+/* |  OLD STUFF                                                             | */
+/* |                                                                        | */
+/* ========================================================================== */
 
 int GFraMe_gl;
 /**
