@@ -10,6 +10,8 @@
 
 /** "Export" the timer structure's type */
 typedef struct stGFMTimer gfmTimer;
+/** 'Exportable' size of gfmTimer */
+extern const size_t sizeofGFMTimer;
 
 /**
  * Get how long each frame must take for the timer function;

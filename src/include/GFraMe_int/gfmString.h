@@ -8,26 +8,126 @@
 
 #include <GFraMe/gfmError.h>
 
+/** 'Exports' the gfmString structure */
 typedef struct stGFMString gfmString;
+/** 'Exportable' size of gfmString */
+const size_t sizeofGFMString;
 
 /**
- * Copies a string from a static buffer
+ * Alloc a new gfmString
  * 
- * @param ppStr The created gfmString
- * @param string A statically allocated string (i.e., char var[] = "...")
- * @param doCopy Whether the string's content or address will be stored
+ * @param  ppStr The gfmString
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-#define gfmString_initStatic(ppStr, string, doCopy) \
-    gfmString_init(ppStr, string, sizeof(string), doCopy)
+gfmRV gfmString_getNew(gfmString **ppStr);
 
 /**
- * Copies a string from a static buffer
+ * Free up a gfmString's memory
  * 
- * @param ppStr The created gfmString
- * @param string A statically allocated string (i.e., char var[] = "...")
- * @param doCopy Whether the string's content or address will be stored
+ * @param  ppStr The gfmString
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmString_init(gfmString **ppStr, char *string, int len, int doCopy);
+gfmRV gfmString_free(gfmString **ppStr);
+
+/**
+ * Initializes a string from a static buffer
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A statically allocated string (i.e., char var[] = "...")
+ * @param  doCopy Whether the string's content or address will be stored
+ */
+#define gfmString_initStatic(pStr, string, doCopy) \
+    gfmString_init(pStr, string, sizeof(string)-1, doCopy)
+
+/**
+ * Initializes a string
+ * 
+ * If 'doCopy' was set as zero and another call is made with 'doCopy' as
+ * non-zero, the previous string will be deallocated; If any number of string
+ * are initialized without copying, no extra memory will be allocated; If a
+ * copied string is initialized over another copied string, the buffer will be 
+ * expanded (i.e., realloc'ed) as necessary
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A string
+ * @param  len    The string's length
+ * @param  doCopy Whether the string's content (non-zero) or address (zero) will
+ *                be stored
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmString_init(gfmString *pStr, char *string, int len, int doCopy);
+
+/**
+ * Check if a string needs to be extended and do it
+ * 
+ * @param  pStr The created gfmString
+ * @param  len  The new desired length
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_STRING_WASNT_COPIED
+ */
+gfmRV gfmString_setMinimumLength(gfmString *pStr, int len);
+
+/**
+ * Concatenate a static string to a another one
+ * 
+ * NOTE: Can only be done if the string was initialized as a copy!
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A statically allocated string (i.e., char var[] = "...")
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                GFMRV_STRING_WASNT_COPIED
+ */
+#define gfmString_concatStatic(pStr, string) \
+    gfmString_concat(pStr, string, sizeof(string)-1)
+
+/**
+ * Concatenate a string to another one
+ * 
+ * NOTE: Can only be done if the string was initialized as a copy!
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A string
+ * @param  len    The string's length
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                GFMRV_STRING_WASNT_COPIED
+ */
+gfmRV gfmString_concat(gfmString *pStr, char *string, int len);
+
+/**
+ * Insert a static string into another one, at a random position
+ * 
+ * NOTE: Can only be done if the string was initialized as a copy!
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A statically allocated string (i.e., char var[] = "...")
+ * @param  pos    Position, on the original string, where it should be inserted
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                GFMRV_STRING_WASNT_COPIED
+ */
+#define gfmString_insertAtStatic(pStr, string, pos) \
+    gfmString_insertAt(pStr, string, sizeof(string)-1, pos)
+
+/**
+ * Insert a string into another one, at a random position
+ * 
+ * NOTE: Can only be done if the string was initialized as a copy!
+ * 
+ * @param  pStr   The created gfmString
+ * @param  string A string
+ * @param  len    The string's length
+ * @param  pos    Position, on the original string, where it should be inserted
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                GFMRV_STRING_WASNT_COPIED
+ */
+gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos);
+
+/**
+ * Clear up previously allocated resources
+ * 
+ * @param  pStr   The created gfmString
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmString_clear(gfmString *pStr);
 
 #endif /* __INT_GFMSTRING__ */
 

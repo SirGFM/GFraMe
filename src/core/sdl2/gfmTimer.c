@@ -24,6 +24,9 @@ struct stGFMTimer {
     SDL_UserEvent userevent;
 };
 
+/** 'Exportable' size of gfmTimer */
+const size_t sizeofGFMTimer = sizeof(struct stGFMTimer);
+
 /**
  * Callback to be called by SDL each time a time event is issued.
  */
@@ -66,7 +69,7 @@ gfmRV gfmTimer_new(gfmTimer **ppSelf) {
     ASSERT(!(*ppSelf), GFMRV_ARGUMENTS_BAD);
     
     // Alloc and initialize the structure
-    *ppSelf = (gfmTimer*)malloc(sizeof(gfmTimer));
+    *ppSelf = (gfmTimer*)malloc(sizeofGFMTimer);
     ASSERT(*ppSelf, GFMRV_ALLOC_FAILED);
     (*ppSelf)->fps = 0;
     (*ppSelf)->interval = 0;

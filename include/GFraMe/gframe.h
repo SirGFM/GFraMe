@@ -1,15 +1,61 @@
 /**
- * @include/GFraMe/GFraMe.h
+ * @include/GFraMe/gframe.h
  */
 #ifndef __GFRAME_H_
 #define __GFRAME_H_
-
-#include <GFraMe/GFraMe_screen.h>
 
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
 #define GFraMe_fix_version		0
 #define GFraMe_version	"0.1.0"
+
+/** 'Exports' the gfmCtx structure */
+typedef struct stGFMCtx gfmCtx;
+/** 'Exportable' size of gfmString */
+const size_t sizeofGFMCtx;
+
+/**
+ * Alloc a new gfmContext
+ * 
+ * @param  ppCtx The allocated context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getNew(gfmCtx **ppCtx);
+
+/**
+ * Set the game's title and organization from static buffers
+ * 
+ * @param  pCtx    The game's context
+ * @param  org     Statically allocated organization's name
+ * @param  name    Statically allocated game's title (i.e., char var[] = "...")
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
+ *                 GFMRV_ALLOC_FAILED
+ */
+#define gfm_setTitleStatic(pCtx, pOrg, pName) \
+    gfm_setTitle(pCtx, pOrg, sizeof(pOrg)-1, pName, sizeof(pName)-1)
+
+/**
+ * Set the game's title and organization
+ * 
+ * @param  pCtx    The game's context
+ * @param  org     Organization's name (used by log and save file)
+ * @param  orgLen  Organization's name's length
+ * @param  name    Game's title (also used as window's title)
+ * @param  nameLen Game's title's length
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
+ *                 GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
+        int nameLen);
+
+/* ========================================================================== */
+/* |                                                                        | */
+/* |  OLD STUFF                                                             | */
+/* |                                                                        | */
+/* ========================================================================== */
+
+#include <GFraMe/GFraMe_screen.h>
+
 
 /**
  * Whether there is OpenGL support or not

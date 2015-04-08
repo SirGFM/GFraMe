@@ -1,7 +1,6 @@
 /**
  * @src/gframe.c
  */
-#include <GFraMe/GFraMe.h>
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_keys.h>
 #include <GFraMe/GFraMe_log.h>
@@ -10,28 +9,113 @@
 #include <GFraMe/GFraMe_util.h>
 #include <SDL2/SDL.h>
 
+#include <GFraMe/gframe.h>
+#include <GFraMe/gfmAssert.h>
+#include <GFraMe/gfmError.h>
 #include <GFraMe/core/gfmTime_bkend.h>
+#include <GFraMe_int/gfmString.h>
 
 struct stGFMCtx {
     // TODO specify backend
-    /** "Organization" name. Is used as part of paths. */
-    char GFraMe_org[GFraMe_max_org_len];
-    /** Game's title. Is used as part of paths. */
-    char GFraMe_title[GFraMe_max_game_title_len];
+    /** "Organization" name; It's used as part of paths. */
+    gfmString *pGameOrg;
+    /** Game's title; It's used as part of paths. */
+    gfmString *pGameTitle;
 #ifndef GFRAME_MOBILE
     /** Directory where the game binary is being run from */
-    /** Path to the directory where the game is running */
-    char GFraMe_path[GFraMe_max_path_len];
+    gfmString *pBinPath;
+    /** Buffer for storing a save file's filename */
+    gfmString *pSaveFilename;
 #endif
     /** Timer used to issue new frames */
-    gfmTimer *timer;
+    gfmTimer *pTimer;
 };
 
 /** 'Exportable' size of gfmStruct */
 const size_t sizeofGFMCtx = sizeof(struct stGFMCtx);
 
-//gfmRV gfm_getNew(gfmCtx *pCtx, 
+/**
+ * Alloc a new gfmContext
+ * 
+ * @param  ppCtx The allocated context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getNew(gfmCtx **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the context
+    *ppCtx = (gfmCtx*)malloc(sizeofGFMCtx);
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    
+    // Zero the context's contents
+    (*ppCtx)->pGameOrg = 0;
+    (*ppCtx)->pGameTitle = 0;
+#ifndef GFRAME_MOBILE
+    (*ppCtx)->BinPath = 0;
+#endif
+    (*ppCtx)->pTimer = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
+/**
+ * Set the game's title and organization
+ * 
+ * @param  pCtx    The game's context
+ * @param  org     Organization's name (used by log and save file)
+ * @param  orgLen  Organization's name's length
+ * @param  name    Game's title (also used as window's title)
+ * @param  nameLen Game's title's length
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
+ *                 GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
+        int nameLen) {
+    gfmRV rv;
+    int doCopy;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOrg, GFMRV_ARGUMENTS_BAD);
+    ASSERT(orgLen > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pName, GFMRV_ARGUMENTS_BAD);
+    ASSERT(nameLen > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the game's title wasn't initialized
+    ASSERT(!pCtx->pGameOrg, GFMRV_TITLE_ALREADY_SET);
+    ASSERT(!pCtx->pGameTitle, GFMRV_TITLE_ALREADY_SET);
+    
+    // Alloc both strings
+    rv = gfmString_getNew(&(pCtx->pGameOrg));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_getNew(&(pCtx->pGameTitle));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the strings
+    doCopy = 1;
+    rv = gfmString_init(pCtx->pGameOrg, pOrg, orgLen, doCopy);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_init(pCtx->pGameTitle, pName, nameLen, doCopy);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    if (rv != GFMRV_OK && rv != GFMRV_TITLE_ALREADY_SET &&
+            rv != GFMRV_ARGUMENTS_BAD) {
+        gfmString(&(pCtx->pGameOrg);
+        gfmString(&(pCtx->pGameTitle);
+    }
+    return rv;
+}
+
+gfmRV gfm_initAll() {
+}
 
 /* ========================================================================== */
 /* |                                                                        | */
