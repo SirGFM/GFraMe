@@ -122,6 +122,24 @@ gfmRV gfmString_concat(gfmString *pStr, char *string, int len);
 gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos);
 
 /**
+ * Get the string's content, as a NULL terminated char*
+ * 
+ * @param  ppStr The retrieved string
+ * @param  pStr  The string
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED
+ */
+gfmRV gfmString_getString(char **ppStr, gfmString *pStr);
+
+/**
+ * Get the string's length
+ * 
+ * @param  pLen The string's length
+ * @param  pStr  The string
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED
+ */
+gfmRV gfmString_getLength(int *pLen, gfmString *pStr);
+
+/**
  * Clear up previously allocated resources
  * 
  * @param  pStr   The created gfmString

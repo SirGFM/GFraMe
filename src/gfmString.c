@@ -5,7 +5,7 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
-#include <GFraMe_int/gfmString.h>
+#include <GFraMe/gfmString.h>
 
 struct stGFMString {
     /** The string itself */
@@ -197,7 +197,7 @@ gfmRV gfmString_concat(gfmString *pStr, char *string, int len) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Insert an 'EOS'
-    pStr->self[pStr->len + len] = '\0';
+    pStr->self[pStr->len] = '\0';
     
     rv = GFMRV_OK;
 __ret:
@@ -235,6 +235,56 @@ gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos) {
         pStr->self[pos + i] = string[i];
         i++;
     }
+    // Set the string's new length
+    pStr->len = pos + i;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the string's content, as a NULL terminated char*
+ * 
+ * @param  ppStr The retrieved string
+ * @param  pStr  The string
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmString_getString(char **ppStr, gfmString *pStr) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppStr), GFMRV_ARGUMENTS_BAD);
+    ASSERT(pstr, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the string was initialized
+    ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
+    // Get the string's pointer
+    *ppStr = pStr->self;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the string's length
+ * 
+ * @param  pLen The string's length
+ * @param  pStr  The string
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED
+ */
+gfmRV gfmString_getLength(int *pLen, gfmString *pStr) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pstr, GFMRV_ARGUMENTS_BAD);
+    // Check that the string was initialized
+    ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
+    // Get the string's length
+    *pLen = pStr->len;
     
     rv = GFMRV_OK;
 __ret:

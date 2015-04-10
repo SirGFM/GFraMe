@@ -42,7 +42,8 @@ CC = gcc
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     OBJS +=                                    \
-            $(OBJDIR)/core/sdl2/gfmTimer.o 
+            $(OBJDIR)/core/sdl2/gfmPath.o      \
+            $(OBJDIR)/core/sdl2/gfmTimer.o     \
   endif
 # Add the objects used with OpenGL
   ifeq ($(USE_OPENGL), yes)

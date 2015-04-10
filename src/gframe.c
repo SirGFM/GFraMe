@@ -12,8 +12,9 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmTime_bkend.h>
-#include <GFraMe_int/gfmString.h>
+#include <GFraMe/core/gfmPath_bkend.h>
 
 struct stGFMCtx {
     // TODO specify backend
@@ -24,9 +25,11 @@ struct stGFMCtx {
 #ifndef GFRAME_MOBILE
     /** Directory where the game binary is being run from */
     gfmString *pBinPath;
+#endif
     /** Buffer for storing a save file's filename */
     gfmString *pSaveFilename;
-#endif
+    /** Length until the end of the filename's path */
+    int saveFilenameLen;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
 };
@@ -55,9 +58,16 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     (*ppCtx)->pGameOrg = 0;
     (*ppCtx)->pGameTitle = 0;
 #ifndef GFRAME_MOBILE
-    (*ppCtx)->BinPath = 0;
+    (*ppCtx)->pBinPath = 0;
 #endif
+    (*ppCtx)->pSaveFilename = 0;
     (*ppCtx)->pTimer = 0;
+    
+#ifndef GFRAME_MOBILE
+	// Get current directory
+    rv = gfmPath_getRunningPath(&((*ppCtx)->pBinPath));
+    ASSERT_NR(rv == GFMRV_OK);
+#endif
     
     rv = GFMRV_OK;
 __ret:
@@ -67,13 +77,13 @@ __ret:
 /**
  * Set the game's title and organization
  * 
- * @param  pCtx    The game's context
- * @param  org     Organization's name (used by log and save file)
- * @param  orgLen  Organization's name's length
- * @param  name    Game's title (also used as window's title)
- * @param  nameLen Game's title's length
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
- *                 GFMRV_ALLOC_FAILED
+ * @param  pCtx     The game's context
+ * @param  pOrg     Organization's name (used by log and save file)
+ * @param  orgLen   Organization's name's length
+ * @param  pName    Game's title (also used as window's title)
+ * @param  nameLen  Game's title's length
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
+ *                  GFMRV_ALLOC_FAILED
  */
 gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
         int nameLen) {
@@ -104,14 +114,68 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
     rv = gfmString_init(pCtx->pGameTitle, pName, nameLen, doCopy);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Get the default file path
+    rv = gfmPath_getLocalPath(&(pCtx->pSaveFilename), pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_getLength(&(pCtx->saveFilenameLen), pCtx->pSaveFilename);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     rv = GFMRV_OK;
 __ret:
     if (rv != GFMRV_OK && rv != GFMRV_TITLE_ALREADY_SET &&
             rv != GFMRV_ARGUMENTS_BAD) {
-        gfmString(&(pCtx->pGameOrg);
-        gfmString(&(pCtx->pGameTitle);
+        gfmString_free(&(pCtx->pGameOrg);
+        gfmString_free(&(pCtx->pGameTitle);
+        gfmString_free(&(pCtx->pSaveFilename);
     }
     return rv;
+}
+
+/**
+ * Get the game's title and organization
+ * 
+ * @param  ppOrg      Organization's name (used by log and save file)
+ * @param  ppTitle    Game's title (also used as window's title)
+ * @param  pCtx       The game's context
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET
+ */
+gfmRV gframe_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppOrg, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppOrg), GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppTitle, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppTitle), GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the string were set
+    ASSERT(pCtx->pGameOrg, GFMRV_TITLE_NOT_SET);
+    ASSERT(pCtx->pGameTitle, GFMRV_TITLE_NOT_SET);
+    
+    // Retrieve the strings
+    rv = gfmString_getString(ppOrg, pCtx->pGameOrg);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_getString(ppTitle, pCtx->pGameTitle);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the game window and backbuffer initial resolution;
+ * 
+ * *NOTE*: The game window may be later modified, but not the backbuffer's!
+ * 
+ * @param  bufWidth  Backbuffer's width
+ * @param  bufHeight Backbuffer's height
+ * @param  devWidth  Device's width
+ * @param  devHeight Device's height
+ * @return           GFMRV_OK, ...
+ */
+gfmRV gfm_setResolution(int bufWidth, int bufHeight, int devWidth, int devHeight) {
 }
 
 gfmRV gfm_initAll() {

@@ -37,16 +37,26 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
 /**
  * Set the game's title and organization
  * 
- * @param  pCtx    The game's context
- * @param  org     Organization's name (used by log and save file)
- * @param  orgLen  Organization's name's length
- * @param  name    Game's title (also used as window's title)
- * @param  nameLen Game's title's length
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
- *                 GFMRV_ALLOC_FAILED
+ * @param  pCtx     The game's context
+ * @param  pOrg     Organization's name (used by log and save file)
+ * @param  orgLen   Organization's name's length
+ * @param  pName    Game's title (also used as window's title)
+ * @param  nameLen  Game's title's length
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_ALREADY_SET,
+ *                  GFMRV_ALLOC_FAILED
  */
 gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
         int nameLen);
+
+/**
+ * Get the game's title and organization
+ * 
+ * @param  ppOrg      Organization's name (used by log and save file)
+ * @param  ppTitle    Game's title (also used as window's title)
+ * @param  pCtx       The game's context
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET
+ */
+gfmRV gframe_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
 
 /* ========================================================================== */
 /* |                                                                        | */
