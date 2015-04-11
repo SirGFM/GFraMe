@@ -13,6 +13,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmTime_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 
@@ -30,6 +31,8 @@ struct stGFMCtx {
     gfmString *pSaveFilename;
     /** Length until the end of the filename's path */
     int saveFilenameLen;
+    /** Whether the backend was initialized */
+    int isBackendInit;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
 };
@@ -62,6 +65,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
 #endif
     (*ppCtx)->pSaveFilename = 0;
     (*ppCtx)->pTimer = 0;
+    (*ppCtx)->isBackendInit = 0;
     
 #ifndef GFRAME_MOBILE
 	// Get current directory
@@ -69,8 +73,20 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     ASSERT_NR(rv == GFMRV_OK);
 #endif
     
+    // Init the current backend
+    // TODO allow more than one backend?
+    rv = gfmBackend_init();
+    ASSERT_NR(rv == GFMRV_OK);
+    // Set the backend as initialized
+    (*ppCtx)->isBackendInit = 1;
+    
     rv = GFMRV_OK;
 __ret:
+    // Clean up the context, on error
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
+        gfm_free(ppCtx);
+    }
+    
     return rv;
 }
 
@@ -169,13 +185,15 @@ __ret:
  * 
  * *NOTE*: The game window may be later modified, but not the backbuffer's!
  * 
+ * @param  pCtx     The game's context
  * @param  bufWidth  Backbuffer's width
  * @param  bufHeight Backbuffer's height
  * @param  devWidth  Device's width
  * @param  devHeight Device's height
  * @return           GFMRV_OK, ...
  */
-gfmRV gfm_setResolution(int bufWidth, int bufHeight, int devWidth, int devHeight) {
+gfmRV gfm_setGameResolution(gfmCtx *pCtx, int bufWidth, int bufHeight,
+        int devWidth, int devHeight) {
 }
 
 gfmRV gfm_initAll() {
@@ -186,6 +204,8 @@ gfmRV gfm_initAll() {
 /* |  OLD STUFF                                                             | */
 /* |                                                                        | */
 /* ========================================================================== */
+
+#if 0
 
 int GFraMe_gl;
 /**
@@ -294,4 +314,6 @@ void GFraMe_quit() {
 	GFraMe_log_close();
 	SDL_Quit();
 }
+
+#endif
 
