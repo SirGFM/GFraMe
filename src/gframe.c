@@ -18,7 +18,7 @@
 #include <GFraMe/core/gfmPath_bkend.h>
 
 struct stGFMCtx {
-    // TODO specify backend
+    // TODO specify backend(?)
     /** "Organization" name; It's used as part of paths. */
     gfmString *pGameOrg;
     /** Game's title; It's used as part of paths. */
@@ -181,9 +181,9 @@ __ret:
 }
 
 /**
- * Set the game window and backbuffer initial resolution;
+ * Initialize the game's window and backbuffer
  * 
- * *NOTE*: The game window may be later modified, but not the backbuffer's!
+ * *NOTE*: The game window may be later resized, but not the backbuffer's!
  * 
  * @param  pCtx     The game's context
  * @param  bufWidth  Backbuffer's width
@@ -192,8 +192,16 @@ __ret:
  * @param  devHeight Device's height
  * @return           GFMRV_OK, ...
  */
-gfmRV gfm_setGameResolution(gfmCtx *pCtx, int bufWidth, int bufHeight,
+gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int devWidth, int devHeight) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 gfmRV gfm_initAll() {
