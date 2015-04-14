@@ -56,7 +56,7 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     pOrg = 0;
     pTitle = 0;
     // Get the organization and title
-    rv = gframe_getTitle(&pOrg, &pTitle, pCtx);
+    rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get the local path

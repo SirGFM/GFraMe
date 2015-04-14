@@ -41,7 +41,7 @@ const int sizeofGFMCtx = sizeof(struct stGFMCtx);
  * Alloc a new gfmContext
  * 
  * @param  ppCtx The allocated context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
 gfmRV gfm_getNew(gfmCtx **ppCtx) {
     gfmRV rv;
@@ -85,6 +85,32 @@ __ret:
         free(ppCtx);
     }
     
+    return rv;
+}
+
+/**
+ * Dealloc and clean up a gfmContext
+ * 
+ * @param  ppCtx The allocated context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_free(gfmCtx **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean up the context
+    rv = gfm_clean(*ppCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Dealloc the context
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
     return rv;
 }
 
@@ -153,7 +179,7 @@ __ret:
  * @param  pCtx       The game's context
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET
  */
-gfmRV gframe_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
+gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
     gfmRV rv;
     
     // Sanitize the arguments
@@ -205,14 +231,14 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
     
     // Try to read the game's title
-    rv = gframe_getTitle(&pOrg, &pTitle, pCtx);
+    rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Alloc and initialize the window
     rv = gfmWindow_getNew(&(pCtx->pWindow));
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle);
-    ASSERT_NR(rv == GFMRV_OK);
+    //rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle);
+    //ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -221,6 +247,33 @@ __ret:
 
 gfmRV gfm_initAll() {
     return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
+/**
+ * Clean up a context
+ * 
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_clean(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean every allocated 'object'
+    gfmString_free(&(pCtx->pGameOrg));
+    gfmString_free(&(pCtx->pGameTitle));
+    gfmString_free(&(pCtx->pSaveFilename));
+#ifndef GFRAME_MOBILE
+    gfmString_free(&(pCtx->pBinPath));
+#endif
+    gfmWindow_free(&(pCtx->pWindow));
+    gfmTimer_free(&(pCtx->pTimer));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /* ========================================================================== */

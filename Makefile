@@ -15,7 +15,8 @@ CC = gcc
 # Define every object required by compilation
 #==============================================================================
   OBJS =                                  \
-	      $(OBJDIR)/gframe.o              
+	      $(OBJDIR)/gframe.o              \
+	      $(OBJDIR)/gfmString.o           
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     OBJS +=                                    \
@@ -102,6 +103,7 @@ CC = gcc
 # Define where source files can be found and where objects & binary are output
 #==============================================================================
  VPATH := src:tst
+ TESTDIR := tst
  OBJDIR := obj/$(OS)
  WDATADIR := $(OBJDIR)/wavtodata
  BINDIR := bin/$(OS)
@@ -116,6 +118,13 @@ CC = gcc
    LIBPATH := /usr/lib
    HEADERPATH := /usr/include
  endif
+#==============================================================================
+
+#==============================================================================
+# Automatically look up for tests and compile them
+#==============================================================================
+ TEST_SRC := $(wildcard $(TESTDIR)/*.c)
+ TEST_BIN  := $(addprefix $(BINDIR)/, $(TEST_SRC:%.c=%))
 #==============================================================================
 
 #==============================================================================
@@ -160,7 +169,7 @@ shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 #==============================================================================
 # Rule for building tests
 #==============================================================================
-tests: MAKEDIRS static
+tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 
 #==============================================================================
@@ -222,7 +231,7 @@ else
 	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 	ldconfig -n $(BINDIR)
-	cd $(BINDIR); ln -s $(TARGET).$(MJV) $(TARGET).$(SO)
+	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
 endif
 #==============================================================================
 
@@ -236,12 +245,14 @@ $(OBJDIR)/%.o: %.c
 #==============================================================================
 # Rule for creating every directory
 #==============================================================================
-MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
+MAKEDIRS: | $(OBJDIR) $(BINDIR)
 #==============================================================================
 
 #==============================================================================
 #  
 #==============================================================================
+$(BINDIR)/%_tst: $(OBJDIR)/%_tst.o
+	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) 
 #==============================================================================
 
 #==============================================================================
@@ -249,11 +260,11 @@ MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
 #==============================================================================
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
-	mkdir -p $(OBJDIR)/opengl
+	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
 	mkdir -p $(OBJDIR)/core/sdl2
-	mkdir -p $(WDATADIR)
 	mkdir -p $(BINDIR)
+	mkdir -p $(BINDIR)/tst
 #==============================================================================
 
 .PHONY: clean mostlyclean

@@ -7,6 +7,8 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
 
+#include <stdlib.h>
+
 struct stGFMString {
     /** The string itself */
     char *self;
@@ -42,7 +44,7 @@ gfmRV gfmString_getNew(gfmString **ppStr) {
     (*ppStr)->self = 0;
     (*ppStr)->len = 0;
     (*ppStr)->bufLen = 0;
-    (*ppStr)->doDealloc = 0;
+    (*ppStr)->mustDealloc = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -63,7 +65,7 @@ gfmRV gfmString_free(gfmString **ppStr) {
     ASSERT(*ppStr, GFMRV_ARGUMENTS_BAD);
     
     // Clean up the structure
-    gfmStrinc_clear(*ppStr);
+    gfmString_clear(*ppStr);
     
     // Free up the memory
     free(*ppStr);
@@ -100,7 +102,7 @@ gfmRV gfmString_init(gfmString *pStr, char *string, int len, int doCopy) {
     
     // Clean up the string and simply use the pointer
     if (!doCopy) {
-        if (pStr->doDealloc)
+        if (pStr->mustDealloc)
             gfmString_clear(pStr);
         // Copy the string's address
         pStr->self = string;
@@ -111,9 +113,9 @@ gfmRV gfmString_init(gfmString *pStr, char *string, int len, int doCopy) {
         int i;
         
         // Extend the string's length, if necessary
-        if (!pStr->doDealloc) {
+        if (!pStr->mustDealloc) {
             pStr->self = 0;
-            pStr->doDealloc = 1;
+            pStr->mustDealloc = 1;
         }
         rv = gfmString_setMinimumLength(pStr, len + 1);
         ASSERT_NR(rv == GFMRV_OK);
@@ -129,7 +131,7 @@ gfmRV gfmString_init(gfmString *pStr, char *string, int len, int doCopy) {
     }
     
     // Set whether the string must be dealloc'ed and its length
-    pStr->doDealloc = doCopy;
+    pStr->mustDealloc = doCopy;
     pStr->len = len;
     
     rv = GFMRV_OK;
@@ -155,7 +157,7 @@ gfmRV gfmString_setMinimumLength(gfmString *pStr, int len) {
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
     // Check that the string was alloc
-    ASSERT(pStr->doDealloc, GFMRV_STRING_WASNT_COPIED);
+    ASSERT(pStr->mustDealloc, GFMRV_STRING_WASNT_COPIED);
     // Check that the string must be expanded
     ASSERT(pStr->bufLen < len, GFMRV_OK);
     
@@ -225,7 +227,7 @@ gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos) {
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(pos >= 0 && pos < pStr->len, GFMRV_ARGUMENTS_BAD);
     // Check that the string was alloc
-    ASSERT(pStr->doDealloc, GFMRV_STRING_WASNT_COPIED);
+    ASSERT(pStr->mustDealloc, GFMRV_STRING_WASNT_COPIED);
     
     // Extend the string, as necessary
     gfmString_setMinimumLength(pStr, pStr->len + len + 1);
@@ -256,7 +258,7 @@ gfmRV gfmString_getString(char **ppStr, gfmString *pStr) {
     // Sanitize the arguments
     ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
     ASSERT(!(*ppStr), GFMRV_ARGUMENTS_BAD);
-    ASSERT(pstr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     
     // Check that the string was initialized
     ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
@@ -280,7 +282,7 @@ gfmRV gfmString_getLength(int *pLen, gfmString *pStr) {
     
     // Sanitize the arguments
     ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pstr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     // Check that the string was initialized
     ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
     // Get the string's length
@@ -304,13 +306,13 @@ gfmRV gfmString_clear(gfmString *pStr) {
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     
     // Free the previous string
-    if (pStr->doDealloc)
+    if (pStr->mustDealloc)
         free(pStr->self);
     // Clean up variables
     pStr->self = 0;
     pStr->bufLen = 0;
     pStr->len = 0;
-    pStr->doDealloc = 0;
+    pStr->mustDealloc = 0;
     
     rv = GFMRV_OK;
 __ret:

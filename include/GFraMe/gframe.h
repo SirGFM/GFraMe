@@ -20,9 +20,17 @@ const int sizeofGFMCtx;
  * Alloc a new gfmContext
  * 
  * @param  ppCtx The allocated context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
 gfmRV gfm_getNew(gfmCtx **ppCtx);
+
+/**
+ * Dealloc and clean up a gfmContext
+ * 
+ * @param  ppCtx The allocated context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_free(gfmCtx **ppCtx);
 
 /**
  * Set the game's title and organization from static buffers
@@ -58,7 +66,15 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
  * @param  pCtx       The game's context
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET
  */
-gfmRV gframe_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
+gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
+
+/**
+ * Clean up a context
+ * 
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_clean(gfmCtx *pCtx);
 
 /* ========================================================================== */
 /* |                                                                        | */
