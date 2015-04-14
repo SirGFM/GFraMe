@@ -82,7 +82,7 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     rv = GFMRV_OK;
 __ret:
     if (pPath)
-        SDL_free(sdl_path);
+        SDL_free(pPath);
     if (rv != GFMRV_ARGUMENTS_BAD && rv != GFMRV_OK)
         gfmString_free(ppStr);
     
@@ -96,7 +96,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmPath_getRunningPath(gfmString **ppStr) {
-    char *pTmpPath
+    char *pTmpPath;
     gfmRV rv;
     int doCopy, tmpPathLen;
     

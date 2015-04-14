@@ -5,7 +5,7 @@
  * This is a SDL2 implementation.
  */
 #include <GFraMe/gfmAssert.h>
-#include <GFraMe/core/gfmTime_bkend.h>
+#include <GFraMe/core/gfmTimer_bkend.h>
 
 #include <SDL2/SDL.h>
 
@@ -25,7 +25,7 @@ struct stGFMTimer {
 };
 
 /** 'Exportable' size of gfmTimer */
-const size_t sizeofGFMTimer = sizeof(struct stGFMTimer);
+const int sizeofGFMTimer = sizeof(struct stGFMTimer);
 
 /**
  * Callback to be called by SDL each time a time event is issued.

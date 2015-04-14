@@ -19,7 +19,7 @@ struct stGFMString {
 };
 
 /** 'Exportable' size of gfmString */
-const size_t sizeofGFMString = sizeof(struct stGFMString);
+const int sizeofGFMString = sizeof(struct stGFMString);
 
 /**
  * Alloc a new gfmString

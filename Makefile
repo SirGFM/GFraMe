@@ -15,43 +15,21 @@ CC = gcc
 # Define every object required by compilation
 #==============================================================================
   OBJS =                                  \
-          $(OBJDIR)/gframe_accumulator.o  \
-          $(OBJDIR)/gframe_animation.o    \
-          $(OBJDIR)/gframe_assets.o       \
-          $(OBJDIR)/gframe_object.o       \
-          $(OBJDIR)/gframe_screen.o       \
-          $(OBJDIR)/gframe_sprite.o       \
-          $(OBJDIR)/gframe_spriteset.o    \
-          $(OBJDIR)/gframe_texture.o      \
-          $(OBJDIR)/gframe_util.o         \
-          $(OBJDIR)/gframe_tilemap.o      \
-          $(OBJDIR)/gframe_audio.o        \
-          $(OBJDIR)/gframe_audio_player.o \
-          $(OBJDIR)/gframe_messagebox.o   \
-    	  $(OBJDIR)/gframe_save.o         \
-          $(OBJDIR)/gframe_hitbox.o       \
-	      $(OBJDIR)/gframe_tween.o        \
-          $(OBJDIR)/gframe_pointer.o      \
-          $(OBJDIR)/gframe_keys.o         \
-          $(OBJDIR)/gframe_controller.o   \
-	      $(OBJDIR)/gframe.o              \
-          $(OBJDIR)/gframe_log.o          \
-    	  $(WDATADIR)/chunk.o             \
-          $(WDATADIR)/fmt.o               \
-          $(WDATADIR)/wavtodata.o
+	      $(OBJDIR)/gframe.o              
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     OBJS +=                                    \
             $(OBJDIR)/core/sdl2/gfmBackend.o   \
             $(OBJDIR)/core/sdl2/gfmPath.o      \
-            $(OBJDIR)/core/sdl2/gfmTimer.o     
+            $(OBJDIR)/core/sdl2/gfmTimer.o     \
+            $(OBJDIR)/core/sdl2/gfmWindow.o    
   endif
 # Add the objects used with OpenGL
-  ifeq ($(USE_OPENGL), yes)
-    OBJS +=                               \
-            $(OBJDIR)/gframe_opengl.o     \
-            $(OBJDIR)/opengl/opengl_wrapper.o 
-  endif
+ # ifeq ($(USE_OPENGL), yes)
+ #   OBJS +=                               \
+ #           $(OBJDIR)/gframe_opengl.o     \
+ #           $(OBJDIR)/opengl/opengl_wrapper.o 
+ # endif
 #==============================================================================
 
 #==============================================================================
@@ -88,9 +66,9 @@ CC = gcc
     CFLAGS := $(CFLAGS) -fPIC
   endif
 # Add OpenGL flags
-  ifeq ($(USE_OPENGL), yes)
-    CFLAGS := $(CFLAGS) -DGFRAME_OPENGL
-  endif
+ # ifeq ($(USE_OPENGL), yes)
+ #   CFLAGS := $(CFLAGS) -DGFRAME_OPENGL
+ # endif
 #==============================================================================
 
 #==============================================================================
@@ -111,13 +89,13 @@ CC = gcc
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
 # Add OpenGL lib
-  ifeq ($(USE_OPENGL), yes)
-    ifeq ($(OS), Win)
-      LFLAGS := $(LFLAGS) -lopengl32
-    else
-      LFLAGS := $(LFLAGS) -lGL
-    endif
-  endif
+ # ifeq ($(USE_OPENGL), yes)
+ #   ifeq ($(OS), Win)
+ #     LFLAGS := $(LFLAGS) -lopengl32
+ #   else
+ #     LFLAGS := $(LFLAGS) -lGL
+ #   endif
+ # endif
 #==============================================================================
 
 #==============================================================================
@@ -182,8 +160,7 @@ shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 #==============================================================================
 # Rule for building tests
 #==============================================================================
-tests: MAKEDIRS static $(BINDIR)/test_controller $(BINDIR)/test_collision \
-       $(BINDIR)/test_animation
+tests: MAKEDIRS static
 #==============================================================================
 
 #==============================================================================
@@ -265,22 +242,6 @@ MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
 #==============================================================================
 #  
 #==============================================================================
-$(BINDIR)/test_controller: $(OBJDIR)/gframe_test_controller.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_controller $(OBJDIR)/gframe_test_controller.o $(BINDIR)/$(TARGET).a $(LFLAGS)
-#==============================================================================
-
-#==============================================================================
-#  
-#==============================================================================
-$(BINDIR)/test_collision: $(OBJDIR)/gframe_test_collision.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_collision $(OBJDIR)/gframe_test_collision.o $(BINDIR)/$(TARGET).a $(LFLAGS)
-#==============================================================================
-
-#==============================================================================
-#  
-#==============================================================================
-$(BINDIR)/test_animation: $(OBJDIR)/gframe_test_animation.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_animation $(OBJDIR)/gframe_test_animation.o $(BINDIR)/$(TARGET).a $(LFLAGS)
 #==============================================================================
 
 #==============================================================================
@@ -297,14 +258,10 @@ $(OBJDIR):
 
 .PHONY: clean mostlyclean
 clean:
-	rm -f $(OBJS)/core/*
-	rm -f $(OBJS)/core/sdl2*
-	rm -f $(OBJS)/opengl/*
-	rm -f $(OBJS)/*
+	rm -f $(OBJS)
+	rm -f $(BINDIR)/$(TARGET).$(MJV)
+	rm -f $(BINDIR)/$(TARGET).$(MNV)
+	rm -f $(BINDIR)/$(TARGET).$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
 	rm -f $(BINDIR)/test_*
-
-mostlyclean:
-	rm -rf $(OBJS)
-	rm -rf $(BINDIR)
 

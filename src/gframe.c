@@ -1,21 +1,16 @@
 /**
  * @src/gframe.c
  */
-#include <GFraMe/GFraMe_error.h>
-#include <GFraMe/GFraMe_keys.h>
-#include <GFraMe/GFraMe_log.h>
-#include <GFraMe/GFraMe_opengl.h>
-#include <GFraMe/GFraMe_screen.h>
-#include <GFraMe/GFraMe_util.h>
-#include <SDL2/SDL.h>
-
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
-#include <GFraMe/core/gfmTime_bkend.h>
+#include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
+#include <GFraMe/core/gfmWindow_bkend.h>
+
+#include <stdlib.h>
 
 struct stGFMCtx {
     // TODO specify backend(?)
@@ -33,12 +28,14 @@ struct stGFMCtx {
     int saveFilenameLen;
     /** Whether the backend was initialized */
     int isBackendInit;
+    /** Game's window */
+    gfmWindow *pWindow;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
 };
 
 /** 'Exportable' size of gfmStruct */
-const size_t sizeofGFMCtx = sizeof(struct stGFMCtx);
+const int sizeofGFMCtx = sizeof(struct stGFMCtx);
 
 /**
  * Alloc a new gfmContext
@@ -66,6 +63,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     (*ppCtx)->pSaveFilename = 0;
     (*ppCtx)->pTimer = 0;
     (*ppCtx)->isBackendInit = 0;
+    (*ppCtx)->pWindow = 0;
     
 #ifndef GFRAME_MOBILE
 	// Get current directory
@@ -84,7 +82,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
 __ret:
     // Clean up the context, on error
     if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
-        gfm_free(ppCtx);
+        free(ppCtx);
     }
     
     return rv;
@@ -140,9 +138,9 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
 __ret:
     if (rv != GFMRV_OK && rv != GFMRV_TITLE_ALREADY_SET &&
             rv != GFMRV_ARGUMENTS_BAD) {
-        gfmString_free(&(pCtx->pGameOrg);
-        gfmString_free(&(pCtx->pGameTitle);
-        gfmString_free(&(pCtx->pSaveFilename);
+        gfmString_free(&(pCtx->pGameOrg));
+        gfmString_free(&(pCtx->pGameTitle));
+        gfmString_free(&(pCtx->pSaveFilename));
     }
     return rv;
 }
@@ -183,21 +181,38 @@ __ret:
 /**
  * Initialize the game's window and backbuffer
  * 
- * *NOTE*: The game window may be later resized, but not the backbuffer's!
+ * *NOTE*: The game window may be later resized, but not the backbuffer!
  * 
  * @param  pCtx     The game's context
  * @param  bufWidth  Backbuffer's width
  * @param  bufHeight Backbuffer's height
- * @param  devWidth  Device's width
- * @param  devHeight Device's height
- * @return           GFMRV_OK, ...
+ * @param  wndWidth  Window's width
+ * @param  wndHeight Window's height
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
+ *                   GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int devWidth, int devHeight) {
+        int wndWidth, int wndHeight) {
+    char *pTitle, *pOrg;
     gfmRV rv;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the window hasn't been initialized
+    ASSERT(!(pCtx->pWindow), GFMRV_WINDOW_ALREADY_INITIALIZED);
+    // Basic check for the resolution (it'll be later re-done, on window_init
+    ASSERT(wndWidth > 0, GFMRV_INVALID_WIDTH);
+    ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
+    
+    // Try to read the game's title
+    rv = gframe_getTitle(&pOrg, &pTitle, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Alloc and initialize the window
+    rv = gfmWindow_getNew(&(pCtx->pWindow));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -205,6 +220,7 @@ __ret:
 }
 
 gfmRV gfm_initAll() {
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
 
 /* ========================================================================== */
@@ -212,8 +228,16 @@ gfmRV gfm_initAll() {
 /* |  OLD STUFF                                                             | */
 /* |                                                                        | */
 /* ========================================================================== */
-
 #if 0
+
+#include <GFraMe/GFraMe_error.h>
+#include <GFraMe/GFraMe_keys.h>
+#include <GFraMe/GFraMe_log.h>
+#include <GFraMe/GFraMe_opengl.h>
+#include <GFraMe/GFraMe_screen.h>
+#include <GFraMe/GFraMe_util.h>
+#include <SDL2/SDL.h>
+
 
 int GFraMe_gl;
 /**

@@ -11,7 +11,7 @@
 /** 'Exports' the gfmString structure */
 typedef struct stGFMString gfmString;
 /** 'Exportable' size of gfmString */
-const size_t sizeofGFMString;
+extern const int sizeofGFMString;
 
 /**
  * Alloc a new gfmString

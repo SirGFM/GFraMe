@@ -11,7 +11,7 @@
 /** "Export" the window structure's type */
 typedef struct stGFMWindow gfmWindow;
 /** 'Exportable' size of gfmWindow */
-extern const size_t sizeofGFMWindow;
+extern const int sizeofGFMWindow;
 
 /**
  * Alloc a new gfmWindow structure
@@ -64,20 +64,22 @@ gfmRV gfmWindow_getResolution(int *pWidth, int *pHeight, int *pRefRate,
  * @param  pCtx   The window context
  * @param  width  The desired width
  * @param  height The desired height
+ * @param  pName  The game's title, in a NULL terminated string
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *                GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height);
+gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName);
 
 /**
  * Initialize (i.e., create) a full screen window with the desired resolution
  * 
  * @param  pCtx  The window context
  * @param  index Resolution to be used (0 is the default resolution)
+ * @param  pName  The game's title, in a NULL terminated string
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *               GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
-gfmRV gfmWindow_initFullScreen(gfmWindow *pCtx, int resIndex);
+gfmRV gfmWindow_initFullScreen(gfmWindow *pCtx, int resIndex, char *pName);
 
 /**
  * Clean up (i.e., close) the window

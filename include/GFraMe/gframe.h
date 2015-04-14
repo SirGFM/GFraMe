@@ -4,6 +4,8 @@
 #ifndef __GFRAME_H_
 #define __GFRAME_H_
 
+#include <GFraMe/gfmError.h>
+
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
 #define GFraMe_fix_version		0
@@ -12,7 +14,7 @@
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
 /** 'Exportable' size of gfmString */
-const size_t sizeofGFMCtx;
+const int sizeofGFMCtx;
 
 /**
  * Alloc a new gfmContext
@@ -64,6 +66,8 @@ gfmRV gframe_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
 /* |                                                                        | */
 /* ========================================================================== */
 
+#if 0
+
 #include <GFraMe/GFraMe_screen.h>
 
 
@@ -111,6 +115,8 @@ GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
 				int fps, int log_to_file, int log_append);
 
 void GFraMe_quit();
+
+#endif /* 0 */
 
 #endif
 
