@@ -28,6 +28,10 @@ int main(int arg, char *argv[]) {
     rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_test");
     ASSERT_NR(rv != GFMRV_OK);
     
+    // Initialize the window
+    //rv = gfm_initGameWindow(pCtx, 1, 1, 1, 1);
+    //ASSERT_NR(rv == GFMRV_OK);
+    
     // And free it
     rv = gfm_free(&pCtx);
     ASSERT_NR(rv == GFMRV_OK);

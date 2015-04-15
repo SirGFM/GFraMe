@@ -270,9 +270,9 @@ $(OBJDIR):
 .PHONY: clean mostlyclean
 clean:
 	rm -f $(OBJS)
+	rm -f $(TEST_BIN)
 	rm -f $(BINDIR)/$(TARGET).$(MJV)
 	rm -f $(BINDIR)/$(TARGET).$(MNV)
 	rm -f $(BINDIR)/$(TARGET).$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
-	rm -f $(BINDIR)/test_*
 

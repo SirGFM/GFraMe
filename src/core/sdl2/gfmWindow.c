@@ -10,6 +10,7 @@
 #include <SDL2/SDL_video.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 
 struct stGFMWindow {
     /** Actual window (managed by SDL2) */
@@ -96,6 +97,26 @@ __ret:
 }
 
 /**
+ * Whether the window was initialized
+ * 
+ * @param  ppCtx The allocated 'object'
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmWindow_wasInit(gfmWindow *pCtx) {
+    gfmRV rv;
+    
+    // Check whether the window was initialized or not
+    if (!pCtx)
+        rv = GFMRV_ARGUMENTS_BAD;
+    else if (pCtx->pSDLWindow)
+        rv = GFMRV_TRUE;
+    else
+        rv = GFMRV_FALSE;
+    
+    return rv;
+}
+
+/**
  * Create a list with all possible window resolutions and refresh rate; This
  * will depend on the actual backend, but the refresh rate may only be
  * meaningful when on full-screen
@@ -144,10 +165,10 @@ gfmRV gfmWindow_queryResolutions(int *pCount, gfmWindow *pCtx) {
     // Get every possible resolution
     i = 0;
     while (i < pCtx->resCount) {
-        iret = SDL_GetDisplayMode(displayIndex, 0, &sdlMode);
+        iret = SDL_GetDisplayMode(displayIndex, i, &sdlMode);
         ASSERT(iret == 0, GFMRV_INTERNAL_ERROR);
         
-        // TODO check if it has a valid color mode
+        // TODO check if it has a valid color mode(?)
         pCtx->pWidths[i] = sdlMode.w;
         pCtx->pHeights[i] = sdlMode.h;
         pCtx->pRefRates[i] = sdlMode.refresh_rate;

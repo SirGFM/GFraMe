@@ -9,6 +9,8 @@
 enum enGFMError {
     // Generic errors
     GFMRV_OK = 0,
+    GFMRV_TRUE,
+    GFMRV_FALSE,
     GFMRV_ARGUMENTS_BAD,
     GFMRV_ALLOC_FAILED,
     GFMRV_INTERNAL_ERROR,

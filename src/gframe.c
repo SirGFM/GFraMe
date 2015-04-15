@@ -205,6 +205,29 @@ __ret:
 }
 
 /**
+ * Query the resolutions and add them to a internal buffer
+ * 
+ * @param  pCount How many resolutions were found
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, ...
+ */
+gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx);
+
+/**
+ * Get a resolution; if gfmWindow_queryResolutions wasn't previously called, it
+ * will be automatically called
+ * 
+ * @param  pWidth   A possible window's width
+ * @param  pHeight  A possible window's height
+ * @param  pRefRate A possible window's refresh rate
+ * @param  pCtx     The game's context
+ * @param  index    Resolution to be read (0 is the default resolution)
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX, ...
+ */
+gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
+
+/**
  * Initialize the game's window and backbuffer
  * 
  * *NOTE*: The game window may be later resized, but not the backbuffer!
@@ -221,22 +244,27 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int wndWidth, int wndHeight) {
     char *pTitle, *pOrg;
     gfmRV rv;
+    int count;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window hasn't been initialized
-    ASSERT(!(pCtx->pWindow), GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE, GFMRV_WINDOW_ALREADY_INITIALIZED);
     // Basic check for the resolution (it'll be later re-done, on window_init
     ASSERT(wndWidth > 0, GFMRV_INVALID_WIDTH);
     ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
     
     // Try to read the game's title
+    pOrg = 0;
+    pTitle = 0;
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Alloc and initialize the window
-    rv = gfmWindow_getNew(&(pCtx->pWindow));
-    ASSERT_NR(rv == GFMRV_OK);
+    if (!(pCtx->pWindow)) {
+        rv = gfmWindow_getNew(&(pCtx->pWindow));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
     //rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle);
     //ASSERT_NR(rv == GFMRV_OK);
     

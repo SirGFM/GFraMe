@@ -30,6 +30,14 @@ gfmRV gfmWindow_getNew(gfmWindow **ppCtx);
 gfmRV gfmWindow_free(gfmWindow **ppCtx);
 
 /**
+ * Whether the window was initialized
+ * 
+ * @param  ppCtx The allocated 'object'
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmWindow_wasInit(gfmWindow *pCtx);
+
+/**
  * Create a list with all possible window resolutions and refresh rate; This
  * will depend on the actual backend, but the refresh rate may only be
  * meaningful when on full-screen

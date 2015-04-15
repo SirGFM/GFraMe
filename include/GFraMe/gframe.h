@@ -69,6 +69,30 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
 gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
 
 /**
+ * Query the resolutions and add them to a internal buffer
+ * 
+ * @param  pCount How many resolutions were found
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, ...
+ */
+gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx);
+
+/**
+ * Get a resolution; if gfmWindow_queryResolutions wasn't previously called, it
+ * will be automatically called
+ * 
+ * @param  pWidth   A possible window's width
+ * @param  pHeight  A possible window's height
+ * @param  pRefRate A possible window's refresh rate
+ * @param  pCtx     The game's context
+ * @param  index    Resolution to be read (0 is the default resolution)
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX, ...
+ */
+gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
+        gfmCtx *pCtx, int index);
+
+/**
  * Clean up a context
  * 
  * @param  pCtx The context
