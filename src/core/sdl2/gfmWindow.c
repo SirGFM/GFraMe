@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 struct stGFMWindow {
     /** Actual window (managed by SDL2) */
@@ -25,6 +26,8 @@ struct stGFMWindow {
     int height;
     /** Whether we are currently in full-screen mode */
     int isFullScreen;
+    /** Current resolution; -1 if not set or custom */
+    int curResolution;
     /** How many resolutions are supported by this device */
     int resCount;
     /** List of possible width resolutions */
@@ -56,16 +59,8 @@ gfmRV gfmWindow_getNew(gfmWindow **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     
     // Initialize every of the window's fields
-    (*ppCtx)->pSDLWindow = 0;
-    (*ppCtx)->devWidth = 0;
-    (*ppCtx)->devHeight = 0;
-    (*ppCtx)->width = 0;
-    (*ppCtx)->height = 0;
-    (*ppCtx)->isFullScreen = 0;
-    (*ppCtx)->resCount = 0;
-    (*ppCtx)->pWidths = 0;
-    (*ppCtx)->pHeights = 0;
-    (*ppCtx)->pRefRates = 0;
+    memset(*ppCtx, 0x00, sizeof(gfmWindow));
+    (*ppCtx)->curResolution = -1;
     
     rv = GFMRV_OK;
 __ret:
@@ -286,6 +281,7 @@ gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName,
     pCtx->width = width;
     pCtx->height = height;
     pCtx->isFullScreen = 0;
+    pCtx->curResolution = -1;
     
     rv = GFMRV_OK;
 __ret:
@@ -340,14 +336,41 @@ __ret:
 }
 
 /**
- * Resize the window to the desired dimensions
+ * Resize the window to the desired dimensions;
+ * This function won't work if the screen is in fullscreen mode! In that case,
+ * use gfmWindow_setResolution
  * 
  * @param  pCtx   The window context
  * @param  width  The desired width
  * @param  height The desired height
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_WINDOW_IS_FULLSCREEN
  */
-gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height);
+gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the window isn't in fullscreen mode
+    ASSERT(!pCtx->isFullScreen, GFMRV_WINDOW_IS_FULLSCREEN);
+    
+    // Check that the dimensions are valid
+    ASSERT(width <= pCtx->devWidth, GFMRV_INVALID_WIDTH);
+    ASSERT(height <= pCtx->devHeight, GFMRV_INVALID_HEIGHT);
+    
+    // Resize the window
+    SDL_SetWindowSize(pCtx->pSDLWindow, width, height);
+    pCtx->width = width;
+    pCtx->height = height;
+    pCtx->curResolution = -1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Make the game go full-screen
@@ -356,24 +379,118 @@ gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height);
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                GFMRV_WINDOW_MODE_UNCHANGED
  */
-gfmRV gfmWindow_setFullScreen(gfmWindow *pCtx);
+gfmRV gfmWindow_setFullScreen(gfmWindow *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the window isn't in fullscreen mode
+    ASSERT(!pCtx->isFullScreen, GFMRV_WINDOW_MODE_UNCHANGED);
+    
+    // Try to make it fullscrren
+    irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    pCtx->isFullScreen = 1;
+    
+    // Update the resolution
+    if (pCtx->curResolution != -1) {
+        rv = gfmWindow_setResolution(pCtx, pCtx->curResolution);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
- * Make the game go windowed
+ * Make the game go windowed;
+ * The window's dimensions will be kept!
  * 
  * @param  pCtx   The window context
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                GFMRV_WINDOW_MODE_UNCHANGED
  */
-gfmRV gfmWindow_setWindowed(gfmWindow *pCtx);
+gfmRV gfmWindow_setWindowed(gfmWindow *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the window isn't in fullscreen mode
+    ASSERT(pCtx->isFullScreen, GFMRV_WINDOW_MODE_UNCHANGED);
+    
+    // Try to make it windowed
+    irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, 0);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    pCtx->isFullScreen = 0;
+    
+    // Recover the previous width
+    rv = gfmWindow_setDimensions(pCtx, pCtx->width, pCtx->height);
+    // On failure, try to set it to any other resolution
+    if (rv != GFMRV_OK) {
+        int i;
+        
+        i = 0;
+        while (i < pCtx->resCount) {
+            rv = gfmWindow_setDimensions(pCtx, pCtx->pWidths[i],
+                    pCtx->pHeights[i]);
+            if (rv == GFMRV_OK)
+                break;
+            i++;
+        }
+        ASSERT(i < pCtx->resCount, GFMRV_INTERNAL_ERROR);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
- * Set the window's resolution; The window must be in full-screen mode!
+ * Set the window's resolution;
+ * If the window is in full screen mode, it's resolution and refresh rate will
+ * be modified; Otherwise, only it's dimension's will be modified
  * 
  * @param  pCtx  The window context
  * @param  index Resolution to be used (0 is the default resolution)
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *               GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
+ *               GFMRV_INVALID_INDEX
  */
-gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex);
+gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex) {
+    gfmRV rv;
+    int displayIndex, irv;
+    SDL_DisplayMode sdlMode;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(resIndex >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the index is valid
+    ASSERT(resIndex < pCtx->resCount, GFMRV_INVALID_INDEX);
+    
+    // TODO enable multiple displays
+    displayIndex = 0;
+    
+    // Get the window's mode (since the color info would be missing)
+    irv = SDL_GetDisplayMode(displayIndex, resIndex, &sdlMode);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    // Modify the resolution
+    if (pCtx->isFullScreen) {
+        irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
+        ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    }
+    else {
+        rv = gfmWindow_setDimensions(pCtx, pCtx->pWidths[resIndex], pCtx->pHeights[resIndex]);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    pCtx->curResolution = resIndex;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 

@@ -107,7 +107,8 @@ gfmRV gfmWindow_clean(gfmWindow *pCtx);
  * @param  pCtx   The window context
  * @param  width  The desired width
  * @param  height The desired height
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_WINDOW_IS_FULLSCREEN
  */
 gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height);
 
@@ -121,7 +122,8 @@ gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height);
 gfmRV gfmWindow_setFullScreen(gfmWindow *pCtx);
 
 /**
- * Make the game go windowed
+ * Make the game go windowed;
+ * The window's dimensions will be kept!
  * 
  * @param  pCtx   The window context
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
@@ -130,14 +132,16 @@ gfmRV gfmWindow_setFullScreen(gfmWindow *pCtx);
 gfmRV gfmWindow_setWindowed(gfmWindow *pCtx);
 
 /**
- * Set the window's resolution; The window must be in full-screen mode!
+ * Set the window's resolution;
+ * If the window is in full screen mode, it's resolution and refresh rate will
+ * be modified; Otherwise, only it's dimension's will be modified
  * 
  * @param  pCtx  The window context
  * @param  index Resolution to be used (0 is the default resolution)
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *               GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
+ *               GFMRV_INVALID_INDEX
  */
 gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex);
 
-#endif
+#endif /* __GFMWINDOW_BKEND_H__ */
 

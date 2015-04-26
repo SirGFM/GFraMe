@@ -287,8 +287,9 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window hasn't been initialized
-    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE, GFMRV_WINDOW_ALREADY_INITIALIZED);
-    // Basic check for the resolution (it'll be later re-done, on window_init
+    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
+            GFMRV_WINDOW_ALREADY_INITIALIZED);
+    // Basic check for the resolution (it'll be later re-done, on window_init)
     ASSERT(wndWidth > 0, GFMRV_INVALID_WIDTH);
     ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
     
@@ -308,6 +309,109 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT_NR(rv == GFMRV_OK);
     
     // TODO init backbuffer
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Resize the window to the desired dimensions
+ * 
+ * @param  pCtx   The window context
+ * @param  width  The desired width
+ * @param  height The desired height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_WINDOW_NOT_INITIALIZED, GFMRV_WINDOW_IS_FULLSCREEN
+ */
+gfmRV gfm_setDimensions(gfmCtx *pCtx, int width, int height) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the window has already been initialized
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Set the window's dimentions
+    rv = gfmWindow_setDimensions(pCtx->pWindow, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+
+/**
+ * Make the game go full-screen
+ * 
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_WINDOW_NOT_INITIALIZED, GFMRV_WINDOW_MODE_UNCHANGED
+ */
+gfmRV gfm_setFullscreen(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the window has already been initialized
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Try to make it fullscreen
+    rv = gfmWindow_setFullScreen(pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Make the game go windowed;
+ * The window's dimensions will be kept!
+ * 
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_WINDOW_NOT_INITIALIZED, GFMRV_WINDOW_MODE_UNCHANGED
+ */
+gfmRV gfm_setWindowed(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the window has already been initialized
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Try to make it fullscreen
+    rv = gfmWindow_setWindowed(pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the window's resolution;
+ * If the window is in full screen mode, it's resolution and refresh rate will
+ * be modified; Otherwise, only it's dimension's will be modified
+ * 
+ * @param  pCtx  The game's context
+ * @param  index Resolution to be used (0 is the default resolution)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *               GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the window has already been initialized
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Set the window's resolution
+    rv = gfmWindow_setResolution(pCtx->pWindow, resIndex);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
