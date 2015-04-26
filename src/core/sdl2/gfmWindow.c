@@ -124,7 +124,7 @@ gfmRV gfmWindow_wasInit(gfmWindow *pCtx) {
  * @param  pCount How many resolutions were found
  * @param  pCtx   Window context (will store the resolutions list)
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                GFMRV_ALLOC_FAILED, ...
+ *                GFMRV_ALLOC_FAILED
  */
 gfmRV gfmWindow_queryResolutions(int *pCount, gfmWindow *pCtx) {
     gfmRV rv;
@@ -134,6 +134,10 @@ gfmRV gfmWindow_queryResolutions(int *pCount, gfmWindow *pCtx) {
     // Sanitize the arguments
     ASSERT(pCount, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Simply return pCount if it's already queried
+    CASSERT(pCtx->resCount == 0, GFMRV_OK, __set_count);
+    // TODO If resolutions were queries, update list?
     
     // Get how many displays there are
     numVideoDisplays = SDL_GetNumVideoDisplays();
@@ -176,6 +180,8 @@ gfmRV gfmWindow_queryResolutions(int *pCount, gfmWindow *pCtx) {
     }
     
     rv = GFMRV_OK;
+__set_count:
+    *pCount = pCtx->resCount;
 __ret:
     // Clean up memory, on error
     if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
@@ -204,35 +210,100 @@ __ret:
  * @param  pCtx     The window context
  * @param  index    Resolution to be read (0 is the default resolution)
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX, ...
+ *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
 gfmRV gfmWindow_getResolution(int *pWidth, int *pHeight, int *pRefRate,
-        gfmWindow *pCtx, int index);
+        gfmWindow *pCtx, int index) {
+    gfmRV rv;
+    int count;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pRefRate, GFMRV_ARGUMENTS_BAD);
+    
+    // Check if the resolutions were already queried (do so, if necessary)
+    rv = gfmWindow_queryResolutions(&count, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Check if its a valid index
+    ASSERT(index > 0 && index < count, GFMRV_INVALID_INDEX);
+    
+    // Get the resolution
+    *pWidth = pCtx->pWidths[index];
+    *pHeight = pCtx->pHeights[index];
+    *pRefRate = pCtx->pRefRates[index];
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Initialize (i.e., create) a window with the desired dimensions; If the
  * resolution is greater than the device's, then the device's resolution shall
  * be used
  * 
- * @param  pCtx   The window context
- * @param  width  The desired width
- * @param  height The desired height
- * @param  pName  The game's title, in a NULL terminated string
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
- *                GFMRV_INTERNAL_ERROR
+ * @param  pCtx            The window context
+ * @param  width           The desired width
+ * @param  height          The desired height
+ * @param  pName           The game's title, in a NULL terminated string
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                         GFMRV_INTERNAL_ERROR, GFMRV_INVALID_WIDTH,
+ *                         GFMRV_INVALID_HEIGHT
  */
-gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName);
+gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName,
+        int isUserResizable) {
+    gfmRV rv;
+    int count;
+    SDL_WindowFlags flags;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pName, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that both width and height are valid
+    rv = gfmWindow_queryResolutions(&count, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(width <= pCtx->devWidth, GFMRV_INVALID_WIDTH);
+    ASSERT(height <= pCtx->devHeight, GFMRV_INVALID_HEIGHT);
+    
+    // Set wheter resizing of the window is enabled
+    if (isUserResizable)
+        flags = SDL_WINDOW_RESIZABLE;
+    else
+        flags = 0;
+    
+    // Create a window
+    pCtx->pSDLWindow = SDL_CreateWindow(pName, SDL_WINDOWPOS_UNDEFINED,
+            SDL_WINDOWPOS_UNDEFINED, width, height, flags);
+    ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
+    
+    // Set the current dimensions
+    pCtx->width = width;
+    pCtx->height = height;
+    pCtx->isFullScreen = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Initialize (i.e., create) a full screen window with the desired resolution
  * 
- * @param  pCtx  The window context
- * @param  index Resolution to be used (0 is the default resolution)
- * @param  pName  The game's title, in a NULL terminated string
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *               GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
+ * @param  pCtx            The window context
+ * @param  index           Resolution to be used (0 is the default resolution)
+ * @param  pName           The game's title, in a NULL terminated string
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                         GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
-gfmRV gfmWindow_initFullScreen(gfmWindow *pCtx, int resIndex, char *pName);
+gfmRV gfmWindow_initFullScreen(gfmWindow *pCtx, int resIndex, char *pName, 
+        int isUserResizable);
 
 /**
  * Clean up (i.e., close) the window

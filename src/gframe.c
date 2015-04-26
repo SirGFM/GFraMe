@@ -209,9 +209,29 @@ __ret:
  * 
  * @param  pCount How many resolutions were found
  * @param  pCtx   The game's context
- * @return        GFMRV_OK, ...
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                GFMRV_ALLOC_FAILED
  */
-gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx);
+gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCount, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the window
+    if (!(pCtx->pWindow)) {
+        rv = gfmWindow_getNew(&(pCtx->pWindow));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    // Query the resolutions and set 'pCount'
+    rv = gfmWindow_queryResolutions(pCount, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Get a resolution; if gfmWindow_queryResolutions wasn't previously called, it
@@ -223,28 +243,46 @@ gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx);
  * @param  pCtx     The game's context
  * @param  index    Resolution to be read (0 is the default resolution)
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX, ...
+ *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
+        gfmCtx *pCtx, int index) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pRefRate, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the desired resolution
+    rv = gfmWindow_getResolution(pWidth, pHeight, pRefRate, pCtx->pWindow,
+            index);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Initialize the game's window and backbuffer
  * 
  * *NOTE*: The game window may be later resized, but not the backbuffer!
  * 
- * @param  pCtx     The game's context
- * @param  bufWidth  Backbuffer's width
- * @param  bufHeight Backbuffer's height
- * @param  wndWidth  Window's width
- * @param  wndHeight Window's height
- * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
- *                   GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
+ * @param  pCtx            The game's context
+ * @param  bufWidth        Backbuffer's width
+ * @param  bufHeight       Backbuffer's height
+ * @param  wndWidth        Window's width
+ * @param  wndHeight       Window's height
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
+ *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int wndWidth, int wndHeight) {
+        int wndWidth, int wndHeight, int isUserResizable) {
     char *pTitle, *pOrg;
     gfmRV rv;
-    int count;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -265,8 +303,11 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
         rv = gfmWindow_getNew(&(pCtx->pWindow));
         ASSERT_NR(rv == GFMRV_OK);
     }
-    //rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle);
-    //ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle,
+            isUserResizable);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // TODO init backbuffer
     
     rv = GFMRV_OK;
 __ret:

@@ -6,6 +6,12 @@
 *.obj
 *.elf
 
+# Temporary files
+*.swp
+
+# Binaries directory
+*bin
+
 # Libraries
 *.lib
 *.a

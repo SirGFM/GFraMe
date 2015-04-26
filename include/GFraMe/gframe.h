@@ -87,10 +87,27 @@ gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx);
  * @param  pCtx     The game's context
  * @param  index    Resolution to be read (0 is the default resolution)
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX, ...
+ *                  GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
         gfmCtx *pCtx, int index);
+
+/**
+ * Initialize the game's window and backbuffer
+ * 
+ * *NOTE*: The game window may be later resized, but not the backbuffer!
+ * 
+ * @param  pCtx            The game's context
+ * @param  bufWidth        Backbuffer's width
+ * @param  bufHeight       Backbuffer's height
+ * @param  wndWidth        Window's width
+ * @param  wndHeight       Window's height
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
+ *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
+ */
+gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
+        int wndWidth, int wndHeight, int isUserResizable);
 
 /**
  * Clean up a context
