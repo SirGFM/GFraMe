@@ -110,6 +110,22 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int wndWidth, int wndHeight, int isUserResizable);
 
 /**
+ * Initialize the game's window (in fullscreen) and backbuffer
+ * 
+ * *NOTE*: The game window may be later resized, but not the backbuffer!
+ * 
+ * @param  pCtx            The game's context
+ * @param  bufWidth        Backbuffer's width
+ * @param  bufHeight       Backbuffer's height
+ * @param  resIndex        Resolution to be used (0 is the default resolution)
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
+ *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
+ */
+gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
+        int resIndex, int isUserResizable);
+
+/**
  * Resize the window to the desired dimensions
  * 
  * @param  pCtx   The window context

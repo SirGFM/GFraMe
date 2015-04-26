@@ -299,7 +299,34 @@ __ret:
  *                         GFMRV_ALLOC_FAILED, GFMRV_INVALID_INDEX
  */
 gfmRV gfmWindow_initFullScreen(gfmWindow *pCtx, int resIndex, char *pName, 
-        int isUserResizable);
+        int isUserResizable) {
+    gfmRV rv;
+    int count;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(resIndex >= 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the index is valid (and get bot width and height)
+    rv = gfmWindow_queryResolutions(&count, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(resIndex < count, GFMRV_INVALID_INDEX);
+    
+    // Initialize as not windowed
+    rv = gfmWindow_init(pCtx, pCtx->pWidths[resIndex], pCtx->pHeights[resIndex],
+            pName, isUserResizable);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set fullscreen and the resolution
+    rv = gfmWindow_setFullScreen(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmWindow_setResolution(pCtx, resIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Clean up (i.e., close) the window

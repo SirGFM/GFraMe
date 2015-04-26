@@ -7,8 +7,6 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 
-#include <unistd.h>
-
 int main(int arg, char *argv[]) {
     gfmCtx *pCtx;
     gfmRV rv;
@@ -48,7 +46,6 @@ int main(int arg, char *argv[]) {
     rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0);
     ASSERT_NR(rv == GFMRV_WINDOW_ALREADY_INITIALIZED);
     
-    sleep(1);
     // Set the window's dimensions with wrong arguments
     rv = gfm_setDimensions(0, 320, 240);
     ASSERT_NR(rv == GFMRV_ARGUMENTS_BAD);
@@ -63,23 +60,19 @@ int main(int arg, char *argv[]) {
     // Set the window's dimensions
     rv = gfm_setDimensions(pCtx, 320, 240);
     ASSERT_NR(rv == GFMRV_OK);
-    sleep(1);
     // Set the window's dimensions
     rv = gfm_setDimensions(pCtx, 960, 720);
     ASSERT_NR(rv == GFMRV_OK);
-    sleep(1);
     
     // Try to set the screen fullscreen
     rv = gfm_setFullscreen(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    sleep(1);
     rv = gfm_setFullscreen(pCtx);
     ASSERT_NR(rv == GFMRV_WINDOW_MODE_UNCHANGED);
     
     // Try to set the screen windowed
     rv = gfm_setWindowed(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    sleep(1);
     rv = gfm_setWindowed(pCtx);
     ASSERT_NR(rv == GFMRV_WINDOW_MODE_UNCHANGED);
     

@@ -316,6 +316,53 @@ __ret:
 }
 
 /**
+ * Initialize the game's window (in fullscreen) and backbuffer
+ * 
+ * *NOTE*: The game window may be later resized, but not the backbuffer!
+ * 
+ * @param  pCtx            The game's context
+ * @param  bufWidth        Backbuffer's width
+ * @param  bufHeight       Backbuffer's height
+ * @param  resIndex        Resolution to be used (0 is the default resolution)
+ * @param  isUserResizable Whether the user can resize the window through the OS
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
+ *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
+ */
+gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
+        int resIndex, int isUserResizable) {
+    char *pTitle, *pOrg;
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(resIndex >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the window hasn't been initialized
+    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
+            GFMRV_WINDOW_ALREADY_INITIALIZED);
+    
+    // Try to read the game's title
+    pOrg = 0;
+    pTitle = 0;
+    rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Alloc and initialize the window
+    if (!(pCtx->pWindow)) {
+        rv = gfmWindow_getNew(&(pCtx->pWindow));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    rv = gfmWindow_initFullScreen(pCtx->pWindow, resIndex, pTitle,
+        isUserResizable);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // TODO init backbuffer
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Resize the window to the desired dimensions
  * 
  * @param  pCtx   The window context
