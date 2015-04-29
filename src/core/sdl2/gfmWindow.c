@@ -1,10 +1,11 @@
 /**
  * @file src/core/gfmWindow.c
  * 
- * Handle operations on the window
+ * Handle operations on the window and on the backbuffer
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
 
 #include <SDL2/SDL_video.h>
@@ -14,6 +15,8 @@
 #include <string.h>
 
 struct stGFMWindow {
+    /** The backbuffer that renders things to the screen */
+    gfmBackbuffer *pBackbuffer;
     /** Actual window (managed by SDL2) */
     SDL_Window *pSDLWindow;
     /** Device's width */
@@ -21,9 +24,9 @@ struct stGFMWindow {
     /** Device's height */
     int devHeight;
     /** Window's width */
-    int width;
+    int wndWidth;
     /** Window's height */
-    int height;
+    int wndHeight;
     /** Whether we are currently in full-screen mode */
     int isFullScreen;
     /** Current resolution; -1 if not set or custom */
@@ -278,8 +281,8 @@ gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName,
     ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
     
     // Set the current dimensions
-    pCtx->width = width;
-    pCtx->height = height;
+    pCtx->wndWidth = width;
+    pCtx->wndHeight = height;
     pCtx->isFullScreen = 0;
     pCtx->curResolution = -1;
     
@@ -340,6 +343,9 @@ gfmRV gfmWindow_clean(gfmWindow *pCtx) {
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    // Clean up the backbuffer
+    if (pCtx->pBackbuffer)
+        gfmBackbuffer_free(&(pCtx->pBackbuffer));
     // Clean up the window
     if (pCtx->pSDLWindow) {
         // TODO revert screen to it's original mode? (is it required?)
@@ -390,10 +396,36 @@ gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height) {
     
     // Resize the window
     SDL_SetWindowSize(pCtx->pSDLWindow, width, height);
-    pCtx->width = width;
-    pCtx->height = height;
+    pCtx->wndWidth = width;
+    pCtx->wndHeight = height;
     pCtx->curResolution = -1;
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the window's dimensions
+ * 
+ * @param  pWidth  The desired width
+ * @param  pHeight The desired height
+ * @param  pCtx    The window context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WINDOW_NOT_INITIALIZED
+ */
+gfmRV gfmWindow_getDimensions(int *pWidth, int *pHeight, gfmWindow *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    // Check that the window was initialized
+    ASSERT(gfmWindow_wasInit(pCtx) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Set the return value
+    *pWidth = pCtx->wndWidth;
+    *pHeight = pCtx->wndHeight;
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -421,11 +453,12 @@ gfmRV gfmWindow_setFullScreen(gfmWindow *pCtx) {
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pCtx->isFullScreen = 1;
     
+    // Set the default resolution, if none was set
+    if (pCtx->curResolution == -1)
+        pCtx->curResolution = 0;
     // Update the resolution
-    if (pCtx->curResolution != -1) {
-        rv = gfmWindow_setResolution(pCtx, pCtx->curResolution);
-        ASSERT_NR(rv == GFMRV_OK);
-    }
+    rv = gfmWindow_setResolution(pCtx, pCtx->curResolution);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -456,7 +489,7 @@ gfmRV gfmWindow_setWindowed(gfmWindow *pCtx) {
     pCtx->isFullScreen = 0;
     
     // Recover the previous width
-    rv = gfmWindow_setDimensions(pCtx, pCtx->width, pCtx->height);
+    rv = gfmWindow_setDimensions(pCtx, pCtx->wndWidth, pCtx->wndHeight);
     // On failure, try to set it to any other resolution
     if (rv != GFMRV_OK) {
         int i;
@@ -509,6 +542,10 @@ gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex) {
     if (pCtx->isFullScreen) {
         irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
         ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+        
+        pCtx->wndWidth = sdlMode.w;
+        pCtx->wndHeight = sdlMode.h;
+        // TODO buffer dimensions
     }
     else {
         rv = gfmWindow_setDimensions(pCtx, pCtx->pWidths[resIndex], pCtx->pHeights[resIndex]);
@@ -516,6 +553,29 @@ gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex) {
     }
     
     pCtx->curResolution = resIndex;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Returns the window's context; this is highly dependant on the backend
+ * 
+ * @param  ppCtx The returned context
+ * @param  pWnd  The window
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WINDOW_NOT_INITIALIZED
+ */
+gfmRV gfmWindow_getContext(void **ppCtx, gfmWindow *pWnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWnd, GFMRV_ARGUMENTS_BAD);
+    // Check that the window was initialized
+    ASSERT(gfmWindow_wasInit(pWnd) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    
+    // Set the return value
+    *ppCtx = (void*)pWnd->pSDLWindow;
     rv = GFMRV_OK;
 __ret:
     return rv;

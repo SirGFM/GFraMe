@@ -113,6 +113,16 @@ gfmRV gfmWindow_clean(gfmWindow *pCtx);
 gfmRV gfmWindow_setDimensions(gfmWindow *pCtx, int width, int height);
 
 /**
+ * Get the window's dimensions
+ * 
+ * @param  pWidth  The desired width
+ * @param  pHeight The desired height
+ * @param  pCtx    The window context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmWindow_getDimensions(int *pWidth, int *pHeight, gfmWindow *pCtx);
+
+/**
  * Make the game go full-screen
  * 
  * @param  pCtx   The window context
@@ -142,6 +152,15 @@ gfmRV gfmWindow_setWindowed(gfmWindow *pCtx);
  *               GFMRV_INVALID_INDEX
  */
 gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex);
+
+/**
+ * Returns the window's context; this is highly dependant on the backend
+ * 
+ * @param  ppCtx The returned context
+ * @param  pWnd  The window
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WINDOW_NOT_INITIALIZED
+ */
+gfmRV gfmWindow_getContext(void **ppCtx, gfmWindow *pWnd);
 
 #endif /* __GFMWINDOW_BKEND_H__ */
 

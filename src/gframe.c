@@ -5,12 +5,14 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 struct stGFMCtx {
     // TODO specify backend(?)
@@ -28,6 +30,8 @@ struct stGFMCtx {
     int saveFilenameLen;
     /** Whether the backend was initialized */
     int isBackendInit;
+    /** The game's backbuffer */
+    gfmBackbuffer *pBackbuffer;
     /** Game's window */
     gfmWindow *pWindow;
     /** Timer used to issue new frames */
@@ -55,15 +59,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     
     // Zero the context's contents
-    (*ppCtx)->pGameOrg = 0;
-    (*ppCtx)->pGameTitle = 0;
-#ifndef GFRAME_MOBILE
-    (*ppCtx)->pBinPath = 0;
-#endif
-    (*ppCtx)->pSaveFilename = 0;
-    (*ppCtx)->pTimer = 0;
-    (*ppCtx)->isBackendInit = 0;
-    (*ppCtx)->pWindow = 0;
+    memset(*ppCtx, 0x00, sizeof(gfmCtx));
     
 #ifndef GFRAME_MOBILE
 	// Get current directory
@@ -289,6 +285,8 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     // Check that the window hasn't been initialized
     ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
             GFMRV_WINDOW_ALREADY_INITIALIZED);
+    // Check that the backbuffer hasn't been initialized
+    ASSERT(!pCtx->pBackbuffer, GFMRV_BACKBUFFER_ALREADY_INITIALIZED);
     // Basic check for the resolution (it'll be later re-done, on window_init)
     ASSERT(wndWidth > 0, GFMRV_INVALID_WIDTH);
     ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
@@ -308,7 +306,12 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
             isUserResizable);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO init backbuffer
+    // Alloc and initialize the backbuffer
+    rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
+            bufHeight);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -352,10 +355,15 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         ASSERT_NR(rv == GFMRV_OK);
     }
     rv = gfmWindow_initFullScreen(pCtx->pWindow, resIndex, pTitle,
-        isUserResizable);
+            isUserResizable);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO init backbuffer
+    // Alloc and initialize the backbuffer
+    rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
+            bufHeight);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -369,7 +377,9 @@ __ret:
  * @param  width  The desired width
  * @param  height The desired height
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                GFMRV_WINDOW_NOT_INITIALIZED, GFMRV_WINDOW_IS_FULLSCREEN
+ *                GFMRV_WINDOW_NOT_INITIALIZED, GFMRV_WINDOW_IS_FULLSCREEN,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ *                GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
  */
 gfmRV gfm_setDimensions(gfmCtx *pCtx, int width, int height) {
     gfmRV rv;
@@ -377,8 +387,14 @@ gfmRV gfm_setDimensions(gfmCtx *pCtx, int width, int height) {
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     
+    // Cache the backbuffer's output dimensions
+    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
     // Set the window's dimentions
     rv = gfmWindow_setDimensions(pCtx->pWindow, width, height);
     ASSERT_NR(rv == GFMRV_OK);
@@ -398,14 +414,21 @@ __ret:
  */
 gfmRV gfm_setFullscreen(gfmCtx *pCtx) {
     gfmRV rv;
+    int wndWidth, wndHeight;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED);
     
     // Try to make it fullscreen
     rv = gfmWindow_setFullScreen(pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Cache the backbuffer's output dimensions
+    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -423,14 +446,22 @@ __ret:
  */
 gfmRV gfm_setWindowed(gfmCtx *pCtx) {
     gfmRV rv;
+    int wndWidth, wndHeight;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED);
     
     // Try to make it fullscreen
     rv = gfmWindow_setWindowed(pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Cache the backbuffer's output dimensions
+    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -450,14 +481,22 @@ __ret:
  */
 gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex) {
     gfmRV rv;
+    int wndWidth, wndHeight;
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED);
     
     // Set the window's resolution
     rv = gfmWindow_setResolution(pCtx->pWindow, resIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Cache the backbuffer's output dimensions
+    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -488,6 +527,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #ifndef GFRAME_MOBILE
     gfmString_free(&(pCtx->pBinPath));
 #endif
+    gfmBackbuffer_free(&(pCtx->pBackbuffer));
     gfmWindow_free(&(pCtx->pWindow));
     gfmTimer_free(&(pCtx->pTimer));
     
