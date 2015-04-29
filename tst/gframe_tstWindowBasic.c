@@ -1,7 +1,8 @@
 /**
- * @file tst/gframe_tst.c
+ * @file tst/gframe_tstWindowBasic.c
  * 
- * Simple test to check the framework's main module functions
+ * Simple test to check the framework's main module functions; So far, it goes
+ * through creating and resizing a window
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
