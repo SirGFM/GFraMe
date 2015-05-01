@@ -162,5 +162,21 @@ gfmRV gfmWindow_setResolution(gfmWindow *pCtx, int resIndex);
  */
 gfmRV gfmWindow_getContext(void **ppCtx, gfmWindow *pWnd);
 
+/**
+ * Initialize a rendering operation
+ * 
+ * @param  pCtx  The window
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmWindow_beginDraw(gfmWindow *pCtx);
+
+/**
+ * Finalize a rendering operation
+ * 
+ * @param  pCtx  The window
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmWindow_drawEnd(gfmWindow *pCtx);
+
 #endif /* __GFMWINDOW_BKEND_H__ */
 

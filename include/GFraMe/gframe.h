@@ -5,6 +5,8 @@
 #define __GFRAME_H_
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmBackbuffer_bkend.h>
 
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
@@ -15,6 +17,9 @@
 typedef struct stGFMCtx gfmCtx;
 /** 'Exportable' size of gfmString */
 const int sizeofGFMCtx;
+
+// This file must be included after gfmCtx is defined
+#include <GFraMe/core/gfmTexture_bkend.h>
 
 /**
  * Alloc a new gfmContext
@@ -31,6 +36,15 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_free(gfmCtx **ppCtx);
+
+/**
+ * Get the binary's running path
+ * 
+ * @param  ppStr The running path as a gfmString
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FUNCTION_NOT_SUPPORTED
+ */
+gfmRV gfm_getBinaryPath(gfmString **ppStr, gfmCtx *pCtx);
 
 /**
  * Set the game's title and organization from static buffers
@@ -126,6 +140,16 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int resIndex, int isUserResizable);
 
 /**
+ * Get the current backbuffer
+ * 
+ * @param  ppBbuf The backbuffer
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx);
+
+/**
  * Resize the window to the desired dimensions
  * 
  * @param  pCtx   The window context
@@ -166,6 +190,57 @@ gfmRV gfm_setWindowed(gfmCtx *pCtx);
  *               GFMRV_INVALID_INDEX
  */
 gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex);
+
+/**
+ * Initialize a rendering operation
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_drawBegin(gfmCtx *pCtx);
+
+/**
+ * Loads a texture into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex);
+
+/**
+ * Initialize a batch of renders (i.e., render many sprites in a single draw
+ * call)
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_batchBegin(gfmCtx *pCtx);
+
+/**
+ * Renders a sprite into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pSpr  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+//gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
+
+/**
+ * Finalize a batch of renders (i.e., render many sprites in a single draw call)
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_batchEnd(gfmCtx *pCtx);
+
+/**
+ * Finalize a rendering operation
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_drawEnd(gfmCtx *pCtx);
 
 /**
  * Clean up a context

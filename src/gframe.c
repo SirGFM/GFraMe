@@ -7,6 +7,7 @@
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
+#include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
@@ -23,10 +24,13 @@ struct stGFMCtx {
 #ifndef GFRAME_MOBILE
     /** Directory where the game binary is being run from */
     gfmString *pBinPath;
+    /** Length until the current directory (i.e., position to append stuff) */
+    int binPathLen;
 #endif
     /** Buffer for storing a save file's filename */
     gfmString *pSaveFilename;
-    /** Length until the end of the filename's path */
+    /** Length until the end of the save file's directory (i.e., position to
+      append stuff) */
     int saveFilenameLen;
     /** Whether the backend was initialized */
     int isBackendInit;
@@ -65,6 +69,10 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
 	// Get current directory
     rv = gfmPath_getRunningPath(&((*ppCtx)->pBinPath));
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_getLength(&((*ppCtx)->binPathLen), (*ppCtx)->pBinPath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // TODO check if it gets the directory or if the executable name is appended
 #endif
     
     // Init the current backend
@@ -109,6 +117,37 @@ gfmRV gfm_free(gfmCtx **ppCtx) {
 __ret:
     return rv;
 }
+
+/**
+ * Get the binary's running path
+ * 
+ * @param  ppStr The running path as a gfmString
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getBinaryPath(gfmString **ppStr, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Check that this isn't running on a mobile device
+#ifdef GFRAME_MOBILE
+    ASSERT(0, GFMRV_FUNCTION_NOT_SUPPORTED);
+#else
+    // Sanitize arguments
+    ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Remove anything that was concatenated
+    rv = gfmString_setLength(pCtx->pBinPath, pCtx->binPathLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Return the string
+    *ppStr = pCtx->pBinPath;
+#endif
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
 
 /**
  * Set the game's title and organization
@@ -371,6 +410,29 @@ __ret:
 }
 
 /**
+ * Get the current backbuffer
+ * 
+ * @param  ppBbuf The backbuffer
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppBbuf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the renderer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    *ppBbuf = pCtx->pBackbuffer;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Resize the window to the desired dimensions
  * 
  * @param  pCtx   The window context
@@ -506,6 +568,68 @@ __ret:
 
 gfmRV gfm_initAll() {
     return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
+
+/**
+ * Initialize a rendering operation
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_drawBegin(gfmCtx *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Loads a texture into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Initialize a batch of renders (i.e., render many sprites in a single draw
+ * call)
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_batchBegin(gfmCtx *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Renders a sprite into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pSpr  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+//gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
+
+/**
+ * Finalize a batch of renders (i.e., render many sprites in a single draw call)
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_batchEnd(gfmCtx *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Finalize a rendering operation
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_drawEnd(gfmCtx *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
 /**

@@ -201,7 +201,7 @@ gfmRV gfmBackbuffer_cacheDimensions(gfmBackbuffer *pCtx, int width, int height) 
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that the backbuffer is still uninitialized
+    // Check that the backbuffer was initialized
     ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     // Check that the window's dimension is valid
     ASSERT(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
@@ -228,6 +228,30 @@ gfmRV gfmBackbuffer_cacheDimensions(gfmBackbuffer *pCtx, int width, int height) 
 	pCtx->outRect.y = pCtx->scrPosY;
 	pCtx->outRect.w = pCtx->scrWidth;
 	pCtx->outRect.h = pCtx->scrHeight;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the backbuffer's internal representation; this is highly dependant on
+ * the backend
+ * 
+ * @param  ppCtx The returned context
+ * @param  pBbuf The backbuffer
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pBbuf, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pBbuf->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    *ppCtx = (void*)(pBbuf->pRenderer);
     
     rv = GFMRV_OK;
 __ret:

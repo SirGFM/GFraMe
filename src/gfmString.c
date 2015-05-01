@@ -190,12 +190,18 @@ __ret:
  */
 gfmRV gfmString_concat(gfmString *pStr, char *string, int len) {
     gfmRV rv;
+    int pos;
     
     // Sanitize the arguments
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     
+    // Get the last character's position
+    pos = pStr->len;
+    // Resize the string, to fit the concatenated
+    rv = gfmString_setLength(pStr, pStr->len + len);
+    ASSERT_NR(rv == GFMRV_OK);
     // Insert the string at the end of the previous
-    rv = gfmString_insertAt(pStr, string, len, pStr->len);
+    rv = gfmString_insertAt(pStr, string, len, pos);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Insert an 'EOS'
@@ -216,7 +222,7 @@ __ret:
  * @param  len    The string's length
  * @param  pos    Position, on the original string, where it should be inserted
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
- *                GFMRV_STRING_WASNT_COPIED
+ *                GFMRV_STRING_WASNT_COPIED, GFMRV_STRING_TOO_SMALL
  */
 gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos) {
     gfmRV rv;
@@ -225,12 +231,13 @@ gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos) {
     // Sanitize the arguments
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pos >= 0 && pos < pStr->len, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pos >= 0 && pos + len <= pStr->len, GFMRV_STRING_TOO_SMALL);
     // Check that the string was alloc
     ASSERT(pStr->mustDealloc, GFMRV_STRING_WASNT_COPIED);
     
     // Extend the string, as necessary
-    gfmString_setMinimumLength(pStr, pStr->len + len + 1);
+    rv = gfmString_setMinimumLength(pStr, pStr->len + len + 1);
+    ASSERT_NR(rv == GFMRV_OK);
     // Concatenate both strings
     i = 0;
     while (i < len) {
@@ -257,13 +264,42 @@ gfmRV gfmString_getString(char **ppStr, gfmString *pStr) {
     
     // Sanitize the arguments
     ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppStr), GFMRV_ARGUMENTS_BAD);
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     
     // Check that the string was initialized
     ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
     // Get the string's pointer
     *ppStr = pStr->self;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the string's length
+ * 
+ * @param  pStr The string
+ * @param  len  The new length
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED,
+ *              GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmString_setLength(gfmString *pStr, int len) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len, GFMRV_ARGUMENTS_BAD);
+    // Check that the string was initialized
+    ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
+    
+    // Extend the string, as necessary
+    rv = gfmString_setMinimumLength(pStr, len+1);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the length and the EOL
+    pStr->self[len] = '\0';
+    pStr->len = len;
     
     rv = GFMRV_OK;
 __ret:

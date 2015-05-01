@@ -75,7 +75,7 @@ gfmRV gfmString_setMinimumLength(gfmString *pStr, int len);
  * @param  pStr   The created gfmString
  * @param  string A statically allocated string (i.e., char var[] = "...")
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
- *                GFMRV_STRING_WASNT_COPIED
+ *                GFMRV_STRING_WASNT_COPIED, GFMRV_STRING_TOO_SMALL
  */
 #define gfmString_concatStatic(pStr, string) \
     gfmString_concat(pStr, string, sizeof(string)-1)
@@ -89,7 +89,7 @@ gfmRV gfmString_setMinimumLength(gfmString *pStr, int len);
  * @param  string A string
  * @param  len    The string's length
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
- *                GFMRV_STRING_WASNT_COPIED
+ *                GFMRV_STRING_WASNT_COPIED, GFMRV_STRING_TOO_SMALL
  */
 gfmRV gfmString_concat(gfmString *pStr, char *string, int len);
 
@@ -129,6 +129,16 @@ gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED
  */
 gfmRV gfmString_getString(char **ppStr, gfmString *pStr);
+
+/**
+ * Set the string's length
+ * 
+ * @param  pStr The string
+ * @param  len  The new length
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_STRING_NOT_INITIALIZED,
+ *              GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmString_setLength(gfmString *pStr, int len);
 
 /**
  * Get the string's length

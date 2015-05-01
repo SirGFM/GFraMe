@@ -66,5 +66,15 @@ gfmRV gfmBackbuffer_clean(gfmBackbuffer *pCtx);
  */
 gfmRV gfmBackbuffer_cacheDimensions(gfmBackbuffer *pCtx, int width, int height);
 
+/**
+ * Get the backbuffer's internal representation; this is highly dependant on
+ * the backend
+ * 
+ * @param  ppCtx The returned context
+ * @param  pBbuf The backbuffer
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf);
+
 #endif /* __GFMBACKBUFFER_BKEND_H__ */
 

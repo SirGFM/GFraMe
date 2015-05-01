@@ -100,6 +100,9 @@ gfmRV gfmPath_getRunningPath(gfmString **ppStr) {
     gfmRV rv;
     int doCopy, tmpPathLen;
     
+    // Initialize variables that are cleaned by the end
+    pTmpPath = 0;
+    
     // Sanitize the arguments
     ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
     ASSERT(!(*ppStr), GFMRV_ARGUMENTS_BAD);
