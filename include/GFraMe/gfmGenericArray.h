@@ -189,7 +189,7 @@
  * @param buffer The buffer
  * @param NUM    The object's index (no check is made!!)
  */
-#define gfmGenArry_getObject(buffer, NUM) \
+#define gfmGenArr_getObject(buffer, NUM) \
     buffer.arr[NUM]
 
 /**

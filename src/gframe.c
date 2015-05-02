@@ -650,6 +650,32 @@ __ret:
 }
 
 /**
+ * Get a texture
+ * 
+ * @param  ppTex The texture
+ * @param  pCtx  The game's contex
+ * @param  index The texture's index
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppTex, GFMRV_ARGUMENTS_BAD);
+    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the texture exists
+    ASSERT(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    
+    // Return the texture
+    *ppTex = gfmGenArr_getObject(pCtx->pTextures, index);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -719,7 +745,7 @@ gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex) {
     ASSERT(iTex < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
     
     // Load the texture
-    rv = gfm_drawLoadTexture(pCtx, gfmGenArry_getObject(pCtx->pTextures, iTex));
+    rv = gfm_drawLoadTexture(pCtx, gfmGenArr_getObject(pCtx->pTextures, iTex));
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;

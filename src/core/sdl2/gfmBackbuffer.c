@@ -379,10 +379,9 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
     }
     
     // Get parameters from spriteset
-    ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED);
-    //rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
     ASSERT_NR(rv == GFMRV_OK);
-    //rv = gfmSpriteset_getPosition(&tileX, &tileY, pSset, tile);
+    rv = gfmSpriteset_getPosition(&tileX, &tileY, pSset, tile);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set SDL's rendering parameters

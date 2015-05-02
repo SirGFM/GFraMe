@@ -5,6 +5,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/gfmUtils.h>
 #include <GFraMe/gframe.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmTexture_bkend.h>
@@ -30,35 +31,6 @@ struct stGFMTexture {
 
 /** 'Exportable' size of gfmTexture */
 const int sizeofGFMTexture = (int)sizeof(gfmTexture);
-
-/**
- * Check if a given value is a power of two
- * 
- * @param  n The number
- * @return   GFMRV_TRUE, GFMRV_FALSE
- */
-gfmRV gfmTexture_isPow2(int n) {
-    gfmRV rv;
-    int foundBit;
-    
-    foundBit = 0;
-    while (n) {
-        if (n & 1) {
-            // Check that this was the first bit found
-            ASSERT(!foundBit, GFMRV_FALSE);
-            foundBit = 1;
-        }
-        
-        // Got to the next bit
-        n >>= 1;
-    }
-    // Assert that a bit was found
-    ASSERT(foundBit, GFMRV_FALSE);
-    
-    rv = GFMRV_TRUE;
-__ret:
-    return rv;
-}
 
 /**
  * Alloc a new texture
@@ -137,8 +109,8 @@ gfmRV gfmTexture_init(gfmTexture *pTex, gfmCtx *pCtx, int width, int height) {
     // Check that the texture wasn't already initialized
     ASSERT(!pTex->pTexture, GFMRV_TEXTURE_ALREADY_INITIALIZED);
     // Check the dimensions
-    ASSERT(gfmTexture_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH);
-    ASSERT(gfmTexture_isPow2(height) == GFMRV_TRUE,
+    ASSERT(gfmUtils_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH);
+    ASSERT(gfmUtils_isPow2(height) == GFMRV_TRUE,
             GFMRV_TEXTURE_INVALID_HEIGHT);
     
     // Get the renderer
@@ -366,6 +338,33 @@ gfmRV gfmTexture_getContext(void **ppCtx, gfmTexture *pTex) {
     
     // Return the context
     *ppCtx = pTex->pTexture;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the texture's dimensions
+ * 
+ * @param  pWidth  The texture's width
+ * @param  pHeight The texture's height
+ * @param  pCtx    The texture
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmTexture_getDimensions(int *pWidth, int *pHeight, gfmTexture *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    // Check that the texture was initialized
+    ASSERT(pCtx->pTexture, GFMRV_TEXTURE_NOT_INITIALIZED);
+    
+    // Return the dimensions
+    *pWidth = pCtx->width;
+    *pHeight = pCtx->height;
     
     rv = GFMRV_OK;
 __ret:

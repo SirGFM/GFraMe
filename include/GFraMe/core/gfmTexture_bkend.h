@@ -21,14 +21,6 @@ typedef struct stGFMTexture gfmTexture;
 extern const int sizeofGFMTexture;
 
 /**
- * Check if a given value is a power of two
- * 
- * @param  n The number
- * @return   GFMRV_TRUE, GFMRV_FALSE
- */
-gfmRV gfmTexture_isPow2(int n);
-
-/**
  * Alloc a new texture
  * 
  * @param  ppCtx The alocated texture
@@ -125,6 +117,16 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
 gfmRV gfmTexture_getContext(void **ppCtx, gfmTexture *pTex);
+
+/**
+ * Get the texture's dimensions
+ * 
+ * @param  pWidth  The texture's width
+ * @param  pHeight The texture's height
+ * @param  pCtx  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmTexture_getDimensions(int *pWidth, int *pHeight, gfmTexture *pCtx);
 
 #endif /* __GFMTEXTURE_BKEND_H__ */
 

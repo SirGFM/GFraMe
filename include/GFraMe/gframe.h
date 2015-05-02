@@ -239,6 +239,16 @@ gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey);
 
 /**
+ * Get a texture
+ * 
+ * @param  ppTex The texture
+ * @param  pCtx  The game's contex
+ * @param  index The texture's index
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index);
+
+/**
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 

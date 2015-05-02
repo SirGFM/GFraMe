@@ -17,7 +17,8 @@ CC = gcc
   OBJS =                                  \
           $(OBJDIR)/gframe.o              \
           $(OBJDIR)/gfmSpriteset.o        \
-          $(OBJDIR)/gfmString.o           
+          $(OBJDIR)/gfmString.o           \
+          $(OBJDIR)/gfmUtils.o            
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
