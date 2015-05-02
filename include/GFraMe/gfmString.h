@@ -3,13 +3,19 @@
  * 
  * Defines a basic string structure
  */
-#ifndef __INT_GFMSTRING__
-#define __INT_GFMSTRING__
-
-#include <GFraMe/gfmError.h>
+#ifndef __GFMSTRING_STRUCT__
+#define __GFMSTRING_STRUCT__
 
 /** 'Exports' the gfmString structure */
 typedef struct stGFMString gfmString;
+
+#endif /* __GFMSTRING_STRUCT__ */
+
+#ifndef __GFMSTRING_H__
+#define __GFMSTRING_H__
+
+#include <GFraMe/gfmError.h>
+
 /** 'Exportable' size of gfmString */
 extern const int sizeofGFMString;
 

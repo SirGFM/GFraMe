@@ -3,13 +3,19 @@
  * 
  * Handle operations on the window
  */
+#ifndef __GFMWINDOW_STRUCT_H__
+#define __GFMWINDOW_STRUCT_H__
+
+/** "Export" the window structure's type */
+typedef struct stGFMWindow gfmWindow;
+
+#endif /* __GFMWINDOW_STRUCT_H__ */
+
 #ifndef __GFMWINDOW_BKEND_H__
 #define __GFMWINDOW_BKEND_H__
 
 #include <GFraMe/gfmError.h>
 
-/** "Export" the window structure's type */
-typedef struct stGFMWindow gfmWindow;
 /** 'Exportable' size of gfmWindow */
 extern const int sizeofGFMWindow;
 

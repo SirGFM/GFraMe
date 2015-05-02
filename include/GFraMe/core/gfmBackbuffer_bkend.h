@@ -3,14 +3,22 @@
  * 
  * Defines the backbuffer ("virtual buffer") and the actual are it's rendered to
  */
+#ifndef __GFMBACKBUFFER_STRUCT__
+#define __GFMBACKBUFFER_STRUCT__
+
+/** "Export" the backbuffer structure's type */
+typedef struct stGFMBackbuffer gfmBackbuffer;
+
+#endif /* __GFMBACKBUFFER_STRUCT_H__ */
+
 #ifndef __GFMBACKBUFFER_BKEND_H__
 #define __GFMBACKBUFFER_BKEND_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmSpriteset.h>
+#include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
 
-/** "Export" the backbuffer structure's type */
-typedef struct stGFMBackbuffer gfmBackbuffer;
 /** 'Exportable' size of gfmBackbuffer */
 extern const int sizeofGFMBackbuffer;
 
@@ -75,6 +83,54 @@ gfmRV gfmBackbuffer_cacheDimensions(gfmBackbuffer *pCtx, int width, int height);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
 gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf);
+
+/**
+ * Set the background color
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  color The background color (in ARGB, 32 bits, format)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmBackbuffer_setBackground(gfmBackbuffer *pCtx, int color);
+
+/**
+ * Loads a texture
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawLoadTexture(gfmBackbuffer *pCtx, gfmTexture *pTex);
+
+/**
+ * Initialize drawing of a frame
+ * 
+ * @param  pCtx The backbuffer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawBegin(gfmBackbuffer *pCtx);
+
+/**
+ * Renders a tile
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  pSSet The spriteset containing the tile
+ * @param  x     Horizontal position in screen space
+ * @param  y     Vertical position in screen space
+ * @param  tile  Tile to be rendered
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ */
+gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
+        int y, int tile);
+
+/**
+ * Render the current frame to the screen
+ * 
+ * @param  pCtx The backbuffer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawEnd(gfmBackbuffer *pCtx, gfmWindow *pWnd);
 
 #endif /* __GFMBACKBUFFER_BKEND_H__ */
 

@@ -3,13 +3,19 @@
  * 
  * Timer module. Should signal whenever a new frame is to be issued
  */
-#ifndef __GFRAME_TIMER_H_
-#define __GFRAME_TIMER_H_
-
-#include <GFraMe/gfmError.h>
+#ifndef __GFRAMETIMER_STRUCT__
+#define __GFRAMETIMER_STRUCT__
 
 /** "Export" the timer structure's type */
 typedef struct stGFMTimer gfmTimer;
+
+#endif /* __GFRAMETIMER_STRUCT__ */
+
+#ifndef __GFRAMETIMER_BKEND_H_
+#define __GFRAMETIMER_BKEND_H_
+
+#include <GFraMe/gfmError.h>
+
 /** 'Exportable' size of gfmTimer */
 extern const int sizeofGFMTimer;
 
@@ -96,5 +102,5 @@ gfmRV gfmTimer_setFPS(gfmTimer *pSelf, int fps);
  */
 gfmRV gfmTimer_setFPSRaw(gfmTimer *pSelf, int fps);
 
-#endif
+#endif /* __GFRAMETIMER_BKEND_H_ */
 

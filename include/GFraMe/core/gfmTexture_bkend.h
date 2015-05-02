@@ -3,14 +3,20 @@
  * 
  * 
  */
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+
+#endif /* __GFMTEXTURE_STRUCT__ */
+
 #ifndef __GFMTEXTURE_BKEND_H__
-#define  __GFMTEXTURE_BKEND_H__
+#define __GFMTEXTURE_BKEND_H__
 
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gframe.h>
 
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 /** 'Exportable' size of gfmTexture */
 extern const int sizeofGFMTexture;
 
@@ -101,7 +107,7 @@ gfmRV gfmTexture_clean(gfmTexture *pCtx);
  * @param  pCtx        The game's context
  * @param  pFilename   The image's filename (must be a '.bmp')
  * @param  filenameLen The filename's length
- * @param  colorKey    Color to be treat as transparent (in ARGB, 32 bits)
+ * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
  *                     GFMRV_TEXTURE_FILE_NOT_FOUND,
  *                     GFMRV_TEXTURE_INVALID_WIDTH,
@@ -110,6 +116,15 @@ gfmRV gfmTexture_clean(gfmTexture *pCtx);
  */
 gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey);
+
+/**
+ * Get a texture's internal representation
+ * 
+ * @param  ppCtx The returned context
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmTexture_getContext(void **ppCtx, gfmTexture *pTex);
 
 #endif /* __GFMTEXTURE_BKEND_H__ */
 

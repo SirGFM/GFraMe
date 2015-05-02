@@ -4,6 +4,8 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
@@ -14,6 +16,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+/**
+ * Define the texture array type
+ */
+gfmGenArr_define(gfmTexture);
 
 struct stGFMCtx {
     // TODO specify backend(?)
@@ -40,6 +47,10 @@ struct stGFMCtx {
     gfmWindow *pWindow;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
+    /** Every cached texture */
+    gfmGenArr_var(gfmTexture, pTextures);
+    /** Texture that should be loaded on every gfm_drawBegin */
+    int defaultTexture;
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -64,6 +75,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     
     // Zero the context's contents
     memset(*ppCtx, 0x00, sizeof(gfmCtx));
+    (*ppCtx)->defaultTexture = -1;
     
 #ifndef GFRAME_MOBILE
 	// Get current directory
@@ -570,15 +582,149 @@ gfmRV gfm_initAll() {
     return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
 
+/**
+ * Set the background color
+ * 
+ * @param  pCtx  The game's context
+ * @param  color The background color (in ARGB, 32 bits, format)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_setBackground(gfmCtx *pCtx, int color) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Set the bg color
+    rv = gfmBackbuffer_setBackground(pCtx->pBackbuffer, color);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ * 
+ * @param  pCtx        The game's contex
+ * @param  pFilename   The image's filename (must be a '.bmp')
+ * @param  filenameLen The filename's length
+ * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                     GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                     GFMRV_TEXTURE_INVALID_WIDTH,
+ *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                     GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
+        int filenameLen, int colorKey) {
+    gfmRV rv;
+    gfmTexture *pTex;
+    int incRate;
+    
+    // Sanitize arguments
+    ASSERT(index, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
+    ASSERT(filenameLen, GFMRV_ARGUMENTS_BAD);
+    
+    // Try to get a new texture
+    incRate = 1;
+    // This macro already ASSERT errors
+    gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, incRate, pTex, gfmTexture_getNew);
+    
+    // Load the texture
+    rv = gfmTexture_load(pTex, pCtx, pFilename, filenameLen, colorKey);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Push the texture into the array
+    gfmGenArr_push(pCtx->pTextures);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set a texture as default; this texture will always be loaded before drawing
+ * anything
+ * 
+ * @param  pCtx  The game's context
+ * @param  index The texture index
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the texture exists
+    ASSERT(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    
+    // Cache the default texture
+    pCtx->defaultTexture = index;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
 gfmRV gfm_drawBegin(gfmCtx *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // If there's a default texture, load it
+    if (pCtx->defaultTexture >= 0) {
+        rv = gfm_drawLoadCachedTexture(pCtx, pCtx->defaultTexture);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    rv = gfmBackbuffer_drawBegin(pCtx->pBackbuffer);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Loads a texture into the backbuffer; The texture must be managed by the
+ * framework
+ * 
+ * @param  pCtx  The game's context
+ * @param  iTex Texture index (the value returned when created)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(iTex >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the texture exists
+    ASSERT(iTex < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    
+    // Load the texture
+    rv = gfm_drawLoadTexture(pCtx, gfmGenArry_getObject(pCtx->pTextures, iTex));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -586,10 +732,24 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
  * 
  * @param  pCtx  The game's context
  * @param  pTex  The texture
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
-gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Load it into the backbuffer
+    rv = gfmBackbuffer_drawLoadTexture(pCtx->pBackbuffer, pTex);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -601,6 +761,36 @@ gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
  */
 gfmRV gfm_batchBegin(gfmCtx *pCtx) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Renders a tile into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pSSet The spriteset containing the tile
+ * @param  x     Horizontal position in screen space
+ * @param  y     Vertical position in screen space
+ * @param  tile  Tile to be rendered
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ */
+gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Render the tile
+    rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -654,6 +844,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmBackbuffer_free(&(pCtx->pBackbuffer));
     gfmWindow_free(&(pCtx->pWindow));
     gfmTimer_free(&(pCtx->pTimer));
+    gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
     
     rv = GFMRV_OK;
 __ret:

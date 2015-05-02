@@ -20,6 +20,8 @@ struct stGFMBackbuffer {
     SDL_Renderer *pRenderer;
     /** Buffer used to render everything */
     SDL_Texture *pBackbuffer;
+    /** Input texture for rendering */
+    SDL_Texture *pCachedTexture;
     /** Cached dimensions to help rendering */
     SDL_Rect outRect;
     /** Backbuffer's width */
@@ -36,6 +38,14 @@ struct stGFMBackbuffer {
     int scrPosY;
     /** Factor by which the (output) screen is bigger than the backbuffer */
     int scrZoom;
+    /** Background red component */
+    Uint8 bgRed;
+    /** Background green component */
+    Uint8 bgGreen;
+    /** Background blue component */
+    Uint8 bgBlue;
+    /** Background alpha component */
+    Uint8 bgAlpha;
 };
 /** 'Exportable' size of gfmBackbuffer */
 const int sizeofGFMBackbuffer = sizeof(gfmBackbuffer);
@@ -145,6 +155,12 @@ gfmRV gfmBackbuffer_init(gfmBackbuffer *pCtx, gfmWindow *pWnd, int width,
     rv = gfmBackbuffer_cacheDimensions(pCtx, wndWidth, wndHeight);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Set the default background color
+    pCtx->bgRed   = 0x00;
+    pCtx->bgGreen = 0x00;
+    pCtx->bgBlue  = 0x00;
+    pCtx->bgAlpha = 0xFF;
+    
     rv = GFMRV_OK;
 __ret:
     // Clean things up, on error
@@ -252,6 +268,166 @@ gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf) {
     ASSERT(pBbuf->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     
     *ppCtx = (void*)(pBbuf->pRenderer);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the background color
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  color The background color (in ARGB, 32 bits, format)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmBackbuffer_setBackground(gfmBackbuffer *pCtx, int color) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Separate each color component
+    pCtx->bgAlpha = (Uint8)( (color >> 24) & 0xff);
+    pCtx->bgRed   = (Uint8)( (color >> 16) & 0xff);
+    pCtx->bgGreen = (Uint8)( (color >>  8) & 0xff);
+    pCtx->bgBlue  = (Uint8)( (color      ) & 0xff);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Loads a texture
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawLoadTexture(gfmBackbuffer *pCtx, gfmTexture *pTex) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the SDL texture
+    rv = gfmTexture_getContext((void**)&(pCtx->pCachedTexture), pTex);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize drawing of a frame; The backbuffer must be cleared here!
+ * 
+ * @param  pCtx The backbuffer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawBegin(gfmBackbuffer *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Set backbuffer as rendering target
+    SDL_SetRenderTarget(pCtx->pRenderer, pCtx->pBackbuffer);
+    // Clear the backbuffer
+    SDL_SetRenderDrawColor(pCtx->pRenderer, pCtx->bgRed, pCtx->bgGreen,
+            pCtx->bgBlue, pCtx->bgAlpha);
+    SDL_RenderClear(pCtx->pRenderer);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Renders a tile
+ * 
+ * @param  pCtx  The backbuffer
+ * @param  pSSet The spriteset containing the tile
+ * @param  x     Horizontal position in screen space
+ * @param  y     Vertical position in screen space
+ * @param  tile  Tile to be rendered
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ *               GFMRV_BACKBUFFER_NO_TEXTURE_LOADED
+ */
+gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
+        int y, int tile) {
+    gfmRV rv;
+    int irv, tileX, tileY, tileWidth, tileHeight;
+    SDL_Rect src;
+    SDL_Rect dst;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    // Check that there is a texture for rendering
+    if (!pCtx->pCachedTexture) {
+        // TODO get texture from sset
+        ASSERT(0, GFMRV_BACKBUFFER_NO_TEXTURE_LOADED);
+    }
+    
+    // Get parameters from spriteset
+    ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED);
+    //rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    //rv = gfmSpriteset_getPosition(&tileX, &tileY, pSset, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set SDL's rendering parameters
+    src.x = tileX;
+    src.y = tileY;
+    src.w = tileWidth;
+    src.h = tileHeight;
+    dst.x = x;
+    dst.y = y;
+    dst.w = tileWidth;
+    dst.h = tileHeight;
+    
+    // Render the tile
+    irv = SDL_RenderCopy(pCtx->pRenderer, pCtx->pCachedTexture, &src, &dst);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Render the current frame to the screen
+ * 
+ * @param  pCtx The backbuffer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawEnd(gfmBackbuffer *pCtx, gfmWindow *pWnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Set the screen as rendering target
+    SDL_SetRenderTarget(pCtx->pRenderer, 0);
+    // Clear the screen
+    SDL_SetRenderDrawColor(pCtx->pRenderer, pCtx->bgRed, pCtx->bgGreen,
+            pCtx->bgBlue, pCtx->bgAlpha);
+    SDL_RenderClear(pCtx->pRenderer);
+    // Render the backbuffer to the screen
+    SDL_RenderCopy(pCtx->pRenderer, pCtx->pBackbuffer, 0/*srcRect*/,
+            &(pCtx->outRect));
+    SDL_RenderPresent(pCtx->pRenderer);
     
     rv = GFMRV_OK;
 __ret:

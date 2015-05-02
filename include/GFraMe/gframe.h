@@ -1,11 +1,21 @@
 /**
  * @include/GFraMe/gframe.h
  */
+#ifndef __GFRAME_STRUCT__
+#define __GFRAME_STRUCT__
+
+/** 'Exports' the gfmCtx structure */
+typedef struct stGFMCtx gfmCtx;
+
+#endif /* __GFRAME_STRUCT__ */
+
 #ifndef __GFRAME_H_
 #define __GFRAME_H_
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 
 #define GFraMe_major_version	0
@@ -13,13 +23,8 @@
 #define GFraMe_fix_version		0
 #define GFraMe_version	"0.1.0"
 
-/** 'Exports' the gfmCtx structure */
-typedef struct stGFMCtx gfmCtx;
 /** 'Exportable' size of gfmString */
-const int sizeofGFMCtx;
-
-// This file must be included after gfmCtx is defined
-#include <GFraMe/core/gfmTexture_bkend.h>
+extern const int sizeofGFMCtx;
 
 /**
  * Alloc a new gfmContext
@@ -192,6 +197,58 @@ gfmRV gfm_setWindowed(gfmCtx *pCtx);
 gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex);
 
 /**
+ * Set the background color
+ * 
+ * @param  pCtx  The game's context
+ * @param  color The background color (in ARGB, 32 bits, format)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ * 
+ * @param  pCtx        The game's contex
+ * @param  pFilename   The image's filename in a static buf (must be a '.bmp')
+ * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                     GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                     GFMRV_TEXTURE_INVALID_WIDTH,
+ *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                     GFMRV_INTERNAL_ERROR
+ */
+#define gfm_loadTextureStatic(index, pCtx, pFilename, colorKey) \
+    gfm_loadTexture(index, pCtx, pFilename, sizeof(pFilename)-1, colorKey)
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ * 
+ * @param  pCtx        The game's contex
+ * @param  pFilename   The image's filename (must be a '.bmp')
+ * @param  filenameLen The filename's length
+ * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                     GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                     GFMRV_TEXTURE_INVALID_WIDTH,
+ *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                     GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
+        int filenameLen, int colorKey);
+
+/**
+ * Set a texture as default; this texture will always be loaded before drawing
+ * anything
+ * 
+ * @param  pCtx  The game's context
+ * @param  index The texture index
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -200,13 +257,23 @@ gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex);
 gfmRV gfm_drawBegin(gfmCtx *pCtx);
 
 /**
+ * Loads a texture into the backbuffer; The texture must be managed by the
+ * framework
+ * 
+ * @param  pCtx  The game's context
+ * @param  iTex Texture index (the value returned when created)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);
+
+/**
  * Loads a texture into the backbuffer
  * 
  * @param  pCtx  The game's context
  * @param  pTex  The texture
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
-gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex);
+gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex);
 
 /**
  * Initialize a batch of renders (i.e., render many sprites in a single draw
@@ -216,6 +283,18 @@ gfmRV gfm_loadTexture(gfmCtx *pCtx, gfmTexture *pTex);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_batchBegin(gfmCtx *pCtx);
+
+/**
+ * Renders a tile into the backbuffer
+ * 
+ * @param  pCtx  The game's context
+ * @param  pSSet The spriteset containing the tile
+ * @param  x     Horizontal position in screen space
+ * @param  y     Vertical position in screen space
+ * @param  tile  Tile to be rendered
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile);
 
 /**
  * Renders a sprite into the backbuffer

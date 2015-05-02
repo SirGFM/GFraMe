@@ -203,7 +203,7 @@ __ret:
  * @param  pCtx        The game's context
  * @param  pFilename   The image's filename (must be a '.bmp')
  * @param  filenameLen The filename's length
- * @param  colorKey    Color to be treat as transparent (in ARGB, 32 bits)
+ * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
  *                     GFMRV_TEXTURE_FILE_NOT_FOUND,
  *                     GFMRV_TEXTURE_INVALID_WIDTH,
@@ -345,6 +345,30 @@ __ret:
     if (pData)
         free(pData);
     
+    return rv;
+}
+
+/**
+ * Get a texture's internal representation
+ * 
+ * @param  ppCtx The returned context
+ * @param  pTex  The texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfmTexture_getContext(void **ppCtx, gfmTexture *pTex) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the texture was initialized
+    ASSERT(pTex->pTexture, GFMRV_TEXTURE_NOT_INITIALIZED);
+    
+    // Return the context
+    *ppCtx = pTex->pTexture;
+    
+    rv = GFMRV_OK;
+__ret:
     return rv;
 }
 
