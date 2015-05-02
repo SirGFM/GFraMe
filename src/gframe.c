@@ -610,6 +610,7 @@ __ret:
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename (must be a '.bmp')
  * @param  filenameLen The filename's length
@@ -620,14 +621,14 @@ __ret:
  *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
  *                     GFMRV_INTERNAL_ERROR
  */
-gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
+gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     gfmRV rv;
     gfmTexture *pTex;
     int incRate;
     
     // Sanitize arguments
-    ASSERT(index, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pIndex, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
     ASSERT(filenameLen, GFMRV_ARGUMENTS_BAD);
@@ -641,6 +642,8 @@ gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
     rv = gfmTexture_load(pTex, pCtx, pFilename, filenameLen, colorKey);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Get the texture's index
+    *pIndex = gfmGenArr_getUsed(pCtx->pTextures);
     // Push the texture into the array
     gfmGenArr_push(pCtx->pTextures);
     
@@ -721,6 +724,7 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     }
     
     rv = gfmBackbuffer_drawBegin(pCtx->pBackbuffer);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -845,7 +849,19 @@ gfmRV gfm_batchEnd(gfmCtx *pCtx) {
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_drawEnd(gfmCtx *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**

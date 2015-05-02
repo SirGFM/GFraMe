@@ -209,6 +209,7 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename in a static buf (must be a '.bmp')
  * @param  colorKey    Color to be treat as transparent (in RGB, 24 bits)
@@ -218,13 +219,14 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
  *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
  *                     GFMRV_INTERNAL_ERROR
  */
-#define gfm_loadTextureStatic(index, pCtx, pFilename, colorKey) \
-    gfm_loadTexture(index, pCtx, pFilename, sizeof(pFilename)-1, colorKey)
+#define gfm_loadTextureStatic(pIndex, pCtx, pFilename, colorKey) \
+    gfm_loadTexture(pIndex, pCtx, pFilename, sizeof(pFilename)-1, colorKey)
 
 /**
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename (must be a '.bmp')
  * @param  filenameLen The filename's length
@@ -235,7 +237,7 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
  *                     GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
  *                     GFMRV_INTERNAL_ERROR
  */
-gfmRV gfm_loadTexture(int *index, gfmCtx *pCtx, char *pFilename,
+gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey);
 
 /**

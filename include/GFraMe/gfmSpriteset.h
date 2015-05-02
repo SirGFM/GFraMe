@@ -35,7 +35,7 @@ gfmRV gfmSpriteset_getNew(gfmSpriteset **ppCtx);
  * @param  ppCtx The object to be freed
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmSpriteset_getFree(gfmSpriteset **ppCtx);
+gfmRV gfmSpriteset_free(gfmSpriteset **ppCtx);
 
 /**
  * Initialize the spriteset from a texture

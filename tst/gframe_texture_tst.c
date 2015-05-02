@@ -7,16 +7,17 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
+#include <GFraMe/gfmSpriteset.h>
 
 int main(int arg, char *argv[]) {
     gfmCtx *pCtx;
     gfmRV rv;
-    gfmTexture *pTex;
+    gfmSpriteset *pSset;
+    int iTex;
     
     // Initialize every variable
     pCtx = 0;
-    pTex = 0;
+    pSset = 0;
     
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
@@ -30,20 +31,30 @@ int main(int arg, char *argv[]) {
     rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Get a new texture
-    rv = gfmTexture_getNew(&pTex);
+    // Load the texture
+    rv = gfm_loadTextureStatic(&iTex, pCtx, "atlas.bmp", 0xff00ff);
     ASSERT_NR(rv == GFMRV_OK);
-    // Initialize it
-    rv = gfmTexture_init(pTex, pCtx, 32, 32);
+    // Set it as the default
+    rv = gfm_setDefaultTexture(pCtx, iTex);
     ASSERT_NR(rv == GFMRV_OK);
-    // Load the data
-    rv = gfmTexture_loadStatic(pTex, pCtx, "atlas.bmp", 0xff00ff);
+    
+    // Create a spriteset
+    rv = gfmSpriteset_getNew(&pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSpriteset_initCached(pSset, pCtx, iTex, 32/*tw*/, 32/*th*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Draw something
+    rv = gfm_drawBegin(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_drawTile(pCtx, pSset, 0/*x*/, 0/*y*/, 0/*tile*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_drawEnd(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
-    gfmTexture_free(&pTex);
-    // In case some error happened
+    gfmSpriteset_free(&pSset);
     gfm_free(&pCtx);
     
     return rv;

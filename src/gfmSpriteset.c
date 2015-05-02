@@ -67,7 +67,7 @@ __ret:
  * @param  ppCtx The object to be freed
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmSpriteset_getFree(gfmSpriteset **ppCtx) {
+gfmRV gfmSpriteset_free(gfmSpriteset **ppCtx) {
     gfmRV rv;
     
     // Sanitize arguments
@@ -118,8 +118,8 @@ gfmRV gfmSpriteset_init(gfmSpriteset *pCtx, gfmTexture *pTex, int tileWidth,
     ASSERT_NR(rv == GFMRV_OK);
     
     // Check that the tile dimensions is smaller than the texture
-    ASSERT(tileWidth < width, GFMRV_SPRITESET_INVALID_WIDTH);
-    ASSERT(tileHeight < height, GFMRV_SPRITESET_INVALID_HEIGHT);
+    ASSERT(tileWidth <= width, GFMRV_SPRITESET_INVALID_WIDTH);
+    ASSERT(tileHeight <= height, GFMRV_SPRITESET_INVALID_HEIGHT);
     
     // Calculate the number of rows, columns and the total of tiles
     pCtx->columns = width / tileWidth;
