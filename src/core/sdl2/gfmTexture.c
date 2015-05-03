@@ -279,10 +279,10 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
             pData[pos + 3] = 0x00;
         }
         else {
-            pData[pos + 0] = (char)b & 0xfe;
-            pData[pos + 1] = (char)g & 0xfe;
-            pData[pos + 2] = (char)r & 0xfe;
-            pData[pos + 3] =   0xff  & 0xfe;
+            pData[pos + 0] = (char)b & 0xff;
+            pData[pos + 1] = (char)g & 0xff;
+            pData[pos + 2] = (char)r & 0xff;
+            pData[pos + 3] =   0xff;
         }
         
         // Go to the next pixel in this row
@@ -291,8 +291,8 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         // (actually the previous!)
         if (i % width == 0) {
             i -= width * 2;
-            // 
-            fseek(pFile, rowOffset, SEEK_SET);
+            // Go to the next line on the file
+            fseek(pFile, rowOffset, SEEK_CUR);
         }
     }
     
