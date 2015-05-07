@@ -85,6 +85,17 @@ gfmRV gfmBackbuffer_cacheDimensions(gfmBackbuffer *pCtx, int width, int height);
 gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf);
 
 /**
+ * Get the backbuffer's dimension
+ * 
+ * @param  pWidth  The backbuffer's width
+ * @param  pHeigth The backbuffer's height
+ * @param  pCtx    The backbuffer
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_getDimensions(int *pWidth, int *pHeight, gfmBackbuffer *pCtx);
+
+/**
  * Set the background color
  * 
  * @param  pCtx  The backbuffer

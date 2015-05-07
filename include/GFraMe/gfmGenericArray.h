@@ -47,6 +47,14 @@
     } while (0)
 
 /**
+ * Removed every object from a buffer (so they can be reused)
+ * 
+ * @param buffer   The buffer
+ */
+#define gfmGenArr_reset(buffer) \
+    buffer.used = 0
+
+/**
  * Set the minimum size of a buffer, expanding it if necessary
  * 
  * @param TYPE     The type

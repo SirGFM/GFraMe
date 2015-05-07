@@ -445,6 +445,34 @@ __ret:
 }
 
 /**
+ * Get the backbuffer's dimension
+ * 
+ * @param  pWidth  The backbuffer's width
+ * @param  pHeigth The backbuffer's height
+ * @param  pCtx    The game's contex
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_getBackbufferDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the renderer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Get the dimenensions
+    rv = gfmBackbuffer_getDimensions(pWidth, pHeight, pCtx->pBackbuffer);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Resize the window to the desired dimensions
  * 
  * @param  pCtx   The window context

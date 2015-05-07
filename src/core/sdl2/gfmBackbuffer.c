@@ -275,6 +275,34 @@ __ret:
 }
 
 /**
+ * Get the backbuffer's dimension
+ * 
+ * @param  pWidth  The backbuffer's width
+ * @param  pHeigth The backbuffer's height
+ * @param  pCtx    The backbuffer
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_getDimensions(int *pWidth, int *pHeight, gfmBackbuffer *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Get the backbuffer's dimensions
+    *pWidth = pCtx->bbufWidth;
+    *pHeight = pCtx->bbufHeight;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Set the background color
  * 
  * @param  pCtx  The backbuffer

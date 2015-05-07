@@ -16,8 +16,10 @@ CC = gcc
 #==============================================================================
   OBJS =                                  \
           $(OBJDIR)/gframe.o              \
+          $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
+          $(OBJDIR)/gfmTileType.o         \
           $(OBJDIR)/gfmUtils.o            
 # Add objects based on the current backend
   ifndef ($(BACKEND))

@@ -123,8 +123,8 @@ gfmRV gfmTexture_getContext(void **ppCtx, gfmTexture *pTex);
  * 
  * @param  pWidth  The texture's width
  * @param  pHeight The texture's height
- * @param  pCtx  The texture
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
+ * @param  pCtx    The texture
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
 gfmRV gfmTexture_getDimensions(int *pWidth, int *pHeight, gfmTexture *pCtx);
 
