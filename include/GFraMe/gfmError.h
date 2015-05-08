@@ -64,6 +64,7 @@ enum enGFMError {
     GFMRV_CAMERA_DIDNT_MOVE,
     // Tilemap errors
     GFMRV_TILEMAP_NOT_INITIALIZED,
+    GFMRV_TILETYPE_EXTANT,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
