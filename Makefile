@@ -19,7 +19,9 @@ CC = gcc
           $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
+          $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmTileAnimation.o    \
+          $(OBJDIR)/gfmTilemap.o          \
           $(OBJDIR)/gfmTileType.o         \
           $(OBJDIR)/gfmUtils.o            
 # Add objects based on the current backend

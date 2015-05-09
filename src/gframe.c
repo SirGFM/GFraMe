@@ -3,6 +3,7 @@
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
+#include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmSpriteset.h>
@@ -47,6 +48,8 @@ struct stGFMCtx {
     gfmWindow *pWindow;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
+    /** Default camera */
+    gfmCamera *pCamera;
     /** Every cached texture */
     gfmGenArr_var(gfmTexture, pTextures);
     /** Texture that should be loaded on every gfm_drawBegin */
@@ -362,6 +365,12 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
             bufHeight);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Alloc and initialize the camera
+    rv = gfmCamera_getNew(&(pCtx->pCamera));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmCamera_init(pCtx->pCamera, pCtx, bufWidth, bufHeight);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -732,6 +741,60 @@ __ret:
 }
 
 /**
+ * Get the default camera's current position
+ * 
+ * @param  pX    The horizontal position
+ * @param  pY    The vertical position
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    
+    // Get the position
+    rv = gfmCamera_getPosition(pX, pY, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the default camera's current position
+ * 
+ * @param  pWidth  The camera's width
+ * @param  pHeight The camera's height
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    
+    // Get the dimensions
+    rv = gfmCamera_getDimensions(pWidth, pHeight, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -913,6 +976,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #endif
     gfmBackbuffer_free(&(pCtx->pBackbuffer));
     gfmWindow_free(&(pCtx->pWindow));
+    gfmCamera_free(&(pCtx->pCamera));
     gfmTimer_free(&(pCtx->pTimer));
     gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
     

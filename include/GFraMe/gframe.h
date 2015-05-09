@@ -272,6 +272,26 @@ gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index);
 gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index);
 
 /**
+ * Get the default camera's current position
+ * 
+ * @param  pX    The horizontal position
+ * @param  pY    The vertical position
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx);
+
+/**
+ * Get the default camera's current position
+ * 
+ * @param  pWidth  The camera's width
+ * @param  pHeight The camera's height
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context

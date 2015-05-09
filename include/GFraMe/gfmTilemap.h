@@ -28,7 +28,6 @@ typedef struct stGFMTilemap gfmTilemap;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
-#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmTilemap */
@@ -184,7 +183,7 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex);
  *                   GFMRV_TILEMAP_NOT_INITIALIZED
  */
 gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
-        int pCtx, int tileIndex);
+        gfmTilemap *pCtx, int tileIndex);
 
 /**
  * Automatically generates all areas in the tilemap
