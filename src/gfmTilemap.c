@@ -195,6 +195,54 @@ __ret:
 }
 
 /**
+ * Loads a tilemap from a buffer;
+ * Only the tile data is loaded! To also load areas and animations, store those
+ * info in a file anduse gfmTilemap_loadf and a file, instead!
+ * 
+ * NOTE: The tilemap data will be copied into the context, so modifying the
+ * original buffer does nothing! If it's dynamic, it can safely be deallocated
+ * 
+ * @param  pCtx      The tilemap
+ * @param  pData     The tiles data
+ * @param  dataLen   How many tiles there are in data
+ * @param  mapWidth  Width of the map, in tiles
+ * @param  mapHeight Height of the map, in tiles
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen, int mapWidth,
+        int mapHeight) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    ASSERT(dataLen > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(mapWidth > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(mapHeight > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(dataLen == mapWidth * mapHeight, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+    
+    // Reinitialize the map, to be sure it can fit this new tilemap
+    rv = gfmTilemap_init(pCtx, pCtx->pSset, mapWidth, mapHeight, 0/*defTile*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Copy the new map into the tilemap
+    // Can't think of a good reason not to use memcpy, so...
+    memcpy(pCtx->pData, pData, dataLen*sizeof(int));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
+        int height, int type) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
  * Add a tile type, used when automatically generating areas
  * 
  * @param  pCtx The tilemap

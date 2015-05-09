@@ -33,3 +33,11 @@ struct stGFMObject {
 /** Size of gfmObject */
 const int sizeofGFMObject = (int)sizeof(gfmObject);
 
+gfmRV gfmObject_free(gfmObject **ppCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+

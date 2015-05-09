@@ -70,9 +70,40 @@ gfmRV gfmTilemap_init(gfmTilemap *pCtx, gfmSpriteset *pSset, int widthInTiles,
  */
 gfmRV gfmTilemap_clean(gfmTilemap *pCtx);
 
-gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen);
-#define gfmTilemap_loadStatic(pCtx, pData) \
-    gfmTilemap_load(pCtx, pData, (int)(sizeof(pData)/sizeof(int)));
+/**
+ * Loads a tilemap from a buffer;
+ * Only the tile data is loaded! To also load areas and animations, store those
+ * info in a file anduse gfmTilemap_loadf and a file, instead!
+ * 
+ * NOTE: The tilemap data will be copied into the context, so modifying the
+ * original buffer does nothing! If it's dynamic, it can safely be deallocated
+ * 
+ * @param  pCtx      The tilemap
+ * @param  pData     The tiles data
+ * @param  dataLen   How many tiles there are in data
+ * @param  mapWidth  Width of the map, in tiles
+ * @param  mapHeight Height of the map, in tiles
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen, int mapWidth,
+        int mapHeight);
+
+/**
+ * Loads a tilemap from a static buffer; for more info, read gfmTilemap_load's
+ * documentation
+ * 
+ * @param  pCtx      The tilemap
+ * @param  pData     The tiles data
+ * @param  mapWidth  Width of the map, in tiles
+ * @param  mapHeight Height of the map, in tiles
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_ALLOC_FAILED
+ */
+#define gfmTilemap_loadStatic(pCtx, pData, mapWidth, mapHeight) \
+    gfmTilemap_load(pCtx, pData, (int)(sizeof(pData)/sizeof(int)), mapWidth, \
+            mapHeight)
+
 gfmRV gfmTilemap_loadf(gfmTilemap *pCtx, char *pFilename, int filenameLen);
 #define gfmTilemap_loadfStatic(pCtx, pFilename) \
     gfmTilemap_loadf(pCtx, pFilename, sizeof(pFilename)-1)
@@ -81,6 +112,12 @@ gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
 gfmRV gfmTilemap_addAreas(gfmTilemap *pCtx, int *pData, int dataLen);
 #define gfmTilemap_addAreasStatic(pCtx, pData) \
     gfmTilemap_addAreasStatic(pCtx, pData, (int)(sizeof(pData) / sizeof(int)))
+gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay, int nextTile);
+gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames, int fps, int doLoop);
+gfmRV gfmTilemap_addAnimations(gfmTilemap *pCtx, int *pData, int dataLen);
+#define gfmTilemap_addAnimationsStatic(pCtx, pData) \
+    gfmTilemap_addAnimations(pCtx, pData, sizeof(pData) / sizeof(int))
+gfmRV gfmTilemap_recacheAnimations(gfmTilemap *pCtx);
 
 /**
  * Add a tile type, used when automatically generating areas

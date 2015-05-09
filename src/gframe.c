@@ -759,7 +759,7 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx) {
     ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
     
     // Get the position
-    rv = gfmCamera_getPosition(pX, pY, pCtx);
+    rv = gfmCamera_getPosition(pX, pY, pCtx->pCamera);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -786,7 +786,7 @@ gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
     ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
     
     // Get the dimensions
-    rv = gfmCamera_getDimensions(pWidth, pHeight, pCtx);
+    rv = gfmCamera_getDimensions(pWidth, pHeight, pCtx->pCamera);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
