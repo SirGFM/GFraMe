@@ -65,6 +65,7 @@ enum enGFMError {
     // Tilemap errors
     GFMRV_TILEMAP_NOT_INITIALIZED,
     GFMRV_TILETYPE_EXTANT,
+    GFMRV_TILEMAP_NO_TILETYPE,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

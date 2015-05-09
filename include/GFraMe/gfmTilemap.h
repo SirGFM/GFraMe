@@ -28,7 +28,7 @@ typedef struct stGFMTilemap gfmTilemap;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
-//#include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmTilemap */
@@ -146,8 +146,53 @@ gfmRV gfmTilemap_addTileTypes(gfmTilemap *pCtx, int *pData, int dataLen);
 #define gfmTilemap_addTileTypesStatic(pCtx, pData) \
     gfmTilemap_addTileTypes(pCtx, pData, (int)(sizeof(pData) / sizeof(int)))
 
-gfmRV gfmTilemap_isTileInArea(gfmTilemap *pCtx, int tile, int type);
-gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tile);
+/**
+ * Get the tile's type; It's not optimized if there are many tiles, but it
+ * should work just fine if there are only a few one; Search is done linearly,
+ * for your interest;
+ * If efficiency is ever a concern, maybe modifying the tile types array to a
+ * binary tree would help, already
+ * 
+ * @param  pType The tile's type
+ * @param  pCtx  The tilemap
+ * @param  tile  The tile (NOT the index of the tile in the tilemap)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NO_TILETYPE
+ */
+gfmRV gfmTilemap_getTileType(int *pType, gfmTilemap *pCtx, int tile);
+
+/**
+ * Check if the indexed tile is already inside any of the areas
+ * 
+ * @param  pCtx      The tilemap
+ * @param  tileIndex The index of the tile
+ * @return           GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex);
+
+/**
+ * Traverse the map, from a given tile, getting the biggest rectangle that contains
+ * all neighboring tiles of the same type
+ * 
+ * @param  pX        The area's horizontal position
+ * @param  pY        The area's vertical position
+ * @param  pWidth    The area's height
+ * @param  pHeight   The area's width
+ * @param  pCtx      The tilemap
+ * @param  tileIndex The area's first tile
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
+        int pCtx, int tileIndex);
+
+/**
+ * Automatically generates all areas in the tilemap
+ * 
+ * @param  pCtx The tilemap
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED,
+ *              GFMRV_TILEMAP_NO_TILETYPE
+ */
 gfmRV gfmTilemap_recalculateAreas(gfmTilemap *pCtx);
 
 /**
