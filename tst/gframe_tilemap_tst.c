@@ -9,11 +9,34 @@
 #include <GFraMe/gfmTilemap.h>
 #include <GFraMe/gfmSpriteset.h>
 
-#include <unistd.h>
+// Use a macro to easily make the program sleep in windows and linux
+#if defined(WIN32)
+#  define USLEEP(n) Sleep(n)
+#else
+#  include <unistd.h>
+#  define USLEEP(n) usleep(n*100)
+#endif
+
+// Those values are broken, but it doesn't really matter for now...
+#define NUMFRAMES 1000
+#define FPS       60
+#define DELAY     1000 / FPS
 
 /** Create the tilemap in a lazy way */
 int pTmData[] = {
 #include "../assets/map.csv"
+};
+
+// Those values are broken, but it doesn't really matter for now...
+/** Create the animations */
+int pTmAnims[] = {
+/* num|fps|loop|frames... */
+    4 , 16,  1 , 8,10,12,14,
+    4 , 16,  1 , 9,11,13,15,
+    3 , 8 ,  1 ,16,18,20,
+    3 , 8 ,  1 ,17,19,21,
+    3 , 8 ,  1 ,24,26,28,
+    3 , 8 ,  1 ,25,27,29
 };
 
 int main(int arg, char *argv[]) {
@@ -21,7 +44,7 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmTilemap *pTMap;
     gfmSpriteset *pSset;
-    int iTex;
+    int i, iTex;
     
     // Initialize every variable
     pCtx = 0;
@@ -61,16 +84,31 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmTilemap_loadStatic(pTMap, pTmData, 20/*mapWidth*/, 15/*mapHeight*/);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Draw something
-    rv = gfm_drawBegin(pCtx);
+    // Add the tilemap's animations
+    rv = gfmTilemap_addAnimationsStatic(pTMap, pTmAnims);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmTilemap_draw(pTMap, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_drawEnd(pCtx);
+    // Recache the animations
+    rv = gfmTilemap_recacheAnimations(pTMap);
     ASSERT_NR(rv == GFMRV_OK);
     
-    sleep(2);
+    // Run some frames
+    i = 0;
+    while (i < NUMFRAMES) {
+        // Update it to the next frame
+        rv = gfmTilemap_update(pTMap, DELAY);
+        
+        // Draw something
+        rv = gfm_drawBegin(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        rv = gfmTilemap_draw(pTMap, pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        rv = gfm_drawEnd(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Sleep for sometime
+        USLEEP(DELAY);
+        i++;
+    }
     
     rv = GFMRV_OK;
 __ret:

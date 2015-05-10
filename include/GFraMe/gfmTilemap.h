@@ -112,11 +112,75 @@ gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
 gfmRV gfmTilemap_addAreas(gfmTilemap *pCtx, int *pData, int dataLen);
 #define gfmTilemap_addAreasStatic(pCtx, pData) \
     gfmTilemap_addAreasStatic(pCtx, pData, (int)(sizeof(pData) / sizeof(int)))
+
+/**
+ * Add a two frames animation (i.e., from one tile to another)
+ * 
+ * @param  pCtx     The tilemap
+ * @param  tile     The tile
+ * @param  delay    How long (in milliseconds) until the next tile
+ * @param  nextTile Tile to which it will change
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                  GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay, int nextTile);
+
+/**
+ * Add an animation with various (or only two) frames
+ * 
+ * @param  pCtx      The tilemap
+ * @param  pData     Array with the sequence of frames/tiles
+ * @param  numFrames How many frames there are in pData
+ * @param  fps       How fast (in frames per second) should the animation be
+ * @param  doLoop    Whether the animation should loop (1) or not (0)
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                   GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames, int fps, int doLoop);
+
+/**
+ * Add a batch of animations to the tilemap;
+ * The array must be organized in the following format:
+ * 
+ * pData[0] = anim_0.numFrames
+ * pData[1] = anim_0.fps
+ * pData[2] = anim_0.doLoop
+ * pData[3] = anim_0.frame_0
+ * ...
+ * pData[3 + anim_0.numFrames - 1] = anim_0.lastFrame
+ * pData[3 + anim_0.numFrames] = anim_1.numFrames
+ * ...
+ * 
+ * And so on.
+ * 
+ * @param  pCtx    The  tilemap
+ * @param  pData   The batch of animations
+ * @param  dataLen How many integers there are in pData
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                   GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmTilemap_addAnimations(gfmTilemap *pCtx, int *pData, int dataLen);
+
+/**
+ * Add a batch of animations from a static buffer; Read
+ * gfmTilemap_addAnimations's documentation from the expected format
+ * 
+ * @param  pCtx  The tilemap
+ * @param  pData The batch of animations
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                   GFMRV_ALLOC_FAILED
+ */
 #define gfmTilemap_addAnimationsStatic(pCtx, pData) \
     gfmTilemap_addAnimations(pCtx, pData, sizeof(pData) / sizeof(int))
+
+/**
+ * Go through the map and cache every tile with an animation; It also calculate
+ * the nextAnimIndex for every animation info
+ * 
+ * @param  pCtx  The tilemap
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED,
+ *               GFMRV_TILEMAP_NO_TILEANIM
+ */
 gfmRV gfmTilemap_recacheAnimations(gfmTilemap *pCtx);
 
 /**
@@ -264,6 +328,7 @@ gfmRV gfmTilemap_enableBatchedDraw(gfmTilemap *pCtx);
  * 
  * @param  pCtx The tilemap
  * @param  ms   Time, in milliseconds, elapsed from the previous frame
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
  */
 gfmRV gfmTilemap_update(gfmTilemap *pCtx, int ms);
 

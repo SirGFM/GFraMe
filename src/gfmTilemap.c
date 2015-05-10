@@ -155,6 +155,9 @@ gfmRV gfmTilemap_init(gfmTilemap *pCtx, gfmSpriteset *pSset, int widthInTiles,
     
     // Set the spriteset
     pCtx->pSset = pSset;
+    // Reset some buffers
+    gfmGenArr_reset(pCtx->pAreas);
+    gfmGenArr_reset(pCtx->pTAnims);
     
     rv = GFMRV_OK;
 __ret:
@@ -240,6 +243,240 @@ __ret:
 gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
         int height, int type) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Add an animation from one tile to another
+ * 
+ * @param  pCtx     The tilemap
+ * @param  tile     The tile
+ * @param  delay    How long (in milliseconds) until the next tile
+ * @param  nextTile Tile to which it will change
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT
+ */
+gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay, int nextTile) {
+    gfmRV rv;
+    gfmTileAnimationInfo *pTAInfo;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(delay > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(nextTile >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(nextTile != tile, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO Check that the tile still doesn't have an animation
+    
+    // Get a new tile animation
+    gfmGenArr_getNextRef(gfmTileAnimationInfo, pCtx->pTAnimInfos, 1/*INC*/,
+            pTAInfo, gfmTileAnimationInfo_getNew);
+    gfmGenArr_push(pCtx->pTAnimInfos);
+    
+    // Set the animation info
+    pTAInfo->tile = tile;
+    pTAInfo->delay = delay;
+    pTAInfo->nextTile = nextTile;
+    // nextTileIndex is only set during recache of the animations
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Add an animation with various (or only two) frames
+ * 
+ * @param  pCtx      The tilemap
+ * @param  pData     Array with the sequence of frames/tiles
+ * @param  numFrames How many frames there are in pData
+ * @param  fps       How fast (in frames per second) should the animation be
+ * @param  doLoop    Whether the animation should loop (1) or not (0)
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                   GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames, int fps, int doLoop) {
+    gfmRV rv;
+    int delay, i;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    ASSERT(numFrames >= 2, GFMRV_ARGUMENTS_BAD);
+    ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Calculate the delay between frames
+    delay = 1000 / numFrames;
+    
+    // Add every frame
+    i = 0;
+    while (i < numFrames - 1) {
+        // Add an animation from the current index to the next
+        rv = gfmTilemap_addTileAnimation(pCtx, pData[i], delay, pData[i + 1]);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        i++;
+    }
+    // If it's looped, add an animation from the last index back to the first
+    if (doLoop) {
+        rv = gfmTilemap_addTileAnimation(pCtx, pData[numFrames - 1], delay,
+                pData[0]);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Add a batch of animations to the tilemap;
+ * The array must be organized in the following format:
+ * 
+ * pData[0] = anim_0.numFrames
+ * pData[1] = anim_0.fps
+ * pData[2] = anim_0.doLoop
+ * pData[3] = anim_0.frame_0
+ * ...
+ * pData[3 + anim_0.numFrames - 1] = anim_0.lastFrame
+ * pData[3 + anim_0.numFrames] = anim_1.numFrames
+ * ...
+ * 
+ * And so on.
+ * 
+ * @param  pCtx    The  tilemap
+ * @param  pData   The batch of animations
+ * @param  dataLen How many integers there are in pData
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *                   GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmTilemap_addAnimations(gfmTilemap *pCtx, int *pData, int dataLen) {
+    gfmRV rv;
+    int *pAnimData, doLoop, fps, i, numFrames;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    // A Batch with a single two-frames animation would have 5 ints
+    ASSERT(dataLen >= 5, GFMRV_ARGUMENTS_BAD);
+    
+    // Add every animation
+    i = 0;
+    while (i < dataLen) {
+        // Get the animation parameters
+        numFrames = pData[i + 0];
+        fps       = pData[i + 1];
+        doLoop    = pData[i + 2];
+        pAnimData = pData + i + 3;
+        // Add the animation
+        rv = gfmTilemap_addAnimation(pCtx, pAnimData, numFrames, fps, doLoop);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Go to the next animation
+        i += numFrames + 3;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Go through the map and cache every tile with an animation; It also calculate
+ * the nextAnimIndex for every animation info
+ * 
+ * This function is really slow!
+ * 
+ * @param  pCtx  The tilemap
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED,
+ *               GFMRV_TILEMAP_NO_TILEANIM
+ */
+gfmRV gfmTilemap_recacheAnimations(gfmTilemap *pCtx) {
+    gfmRV rv;
+    gfmTileAnimation *pTAnim;
+    gfmTileAnimationInfo *pTAInfo;
+    int i, j, tile;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+    // Check that there's at least one animation to be parsed
+    ASSERT(gfmGenArr_getUsed(pCtx->pTAnimInfos) > 0, GFMRV_TILEMAP_NO_TILEANIM);
+    
+    // Reset the previous animations
+    gfmGenArr_reset(pCtx->pTAnims);
+    
+    // Go through every anim info and search for its "nextAnimTile" in O(n^2)
+    i = 0;
+    while (i < gfmGenArr_getUsed(pCtx->pTAnimInfos)) {
+        // Get the next anim info
+        pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos, i);
+        
+        // Search for the tile that's it's next
+        j = 0;
+        while (j < gfmGenArr_getUsed(pCtx->pTAnimInfos)) {
+            gfmTileAnimationInfo *pTmpTAInfo;
+            
+            // Get the next anim info
+            pTmpTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos, j);
+            
+            // If the index for the next tile was found, stop
+            if (pTmpTAInfo->tile == pTAInfo->nextTile) {
+                break;
+            }
+            
+            j++;
+        }
+        // Check that it was found and store its value
+        if (j < gfmGenArr_getUsed(pCtx->pTAnimInfos)) {
+            pTAInfo->nextTileIndex = j;
+        }
+        else {
+            // -1 is used if the next tile isn't animated
+            pTAInfo->nextTileIndex = -1;
+        }
+        
+        i++;
+    }
+    
+    // Go through every tile in the map and cache its animation in O(n^2)
+    i = 0;
+    while (i < pCtx->widthInTiles * pCtx->heightInTiles) {
+        // Get the current tile
+        tile = pCtx->pData[i];
+        
+        // Check if it's animated
+        j = 0;
+        while (j < gfmGenArr_getUsed(pCtx->pTAnimInfos)) {
+            // Get the next anim info
+            pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos, j);
+            
+            // If it's a match, stop
+            if (pTAInfo->tile == tile) {
+                break;
+            }
+            
+            j++;
+        }
+        
+        // Check that it was found and add a new animation
+        if (j < gfmGenArr_getUsed(pCtx->pTAnimInfos)) {
+            // Get a new tile animation
+            gfmGenArr_getNextRef(gfmTileAnimation, pCtx->pTAnims, 1/*INC*/,
+                    pTAnim, gfmTileAnimation_getNew);
+            gfmGenArr_push(pCtx->pTAnims);
+            
+            // Set its values
+            pTAnim->index = i;
+            pTAnim->delay = pTAInfo->delay;
+            pTAnim->infoIndex = j;
+        }
+        
+        i++;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -651,11 +888,58 @@ __ret:
  * 
  * @param  pCtx The tilemap
  * @param  ms   Time, in milliseconds, elapsed from the previous frame
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
  */
 gfmRV gfmTilemap_update(gfmTilemap *pCtx, int ms) {
     gfmRV rv;
+    gfmTileAnimation *pTAnim;
+    gfmTileAnimationInfo *pTAInfo;
+    int i;
     
-    ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED);
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ms > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the tilemap was initialzied
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+    // If there no animations, do nothing
+    ASSERT(gfmGenArr_getUsed(pCtx->pTAnims) > 0, GFMRV_OK);
+    
+    // Loop through every animation and updates it
+    i = 0;
+    while (i < gfmGenArr_getUsed(pCtx->pTAnims)) {
+        // Get the next animation
+        pTAnim = gfmGenArr_getObject(pCtx->pTAnims, i);
+        
+        // Check if it's a valid animation
+        CASSERT_NR(pTAnim->index >= 0, __nextAnim);
+        // Updates its delay
+        pTAnim->delay -= ms;
+        
+        // If a new frame was issued, update the animation and the tile
+        while (pTAnim->delay <= 0) {
+            // Get the current animation's info
+            pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos, pTAnim->infoIndex);
+            
+            // Update the tilemap
+            pCtx->pData[pTAnim->index] = pTAInfo->nextTile;
+            
+            // Update the animation
+            if (pTAInfo->nextTileIndex >= 0) {
+                pTAnim->infoIndex = pTAInfo->nextTileIndex;
+                // Get the next animation's info
+                pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos,
+                        pTAnim->infoIndex);
+                // Update the animation's delay (accumulate over the previous)
+                pTAnim->delay += pTAInfo->delay;
+            }
+            else {
+                // "Remove" the animation from the list
+                pTAnim->index = -1;
+            }
+        }
+__nextAnim:
+        i++;
+    }
     
     rv = GFMRV_OK;
 __ret:

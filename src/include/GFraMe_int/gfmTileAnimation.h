@@ -25,7 +25,7 @@ struct stGFMTileAnimation {
     /** Time until the tile changes */
     int delay;
     /** Index on the tileAnimationInfo array with this tile's info */
-    int typeIndex;
+    int infoIndex;
 };
 
 /** Struct to keep track of all possible animations */
