@@ -12,6 +12,8 @@
 
 /** The gfmAccumulator structure */
 struct stGFMAccumulator {
+    /** At how many frames per seconds this is running */
+    int fps;
     /** Elapsed time on the current frame */
     int elapsed;
     /** How long until a 'frame' is issued */
@@ -122,6 +124,31 @@ gfmRV gfmAccumulator_setTime(gfmAccumulator *pCtx, int delay, int maxFrames) {
     pCtx->delay = delay;
     pCtx->accFrames = 0;
     pCtx->maxFrames = maxFrames;
+    pCtx->fps = 1000 / delay;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the fps set
+ * 
+ * @param  pFps The current fps
+ * @param  pCtx The accumulator
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfmAccumulator_getFPS(int *pFps, gfmAccumulator *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize argments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*pFps, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Simply return the FPS
+    *pFps = pCtx->fps;
     
     rv = GFMRV_OK;
 __ret:
@@ -175,6 +202,30 @@ gfmRV gfmAccumulator_getFrames(int *pFrames, gfmAccumulator *pCtx) {
         *pFrames = pCtx->maxFrames;
     // Clean up the frames
     pCtx->accFrames = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the delay between frames
+ * 
+ * @param  pDelay The delay
+ * @param  pCtx   The accumulator
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfmAccumulator_getDelay(int *pDelay, gfmAccumulator *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize argments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*pDelay, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Simply return the accumulated frames
+    *pDelay = pCtx->delay;
     
     rv = GFMRV_OK;
 __ret:

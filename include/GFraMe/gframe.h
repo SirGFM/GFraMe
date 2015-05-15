@@ -292,6 +292,83 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx);
 gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
 
 /**
+ * Set the state's framerate
+ * 
+ * @param  pCtx The game's context
+ * @param  ups  Number of updates per seconds
+ * @param  dps  Number of draws per seconds
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_FPS_TOO_HIGH
+ */
+gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps);
+
+/**
+ * Get how many updates frames have been issued since last call
+ * 
+ * @param  pAcc The number of frames
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx);
+
+/**
+ * Get how many draw frames have been issued since last call; This number will
+ * never go higher than '1'
+ * 
+ * @param  pAcc The number of frames
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getDraws(int *pAcc, gfmCtx *pCtx);
+
+/**
+ * Get how many time elapsed on each frame, in milliseconds; If static time loop
+ * is used, this number will always be the same, for variable time loop, this
+ * time will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in milliseconds
+ * @param  pCtx     The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx);
+
+/**
+ * Get how many time elapsed on each frame, in seconds; If static time loop is
+ * used, this number will always be the same, for variable time loop, this time
+ * will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in seconds
+ * @param  pCtx     The game's context
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx);
+
+/**
+ * Update both accumulators
+ * 
+ * @param  pCtx The game's context
+ * @param  ms   Time elapsed (in milliseconds)
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms);
+
+/**
+ * Get how many time elapsed on each frame, in seconds; If static time loop is
+ * used, this number will always be the same, for variable time loop, this time
+ * will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in seconds
+ * @param  pCtx     The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context

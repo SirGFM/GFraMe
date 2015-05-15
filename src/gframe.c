@@ -2,6 +2,7 @@
  * @src/gframe.c
  */
 #include <GFraMe/gframe.h>
+#include <GFraMe/gfmAccumulator.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
@@ -54,6 +55,10 @@ struct stGFMCtx {
     gfmGenArr_var(gfmTexture, pTextures);
     /** Texture that should be loaded on every gfm_drawBegin */
     int defaultTexture;
+    /** Accumulate when new update frames should be issued */
+    gfmAccumulator *pUpdateAcc;
+    /** Accumulate when new draw frames should be issued */
+    gfmAccumulator *pDrawAcc;
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -795,6 +800,228 @@ __ret:
 }
 
 /**
+ * Set the state's framerate
+ * 
+ * @param  pCtx The game's context
+ * @param  ups  Number of updates per seconds
+ * @param  dps  Number of draws per seconds
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_FPS_TOO_HIGH
+ */
+gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps) {
+    gfmRV rv;
+    int maxFrames;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ups > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(dps > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the objects, if necessary
+    if (!pCtx->pUpdateAcc) {
+        rv = gfmAccumulator_getNew(&(pCtx->pUpdateAcc));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    if (!pCtx->pDrawAcc) {
+        rv = gfmAccumulator_getNew(&(pCtx->pDrawAcc));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    // Set max Frames to avoid crash (and force slow down) on laggy parts
+    maxFrames = ups / 10;
+    if (maxFrames == 0)
+        maxFrames = 1;
+    // Initialize both accumulators
+    rv = gfmAccumulator_setFPS(pCtx->pUpdateAcc, ups, maxFrames);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Accumulating various draw frames make no sense, so force maxFrames to 1
+    maxFrames = 1;
+    gfmAccumulator_setFPS(pCtx->pDrawAcc, dps, maxFrames);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    // Make sure to clean both accumulators on error
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
+        gfmAccumulator_free(&(pCtx->pUpdateAcc));
+        gfmAccumulator_free(&(pCtx->pDrawAcc));
+    }
+    
+    return rv;
+}
+
+/**
+ * Get how many updates frames have been issued since last call
+ * 
+ * @param  pAcc The number of frames
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pAcc, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulator was initialized
+    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Get the number of frames
+    rv = gfmAccumulator_getFrames(pAcc, pCtx->pUpdateAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many draw frames have been issued since last call; This number will
+ * never go higher than '1'
+ * 
+ * @param  pAcc The number of frames
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getDraws(int *pAcc, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pAcc, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulator was initialized
+    ASSERT(pCtx->pDrawAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Get the number of frames
+    rv = gfmAccumulator_getFrames(pAcc, pCtx->pDrawAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many time elapsed on each frame, in milliseconds; If static time loop
+ * is used, this number will always be the same, for variable time loop, this
+ * time will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in milliseconds
+ * @param  pCtx     The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulator was initialized
+    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Retrieve the elapsed time
+    rv = gfmAccumulator_getDelay(pElapsed, pCtx->pUpdateAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many time elapsed on each frame, in seconds; If static time loop is
+ * used, this number will always be the same, for variable time loop, this time
+ * will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in seconds
+ * @param  pCtx     The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx) {
+    gfmRV rv;
+    int delay;
+    
+    // Sanitize arguments
+    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulator was initialized
+    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Retrieve the elapsed time
+    rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    *pElapsed = 1000.0f / (float)delay;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many time elapsed on each frame, in seconds; If static time loop is
+ * used, this number will always be the same, for variable time loop, this time
+ * will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in seconds
+ * @param  pCtx     The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx) {
+    gfmRV rv;
+    int delay;
+    
+    // Sanitize arguments
+    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulator was initialized
+    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Retrieve the elapsed time
+    rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    *pElapsed = 1000.0 / (double)delay;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Update both accumulators
+ * 
+ * @param  pCtx The game's context
+ * @param  ms   Time elapsed (in milliseconds)
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ms > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the accumulators was initialized
+    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT(pCtx->pDrawAcc, GFMRV_ACC_NOT_INITIALIZED);
+    
+    // Update the accumulators
+    rv = gfmAccumulator_update(pCtx->pUpdateAcc, ms);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmAccumulator_update(pCtx->pDrawAcc, ms);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -979,135 +1206,11 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmCamera_free(&(pCtx->pCamera));
     gfmTimer_free(&(pCtx->pTimer));
     gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
+    gfmAccumulator_free(&(pCtx->pUpdateAcc));
+    gfmAccumulator_free(&(pCtx->pDrawAcc));
     
     rv = GFMRV_OK;
 __ret:
     return rv;
 }
-
-/* ========================================================================== */
-/* |                                                                        | */
-/* |  OLD STUFF                                                             | */
-/* |                                                                        | */
-/* ========================================================================== */
-#if 0
-
-#include <GFraMe/GFraMe_error.h>
-#include <GFraMe/GFraMe_keys.h>
-#include <GFraMe/GFraMe_log.h>
-#include <GFraMe/GFraMe_opengl.h>
-#include <GFraMe/GFraMe_screen.h>
-#include <GFraMe/GFraMe_util.h>
-#include <SDL2/SDL.h>
-
-
-int GFraMe_gl;
-/**
- * "Organization" name. Is used as part of paths.
- */
-char GFraMe_org[GFraMe_max_org_len];
-/**
- * Game's title. Is used as part of paths.
- */
-char GFraMe_title[GFraMe_max_game_title_len];
-/**
- * Path to the directory where the game is running
- */
-char GFraMe_path[GFraMe_max_path_len];
-
-/**
- * Timer used to issue new frames
- */
-static GFraMe_timer timer = 0;
-
-/**
- * Initialize SDL, already creating a window and a backbuffer.
- * @param	vw	Buffer's width (virtual width)
- * @param	vh	Buffer's height (virtual height)
- * @param	sw	Window's width (screen width); if 0, uses the device width
- * @param	sh	Window's height(screen height);if 0, uses the device height
- * @param	org	Organization's name (used by the log and save file)
- * @param	name	Game's name (also used as window's title)
- * @param	flags	Window creation flags
- * @param	fps		At how many frames per second the game should run;
- *				  notice that this is independent from update and render
- *				  rate, those should be set on each state
- * @param	log_to_file	Whether should log to a file or to the terminal
- * @param	log_append	Whether should overwrite or append to an existing log
- * @return	0 - Success; Anything else - Failure
- */
-GFraMe_ret GFraMe_init(int vw, int vh, int sw, int sh, char *org,
-	char *name, GFraMe_window_flags flags, GFraMe_wndext *ext,
-	int fps, int log_to_file, int log_append) {
-	
-	GFraMe_ret rv = GFraMe_ret_ok;
-	int ms = 0, len;
-	
-#ifdef GFRAME_OPENGL
-	GFraMe_gl = 1;
-#else
-	GFraMe_gl = 0;
-#endif
-	// Store organization name and game's title so it can be used for
-	//logging and saving
-	len = GFraMe_max_org_len;
-	GFraMe_util_strcat(GFraMe_org, org, &len);
-	len = GFraMe_max_game_title_len;
-	GFraMe_util_strcat(GFraMe_title, name, &len);
-	
-#ifndef GFRAME_MOBILE
-	// Also, get current directory
-	char *tmp = SDL_GetBasePath();
-	GFraMe_SDLassertRV(tmp, "Couldn't get current running path",
-		rv = GFraMe_ret_failed, _ret);
-	len = GFraMe_max_path_len;
-	GFraMe_util_strcat(GFraMe_path, tmp, &len);
-	SDL_free(tmp);
-#endif
-    
-#if !defined(GFRAME_MOBILE)
-    GFraMe_key_init();
-#endif
-	
-	if (log_to_file)
-		GFraMe_log_init(log_append);
-#ifdef GFRAME_DEBUG
-	// Set logging, if debug
-	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
-#endif
-	
-	// Initialize SDL2
-	rv = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
-	GFraMe_SDLassertRV(rv >= 0, "Couldn't initialize SDL",
-		rv = GFraMe_ret_sdl_init_failed, _ret);
-	
-	// Initialize the screen
-	rv = GFraMe_screen_init(vw, vh, sw, sh, name, flags, ext);
-	GFraMe_assertRV(rv == GFraMe_ret_ok, "Failed to initialize the screen",
-		rv=rv, _ret);
-	
-	// Create a timer
-	ms = GFraMe_timer_get_ms(fps);
-	GFraMe_assertRV(ms > 0, "Requested FPS is too low",
-		rv = GFraMe_ret_fps_req_low, _ret);
-	rv = GFraMe_timer_init(ms, &timer);
-	GFraMe_assertRet(rv == GFraMe_ret_ok, "Failed to create timer", _ret);
-_ret:
-	return rv;
-}
-
-/**
- * Clean up memory allocated by init
- */
-void GFraMe_quit() {
-	if (timer) {
-		GFraMe_timer_stop(timer);
-		timer = 0;
-	}
-	GFraMe_screen_clean();
-	GFraMe_log_close();
-	SDL_Quit();
-}
-
-#endif
 

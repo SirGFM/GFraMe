@@ -57,6 +57,15 @@ gfmRV gfmAccumulator_setFPS(gfmAccumulator *pCtx, int fps, int maxFrames);
 gfmRV gfmAccumulator_setTime(gfmAccumulator *pCtx, int delay, int maxFrames);
 
 /**
+ * Get the fps set
+ * 
+ * @param  pFps The current fps
+ * @param  pCtx The accumulator
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfmAccumulator_getFPS(int *pFps, gfmAccumulator *pCtx);
+
+/**
  * Check how many frames have been accumulated, but don't clean it up
  * 
  * @param  pFrames How many frames have passed, if any
@@ -73,6 +82,15 @@ gfmRV gfmAccumulator_checkFrames(int *pFrames, gfmAccumulator *pCtx);
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
  */
 gfmRV gfmAccumulator_getFrames(int *pFrames, gfmAccumulator *pCtx);
+
+/**
+ * Get the delay between frames
+ * 
+ * @param  pDelay The delay
+ * @param  pCtx   The accumulator
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfmAccumulator_getDelay(int *pDelay, gfmAccumulator *pCtx);
 
 /**
  * Clear both the accumulated value and the remainder of the time; Note that the
