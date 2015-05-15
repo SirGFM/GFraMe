@@ -305,7 +305,7 @@ gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames, int f
     ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
     
     // Calculate the delay between frames
-    delay = 1000 / numFrames;
+    delay = 1000 / fps;
     
     // Add every frame
     i = 0;

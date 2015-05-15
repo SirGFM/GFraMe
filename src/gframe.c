@@ -11,6 +11,7 @@
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
+#include <GFraMe/core/gfmEvent_bkend.h>
 #include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
@@ -59,6 +60,8 @@ struct stGFMCtx {
     gfmAccumulator *pUpdateAcc;
     /** Accumulate when new draw frames should be issued */
     gfmAccumulator *pDrawAcc;
+    /** Event context */
+    gfmEvent *pEvent;
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -101,6 +104,10 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     // Set the backend as initialized
     (*ppCtx)->isBackendInit = 1;
+    
+    // Initialize the event's context
+    rv = gfmEvent_getNew(&((*ppCtx)->pEvent));
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -429,6 +436,109 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
     rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
             bufHeight);
     ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the game's fps resolution; This defines when will the game automatically
+ * wake to update its timers and check if a new frame should be issued
+ * (therefore, it's somewhat different from the stateFramerate)
+ * 
+ * This can be used to ease the game's resource (CPU) consuption, when focus is
+ * lost
+ * 
+ * NOTE: This function will round the time to its nearest multiple of ten
+ * 
+ * @param  pCtx The game's context
+ * @param  fps  The game's fps
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
+ */
+gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
+    
+    if (!pCtx->pTimer) {
+        // Create a new timer, if necessary
+        rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Initialize the timer
+        rv = gfmTimer_init(pCtx->pTimer, fps);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    else {
+        // Only modify the timer
+        rv = gfmTimer_setFPS(pCtx->pTimer, fps);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the game's fps resolution; This defines when will the game automatically
+ * wake to update its timers and check if a new frame should be issued
+ * (therefore, it's somewhat different from the stateFramerate)
+ * 
+ * This can be used to ease the game's resource (CPU) consuption, when focus is
+ * lost
+ * 
+ * @param  pCtx The game's context
+ * @param  fps  The game's fps
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
+ */
+gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
+    
+    if (!pCtx->pTimer) {
+        // Create a new timer, if necessary
+        rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Initialize the timer
+        rv = gfmTimer_initRaw(pCtx->pTimer, fps);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    else {
+        // Only modify the timer
+        rv = gfmTimer_setFPSRaw(pCtx->pTimer, fps);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the event context
+ * 
+ * @param ppEvent The event context
+ * @param pCtx    The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getEventCtx(gfmEvent **ppEvent, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppEvent, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // The event context is initialize with the game (no extra assert needed)
+    
+    // Return the event context
+    *ppEvent = pCtx->pEvent;
     
     rv = GFMRV_OK;
 __ret:
@@ -909,7 +1019,7 @@ __ret:
  * 
  * @param  pElapsed The elapsed time, in milliseconds
  * @param  pCtx     The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
  */
 gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx) {
     gfmRV rv;
@@ -938,7 +1048,7 @@ __ret:
  * 
  * @param  pElapsed The elapsed time, in seconds
  * @param  pCtx     The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
  */
 gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx) {
     gfmRV rv;
@@ -970,7 +1080,7 @@ __ret:
  * 
  * @param  pElapsed The elapsed time, in seconds
  * @param  pCtx     The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
  */
 gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx) {
     gfmRV rv;
@@ -1014,6 +1124,29 @@ gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms) {
     rv = gfmAccumulator_update(pCtx->pUpdateAcc, ms);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmAccumulator_update(pCtx->pDrawAcc, ms);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Sleep until any event is received and handle everything
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_handleEvents(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Wait for the first event and process everything
+    rv = gfmEvent_waitEvent(pCtx->pEvent);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -1208,6 +1341,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
+    gfmEvent_free(&(pCtx->pEvent));
     
     rv = GFMRV_OK;
 __ret:

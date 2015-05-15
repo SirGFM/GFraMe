@@ -20,6 +20,21 @@ typedef struct stGFMEvent gfmEvent;
 /** 'Exportable' size of gfmEvent */
 extern const int sizeofGFMEvent;
 
+/** Code that represents a custom time event */
+enum {
+    GFM_TIME_EVENT = 0,
+    GFM_CUSTOM_EVENT_2,
+    GFM_CUSTOM_EVENT_3,
+    GFM_CUSTOM_EVENT_4,
+    GFM_CUSTOM_EVENT_5,
+    GFM_CUSTOM_EVENT_6,
+    GFM_CUSTOM_EVENT_7,
+    GFM_CUSTOM_EVENT_8,
+    GFM_CUSTOM_EVENT_9,
+    GFM_CUSTOM_EVENT_10,
+    GFM_MAX_CUSTOM_EVENT
+};
+
 /**
  * Alloc a new event context
  * 
@@ -64,11 +79,10 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx);
 /**
  * Push a time event; Should be called by gfmTimer
  * 
- * @param  pCtx   The event's context
- * @param  pEvent Backend's representation for the event
+ * @param  pCtx The event's context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx, void *pEvent);
+gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx);
 
 // TODO interface to manually handle events
 

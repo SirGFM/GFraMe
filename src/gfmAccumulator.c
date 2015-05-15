@@ -143,7 +143,7 @@ gfmRV gfmAccumulator_getFPS(int *pFps, gfmAccumulator *pCtx) {
     
     // Sanitize argments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pFps, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFps, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
     
@@ -191,7 +191,7 @@ gfmRV gfmAccumulator_getFrames(int *pFrames, gfmAccumulator *pCtx) {
     
     // Sanitize argments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pFrames, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFrames, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
     
@@ -220,7 +220,7 @@ gfmRV gfmAccumulator_getDelay(int *pDelay, gfmAccumulator *pCtx) {
     
     // Sanitize argments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pDelay, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDelay, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
     

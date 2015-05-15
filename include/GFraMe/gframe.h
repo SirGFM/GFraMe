@@ -15,8 +15,9 @@ typedef struct stGFMCtx gfmCtx;
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
+#include <GFraMe/core/gfmEvent_bkend.h>
+#include <GFraMe/core/gfmTexture_bkend.h>
 
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
@@ -143,6 +144,47 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
  */
 gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int resIndex, int isUserResizable);
+
+/**
+ * Set the game's fps resolution; This defines when will the game automatically
+ * wake to update its timers and check if a new frame should be issued
+ * (therefore, it's somewhat different from the stateFramerate)
+ * 
+ * This can be used to ease the game's resource (CPU) consuption, when focus is
+ * lost
+ * 
+ * NOTE: This function will round the time to its nearest multiple of ten
+ * 
+ * @param  pCtx The game's context
+ * @param  fps  The game's fps
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
+ */
+gfmRV gfm_setFPS(gfmCtx *pCtx, int fps);
+
+/**
+ * Set the game's fps resolution; This defines when will the game automatically
+ * wake to update its timers and check if a new frame should be issued
+ * (therefore, it's somewhat different from the stateFramerate)
+ * 
+ * This can be used to ease the game's resource (CPU) consuption, when focus is
+ * lost
+ * 
+ * @param  pCtx The game's context
+ * @param  fps  The game's fps
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
+ */
+gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps);
+
+/**
+ * Get the event context
+ * 
+ * @param ppEvent The event context
+ * @param pCtx    The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getEventCtx(gfmEvent **ppEvent, gfmCtx *pCtx);
 
 /**
  * Get the current backbuffer
@@ -329,7 +371,7 @@ gfmRV gfm_getDraws(int *pAcc, gfmCtx *pCtx);
  * 
  * @param  pElapsed The elapsed time, in milliseconds
  * @param  pCtx     The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
  */
 gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx);
 
@@ -347,6 +389,19 @@ gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx);
 gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx);
 
 /**
+ * Get how many time elapsed on each frame, in seconds; If static time loop is
+ * used, this number will always be the same, for variable time loop, this time
+ * will be the mean of how many frames were elapsed
+ * 
+ * NOTE: Only static time loop is implemented, as of now!
+ * 
+ * @param  pElapsed The elapsed time, in seconds
+ * @param  pCtx     The game's context
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx);
+
+/**
  * Update both accumulators
  * 
  * @param  pCtx The game's context
@@ -356,17 +411,12 @@ gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx);
 gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms);
 
 /**
- * Get how many time elapsed on each frame, in seconds; If static time loop is
- * used, this number will always be the same, for variable time loop, this time
- * will be the mean of how many frames were elapsed
+ * Sleep until any event is received and handle everything
  * 
- * NOTE: Only static time loop is implemented, as of now!
- * 
- * @param  pElapsed The elapsed time, in seconds
- * @param  pCtx     The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx);
+gfmRV gfm_handleEvents(gfmCtx *pCtx);
 
 /**
  * Initialize a rendering operation
