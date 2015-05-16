@@ -178,6 +178,22 @@ gfmRV gfm_setFPS(gfmCtx *pCtx, int fps);
 gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps);
 
 /**
+ * Signal the game's context that it should quit
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setQuitFlag(gfmCtx *pCtx);
+
+/**
+ * Check whether the quit flag was received or not
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FALSE, GFMRV_TRUE
+ */
+gfmRV gfm_didGetQuitFlag(gfmCtx *pCtx);
+
+/**
  * Get the event context
  * 
  * @param ppEvent The event context

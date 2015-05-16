@@ -9,10 +9,8 @@
 #include <GFraMe/gfmTilemap.h>
 #include <GFraMe/gfmSpriteset.h>
 
-// Those values are broken, but it doesn't really matter for now...
-#define TIME      5
+// Set the game's FPS
 #define FPS       60
-#define NUMFRAMES TIME*FPS
 
 /** Create the tilemap in a lazy way */
 int pTmData[] = {
@@ -29,7 +27,7 @@ int pTmAnims[] = {
     2 , 4 ,  0 ,16,18,
     2 , 4 ,  0 ,17,19,
     2 , 4 ,  0 ,24,26,
-    2 , 4 ,  0 ,25,27
+    2 , 4 ,  0 ,25,27,
     // Monitor flickering and going to rest (short and quick)
     3 , 12,  0 ,18,20,16,
     3 , 12,  0 ,19,21,17,
@@ -42,7 +40,7 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmTilemap *pTMap;
     gfmSpriteset *pSset;
-    int i, iTex;
+    int iTex;
     
     // Initialize every variable
     pCtx = 0;
@@ -96,9 +94,8 @@ int main(int arg, char *argv[]) {
     rv = gfm_setFPS(pCtx, FPS);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Run some frames
-    i = 0;
-    while (i < NUMFRAMES) {
+    // Run until the window is closed
+    while (gfm_didGetQuitFlag(pCtx) == GFMRV_FALSE) {
         int frames, ms;
         
         rv = gfm_handleEvents(pCtx);
@@ -113,7 +110,6 @@ int main(int arg, char *argv[]) {
             ASSERT_NR(rv == GFMRV_OK);
             
             frames--;
-            i++;
         }
         
         // Draw stuff

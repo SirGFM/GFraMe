@@ -137,23 +137,30 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
     // Poll every event
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
-            // User event is only used to update the timer
             case SDL_USEREVENT: {
-                if (ev.user.code == GFM_TIME_EVENT) {
-                    unsigned int curTime, dt;
-                    
-                    // Update the event's timer
-                    curTime = SDL_GetTicks();
-                    dt = curTime - pEv->lastTime;
-                    pEv->lastTime = curTime;
-                    
-                    // Update the timer on the game's context
-                    if (dt > 0) {
-                        rv = gfm_updateAccumulators(pCtx, dt);
-                        ASSERT_NR(rv == GFMRV_OK);
-                    }
+                // User event is only used to update the timer
+                switch (ev.user.code) {
+                    case GFM_TIME_EVENT: {
+                        unsigned int curTime, dt;
+                        
+                        // Update the event's timer
+                        curTime = SDL_GetTicks();
+                        dt = curTime - pEv->lastTime;
+                        pEv->lastTime = curTime;
+                        
+                        // Update the timer on the game's context
+                        if (dt > 0) {
+                            rv = gfm_updateAccumulators(pCtx, dt);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        }
+                    } break;
+                    default: {}
                 }
-            }
+            } break;
+            case SDL_QUIT: {
+                // Signal to the main context that it should quit
+                gfm_setQuitFlag(pCtx);
+            } break;
             // TODO ....
             default: {}
         }

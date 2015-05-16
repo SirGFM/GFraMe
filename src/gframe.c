@@ -62,6 +62,8 @@ struct stGFMCtx {
     gfmAccumulator *pDrawAcc;
     /** Event context */
     gfmEvent *pEvent;
+    /** Whether a quit event was received */
+    gfmRV doQuit;
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -108,6 +110,9 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     // Initialize the event's context
     rv = gfmEvent_getNew(&((*ppCtx)->pEvent));
     ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the game as running
+    (*ppCtx)->doQuit = GFMRV_FALSE;
     
     rv = GFMRV_OK;
 __ret:
@@ -518,6 +523,44 @@ gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps) {
     }
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Signal the game's context that it should quit
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setQuitFlag(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the flag
+    pCtx->doQuit = GFMRV_TRUE;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check whether the quit flag was received or not
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FALSE, GFMRV_TRUE
+ */
+gfmRV gfm_didGetQuitFlag(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Return the flag
+    rv = pCtx->doQuit;
 __ret:
     return rv;
 }
