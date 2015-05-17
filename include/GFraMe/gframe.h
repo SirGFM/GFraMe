@@ -435,6 +435,17 @@ gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms);
 gfmRV gfm_handleEvents(gfmCtx *pCtx);
 
 /**
+ * Initialize the FPS counter; On the release version, this function does
+ * nothing but returns GFMRV_OK
+ * 
+ * @param  pCtx      The game's context
+ * @param  pSset     The spriteset
+ * @param  firstTile The first ASCII character's tile ('!') on the spriteset
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -481,6 +492,23 @@ gfmRV gfm_batchBegin(gfmCtx *pCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile);
+
+/**
+ * Renders a number at the desired position; The spriteset's texture must have
+ * a bitmap font (in the ASCII sequence)
+ * 
+ * @param  pCtx      The game's context
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  num       Number to be rendered
+ * @param  res       Number of digits
+ * @param  firstTile First ASCII tile in the spriteset
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ */
+gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
+        int res, int firstTile);
 
 /**
  * Renders a sprite into the backbuffer

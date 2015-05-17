@@ -16,6 +16,7 @@
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
+#include <GFraMe_int/gfmFPSCounter.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +65,12 @@ struct stGFMCtx {
     gfmEvent *pEvent;
     /** Whether a quit event was received */
     gfmRV doQuit;
+#if defined(DEBUG)
+    /** Whether the FPS counter should be displayed */
+    int showFPS;
+    /** FPS Counter; only enabled on debug version */
+    gfmFPSCounter *pCounter;
+#endif
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -110,6 +117,12 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     // Initialize the event's context
     rv = gfmEvent_getNew(&((*ppCtx)->pEvent));
     ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the fps counter, if debug
+#if defined(DEBUG)
+    rv = gfmFPSCounter_getNew(&((*ppCtx)->pCounter));
+    ASSERT_NR(rv == GFMRV_OK);
+#endif
     
     // Set the game as running
     (*ppCtx)->doQuit = GFMRV_FALSE;
@@ -1198,6 +1211,38 @@ __ret:
 }
 
 /**
+ * Initialize the FPS counter; On the release version, this function does
+ * nothing but returns GFMRV_OK
+ * 
+ * @param  pCtx      The game's context
+ * @param  pSset     The spriteset
+ * @param  firstTile The first ASCII character's tile ('!') on the spriteset
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
+    gfmRV rv;
+    
+#if !defined(DEBUG)
+    rv = GFMRV_OK;
+#else
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT(firstTile > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Initialize the FPS counter
+    rv = gfmFPSCounter_init(pCtx->pCounter, pSset, firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Enable displaying the FPS
+    pCtx->showFPS = 1;
+    rv = GFMRV_OK;
+__ret:
+#endif
+    return rv;
+}
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -1210,6 +1255,12 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+#if defined(DEBUG)
+    // Store when drawing was initialized
+    rv = gfmFPSCounter_initDraw(pCtx->pCounter);
+    ASSERT_NR(rv == GFMRV_OK);
+#endif
     
     // If there's a default texture, load it
     if (pCtx->defaultTexture >= 0) {
@@ -1318,6 +1369,73 @@ __ret:
 }
 
 /**
+ * Renders a number at the desired position; The spriteset's texture must have
+ * a bitmap font (in the ASCII sequence)
+ * 
+ * @param  pCtx      The game's context
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  num       Number to be rendered
+ * @param  res       Number of digits
+ * @param  firstTile First ASCII tile in the spriteset
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ */
+gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
+        int res, int firstTile) {
+    gfmRV rv;
+    int digits, tileWidth, tileHeight, tile;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Get the spriteset dimensions
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Get 10^(res-1) (to get separate each digit later)
+    digits = 1;
+    while (res > 1) {
+        digits *= 10;
+        res--;
+    }
+    
+    // Renders a '-' sign, if necessary
+    if (num < 0) {
+        // Get the tile position on the texture
+        tile = '-' - '!' + firstTile;
+        // Render it
+        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Update the number and its position
+        num *= -1;
+        x += tileWidth;
+    }
+    
+    // Render every digit
+    while (digits > 0) {
+        // Get the current digit
+        tile = num / digits % 10;
+        // Get its position on the texture
+        tile = tile + '0' - '!' + firstTile;
+        // Render it
+        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Update its position and the digit
+        x += tileWidth;
+        digits /= 10;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Renders a sprite into the backbuffer
  * 
  * @param  pCtx  The game's context
@@ -1349,6 +1467,14 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+#if defined(DEBUG)
+    // Display the current fps
+    if (pCtx->showFPS) {
+        rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+#endif
     
     rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
     ASSERT_NR(rv == GFMRV_OK);
@@ -1385,6 +1511,9 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
     gfmEvent_free(&(pCtx->pEvent));
+#if defined(DEBUG)
+    gfmFPSCounter_free(&(pCtx->pCounter));
+#endif
     
     rv = GFMRV_OK;
 __ret:

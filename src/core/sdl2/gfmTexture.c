@@ -17,8 +17,8 @@
 #include <string.h>
 
 #define BMP_OFFSET_POS 0x0a
-#define BMP_HEIGHT_POS 0x12
-#define BMP_WIDTH_POS  0x16
+#define BMP_WIDTH_POS  0x12
+#define BMP_HEIGHT_POS 0x16
 
 struct stGFMTexture {
     /** The actual SDL texture */

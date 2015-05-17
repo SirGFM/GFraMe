@@ -280,3 +280,24 @@ static Uint32 gfmTimer_callback(Uint32 interval, void *param) {
     return ((gfmTimer*)param)->interval;
 }
 
+/**
+ * Get the current time, in milliseconds, since the game started;
+ * 
+ * This function must be implemented for gfmFPSCounter to work!
+ * 
+ * @param  pTime The returned time
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmTimer_getCurTimeMs(int *pTime) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pTime, GFMRV_ARGUMENTS_BAD);
+    
+    *pTime = (int)SDL_GetTicks();
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+

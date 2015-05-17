@@ -60,7 +60,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load the texture
-    rv = gfm_loadTextureStatic(&iTex, pCtx, "tm_atlas.bmp", 0xff00ff);
+    rv = gfm_loadTextureStatic(&iTex, pCtx, "tm_atlas_font.bmp", 0xff00ff);
     ASSERT_NR(rv == GFMRV_OK);
     // Set it as the default
     rv = gfm_setDefaultTexture(pCtx, iTex);
@@ -71,6 +71,9 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmSpriteset_initCached(pSset, pCtx, iTex, 8/*tw*/, 8/*th*/);
     ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initalize the FPS counter
+    rv = gfm_initFPSCounter(pCtx, pSset, 64/*firstTile*/);
     
     // Create and load the tilemap
     rv = gfmTilemap_getNew(&pTMap);
