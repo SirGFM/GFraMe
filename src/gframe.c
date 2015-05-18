@@ -1271,13 +1271,59 @@ __ret:
 }
 
 /**
- * Signal the counter that an update happened; On the release version, this
+ * Make the FPS counter visible
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_showFPSCounter(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+#if defined(DEBUG)
+    // Check that it was initialized, on debug mode
+    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    // Enable displaying the FPS
+    pCtx->showFPS = 1;
+#endif
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Hide the FPS counter
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_hideFPSCounter(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+#if defined(DEBUG)
+    // Check that it was initialized, on debug mode
+    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    // Enable displaying the FPS
+    pCtx->showFPS = 0;
+#endif
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Signal the counter that an update will happen; On the release version, this
  * function does nothing but returns GFMRV_OK
  * 
  * @param  pCtx      The game's context
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_updateFPSCounter(gfmCtx *pCtx) {
+gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx) {
     gfmRV rv;
     
 #if !defined(DEBUG)
@@ -1288,7 +1334,34 @@ gfmRV gfm_updateFPSCounter(gfmCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
     
-    rv = gfmFPSCounter_didUpdate(pCtx->pCounter);
+    rv = gfmFPSCounter_updateBegin(pCtx->pCounter);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+#endif
+    return rv;
+}
+
+/**
+ * Signal the counter that an update happened; On the release version, this
+ * function does nothing but returns GFMRV_OK
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+#if !defined(DEBUG)
+    rv = GFMRV_OK;
+#else
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    
+    rv = gfmFPSCounter_updateEnd(pCtx->pCounter);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;

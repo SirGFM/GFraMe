@@ -26,6 +26,10 @@ struct stGFMFPSCounter {
     int drawCount;
     /** Accumulate draws */
     int drawAcc;
+    /** Time, in milliseconds, that the update process was initialized */
+    int updateInit;
+    /** How long the update took */
+    int updateTime;
     /** Count how many updates were made last second */
     int updateCount;
     /** Accumulate updates */
@@ -120,16 +124,45 @@ __ret:
 }
 
 /**
- * Signal the counter that an update happened
+ * Signal when an update started, to calculate how long it took
  * 
  * @param  pCtx      The FPS counter
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmFPSCounter_didUpdate(gfmFPSCounter *pCtx) {
+gfmRV gfmFPSCounter_updateBegin(gfmFPSCounter *pCtx) {
     gfmRV rv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Store the moment an update was initialized
+    rv = gfmTimer_getCurTimeMs(&(pCtx->updateInit));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Signal that the update ended, and actually calculate how long it took
+ * 
+ * @param  pCtx      The FPS counter
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_updateEnd(gfmFPSCounter *pCtx) {
+    gfmRV rv;
+    int curTime;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Store the moment an update was initialized
+    rv = gfmTimer_getCurTimeMs(&curTime);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Update the update operation time
+    pCtx->updateTime += curTime - pCtx->updateInit;
     
     // Update the number of updates
     pCtx->updateAcc++;
@@ -239,9 +272,10 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     
     // Render the time
     res = 4;
-    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, 0, res,
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, pCounter->updateTime, res,
             pCounter->firstTile);
     ASSERT_NR(rv == GFMRV_OK);
+    pCounter->updateTime = 0;
     
     // Draw draws-per-second
     x = 0;

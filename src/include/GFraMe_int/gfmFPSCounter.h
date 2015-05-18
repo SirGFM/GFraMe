@@ -55,12 +55,20 @@ gfmRV gfmFPSCounter_init(gfmFPSCounter *pCtx, gfmSpriteset *pSset,
         int firstTile);
 
 /**
- * Signal the counter that an update happened
+ * Signal when an update started, to calculate how long it took
  * 
  * @param  pCtx      The FPS counter
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmFPSCounter_didUpdate(gfmFPSCounter *pCtx);
+gfmRV gfmFPSCounter_updateBegin(gfmFPSCounter *pCtx);
+
+/**
+ * Signal that the update ended, and actually calculate how long it took
+ * 
+ * @param  pCtx      The FPS counter
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_updateEnd(gfmFPSCounter *pCtx);
 
 /**
  * Called on gfm_drawBegin to calculate how long it takes to render a frame

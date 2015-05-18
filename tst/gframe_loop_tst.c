@@ -109,10 +109,13 @@ int main(int arg, char *argv[]) {
         ASSERT_NR(rv == GFMRV_OK);
         rv = gfm_getElapsedTime(&ms, pCtx);
         while (frames > 0) {
+            rv = gfm_fpsCounterUpdateBegin(pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+            
             rv = gfmTilemap_update(pTMap, ms);
             ASSERT_NR(rv == GFMRV_OK);
             
-            rv = gfm_updateFPSCounter(pCtx);
+            rv = gfm_fpsCounterUpdateEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
             frames--;

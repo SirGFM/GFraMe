@@ -456,13 +456,38 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx);
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile);
 
 /**
+ * Make the FPS counter visible
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_showFPSCounter(gfmCtx *pCtx);
+
+/**
+ * Hide the FPS counter
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_hideFPSCounter(gfmCtx *pCtx);
+
+/**
+ * Signal the counter that an update will happen; On the release version, this
+ * function does nothing but returns GFMRV_OK
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx);
+
+/**
  * Signal the counter that an update happened; On the release version, this
  * function does nothing but returns GFMRV_OK
  * 
  * @param  pCtx      The game's context
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_updateFPSCounter(gfmCtx *pCtx);
+gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx);
 
 /**
  * Initialize a rendering operation
