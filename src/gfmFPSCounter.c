@@ -22,6 +22,16 @@ struct stGFMFPSCounter {
     int firstTile;
     /** Time, in milliseconds, that the drawing process was initialized */
     int drawInit;
+    /** Count how many draws were made last second */
+    int drawCount;
+    /** Accumulate draws */
+    int drawAcc;
+    /** Count how many updates were made last second */
+    int updateCount;
+    /** Accumulate updates */
+    int updateAcc;
+    /** Last time the fps counter was updated */
+    int lastTime;
 };
 
 /** Size of gfmFPSCounter */
@@ -110,6 +120,26 @@ __ret:
 }
 
 /**
+ * Signal the counter that an update happened
+ * 
+ * @param  pCtx      The FPS counter
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_didUpdate(gfmFPSCounter *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Update the number of updates
+    pCtx->updateAcc++;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Called on gfm_drawBegin to calculate how long it takes to render a frame
  * 
  * @param  pCtx      The FPS counter
@@ -125,6 +155,9 @@ gfmRV gfmFPSCounter_initDraw(gfmFPSCounter *pCtx) {
     rv = gfmTimer_getCurTimeMs(&(pCtx->drawInit));
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Increase the draw count
+    pCtx->drawAcc++;
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -136,23 +169,115 @@ __ret:
  * 
  * @param  pCounter The FPS counter
  * @param  pCtx     The game's context
- * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                  GFMRV_FPSCOUNTER_NOT_INITIALIZED
  */
 gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     gfmRV rv;
-    int curTime, delta;
+    int curTime, delta, dps, res, tile, tileWidth, tileHeight, ups, x, y;
     
     // Sanitize arguments
     ASSERT(pCounter, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCounter->pSset, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    
+    // Get the spriteset dimensions
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pCounter->pSset);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Calculate how long it took to draw
     rv = gfmTimer_getCurTimeMs(&curTime);
     ASSERT_NR(rv == GFMRV_OK);
     delta = curTime - pCounter->drawInit;
     
+    // Check if the fps should be updated
+    if (curTime - pCounter->lastTime > 1000) {
+        pCounter->updateCount = pCounter->updateAcc;
+        pCounter->updateAcc = 0;
+        pCounter->drawCount = pCounter->drawAcc;
+        pCounter->drawAcc = 0;
+        
+        pCounter->lastTime = curTime;
+    }
+    
+    // Get the expected FPS
+    rv = gfm_getStateFrameRate(&ups, &dps, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Draw updates-per-second
+    x = 0;
+    y = 0;
+    
+    // Draw an 'U'
+    tile = 'U' - '!' + pCounter->firstTile;
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += 2 * tileWidth;
+    
+    // Get the ups resolution
+    if (ups < 10)
+        res = 1;
+    else if (ups < 100)
+        res = 2;
+    else
+        res = 3;
+    
+    // Render the current dps
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, pCounter->updateCount, res,
+            pCounter->firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += res * tileWidth;
+    tile = '/' - '!' + pCounter->firstTile;
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += tileWidth;
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, ups, res,
+            pCounter->firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += (res+1) * tileWidth;
+    
     // Render the time
-    rv = gfm_drawNumber(pCtx, pCounter->pSset, 0/*x*/, 0/*y*/, delta, 4/*res*/,
+    res = 4;
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, 0, res,
+            pCounter->firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Draw draws-per-second
+    x = 0;
+    y += tileHeight;
+    
+    // Draw a 'D'
+    tile = 'D' - '!' + pCounter->firstTile;
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += 2 * tileWidth;
+    
+    // Get the dps resolution
+    if (dps < 10)
+        res = 1;
+    else if (dps < 100)
+        res = 2;
+    else
+        res = 3;
+    
+    // Render the current dps
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, pCounter->drawCount, res,
+            pCounter->firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += res * tileWidth;
+    tile = '/' - '!' + pCounter->firstTile;
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += tileWidth;
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, dps, res,
+            pCounter->firstTile);
+    ASSERT_NR(rv == GFMRV_OK);
+    x += (res+1) * tileWidth;
+    
+    // Render the time
+    res = 4;
+    rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, delta, res,
             pCounter->firstTile);
     ASSERT_NR(rv == GFMRV_OK);
     

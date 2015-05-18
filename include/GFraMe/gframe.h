@@ -360,6 +360,16 @@ gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
 gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps);
 
 /**
+ * Set the state's framerate
+ * 
+ * @param  pUps  Number of updates per seconds
+ * @param  pDps  Number of draws per seconds
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfm_getStateFrameRate(int *pUps, int *pDps, gfmCtx *pCtx);
+
+/**
  * Get how many updates frames have been issued since last call
  * 
  * @param  pAcc The number of frames
@@ -444,6 +454,15 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx);
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile);
+
+/**
+ * Signal the counter that an update happened; On the release version, this
+ * function does nothing but returns GFMRV_OK
+ * 
+ * @param  pCtx      The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_updateFPSCounter(gfmCtx *pCtx);
 
 /**
  * Initialize a rendering operation

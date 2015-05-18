@@ -112,6 +112,9 @@ int main(int arg, char *argv[]) {
             rv = gfmTilemap_update(pTMap, ms);
             ASSERT_NR(rv == GFMRV_OK);
             
+            rv = gfm_updateFPSCounter(pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+            
             frames--;
         }
         

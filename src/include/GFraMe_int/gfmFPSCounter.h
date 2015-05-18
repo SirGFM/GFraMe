@@ -54,7 +54,13 @@ gfmRV gfmFPSCounter_free(gfmFPSCounter **ppCtx);
 gfmRV gfmFPSCounter_init(gfmFPSCounter *pCtx, gfmSpriteset *pSset,
         int firstTile);
 
-//gfmRV gfmFPSCounter_(gfmFPSCounter *pCtx);
+/**
+ * Signal the counter that an update happened
+ * 
+ * @param  pCtx      The FPS counter
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_didUpdate(gfmFPSCounter *pCtx);
 
 /**
  * Called on gfm_drawBegin to calculate how long it takes to render a frame
@@ -70,7 +76,8 @@ gfmRV gfmFPSCounter_initDraw(gfmFPSCounter *pCtx);
  * 
  * @param  pCounter The FPS counter
  * @param  pCtx     The game's context
- * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                  GFMRV_FPSCOUNTER_NOT_INITIALIZED
  */
 gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx);
 

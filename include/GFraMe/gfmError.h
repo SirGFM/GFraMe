@@ -71,6 +71,8 @@ enum enGFMError {
     // Accumulator errors
     GFMRV_ACC_FPS_TOO_HIGH,
     GFMRV_ACC_NOT_INITIALIZED,
+    // FPS Counter errors
+    GFMRV_FPSCOUNTER_NOT_INITIALIZED,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
