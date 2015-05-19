@@ -23,13 +23,73 @@ typedef struct stGFMObject gfmObject;
 /** 'Exportable' size of gfmObject */
 extern const int sizeofGFMObject;
 
+/**
+ * Alloc a new gfmObject
+ * 
+ * @param  ppCtx The object
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmObject_getNew(gfmObject **ppCtx);
+
+/**
+ * Free a previously allocated gfmObject
+ * 
+ * @param  ppCtx The object
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_free(gfmObject **ppCtx);
-gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int w, int h);
+
+/**
+ * Initialize a object given its top-left position and its dimensions
+ * 
+ * NOTE: Every one of the object's attributes are cleared out, on calling this
+ * function
+ * 
+ * @param  pCtx   The object
+ * @param  x      The object's horizontal position
+ * @param  y      The object's vertical position
+ * @param  width  The object's width
+ * @param  height The object's height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height);
+
+/**
+ * Clear the object
+ * 
+ * @param  pCtx   The object
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
 gfmRV gfmObject_clean(gfmObject *pCtx);
+
+/**
+ * Set the object's dimensions
+ * 
+ * @param  pCtx   The object
+ * @param  width  The object's width
+ * @param  height The object's height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setDimensions(gfmObject *pCtx, int width, int height);
+
+/**
+ * Set the object's dimension
+ * 
+ * @param  pCtx   The object
+ * @param  width  The object's width
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setHorizontalDimension(gfmObject *pCtx, int width);
+
+/**
+ * Set the object's dimension
+ * 
+ * @param  pCtx   The object
+ * @param  height The object's height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setVerticalDimension(gfmObject *pCtx, int height);
+
 gfmRV gfmObject_getDimensions(int *pWidth, int *pHeight, gfmObject *pCtx);
 gfmRV gfmObject_getHorizontalDimension(int *pWidth, gfmObject *pCtx);
 gfmRV gfmObject_getVerticalDimension(int *pHeight, gfmObject *pCtx);
