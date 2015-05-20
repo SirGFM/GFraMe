@@ -50,9 +50,12 @@ gfmRV gfmObject_free(gfmObject **ppCtx);
  * @param  y      The object's vertical position
  * @param  width  The object's width
  * @param  height The object's height
+ * @param  pChild The object's "sub-class" (e.g., a gfmSprite)
+ * @param  type   The type of the object's "sub-class"
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height);
+gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height,
+        void *pChild, int type);
 
 /**
  * Clear the object
@@ -75,9 +78,9 @@ gfmRV gfmObject_setDimensions(gfmObject *pCtx, int width, int height);
 /**
  * Set the object's dimension
  * 
- * @param  pCtx   The object
- * @param  width  The object's width
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  pCtx  The object
+ * @param  width The object's width
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmObject_setHorizontalDimension(gfmObject *pCtx, int width);
 
@@ -90,36 +93,280 @@ gfmRV gfmObject_setHorizontalDimension(gfmObject *pCtx, int width);
  */
 gfmRV gfmObject_setVerticalDimension(gfmObject *pCtx, int height);
 
+/**
+ * Get the object's dimensions
+ * 
+ * @param  pWidth  The object's width
+ * @param  pHeight The object's height
+ * @param  pCtx    The object
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getDimensions(int *pWidth, int *pHeight, gfmObject *pCtx);
-gfmRV gfmObject_getHorizontalDimension(int *pWidth, gfmObject *pCtx);
-gfmRV gfmObject_getVerticalDimension(int *pHeight, gfmObject *pCtx);
-gfmRV gfmObject_getCenter(int *pX, int *pY, gfmObject *pCtx);
+
+/**
+ * Get the object's width
+ * 
+ * @param  pWidth The object's width
+ * @param  pCtx   The object
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getWidth(int *pWidth, gfmObject *pCtx);
+
+/**
+ * Get the object's height
+ * 
+ * @param  pHeight The object's height
+ * @param  pCtx    The object
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getHeight(int *pHeight, gfmObject *pCtx);
+
+/**
+ * Set a object's position
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setPosition(gfmObject *pCtx, int x, int y);
+
+/**
+ * Set a object's horizontal position
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x);
+
+/**
+ * Set a object's vertical position
+ * 
+ * @param  pCtx The object
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y);
+
+/**
+ * Get the object's position
+ * 
+ * @param  pX   The horizontal position
+ * @param  pY   The vertical position
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getPosition(int *pX, int *pY, gfmObject *pCtx);
+
+/**
+ * Get the object's horizontal position
+ * 
+ * @param  pX   The horizontal position
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getHorizontalPosition(int *pX, gfmObject *pCtx);
+
+/**
+ * Get the object's vertical position
+ * 
+ * @param  pY   The vertical position
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getVerticalPosition(int *pY, gfmObject *pCtx);
-gfmRV gfmObject_setVelocity(gfmObject *pCtx, int vx, int vy);
-gfmRV gfmObject_setHorizontalVelocity(gfmObject *pCtx, int vx);
-gfmRV gfmObject_setVerticalVelocity(gfmObject *pCtx, int vy);
-gfmRV gfmObject_getVelocity(int *pVx, int *pVy, gfmObject *pCtx);
-gfmRV gfmObject_getHorizontalVelocity(int *pVx, gfmObject *pCtx);
-gfmRV gfmObject_getVerticalVelocity(int *pVy, gfmObject *pCtx);
-gfmRV gfmObject_setAcceleration(gfmObject *pCtx, int ax, int ay);
-gfmRV gfmObject_setHorizontalAcceleration(gfmObject *pCtx, int ax);
-gfmRV gfmObject_setVerticalAcceleration(gfmObject *pCtx, int ay);
-gfmRV gfmObject_getAcceleration(int *pAx, int *pAy, gfmObject *pCtx);
-gfmRV gfmObject_getHorizontalAcceleration(int *pAx, gfmObject *pCtx);
-gfmRV gfmObject_getVerticalAcceleration(int *pAy, gfmObject *pCtx);
-gfmRV gfmObject_setDrag(gfmObject *pCtx, int dx, int dy);
-gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, int dx);
-gfmRV gfmObject_setVerticalDrag(gfmObject *pCtx, int dy);
-gfmRV gfmObject_getDrag(int *pDx, int *pDy, gfmObject *pCtx);
-gfmRV gfmObject_getHorizontalDrag(int *pDx, gfmObject *pCtx);
-gfmRV gfmObject_getVerticalDrag(int *pDy, gfmObject *pCtx);
-gfmRV gfmObject_update(gfmObject *pCtx, int ms);
+
+/**
+ * Get the object's central position
+ * 
+ * @param  pX   The horizontal position
+ * @param  pY   The vertical position
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getCenter(int *pX, int *pY, gfmObject *pCtx);
+
+/**
+ * Set the object's velocity
+ * 
+ * @param  pCtx The object
+ * @param  vx   The horizontal velocity
+ * @param  vy   The vertical velocity
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setVelocity(gfmObject *pCtx, double vx, double vy);
+
+/**
+ * Set the object's velocity
+ * 
+ * @param  pCtx The object
+ * @param  vx   The horizontal velocity
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setHorizontalVelocity(gfmObject *pCtx, double vx);
+
+/**
+ * Set the object's velocity
+ * 
+ * @param  pCtx The object
+ * @param  vy   The vertical velocity
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setVerticalVelocity(gfmObject *pCtx, double vy);
+
+/**
+ * Get the object's velocity
+ * 
+ * @param  pVx  The horizontal velocity
+ * @param  pVy  The vertical velocity
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getVelocity(double *pVx, double *pVy, gfmObject *pCtx);
+
+/**
+ * Get the object's velocity
+ * 
+ * @param  pVx  The horizontal velocity
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getHorizontalVelocity(double *pVx, gfmObject *pCtx);
+
+/**
+ * Get the object's velocity
+ * 
+ * @param  pVy  The vertical velocity
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getVerticalVelocity(double *pVy, gfmObject *pCtx);
+
+/**
+ * Set the object's acceleration
+ * 
+ * @param  pCtx The object
+ * @param  ax   The object's horizontal acceleration
+ * @param  ay   The object's vertical acceleration
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setAcceleration(gfmObject *pCtx, double ax, double ay);
+
+/**
+ * Set the object's acceleration
+ * 
+ * @param  pCtx The object
+ * @param  ax   The object's horizontal acceleration
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setHorizontalAcceleration(gfmObject *pCtx, double ax);
+
+/**
+ * Set the object's acceleration
+ * 
+ * @param  pCtx The object
+ * @param  ay   The object's vertical acceleration
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setVerticalAcceleration(gfmObject *pCtx, double ay);
+
+/**
+ * Get the object's acceleration
+ * 
+ * @param  pAx  The object's horizontal acceleration
+ * @param  pAy  The object's vertical acceleration
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getAcceleration(double *pAx, double *pAy, gfmObject *pCtx);
+
+/**
+ * Get the object's acceleration
+ * 
+ * @param  pAx  The object's horizontal acceleration
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getHorizontalAcceleration(double *pAx, gfmObject *pCtx);
+
+/**
+ * Get the object's acceleration
+ * 
+ * @param  pAy  The object's vertical acceleration
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getVerticalAcceleration(double *pAy, gfmObject *pCtx);
+
+/**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dx   The horizontal drag
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setDrag(gfmObject *pCtx, double dx, double dy);
+
+/**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dx   The horizontal drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, double dx);
+
+/**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setVerticalDrag(gfmObject *pCtx, double dy);
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pDy  The vertical drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getDrag(double *pDx, double *pDy, gfmObject *pCtx);
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getHorizontalDrag(double *pDx, gfmObject *pCtx);
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDy  The vertical drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getVerticalDrag(double *pDy, gfmObject *pCtx);
+
+/**
+ * Get the object's child and type; ppChild mustn't be NULL, even if the object
+ * has no "sub-class"
+ * 
+ * @param  ppChild The object's "sub-class"
+ * @param  pType   The object's type
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx);
+
+gfmRV gfmObject_update(gfmObject *pCtx, int ms);
 gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y);
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
 gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther);
