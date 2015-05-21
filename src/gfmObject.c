@@ -1461,28 +1461,19 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         pStatic = 0;
     
     if (pStatic && pMovable) {
+        double newX;
         // If one object is static
-        if (pMovable->justMoved) {
-            double newX;
-            
-            // If the object was just placed inside another object, push it out
-            if (pMovable->instantHit & gfmCollision_left) {
-                // pMovable collided to the left, place it at static's right
-                newX = pStatic->dx + 2 * pStatic->halfWidth;
-            }
-            else if (pMovable->instantHit & gfmCollision_right) {
-                // pMovable collided to the right, place it at static's left
-                newX = pStatic->dx - 2 * pMovable->halfWidth;
-            }
-            rv = gfmObject_setHorizontalPosition(pMovable, newX);
-            ASSERT_NR(rv == GFMRV_OK);
+        
+        if (pMovable->instantHit & gfmCollision_left) {
+            // pMovable collided to the left, place it at static's right
+            newX = pStatic->dx + 2 * pStatic->halfWidth;
         }
-        else {
-            // Otherwise, rollback to its previous, non-colliding, position
-            rv = gfmObject_setHorizontalPosition(pMovable, pMovable->ldx);
-            ASSERT_NR(rv == GFMRV_OK);
-            // TODO check if this creates artifacts
+        else if (pMovable->instantHit & gfmCollision_right) {
+            // pMovable collided to the right, place it at static's left
+            newX = pStatic->dx - 2 * pMovable->halfWidth;
         }
+        rv = gfmObject_setHorizontalPosition(pMovable, newX);
+        ASSERT_NR(rv == GFMRV_OK);
     }
     else {
         double dist;
@@ -1551,28 +1542,20 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         pStatic = 0;
     
     if (pStatic && pMovable) {
+        double newY;
         // If one object is static
-        if (pMovable->justMoved) {
-            double newY;
-            
-            // If the object was just placed inside another object, push it out
-            if (pMovable->instantHit & gfmCollision_up) {
-                // pMovable collided above, place it bellow static
-                newY = pStatic->dy + 2 * pStatic->halfHeight;
-            }
-            else if (pMovable->instantHit & gfmCollision_down) {
-                // pMovable collided bellow, place it above static
-                newY = pStatic->dy - 2 * pMovable->halfHeight;
-            }
-            rv = gfmObject_setVerticalPosition(pMovable, newY);
-            ASSERT_NR(rv == GFMRV_OK);
+        
+        // If the object was just placed inside another object, push it out
+        if (pMovable->instantHit & gfmCollision_up) {
+            // pMovable collided above, place it bellow static
+            newY = pStatic->dy + 2 * pStatic->halfHeight;
         }
-        else {
-            // Otherwise, rollback to its previous, non-colliding, position
-            rv = gfmObject_setVerticalPosition(pMovable, pMovable->ldy);
-            ASSERT_NR(rv == GFMRV_OK);
-            // TODO check if this creates artifacts
+        else if (pMovable->instantHit & gfmCollision_down) {
+            // pMovable collided bellow, place it above static
+            newY = pStatic->dy - 2 * pMovable->halfHeight;
         }
+        rv = gfmObject_setVerticalPosition(pMovable, newY);
+        ASSERT_NR(rv == GFMRV_OK);
     }
     else {
         double dist;
