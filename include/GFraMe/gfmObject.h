@@ -18,10 +18,28 @@ typedef struct stGFMObject gfmObject;
 #ifndef __GFMOBJECT_H__
 #define __GFMOBJECT_H__
 
+#include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
 
 /** 'Exportable' size of gfmObject */
 extern const int sizeofGFMObject;
+
+/** Collision directions */
+typedef enum {
+    gfmCollision_none      = 0x00,
+    gfmCollision_left      = 0x01,
+    gfmCollision_right     = 0x02,
+    gfmCollision_up        = 0x04,
+    gfmCollision_down      = 0x08,
+    gfmCollision_lastLeft  = 0x10,
+    gfmCollision_lastRight = 0x20,
+    gfmCollision_lastUp    = 0x40,
+    gfmCollision_lastDown  = 0x80,
+    gfmCollision_cur       = 0x0F,
+    gfmCollision_last      = 0xF0,
+    gfmCollision_hor       = 0x03,
+    gfmCollision_ver       = 0x0C,
+} gfmCollision;
 
 /**
  * Alloc a new gfmObject
@@ -124,6 +142,8 @@ gfmRV gfmObject_getHeight(int *pHeight, gfmObject *pCtx);
 /**
  * Set a object's position
  * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
  * @param  pCtx The object
  * @param  x    The horizontal position
  * @param  y    The vertical position
@@ -134,6 +154,8 @@ gfmRV gfmObject_setPosition(gfmObject *pCtx, int x, int y);
 /**
  * Set a object's horizontal position
  * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
  * @param  pCtx The object
  * @param  x    The horizontal position
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -143,6 +165,8 @@ gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x);
 /**
  * Set a object's vertical position
  * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
  * @param  pCtx The object
  * @param  y    The vertical position
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -151,6 +175,8 @@ gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y);
 
 /**
  * Get the object's position
+ * 
+ * NOTE: The anchor is the upper-left corner!
  * 
  * @param  pX   The horizontal position
  * @param  pY   The vertical position
@@ -162,6 +188,8 @@ gfmRV gfmObject_getPosition(int *pX, int *pY, gfmObject *pCtx);
 /**
  * Get the object's horizontal position
  * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
  * @param  pX   The horizontal position
  * @param  pCtx The object
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -170,6 +198,8 @@ gfmRV gfmObject_getHorizontalPosition(int *pX, gfmObject *pCtx);
 
 /**
  * Get the object's vertical position
+ * 
+ * NOTE: The anchor is the upper-left corner!
  * 
  * @param  pY   The vertical position
  * @param  pCtx The object
@@ -183,9 +213,19 @@ gfmRV gfmObject_getVerticalPosition(int *pY, gfmObject *pCtx);
  * @param  pX   The horizontal position
  * @param  pY   The vertical position
  * @param  pCtx The object
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
  */
 gfmRV gfmObject_getCenter(int *pX, int *pY, gfmObject *pCtx);
+
+/**
+ * Get the object's central position on the previous frame
+ * 
+ * @param  pX   The horizontal position
+ * @param  pY   The vertical position
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getLastCenter(int *pX, int *pY, gfmObject *pCtx);
 
 /**
  * Set the object's velocity
@@ -305,7 +345,7 @@ gfmRV gfmObject_getVerticalAcceleration(double *pAy, gfmObject *pCtx);
  * @param  pCtx The object
  * @param  dx   The horizontal drag
  * @param  dy   The vertical drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
  */
 gfmRV gfmObject_setDrag(gfmObject *pCtx, double dx, double dy);
 
@@ -314,7 +354,7 @@ gfmRV gfmObject_setDrag(gfmObject *pCtx, double dx, double dy);
  * 
  * @param  pCtx The object
  * @param  dx   The horizontal drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
  */
 gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, double dx);
 
@@ -323,7 +363,7 @@ gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, double dx);
  * 
  * @param  pCtx The object
  * @param  dy   The vertical drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
  */
 gfmRV gfmObject_setVerticalDrag(gfmObject *pCtx, double dy);
 
@@ -366,14 +406,101 @@ gfmRV gfmObject_getVerticalDrag(double *pDy, gfmObject *pCtx);
  */
 gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx);
 
-gfmRV gfmObject_update(gfmObject *pCtx, int ms);
+/**
+ * Force this object to stand immovable on collision
+ * 
+ * NOTE: An object can move through its physics even if fixed!
+ * 
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setFixed(gfmObject *pCtx);
+/**
+ * Allow this object to move on collision
+ * 
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setMovable(gfmObject *pCtx);
+
+/**
+ * Update the object; Its last collision status is cleared and the object's
+ * properties are integrated using the Euler method
+ * 
+ * @param  pObj The object
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx);
+
+/**
+ * Check if a give point is inside the object
+ * 
+ * @param  pCtx The object
+ * @param  x    The point's horizontal position
+ * @param  y    The point's vertical position
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_OBJECT_NOT_INITIALIZED
+ */
 gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y);
+
+/**
+ * Check if two objects are overlaping
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Collide two objects
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED, GFMRV_OBJECTS_CANT_COLLIDE
+ */
+gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Separate two object in the X axis
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED,
+ *                GFMRV_OBJECTS_CANT_COLLIDE, GFMRV_COLLISION_NOT_TRIGGERED
+ */
 gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Separate two object in the Y axis
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED,
+ *                GFMRV_OBJECTS_CANT_COLLIDE, GFMRV_COLLISION_NOT_TRIGGERED
+ */
 gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther);
-gfmRV gfmObject_getCollisionDirection(/* ???, */gfmObject *pCtx);
-gfmRV gfmObject_getLastCollisionDirection(/* ???, */gfmObject *pCtx);
+
+gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx);
+gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx);
+gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
+
 gfmRV gfmObject_getDistance(int *pDx, int *pDy, gfmObject *pSelf,
+        gfmObject *pOther);
+gfmRV gfmObject_getHorizontalDistance(int *pDx, gfmObject *pSelf,
+        gfmObject *pOther);
+gfmRV gfmObject_getVerticalDistance(int *pDy, gfmObject *pSelf,
+        gfmObject *pOther);
+gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
+        gfmObject *pOther);
+gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
         gfmObject *pOther);
 
 #endif  /* __GFMOBJECT_H__ */

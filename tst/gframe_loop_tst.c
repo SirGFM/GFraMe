@@ -99,7 +99,7 @@ int main(int arg, char *argv[]) {
     
     // Run until the window is closed
     while (gfm_didGetQuitFlag(pCtx) == GFMRV_FALSE) {
-        int frames, ms;
+        int frames;
         
         rv = gfm_handleEvents(pCtx);
         ASSERT_NR(rv == GFMRV_OK);
@@ -107,12 +107,11 @@ int main(int arg, char *argv[]) {
         // Update stuff
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
-        rv = gfm_getElapsedTime(&ms, pCtx);
         while (frames > 0) {
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
-            rv = gfmTilemap_update(pTMap, ms);
+            rv = gfmTilemap_update(pTMap, pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
             rv = gfm_fpsCounterUpdateEnd(pCtx);

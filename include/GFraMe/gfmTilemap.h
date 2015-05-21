@@ -326,11 +326,11 @@ gfmRV gfmTilemap_enableBatchedDraw(gfmTilemap *pCtx);
 /**
  * Run through every animated tile and update its time and the tile itself
  * 
- * @param  pCtx The tilemap
- * @param  ms   Time, in milliseconds, elapsed from the previous frame
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ * @param  pTMap The tilemap
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
  */
-gfmRV gfmTilemap_update(gfmTilemap *pCtx, int ms);
+gfmRV gfmTilemap_update(gfmTilemap *pTMap, gfmCtx *pCtx);
 
 /**
  * Draw every tile that's inside tha world's camera

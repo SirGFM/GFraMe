@@ -886,29 +886,33 @@ __ret:
 /**
  * Run through every animated tile and update its time and the tile itself
  * 
- * @param  pCtx The tilemap
- * @param  ms   Time, in milliseconds, elapsed from the previous frame
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ * @param  pTMap The tilemap
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
  */
-gfmRV gfmTilemap_update(gfmTilemap *pCtx, int ms) {
+gfmRV gfmTilemap_update(gfmTilemap *pTMap, gfmCtx *pCtx) {
     gfmRV rv;
     gfmTileAnimation *pTAnim;
-    gfmTileAnimationInfo *pTAInfo;
-    int i;
+    gfmTileAnimationInfo *pTInfo;
+    int i, ms;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(ms > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pTMap, GFMRV_ARGUMENTS_BAD);
     // Check that the tilemap was initialzied
-    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+    ASSERT(pTMap->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
     // If there no animations, do nothing
-    ASSERT(gfmGenArr_getUsed(pCtx->pTAnims) > 0, GFMRV_OK);
+    ASSERT(gfmGenArr_getUsed(pTMap->pTAnims) > 0, GFMRV_OK);
+    
+    // Get the elapsed time
+    rv = gfm_getElapsedTime(&ms, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Loop through every animation and updates it
     i = 0;
-    while (i < gfmGenArr_getUsed(pCtx->pTAnims)) {
+    while (i < gfmGenArr_getUsed(pTMap->pTAnims)) {
         // Get the next animation
-        pTAnim = gfmGenArr_getObject(pCtx->pTAnims, i);
+        pTAnim = gfmGenArr_getObject(pTMap->pTAnims, i);
         
         // Check if it's a valid animation
         CASSERT_NR(pTAnim->index >= 0, __nextAnim);
@@ -918,19 +922,19 @@ gfmRV gfmTilemap_update(gfmTilemap *pCtx, int ms) {
         // If a new frame was issued, update the animation and the tile
         while (pTAnim->delay <= 0) {
             // Get the current animation's info
-            pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos, pTAnim->infoIndex);
+            pTInfo = gfmGenArr_getObject(pTMap->pTAnimInfos, pTAnim->infoIndex);
             
             // Update the tilemap
-            pCtx->pData[pTAnim->index] = pTAInfo->nextTile;
+            pTMap->pData[pTAnim->index] = pTInfo->nextTile;
             
             // Update the animation
-            if (pTAInfo->nextTileIndex >= 0) {
-                pTAnim->infoIndex = pTAInfo->nextTileIndex;
+            if (pTInfo->nextTileIndex >= 0) {
+                pTAnim->infoIndex = pTInfo->nextTileIndex;
                 // Get the next animation's info
-                pTAInfo = gfmGenArr_getObject(pCtx->pTAnimInfos,
+                pTInfo = gfmGenArr_getObject(pTMap->pTAnimInfos,
                         pTAnim->infoIndex);
                 // Update the animation's delay (accumulate over the previous)
-                pTAnim->delay += pTAInfo->delay;
+                pTAnim->delay += pTInfo->delay;
             }
             else {
                 // "Remove" the animation from the list
@@ -1022,13 +1026,3 @@ __ret:
     return rv;
 }
 
-
-/*
-{
-    gfmRV rv;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-*/

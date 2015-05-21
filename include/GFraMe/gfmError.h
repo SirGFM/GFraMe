@@ -73,6 +73,11 @@ enum enGFMError {
     GFMRV_ACC_NOT_INITIALIZED,
     // FPS Counter errors
     GFMRV_FPSCOUNTER_NOT_INITIALIZED,
+    // Object errors
+    GFMRV_OBJECT_NOT_INITIALIZED,
+    GFMRV_NEGATIVE_DRAG,
+    GFMRV_OBJECTS_CANT_COLLIDE,
+    GFMRV_COLLISION_NOT_TRIGGERED,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
