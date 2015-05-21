@@ -434,6 +434,67 @@ gfmRV gfmObject_setMovable(gfmObject *pCtx);
 gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx);
 
 /**
+ * Get the distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getDistance(int *pDx, int *pDy, gfmObject *pSelf,
+        gfmObject *pOther);
+
+/**
+ * Get the horizontal distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getHorizontalDistance(int *pDx, gfmObject *pSelf,
+        gfmObject *pOther);
+
+/**
+ * Get the vertical distance between two objects' centers
+ * 
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getVerticalDistance(int *pDy, gfmObject *pSelf,
+        gfmObject *pOther);
+
+/**
+ * Get the horizontal distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
+        gfmObject *pOther);
+
+/**
+ * Get the vertical distance between two objects' centers
+ * 
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
+        gfmObject *pOther);
+
+/**
  * Check if a give point is inside the object
  * 
  * @param  pCtx The object
@@ -488,20 +549,32 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther);
  */
 gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther);
 
+/**
+ * Get the current collision/overlap flags
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx);
-gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx);
-gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
 
-gfmRV gfmObject_getDistance(int *pDx, int *pDy, gfmObject *pSelf,
-        gfmObject *pOther);
-gfmRV gfmObject_getHorizontalDistance(int *pDx, gfmObject *pSelf,
-        gfmObject *pOther);
-gfmRV gfmObject_getVerticalDistance(int *pDy, gfmObject *pSelf,
-        gfmObject *pOther);
-gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
-        gfmObject *pOther);
-gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
-        gfmObject *pOther);
+/**
+ * Get the last frame's collision/overlap flags
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx);
+
+/**
+ * Get the collision/overlap flags from the last 'gfmObject_isOverlaping' call
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
 
 #endif  /* __GFMOBJECT_H__ */
 

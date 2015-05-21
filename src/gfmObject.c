@@ -1104,6 +1104,149 @@ __ret:
 }
 
 /**
+ * Get the distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getDistance(int *pDx, int *pDy, gfmObject *pSelf,
+        gfmObject *pOther) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the distance
+    rv = gfmObject_getHorizontalDistance(pDx, pSelf, pOther);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmObject_getVerticalDistance(pDy, pSelf, pOther);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the horizontal distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getHorizontalDistance(int *pDx, gfmObject *pSelf,
+        gfmObject *pOther) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the distance
+    *pDx = (pSelf->x + pSelf->halfWidth) - (pOther->x + pOther->halfWidth);
+    if (*pDx < 0)
+        *pDx = -(*pDx);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the vertical distance between two objects' centers
+ * 
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getVerticalDistance(int *pDy, gfmObject *pSelf,
+        gfmObject *pOther) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the distance
+    *pDy = (pSelf->y + pSelf->halfHeight) - (pOther->y + pOther->halfHeight);
+    if (*pDy < 0)
+        *pDy = -(*pDy);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the horizontal distance between two objects' centers
+ * 
+ * @param  pX     The horizontal distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
+        gfmObject *pOther) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the distance
+    *pDx = (pSelf->dx + pSelf->halfWidth) - (pOther->dx + pOther->halfWidth);
+    if (*pDx < 0)
+        *pDx = -(*pDx);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the vertical distance between two objects' centers
+ * 
+ * @param  pY     The vertical distance
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
+        gfmObject *pOther) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the distance
+    *pDy = (pSelf->dy + pSelf->halfHeight) - (pOther->dy + pOther->halfHeight);
+    if (*pDy < 0)
+        *pDy = -(*pDy);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Check if a give point is inside the object
  * 
  * @param  pCtx The object
@@ -1454,6 +1597,72 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the current collision/overlap flags
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the flags
+    *pDir = (pCtx->hit & gfmCollision_cur);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the last frame's collision/overlap flags
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the flags
+    *pDir = (pCtx->hit & gfmCollision_last) >> 8;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the collision/overlap flags from the last 'gfmObject_isOverlaping' call
+ * 
+ * @param  pDir The collision direction
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the flags
+    *pDir = pCtx->instantHit;
     
     rv = GFMRV_OK;
 __ret:
