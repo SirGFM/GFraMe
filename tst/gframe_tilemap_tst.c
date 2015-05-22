@@ -95,7 +95,7 @@ int main(int arg, char *argv[]) {
     i = 0;
     while (i < NUMFRAMES) {
         // Update it to the next frame
-        rv = gfmTilemap_update(pTMap, DELAY);
+        rv = gfmTilemap_update(pTMap, pCtx);
         
         // Draw something
         rv = gfm_drawBegin(pCtx);
