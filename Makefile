@@ -19,6 +19,7 @@ CC = gcc
           $(OBJDIR)/gfmAccumulator.o      \
           $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmFPSCounter.o       \
+          $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
           $(OBJDIR)/gfmObject.o           \

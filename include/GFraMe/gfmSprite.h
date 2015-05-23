@@ -17,6 +17,7 @@ typedef struct stGFMSprite gfmSprite;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmSprite */
 extern const int sizeofGFMSprite;
@@ -48,12 +49,15 @@ gfmRV gfmSprite_free(gfmSprite **ppCtx);
  * @param  y      The sprite's vertical position
  * @param  width  The sprite's width
  * @param  height The sprite's height
+ * @param  pSset  The sprite's spriteset
+ * @param  offX   Tile's horizontal offset from the object's position
+ * @param  offY   Tile's vertical offset from the object's position
  * @param  pChild The sprite's "sub-class" (e.g., a gfmSprite)
  * @param  type   The type of the sprite's "sub-class"
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmSprite_init(gfmSprite *pCtx, int x, int y, int width, int height,
-        void *pChild, int type);
+        gfmSpriteset *pSset, int offX, int offY, void *pChild, int type);
 
 /**
  * Clear the sprite
@@ -555,6 +559,22 @@ gfmRV gfmSprite_getLastCollision(gfmCollision *pDir, gfmSprite *pCtx);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmSprite_getCurrentCollision(gfmCollision *pDir, gfmSprite *pCtx);
+
+gfmRV gfmSprite_setOffset(gfmSprite *pCtx, int offX, int offY);
+gfmRV gfmSprite_getOffset(int *pOffX, int *pOffY, gfmSprite *pCtx);
+gfmRV gfmSprite_getChild(void **ppChild, int *pType, gfmSprite *pCtx);
+gfmRV gfmSprite_getObject(gfmObject **pObj, gfmSprite *pCtx);
+gfmRV gfmSprite_setSpriteset(gfmSprite *pCtx, gfmSpriteset *pSset);
+gfmRV gfmSprite_getSpriteset(gfmSpriteset **ppSset, gfmSprite *pCtx);
+gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame);
+gfmRV gfmSprite_getFrame(int *pFrame, gfmSprite *pCtx);
+gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx);
+gfmRV gfmSprite_addAnimation(gfmSprite *pCtx, int *pData, int numFrames,
+        int fps, int doLoop);
+gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);
+gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index);
+//gfmRV gfmSprite_getAnimation(gfmAnimation **ppAnim, gfmSprite *pCtx);
+gfmRV gfmSprite_didAnimationFinish(gfmSprite *pCtx);
 
 #endif /* __GFMSPRITE_H__ */
 

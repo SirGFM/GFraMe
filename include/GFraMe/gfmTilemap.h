@@ -123,7 +123,8 @@ gfmRV gfmTilemap_addAreas(gfmTilemap *pCtx, int *pData, int dataLen);
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
  *                  GFMRV_ALLOC_FAILED
  */
-gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay, int nextTile);
+gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay,
+        int nextTile);
 
 /**
  * Add an animation with various (or only two) frames
@@ -136,7 +137,8 @@ gfmRV gfmTilemap_addTileAnimation(gfmTilemap *pCtx, int tile, int delay, int nex
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
  *                   GFMRV_ALLOC_FAILED
  */
-gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames, int fps, int doLoop);
+gfmRV gfmTilemap_addAnimation(gfmTilemap *pCtx, int *pData, int numFrames,
+        int fps, int doLoop);
 
 /**
  * Add a batch of animations to the tilemap;

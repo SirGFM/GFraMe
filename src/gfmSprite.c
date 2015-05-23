@@ -9,6 +9,8 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSprite.h>
+#include <GFraMe/gfmSpriteset.h>
+#include <GFraMe/gfmTypes.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -25,11 +27,142 @@ struct stGFMSprite {
     int offsetX;
     /** Vertical offset between the object's top-left corner and the tile's */
     int offsetY;
+    /** The sprite's spriteset */
+    gfmSpriteset *pSset;
+    /** Current frame (i.e., tile) from the spriteset */
+    int frame;
     // TODO Animation...
 };
 
 /** Size of gfmSprite */
 const int sizeofGFMSprite = (int)sizeof(gfmSprite);
+
+/**
+ * Alloc a new gfmSprite
+ * 
+ * @param  ppCtx The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmSprite_getNew(gfmSprite **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the sprite
+    *ppCtx = (gfmSprite*)malloc(sizeof(gfmSprite));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    
+    // Clean everything
+    memset(*ppCtx, 0x0, sizeof(gfmSprite));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Free a previously allocated gfmSprite
+ * 
+ * @param  ppCtx The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_free(gfmSprite **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean the sprite
+    rv = gfmSprite_clean(*ppCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Free the memory
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize a sprite given its top-left position and its dimensions
+ * 
+ * NOTE: Every one of the sprite's attributes are cleared out, on calling this
+ * function
+ * 
+ * @param  pCtx   The sprite
+ * @param  x      The sprite's horizontal position
+ * @param  y      The sprite's vertical position
+ * @param  width  The sprite's width
+ * @param  height The sprite's height
+ * @param  pSset  The sprite's spriteset
+ * @param  offX   Tile's horizontal offset from the object's position
+ * @param  offY   Tile's vertical offset from the object's position
+ * @param  pChild The sprite's "sub-class" (e.g., a gfmSprite)
+ * @param  type   The type of the sprite's "sub-class"
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmSprite_init(gfmSprite *pCtx, int x, int y, int width, int height,
+        gfmSpriteset *pSset, int offX, int offY, void *pChild, int type) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    
+    // If there's no object, alloc it
+    if (!pCtx->pObject) {
+        rv = gfmObject_getNew(&(pCtx->pObject));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    // Initialize the object
+    rv = gfmObject_init(pCtx->pObject, x, y, width, height, (void*)pCtx,
+            gfmType_sprite);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the spriteset and offset
+    pCtx->pSset = pSset;
+    pCtx->offsetX = offX;
+    pCtx->offsetY = offY;
+    
+    // TODO animations
+    
+    // Set the child
+    pCtx->pChild = pChild;
+    pCtx->childType = type;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Clear the sprite
+ * 
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmSprite_clean(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Dealloc the object, if any
+    gfmObject_free(&(pCtx->pObject));
+    // TODO animation...
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Set the sprite's dimensions
