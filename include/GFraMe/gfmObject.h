@@ -12,6 +12,8 @@
 
 /** 'Exports' the gfmObject structure */
 typedef struct stGFMObject gfmObject;
+/** 'Exports' the gfmCollision type */
+typedef enum enGFMCollision gfmCollision;
 
 #endif  /* __GFMOBJECT_STRUCT__ */
 
@@ -25,7 +27,7 @@ typedef struct stGFMObject gfmObject;
 extern const int sizeofGFMObject;
 
 /** Collision directions */
-typedef enum {
+enum enGFMCollision {
     gfmCollision_none      = 0x00,
     gfmCollision_left      = 0x01,
     gfmCollision_right     = 0x02,
@@ -39,7 +41,7 @@ typedef enum {
     gfmCollision_last      = 0xF0,
     gfmCollision_hor       = 0x03,
     gfmCollision_ver       = 0x0C,
-} gfmCollision;
+};
 
 /**
  * Alloc a new gfmObject

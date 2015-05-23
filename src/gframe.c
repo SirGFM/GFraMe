@@ -1,5 +1,7 @@
 /**
- * @src/gframe.c
+ * @file src/gframe.c
+ * 
+ * The game's main context
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAccumulator.h>
@@ -7,6 +9,7 @@
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
@@ -966,6 +969,29 @@ __ret:
 }
 
 /**
+ * Check if a sprite is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pSpr The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isSpriteInsideCamera(gfmCtx *pCtx, gfmSprite *pSpr) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSpr, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    
+    // Check if it's inside
+    rv = gfmCamera_isSpriteInside(pCtx->pCamera, pSpr);
+__ret:
+    return rv;
+}
+
+/**
  * Set the state's framerate
  * 
  * @param  pCtx The game's context
@@ -1570,7 +1596,7 @@ __ret:
  * @param  pSpr  The sprite
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-//gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
+gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
 
 /**
  * Finalize a batch of renders (i.e., render many sprites in a single draw call)

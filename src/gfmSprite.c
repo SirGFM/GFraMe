@@ -31,6 +31,8 @@ struct stGFMSprite {
     gfmSpriteset *pSset;
     /** Current frame (i.e., tile) from the spriteset */
     int frame;
+    /** Whether the sprite is flipped */
+    int isFlipped;
     // TODO Animation...
 };
 
@@ -766,25 +768,6 @@ __ret:
 }
 
 /**
- * Get the sprite's child and type; ppChild mustn't be NULL, even if the sprite
- * has no "sub-class"
- * 
- * @param  ppChild The sprite's "sub-class"
- * @param  pType   The sprite's type
- * @param  pCtx The sprite
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmSprite_getChild(void **ppChild, int *pType, gfmSprite *pCtx) {
-    gfmRV rv;
-    
-    // Check only the sprites
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // TODO Implemente this
-__ret:
-    return rv;
-}
-
-/**
  * Force this sprite to stand immovable on collision
  * 
  * NOTE: An sprite can move through its physics even if fixed!
@@ -1107,6 +1090,250 @@ gfmRV gfmSprite_getCurrentCollision(gfmCollision *pDir, gfmSprite *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Call the 'super-class' function
     rv = gfmObject_getCurrentCollision(pDir, pCtx->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Set the sprite's (i.e., image/tile) offset from the object's hitbox
+ * 
+ * @param  pCtx The sprite
+ * @param  offX Tile's horizontal offset from the object's position
+ * @param  offY Tile's vertical offset from the object's position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setOffset(gfmSprite *pCtx, int offX, int offY) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Set the offset
+    pCtx->offsetX = offX;
+    pCtx->offsetY = offY;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the sprite's (i.e., image/tile) offset from the object's hitbox
+ * 
+ * @param  pOffX Tile's horizontal offset from the object's position
+ * @param  pOffY Tile's vertical offset from the object's position
+ * @param  pCtx  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getOffset(int *pOffX, int *pOffY, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOffX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOffY, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Get the offset
+    *pOffX = pCtx->offsetX;
+    *pOffY = pCtx->offsetY;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's sub-class (e.g, a player, an enemy, etc)
+ * 
+ * NOTE: Even if the sprite has no sub-class, this function's ppChild param
+ * mustn't be NULL
+ * 
+ * @param  ppChild The sub-class struct
+ * @param  pType   The sub-class type
+ * @param  pCtx    The sprite
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getChild(void **ppChild, int *pType, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppChild, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pType, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Get the child
+    *ppChild = pCtx->pChild;
+    *pType = pCtx->childType;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's super-class (i.e., a gfmObject)
+ * 
+ * @param  ppObj The object
+ * @param  pCtx  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getObject(gfmObject **ppObj, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppObj, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Get the object
+    *ppObj = pCtx->pObject;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the sprite's spriteset
+ * 
+ * @param  pCtx  The sprite
+ * @param  pSset The sprite's spriteset
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setSpriteset(gfmSprite *pCtx, gfmSpriteset *pSset) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Set the spriteset
+    pCtx->pSset = pSset;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's spriteset
+ * 
+ * @param  ppSset The sprite's spriteset
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getSpriteset(gfmSpriteset **ppSset, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppSset, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Get the spriteset
+    *ppSset = pCtx->pSset;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the current frame
+ * 
+ * @param  pCtx  The sprite
+ * @param  frame The frame
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(frame > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Set the current frame
+    pCtx->frame = frame;
+    // TODO stop animation?
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the current frame
+ * 
+ * @param  pFrame The frame
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getFrame(int *pFrame, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFrame, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Get the current frame
+    *pFrame = pCtx->frame;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Render the sprite on the screen (if it's inside it)
+ * 
+ * @param  pSpr The sprite
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
+    gfmRV rv;
+    int camX, camY, x, y;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSpr, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pSpr->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    // Check if the sprite is inside the camera
+    rv = gfm_isSpriteInsideCamera(pCtx, pSpr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Get camera's dimension
+    rv = gfm_getCameraPosition(&camX, &camY, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the object's position
+    rv = gfmSprite_getPosition(&x, &y, pSpr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Calculate the sprite's actual position
+    x = x + pSpr->offsetX - camX;
+    y = y + pSpr->offsetY - camY;
+    
+    // Render the tile to the screen
+    rv = gfm_drawTile(pCtx, pSpr->pSset, x, y, pSpr->frame);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }

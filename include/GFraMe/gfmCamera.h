@@ -14,8 +14,10 @@ typedef struct stGFMCamera gfmCamera;
 #ifndef __GFMCAMERA_H_
 #define __GFMCAMERA_H_
 
-#include <GFraMe/gfmError.h>
 #include <GFraMe/gframe.h>
+#include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmSprite.h>
 
 /** 'Exportable' size of gfmCamera */
 extern const int sizeofGFMCamera;
@@ -116,8 +118,25 @@ gfmRV gfmCamera_getPosition(int *pX, int *pY, gfmCamera *pCtx);
  */
 gfmRV gfmCamera_getDimensions(int *pWidth, int *pHeight, gfmCamera *pCtx);
 
-//gfmRV gfmCamera_isSpriteInside(gfmCamera *pCtx, gfmSprite *pSpr);
-//gfmRV gfmCamera_isObjectInside(gfmCamera *pCtx, gfmObject *pObj);
+/**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The camera
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_isObjectInside(gfmCamera *pCtx, gfmObject *pObj);
+
+/**
+ * Check if an sprite is inside the camera
+ * 
+ * @param  pCtx The camera
+ * @param  pSpr The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_isSpriteInside(gfmCamera *pCtx, gfmSprite *pSpr);
 
 #endif /* __GFMCAMERA_H_ */
 

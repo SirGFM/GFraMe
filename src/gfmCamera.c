@@ -7,6 +7,9 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmSprite.h>
+#include <GFraMe/gfmSpriteset.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -359,6 +362,60 @@ gfmRV gfmCamera_getDimensions(int *pWidth, int *pHeight, gfmCamera *pCtx) {
     *pHeight = pCtx->viewHeight;
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The camera
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_isObjectInside(gfmCamera *pCtx, gfmObject *pObj);
+
+/**
+ * Check if an sprite is inside the camera
+ * 
+ * @param  pCtx The camera
+ * @param  pSpr The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_isSpriteInside(gfmCamera *pCtx, gfmSprite *pSpr) {
+    gfmSpriteset *pSset;
+    gfmRV rv;
+    int offX, offY, tileWidth, tileHeight, x, y;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSpr, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
+    
+    // Get the needed params
+    rv = gfmSprite_getSpriteset(&pSset, pSpr);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSprite_getOffset(&offX, &offY, pSpr);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSprite_getPosition(&x, &y, pSpr);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Fix the sprite's position
+    x += offX;
+    y += offY;
+    
+    // Check that it's inside the camera
+    ASSERT(x <= pCtx->x + pCtx->viewWidth, GFMRV_FALSE);
+    ASSERT(x + tileWidth >= pCtx->x, GFMRV_FALSE);
+    ASSERT(y <= pCtx->y + pCtx->viewHeight, GFMRV_FALSE);
+    ASSERT(y + tileHeight >= pCtx->y, GFMRV_FALSE);
+    
+    rv = GFMRV_TRUE;
 __ret:
     return rv;
 }

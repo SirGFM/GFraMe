@@ -78,6 +78,8 @@ enum enGFMError {
     GFMRV_NEGATIVE_DRAG,
     GFMRV_OBJECTS_CANT_COLLIDE,
     GFMRV_COLLISION_NOT_TRIGGERED,
+    // Sprite errors
+    GFMRV_SPRITE_NOT_INITIALIZED,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

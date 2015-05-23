@@ -17,6 +17,7 @@ typedef struct stGFMSprite gfmSprite;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmSprite */
@@ -560,15 +561,93 @@ gfmRV gfmSprite_getLastCollision(gfmCollision *pDir, gfmSprite *pCtx);
  */
 gfmRV gfmSprite_getCurrentCollision(gfmCollision *pDir, gfmSprite *pCtx);
 
+/**
+ * Set the sprite's (i.e., image/tile) offset from the object's hitbox
+ * 
+ * @param  pCtx The sprite
+ * @param  offX Tile's horizontal offset from the object's position
+ * @param  offY Tile's vertical offset from the object's position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_setOffset(gfmSprite *pCtx, int offX, int offY);
+
+/**
+ * Set the sprite's (i.e., image/tile) offset from the object's hitbox
+ * 
+ * @param  pOffX Tile's horizontal offset from the object's position
+ * @param  pOffY Tile's vertical offset from the object's position
+ * @param  pCtx  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_getOffset(int *pOffX, int *pOffY, gfmSprite *pCtx);
+
+/**
+ * Get the sprite's sub-class (e.g, a player, an enemy, etc)
+ * 
+ * NOTE: Even if the sprite has no sub-class, this function's ppChild param
+ * mustn't be NULL
+ * 
+ * @param  ppChild The sub-class struct
+ * @param  pType   The sub-class type
+ * @param  pCtx    The sprite
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_getChild(void **ppChild, int *pType, gfmSprite *pCtx);
-gfmRV gfmSprite_getObject(gfmObject **pObj, gfmSprite *pCtx);
+
+/**
+ * Get the sprite's super-class (i.e., a gfmObject)
+ * 
+ * @param  ppObj The object
+ * @param  pCtx  The sprite
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getObject(gfmObject **ppObj, gfmSprite *pCtx);
+
+/**
+ * Set the sprite's spriteset
+ * 
+ * @param  pCtx  The sprite
+ * @param  pSset The sprite's spriteset
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_setSpriteset(gfmSprite *pCtx, gfmSpriteset *pSset);
+
+/**
+ * Get the sprite's spriteset
+ * 
+ * @param  ppSset The sprite's spriteset
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_getSpriteset(gfmSpriteset **ppSset, gfmSprite *pCtx);
+
+/**
+ * Set the current frame
+ * 
+ * @param  pCtx  The sprite
+ * @param  frame The frame
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame);
+
+/**
+ * Get the current frame
+ * 
+ * @param  pFrame The frame
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_getFrame(int *pFrame, gfmSprite *pCtx);
+
+/**
+ * Render the sprite on the screen (if it's inside it)
+ * 
+ * @param  pSpr The sprite
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
 gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx);
+
 gfmRV gfmSprite_addAnimation(gfmSprite *pCtx, int *pData, int numFrames,
         int fps, int doLoop);
 gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);

@@ -1,5 +1,7 @@
 /**
- * @include/GFraMe/gframe.h
+ * @file include/GFraMe/gframe.h
+ * 
+ * The game's main context
  */
 #ifndef __GFRAME_STRUCT__
 #define __GFRAME_STRUCT__
@@ -13,6 +15,7 @@ typedef struct stGFMCtx gfmCtx;
 #define __GFRAME_H_
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
@@ -350,6 +353,16 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx);
 gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
 
 /**
+ * Check if a sprite is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pSpr The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isSpriteInsideCamera(gfmCtx *pCtx, gfmSprite *pSpr);
+
+/**
  * Set the state's framerate
  * 
  * @param  pCtx The game's context
@@ -561,7 +574,7 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
  * @param  pSpr  The sprite
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-//gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
+gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
 
 /**
  * Finalize a batch of renders (i.e., render many sprites in a single draw call)
