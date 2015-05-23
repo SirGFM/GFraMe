@@ -1316,7 +1316,7 @@ gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
     
     // Check if the sprite is inside the camera
     rv = gfm_isSpriteInsideCamera(pCtx, pSpr);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_NR(rv == GFMRV_TRUE);
     
     // Get camera's dimension
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);
