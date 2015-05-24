@@ -323,6 +323,38 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
 gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index);
 
 /**
+ * Create a new (automatically managed) spriteset
+ * 
+ * @param  ppSset     The spriteset
+ * @param  pCtx       The game's context
+ * @param  pTex       The texture
+ * @param  tileWidth  The width of each tile
+ * @param  tileHeight The height of each tile
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                    GFMRV_SPRITESET_INVALID_WIDTH,
+ *                    GFMRV_SPRITESET_INVALID_HEIGHT,
+ *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
+        int tileWidth, int tileHeight);
+
+/**
+ * Create a new (automatically managed) spriteset
+ * 
+ * @param  ppSset     The spriteset
+ * @param  pCtx       The game's context
+ * @param  index      The texture's index
+ * @param  tileWidth  The width of each tile
+ * @param  tileHeight The height of each tile
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                    GFMRV_SPRITESET_INVALID_WIDTH,
+ *                    GFMRV_SPRITESET_INVALID_HEIGHT,
+ *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
+        int tileWidth, int tileHeight);
+
+/**
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -515,7 +547,7 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx);
  * framework
  * 
  * @param  pCtx  The game's context
- * @param  iTex Texture index (the value returned when created)
+ * @param  iTex  Texture index (the value returned when created)
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);

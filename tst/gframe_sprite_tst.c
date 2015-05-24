@@ -40,8 +40,6 @@ int main(int arg, char *argv[]) {
     // Initialize every variable
     pCtx = 0;
     pSpr = 0;
-    pSset8 = 0;
-    pSset16 = 0;
     
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
@@ -62,14 +60,10 @@ int main(int arg, char *argv[]) {
     rv = gfm_setDefaultTexture(pCtx, iTex);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Create a spriteset
-    rv = gfmSpriteset_getNew(&pSset8);
+    // Create the spritesets
+    rv = gfm_createSpritesetCached(&pSset8, pCtx, iTex, 8/*tw*/, 8/*th*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmSpriteset_initCached(pSset8, pCtx, iTex, 8/*tw*/, 8/*th*/);
-    rv = gfmSpriteset_getNew(&pSset16);
-    ASSERT_NR(rv == GFMRV_OK);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmSpriteset_initCached(pSset16, pCtx, iTex, 16/*tw*/, 16/*th*/);
+    rv = gfm_createSpritesetCached(&pSset16, pCtx, iTex, 16/*tw*/, 16/*th*/);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initalize the FPS counter
@@ -134,8 +128,6 @@ int main(int arg, char *argv[]) {
     rv = GFMRV_OK;
 __ret:
     gfmSprite_free(&pSpr);
-    gfmSpriteset_free(&pSset8);
-    gfmSpriteset_free(&pSset16);
     gfm_free(&pCtx);
     
     return rv;

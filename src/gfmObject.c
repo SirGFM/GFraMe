@@ -1472,6 +1472,10 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
             // pMovable collided to the right, place it at static's left
             newX = pStatic->dx - 2 * pMovable->halfWidth;
         }
+        else {
+            // Never gonna happen, but avoids warning (stupid compiler!)
+            ASSERT(0, GFMRV_FUNCTION_FAILED);
+        }
         rv = gfmObject_setHorizontalPosition(pMovable, newX);
         ASSERT_NR(rv == GFMRV_OK);
     }
@@ -1553,6 +1557,10 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         else if (pMovable->instantHit & gfmCollision_down) {
             // pMovable collided bellow, place it above static
             newY = pStatic->dy - 2 * pMovable->halfHeight;
+        }
+        else {
+            // Never gonna happen, but avoids warning (stupid compiler!)
+            ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
         rv = gfmObject_setVerticalPosition(pMovable, newY);
         ASSERT_NR(rv == GFMRV_OK);

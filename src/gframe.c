@@ -24,10 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * Define the texture array type
- */
+/** Define a texture array type */
 gfmGenArr_define(gfmTexture);
+/** Define a spriteset array type */
+gfmGenArr_define(gfmSpriteset);
 
 struct stGFMCtx {
     // TODO specify backend(?)
@@ -58,6 +58,8 @@ struct stGFMCtx {
     gfmCamera *pCamera;
     /** Every cached texture */
     gfmGenArr_var(gfmTexture, pTextures);
+    /** Every cached spriteset */
+    gfmGenArr_var(gfmSpriteset, pSpritesets);
     /** Texture that should be loaded on every gfm_drawBegin */
     int defaultTexture;
     /** Accumulate when new update frames should be issued */
@@ -890,6 +892,105 @@ __ret:
 }
 
 /**
+ * Create a new (automatically managed) spriteset
+ * 
+ * @param  ppSset     The spriteset
+ * @param  pCtx       The game's context
+ * @param  pTex       The texture
+ * @param  tileWidth  The width of each tile
+ * @param  tileHeight The height of each tile
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                    GFMRV_SPRITESET_INVALID_WIDTH,
+ *                    GFMRV_SPRITESET_INVALID_HEIGHT,
+ *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
+        int tileWidth, int tileHeight) {
+    gfmRV rv;
+    gfmSpriteset *pSset;
+    int incRate;
+    
+    // Sanitize only the context (as the rest is checked on the inner function)
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppSset, GFMRV_ARGUMENTS_BAD);
+    
+    // Initialize so it can ben cleaned on error
+    pSset = 0;
+    
+    // Try to get a new spriteset
+    incRate = 1;
+    // This macro already ASSERT errors
+    gfmGenArr_getNextRef(gfmSpriteset, pCtx->pSpritesets, incRate, pSset,
+            gfmSpriteset_getNew);
+    
+    // Initialize it
+    rv = gfmSpriteset_init(pSset, pTex, tileWidth, tileHeight);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Push the spriteset into the array
+    gfmGenArr_push(pCtx->pSpritesets);
+    
+    // Set the return
+    *ppSset = pSset;
+    rv = GFMRV_OK;
+__ret:
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
+        gfmSpriteset_free(&pSset);
+    }
+    
+    return rv;
+}
+
+/**
+ * Create a new (automatically managed) spriteset
+ * 
+ * @param  ppSset     The spriteset
+ * @param  pCtx       The game's context
+ * @param  index      The texture's index
+ * @param  tileWidth  The width of each tile
+ * @param  tileHeight The height of each tile
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                    GFMRV_SPRITESET_INVALID_WIDTH,
+ *                    GFMRV_SPRITESET_INVALID_HEIGHT,
+ *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ */
+gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
+        int tileWidth, int tileHeight) {
+    gfmRV rv;
+    gfmSpriteset *pSset;
+    int incRate;
+    
+    // Sanitize only the context (as the rest is checked on the inner function)
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppSset, GFMRV_ARGUMENTS_BAD);
+    
+    // Initialize so it can ben cleaned on error
+    pSset = 0;
+    
+    // Try to get a new spriteset
+    incRate = 1;
+    // This macro already ASSERT errors
+    gfmGenArr_getNextRef(gfmSpriteset, pCtx->pSpritesets, incRate, pSset,
+            gfmSpriteset_getNew);
+    // Initialize it
+    rv = gfmSpriteset_initCached(pSset, pCtx, index, tileWidth, tileHeight);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Push the spriteset into the array
+    gfmGenArr_push(pCtx->pSpritesets);
+    
+    // Set the return
+    *ppSset = pSset;
+    rv = GFMRV_OK;
+__ret:
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
+        gfmSpriteset_free(&pSset);
+    }
+    
+    return rv;
+}
+
+/**
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -1662,6 +1763,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmCamera_free(&(pCtx->pCamera));
     gfmTimer_free(&(pCtx->pTimer));
     gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
+    gfmGenArr_clean(pCtx->pSpritesets, gfmSpriteset_free);
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
     gfmEvent_free(&(pCtx->pEvent));

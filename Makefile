@@ -59,7 +59,7 @@ CC = gcc
   ifneq ($(RELEASE), yes)
     CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
   else
-    CFLAGS := $(CFLAGS) -O2
+    CFLAGS := $(CFLAGS) -O3
   endif
 # Set flags required by OS
   ifeq ($(OS), Win)

@@ -188,7 +188,9 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     FILE *pFile;
     gfmRV rv;
     gfmString *pStr;
-    int bytesInRow, height, i, irv, dataOffset, rowOffset, width;
+    //int bytesInRow, height, i, irv, dataOffset, rowOffset, width;
+    int bytesInRow, i, irv, rowOffset;
+    volatile int height, dataOffset, width;
     
     // Zero variable that must be cleaned on error
     pData = 0;
@@ -222,16 +224,16 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     
     // Get the offset to the image's "data section"
     fseek(pFile, BMP_OFFSET_POS, SEEK_SET);
-    fread(pBuffer, 4, 1, pFile);
+    irv = fread(pBuffer, 4, 1, pFile);
     dataOffset = READ_UINT(pBuffer);
     
     // Get the image's dimensions
     fseek(pFile, BMP_HEIGHT_POS, SEEK_SET);
-    fread(pBuffer, 4, 1, pFile);
+    irv = fread(pBuffer, 4, 1, pFile);
     height = READ_UINT(pBuffer);
     
     fseek(pFile, BMP_WIDTH_POS, SEEK_SET);
-    fread(pBuffer, 4, 1, pFile);
+    irv = fread(pBuffer, 4, 1, pFile);
     width = READ_UINT(pBuffer);
     
     // Check if the image fit on the current texture
@@ -256,7 +258,9 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     // Start "alpha" with 0 (since the image is in RGB-24)
     pBuffer[3] = 0;
     while (1) {
-        int color, r, g, b, pos, n;
+        //int color, r, g, b, pos, n;
+        int r, g, b, pos, n;
+        volatile int color;
         
         // Read until the EOF
         n = fread(pBuffer, 3, 1, pFile);
