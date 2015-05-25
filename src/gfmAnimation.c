@@ -196,8 +196,15 @@ gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx) {
             if (pAnim->doLoop) {
                 pAnim->index = 0;
             }
+            else {
+                // Keep the last frame, if it's a non-looping animation
+                pAnim->index--;
+            }
         }
         
+        // Break if it's a single-frame animation
+        if (pAnim->delay == 0)
+            break;
         // Remove this frame's accumulated time
         pAnim->accTime -= pAnim->delay;
     }

@@ -684,6 +684,18 @@ gfmRV gfmSprite_addAnimation(int *pIndex, gfmSprite *pCtx, int *pData,
 gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);
 
 /**
+ * Add a batch of animations from a static buffer; Read
+ * gfmSprite_addAnimations's documentation from the expected format
+ * 
+ * @param  pCtx  The sprite
+ * @param  pData The batch of animations
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEANIM_EXTANT,
+ *               GFMRV_ALLOC_FAILED
+ */
+#define gfmSprite_addAnimationsStatic(pCtx, pData) \
+        gfmSprite_addAnimations(pCtx, pData, sizeof(pData) / sizeof(int))
+
+/**
  * Resets and plays an animation
  * 
  * @param  pCtx  The sprite

@@ -12,7 +12,30 @@
 // Set the game's FPS
 #define FPS       60
 
+// Define the animations
+enum {
+    ANIM_STAND = 0,
+    ANIM_WALK,
+    ANIM_HURT,
+    ANIM_JUMP,
+    ANIM_FALL,
+    ANIM_MAX,
+};
+
 /** Create the animations */
+int pSprAnims[] = {
+/* num|fps|loop|frames... */
+    // Stand animation
+    8 ,  8,  1 , 32,32,43,32,32,44,32,45,
+    // Walk animation
+    8 , 14,  1 , 33,34,35,36,37,38,39,40,
+    // Hurt animation
+    8 , 12,  0 , 41,42,41,42,41,42,41,42,
+    // Jump animation
+    1 ,  0,  0 , 46,
+    // Fall animation
+    1 ,  0,  0 , 47
+};
 int pTmAnims[] = {
 /* num|fps|loop|frames... */
     // Electric thing loop
@@ -35,7 +58,7 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmSprite *pSpr;
     gfmSpriteset *pSset8, *pSset16;
-    int iTex;
+    int iTex, anim;
     
     // Initialize every variable
     pCtx = 0;
@@ -75,7 +98,14 @@ int main(int arg, char *argv[]) {
     rv = gfmSprite_init(pSpr, 16/*x*/, 16/*y*/, 6/*width*/, 12/*height*/,
             pSset16, -4/*offX*/, -4/*offY*/, 0/*pChild*/, 0/*type*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmSprite_setFrame(pSpr, 32);
+    
+    // Add the animations
+    rv = gfmSprite_addAnimationsStatic(pSpr, pSprAnims);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Play an animation
+    anim = ANIM_STAND;
+    rv = gfmSprite_playAnimation(pSpr, anim);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set the main loop framerate
@@ -101,6 +131,20 @@ int main(int arg, char *argv[]) {
             
             rv = gfmSprite_update(pSpr, pCtx);
             ASSERT_NR(rv == GFMRV_OK);
+            
+            rv = gfmSprite_didAnimationJustLoop(pSpr);
+            if (rv == GFMRV_TRUE) {
+                anim++;
+                
+                // Loop the animations
+                if (anim >= ANIM_MAX) {
+                    anim = 0;
+                }
+                
+                // Play the next animation
+                rv = gfmSprite_playAnimation(pSpr, anim);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
             
             rv = gfm_fpsCounterUpdateEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);

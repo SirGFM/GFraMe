@@ -844,6 +844,8 @@ gfmRV gfmSprite_update(gfmSprite *pSpr, gfmCtx *pCtx) {
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
+    
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }
@@ -1474,6 +1476,9 @@ gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index) {
     ASSERT_NR(rv == GFMRV_OK);
     // And play it
     pCtx->pCurAnim = pAnim;
+    // Frame must be updated (otherwise, it'll only be on the next frame change)
+    rv = gfmAnimation_getFrame(&(pCtx->frame), pCtx->pCurAnim);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
