@@ -6,16 +6,16 @@
 #ifndef __GFMANIMATION_STRUCT__
 #define __GFMANIMATION_STRUCT__
 
-/** 'Exports' the gfmSprite structure */
-typedef struct stGFMSprite gfmSprite;
+/** 'Exports' the gfmAnimation structure */
+typedef struct stGFMAnimation gfmAnimation;
 
 #endif /* __GFMANIMATION_STRUCT__ */
 
 #ifndef __GFMANIMATION_H__
 #define __GFMANIMATION_H__
 
-/** 'Exportable' size of gfmSprite */
-extern const int sizeofGFMSprite;
+/** 'Exportable' size of gfmAnimation */
+extern const int sizeofGFMAnimation;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
@@ -45,6 +45,8 @@ gfmRV gfmAnimation_free(gfmAnimation **ppCtx);
  * @param  numFrames How many frames there are in pData (not how many bytes!!)
  * @param  fps       The animation's frame rate
  * @param  doLoop    Whether the animation should loop (1) or  not (0)
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_ANIMATION_ALREADY_INITIALIZED
  */
 gfmRV gfmAnimation_init(gfmAnimation *pCtx, int *pData, int numFrames, int fps,
         int doLoop);
@@ -62,7 +64,8 @@ gfmRV gfmAnimation_clean(gfmAnimation *pCtx);
  * 
  * @param  pCtx  The game's context
  * @param  pAnim The gfmAnimation
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ANIMATION_NOT_INITIALIZED,
+ *               GFMRV_ANIMATION_ALREADY_FINISHED
  */
 gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx);
 
@@ -70,7 +73,7 @@ gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx);
  * Returns an animation to its initial status
  * 
  * @param  pCtx The gfmAnimation
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ANIMATION_NOT_INITIALIZED
  */
 gfmRV gfmAnimation_reset(gfmAnimation *pCtx);
 
@@ -79,9 +82,10 @@ gfmRV gfmAnimation_reset(gfmAnimation *pCtx);
  * 
  * @param  pFrame The frame
  * @param  pCtx   The gfmAnimation
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_ANIMATION_NOT_INITIALIZED
  */
-gfmRV gfmAnimation_getFrame(int *pFrame, gfmAnimation *pAnim);
+gfmRV gfmAnimation_getFrame(int *pFrame, gfmAnimation *pCtx);
 
 /**
  * Returns whether the animation have already looped
@@ -89,7 +93,7 @@ gfmRV gfmAnimation_getFrame(int *pFrame, gfmAnimation *pAnim);
  * @param  pCtx The gfmAnimation
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAnimation_didLoop(gfmAnimation *pAnim);
+gfmRV gfmAnimation_didLoop(gfmAnimation *pCtx);
 
 /**
  * Returns whether the animation just looped
@@ -97,7 +101,7 @@ gfmRV gfmAnimation_didLoop(gfmAnimation *pAnim);
  * @param  pCtx The gfmAnimation
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAnimation_didJustLoop(gfmAnimation *pAnim);
+gfmRV gfmAnimation_didJustLoop(gfmAnimation *pCtx);
 
 /**
  * Returns whether the animation just change the frame
@@ -105,7 +109,7 @@ gfmRV gfmAnimation_didJustLoop(gfmAnimation *pAnim);
  * @param  pCtx The gfmAnimation
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAnimation_didJustChangeFrame(gfmAnimation *pAnim);
+gfmRV gfmAnimation_didJustChangeFrame(gfmAnimation *pCtx);
 
 /**
  * Returns whether the animation finished running
@@ -113,7 +117,7 @@ gfmRV gfmAnimation_didJustChangeFrame(gfmAnimation *pAnim);
  * @param  pCtx The gfmAnimation
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAnimation_didFinish(gfmAnimation *pAnim);
+gfmRV gfmAnimation_didFinish(gfmAnimation *pCtx);
 
 #endif /* __GFMANIMATION_H__ */
 

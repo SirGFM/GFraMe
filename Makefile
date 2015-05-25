@@ -17,6 +17,7 @@ CC = gcc
   OBJS =                                  \
           $(OBJDIR)/gframe.o              \
           $(OBJDIR)/gfmAccumulator.o      \
+          $(OBJDIR)/gfmAnimation.o        \
           $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmSprite.o           \

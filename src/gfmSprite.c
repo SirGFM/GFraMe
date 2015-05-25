@@ -5,8 +5,10 @@
  * its own gfmObject to handle the physics
  */
 #include <GFraMe/gframe.h>
+#include <GFraMe/gfmAnimation.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
@@ -14,6 +16,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+/** Define an array for animation */
+gfmGenArr_define(gfmAnimation);
 
 /** The gfmSprite structure */
 struct stGFMSprite {
@@ -33,7 +38,10 @@ struct stGFMSprite {
     int frame;
     /** Whether the sprite is flipped */
     int isFlipped;
-    // TODO Animation...
+    /** Sprite's animations */
+    gfmGenArr_var(gfmAnimation, pAnimations);
+    /** The playing animation, if any */
+    gfmAnimation *pCurAnim;
 };
 
 /** Size of gfmSprite */
@@ -134,7 +142,9 @@ gfmRV gfmSprite_init(gfmSprite *pCtx, int x, int y, int width, int height,
     pCtx->offsetX = offX;
     pCtx->offsetY = offY;
     
-    // TODO animations
+    // Reset the previous animations
+    gfmGenArr_callAllRV(pCtx->pAnimations, gfmAnimation_clean);
+    gfmGenArr_reset(pCtx->pAnimations);
     
     // Set the child
     pCtx->pChild = pChild;
@@ -159,7 +169,9 @@ gfmRV gfmSprite_clean(gfmSprite *pCtx) {
     
     // Dealloc the object, if any
     gfmObject_free(&(pCtx->pObject));
-    // TODO animation...
+    
+    // Free the animations
+    gfmGenArr_clean(pCtx->pAnimations, gfmAnimation_free);
     
     rv = GFMRV_OK;
 __ret:
@@ -820,7 +832,18 @@ gfmRV gfmSprite_update(gfmSprite *pSpr, gfmCtx *pCtx) {
     rv = gfmObject_update(pSpr->pObject, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO Update animation
+    // Update animation
+    if (pSpr->pCurAnim) {
+        rv = gfmAnimation_update(pSpr->pCurAnim, pCtx);
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_ANIMATION_ALREADY_FINISHED);
+        
+        rv = gfmAnimation_didJustChangeFrame(pSpr->pCurAnim);
+        if (rv == GFMRV_TRUE) {
+            // Update the sprite's frame
+            rv = gfmAnimation_getFrame(&(pSpr->frame), pSpr->pCurAnim);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
+    }
 __ret:
     return rv;
 }
@@ -1249,7 +1272,7 @@ __ret:
 }
 
 /**
- * Set the current frame
+ * Set the current frame; Any playing animation will be stopped!
  * 
  * @param  pCtx  The sprite
  * @param  frame The frame
@@ -1266,7 +1289,7 @@ gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame) {
     
     // Set the current frame
     pCtx->frame = frame;
-    // TODO stop animation?
+    pCtx->pCurAnim = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -1334,6 +1357,205 @@ gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Add a animation to the sprite
+ * 
+ * @param  pIndex    Animation's index on this sprite
+ * @param  pCtx      The sprite
+ * @param  pData     Animation's frames
+ * @param  numFrames Number of frame on animation
+ * @param  fps       Animation's framerate
+ * @param  doLoop    Whether the animation should loop or not
+ */
+gfmRV gfmSprite_addAnimation(int *pIndex, gfmSprite *pCtx, int *pData,
+        int numFrames, int fps, int doLoop) {
+    gfmAnimation *pAnim;
+    gfmRV rv;
+    int inc;
+    
+    // Sanitize arguments
+    ASSERT(pIndex, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the next reference
+    inc = 1;
+    gfmGenArr_getNextRef(gfmAnimation, pCtx->pAnimations, inc, pAnim,
+            gfmAnimation_getNew);
+    
+    // Initialize it
+    rv = gfmAnimation_init(pAnim, pData, numFrames, fps, doLoop);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Push the animation and get its index
+    *pIndex = gfmGenArr_getUsed(pCtx->pAnimations);
+    gfmGenArr_push(pCtx->pAnimations);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Add a batch of animations to the sprite;
+ * The array must be organized in the following format:
+ * 
+ * pData[0] = anim_0.numFrames
+ * pData[1] = anim_0.fps
+ * pData[2] = anim_0.doLoop
+ * pData[3] = anim_0.frame_0
+ * ...
+ * pData[3 + anim_0.numFrames - 1] = anim_0.lastFrame
+ * pData[3 + anim_0.numFrames] = anim_1.numFrames
+ * ...
+ * 
+ * And so on.
+ * 
+ * @param  pCtx    The sprite
+ * @param  pData   The batch of animations
+ * @param  dataLen How many integers there are in pData
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen) {
+    gfmRV rv;
+    int *pAnimData, doLoop, fps, i, index, numFrames;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    // A Batch with a single two-frames animation would have 5 ints
+    ASSERT(dataLen >= 5, GFMRV_ARGUMENTS_BAD);
+    
+    // Add every animation
+    i = 0;
+    while (i < dataLen) {
+        // Get the animation parameters
+        numFrames = pData[i + 0];
+        fps       = pData[i + 1];
+        doLoop    = pData[i + 2];
+        pAnimData = pData + i + 3;
+        // Add the animation
+        rv = gfmSprite_addAnimation(&index, pCtx, pAnimData, numFrames, fps, doLoop);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Go to the next animation
+        i += numFrames + 3;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Resets and plays an animation
+ * 
+ * @param  pCtx  The sprite
+ * @param  index Index of the animation to be played
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index) {
+    gfmAnimation *pAnim;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it's a valid index
+    ASSERT(index < gfmGenArr_getUsed(pCtx->pAnimations), GFMRV_INVALID_INDEX);
+    
+    // Get the animation
+    pAnim = gfmGenArr_getObject(pCtx->pAnimations, index);
+    // Reset it
+    rv = gfmAnimation_reset(pAnim);
+    ASSERT_NR(rv == GFMRV_OK);
+    // And play it
+    pCtx->pCurAnim = pAnim;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Returns whether the animation have already looped
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_didAnimationLoop(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_didLoop(pCtx->pCurAnim);
+__ret:
+    return rv;
+}
+
+/**
+ * Returns whether the animation just looped
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_didAnimationJustLoop(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_didJustLoop(pCtx->pCurAnim);
+__ret:
+    return rv;
+}
+
+/**
+ * Returns whether the animation just change the frame
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_didAnimationJustChangeFrame(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_didJustChangeFrame(pCtx->pCurAnim);
+__ret:
+    return rv;
+}
+
+/**
+ * Returns whether the animation finished running
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_didAnimationFinish(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_didFinish(pCtx->pCurAnim);
 __ret:
     return rv;
 }
