@@ -145,7 +145,7 @@ gfmRV gfmBackbuffer_init(gfmBackbuffer *pCtx, gfmWindow *pWnd, int width,
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
     ASSERT(pCtx->pRenderer, GFMRV_INTERNAL_ERROR);
     pCtx->pBackbuffer = SDL_CreateTexture(pCtx->pRenderer,
-            SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
+            SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, width, height);
     ASSERT(pCtx->pBackbuffer , GFMRV_INTERNAL_ERROR);
     
     // Set the backbuffer's dimensions
@@ -499,7 +499,7 @@ gfmRV gfmBackbuffer_getBackbufferData(unsigned char *pData, int *pLen,
     ASSERT(pData, GFMRV_OK);
     
     // Actually retrieve the data
-    irv = SDL_RenderReadPixels(pCtx->pRenderer, 0, SDL_PIXELFORMAT_RGB888,
+    irv = SDL_RenderReadPixels(pCtx->pRenderer, 0, SDL_PIXELFORMAT_RGB24,
             (void*)pData, pCtx->bbufWidth * 3 * sizeof(unsigned char));
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     
