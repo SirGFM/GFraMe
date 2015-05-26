@@ -1,7 +1,8 @@
 /**
  * @file include/GFraMe/core/gfmBackbuffer_bkend.h
  * 
- * Defines the backbuffer ("virtual buffer") and the actual are it's rendered to
+ * Defines the backbuffer ("virtual buffer") and the actual one where it's
+ * rendered (displayed)
  */
 #ifndef __GFMBACKBUFFER_STRUCT__
 #define __GFMBACKBUFFER_STRUCT__
@@ -142,6 +143,23 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
 gfmRV gfmBackbuffer_drawEnd(gfmBackbuffer *pCtx, gfmWindow *pWnd);
+
+/**
+ * Get the backbuffer's data (i.e., composite of everything rendered to it since
+ * the last gfmBackbuffer_drawBegin)
+ * 
+ * Data is returned as 24 bits colors, with 8 bits per color and RGB order
+ * 
+ * @param  pData Buffer where the data should be stored (caller allocated an
+ *               freed); If it's NULL, the required length is returned in pLen
+ * @param  pLen  Returns the required number of bytes; If pData isn't NULL, it
+ *               must have the number of bytes when calling the funciton
+ * @param  pCtx  The backbuffer
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ *               GFMRV_BUFFER_TOO_SMALL, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmBackbuffer_getBackbufferData(unsigned char *pData, int *pLen,
+        gfmBackbuffer *pCtx);
 
 #endif /* __GFMBACKBUFFER_BKEND_H__ */
 

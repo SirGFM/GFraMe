@@ -1,7 +1,8 @@
 /**
  * @file src/core/sdl2/gfmBackbuffer.c
  * 
- * Defines the backbuffer ("virtual buffer") and the actual are it's rendered to
+ * Defines the backbuffer ("virtual buffer") and the actual one where it's
+ * rendered (displayed)
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
@@ -455,6 +456,52 @@ gfmRV gfmBackbuffer_drawEnd(gfmBackbuffer *pCtx, gfmWindow *pWnd) {
     SDL_RenderCopy(pCtx->pRenderer, pCtx->pBackbuffer, 0/*srcRect*/,
             &(pCtx->outRect));
     SDL_RenderPresent(pCtx->pRenderer);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the backbuffer's data (i.e., composite of everything rendered to it since
+ * the last gfmBackbuffer_drawBegin)
+ * 
+ * Data is returned as 24 bits colors, with 8 bits per color and RGB order;
+ * Also, pixels are indexed from left to rigth and from top to bottom
+ * 
+ * @param  pData Buffer where the data should be stored (caller allocated an
+ *               freed); If it's NULL, the required length is returned in pLen
+ * @param  pLen  Returns the required number of bytes; If pData isn't NULL, it
+ *               must have the number of bytes when calling the funciton
+ * @param  pCtx  The backbuffer
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ *               GFMRV_BUFFER_TOO_SMALL, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmBackbuffer_getBackbufferData(unsigned char *pData, int *pLen,
+        gfmBackbuffer *pCtx) {
+    gfmRV rv;
+    int len, irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Calculate the required length
+    len = pCtx->bbufWidth * pCtx->bbufHeight * 3 * sizeof(unsigned char);
+    
+    // Check that either the buffer is big enough or it's requesting the len
+    ASSERT(!pData || *pLen >= len, GFMRV_BUFFER_TOO_SMALL);
+    // Store the return value
+    *pLen = len;
+    // If requested, return the required size
+    ASSERT(pData, GFMRV_OK);
+    
+    // Actually retrieve the data
+    irv = SDL_RenderReadPixels(pCtx->pRenderer, 0, SDL_PIXELFORMAT_RGB888,
+            (void*)pData, pCtx->bbufWidth * 3 * sizeof(unsigned char));
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
 __ret:
