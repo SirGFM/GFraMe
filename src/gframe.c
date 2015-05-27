@@ -278,9 +278,7 @@ gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
     
     // Sanitize the arguments
     ASSERT(ppOrg, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppOrg), GFMRV_ARGUMENTS_BAD);
     ASSERT(ppTitle, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppTitle), GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Check that the string were set
@@ -1834,7 +1832,8 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
         ASSERT_NR(rv == GFMRV_OK);
         
         // Store it in a GIF image
-        rv = gfmGif_exportImage(pCtx->pSsData, len, width, height, pCtx->pSsPath);
+        rv = gfmGif_exportImage(pCtx, pCtx->pSsData, len, width, height,
+                pCtx->pSsPath);
         ASSERT_NR(rv == GFMRV_OK);
         
         pCtx->takeSnapshot = 0;

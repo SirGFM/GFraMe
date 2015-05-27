@@ -26,6 +26,7 @@ typedef struct stGFMCtx gfmCtx;
 #define GFraMe_minor_version	1
 #define GFraMe_fix_version		0
 #define GFraMe_version	"0.1.0"
+#define gfmVersion "v1.0.0"
 
 /** 'Exportable' size of gfmCtx */
 extern const int sizeofGFMCtx;

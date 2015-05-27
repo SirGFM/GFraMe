@@ -69,7 +69,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Try to set a title
-    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_test_loop");
+    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_sprite_loop");
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the window
@@ -156,7 +156,7 @@ int main(int arg, char *argv[]) {
         rv = gfm_getDraws(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            //rv = gfm_snapshotStatic(pCtx, "bla", 0);
+            //rv = gfm_snapshotStatic(pCtx, "bla.gif", 0);
             //ASSERT_NR(rv == GFMRV_OK);
             
             rv = gfm_drawBegin(pCtx);
