@@ -535,6 +535,44 @@ gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx);
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx);
 
 /**
+ * Takes a snapshot as soon as the frame finishes rendering and saves it as a
+ * GIF image; If this function is called more than once in a frame, it will
+ * ignore the second call and save according to the first call
+ * 
+ * @param  pCtx         The game's context
+ * @param  pFilepath    Path (and filename) where it will be saved (depends on
+ *                      useLocalPath); The extension isn't required, but, if
+ *                      present, must be .gif!
+ * @param  len          Filename's length
+ * @param  useLocalPath Whether the path should be appended to the local path
+ *                      (e.g., %APPDATA%\concat(organization, title)\, on
+ *                      windows); or "as-is" (relative or absolute, depending on
+ *                      the actual path)
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *                      GFMRV_ALLOC_FAILED, ...
+ */
+gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath);
+
+/**
+ * Takes a snapshot as soon as the frame finishes rendering and saves it as a
+ * GIF image; If this function is called more than once in a frame, it will
+ * ignore the second call and save according to the first call
+ * 
+ * @param  pCtx         The game's context
+ * @param  pFilepath    Path (and filename) where it will be saved (depends on
+ *                      useLocalPath); The extension isn't required, but, if
+ *                      present, must be .gif!
+ * @param  useLocalPath Whether the path should be appended to the local path
+ *                      (e.g., %APPDATA%\concat(organization, title)\, on
+ *                      windows); or "as-is" (relative or absolute, depending on
+ *                      the actual path)
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *                      GFMRV_ALLOC_FAILED, ...
+ */
+#define gfm_snapshotStatic(pCtx, pFilepath, useLocalPath) \
+    gfm_snapshot(pCtx, pFilepath, sizeof(pFilepath)-1, useLocalPath)
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context

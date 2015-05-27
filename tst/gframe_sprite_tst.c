@@ -156,6 +156,9 @@ int main(int arg, char *argv[]) {
         rv = gfm_getDraws(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
+            //rv = gfm_snapshotStatic(pCtx, "bla", 0);
+            //ASSERT_NR(rv == GFMRV_OK);
+            
             rv = gfm_drawBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             

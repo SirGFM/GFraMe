@@ -18,6 +18,7 @@
  * as the preferred directory to saving logs and save files.
  * 
  * NOTE: This will only be valid if the game title was set!
+ * NOTE2: This functions necessarily stores the path in a newly alloc'ed string
  * 
  * The following directories are used:
  *   Android: /data/data/concat(organization, title)/

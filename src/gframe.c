@@ -20,6 +20,7 @@
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
 #include <GFraMe_int/gfmFPSCounter.h>
+#include <GFraMe_int/gfmGifExporter.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -70,7 +71,15 @@ struct stGFMCtx {
     gfmEvent *pEvent;
     /** Whether a quit event was received */
     gfmRV doQuit;
-#if defined(DEBUG)
+    /** Whether a snapshot should be taken */
+    int takeSnapshot;
+    /** Path where the snapshot should be saved */
+    gfmString *pSsPath;
+    /** Stores the snapshot */
+    unsigned char *pSsData;
+    /** Number of bytes on the snapshot data */
+    int ssDataLen;
+#if defined(DEBUG) || defined(FORCE_FPS)
     /** Whether the FPS counter should be displayed */
     int showFPS;
     /** FPS Counter; only enabled on debug version */
@@ -124,7 +133,7 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the fps counter, if debug
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FORCE_FPS)
     rv = gfmFPSCounter_getNew(&((*ppCtx)->pCounter));
     ASSERT_NR(rv == GFMRV_OK);
 #endif
@@ -1377,7 +1386,7 @@ __ret:
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
     gfmRV rv;
     
-#if !defined(DEBUG)
+#if !defined(DEBUG) && !defined(FORCE_FPS)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -1408,7 +1417,7 @@ gfmRV gfm_showFPSCounter(gfmCtx *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FORCE_FPS)
     // Check that it was initialized, on debug mode
     ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
     // Enable displaying the FPS
@@ -1431,7 +1440,7 @@ gfmRV gfm_hideFPSCounter(gfmCtx *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FORCE_FPS)
     // Check that it was initialized, on debug mode
     ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
     // Enable displaying the FPS
@@ -1453,7 +1462,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG)
+#if !defined(DEBUG) && !defined(FORCE_FPS)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -1480,7 +1489,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG)
+#if !defined(DEBUG) && !defined(FORCE_FPS)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -1498,6 +1507,92 @@ __ret:
 }
 
 /**
+ * Takes a snapshot as soon as the frame finishes rendering and saves it as a
+ * GIF image; If this function is called more than once in a frame, it will
+ * ignore the second call and save according to the first call
+ * 
+ * @param  pCtx         The game's context
+ * @param  pFilepath    Path (and filename) where it will be saved (depends on
+ *                      useLocalPath); The extension isn't required, but, if
+ *                      present, must be .gif!
+ * @param  len          Filename's length
+ * @param  useLocalPath Whether the path should be appended to the local path
+ *                      (e.g., %APPDATA%\concat(organization, title)\, on
+ *                      windows); or "as-is" (relative or absolute, depending on
+ *                      the actual path)
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *                      GFMRV_ALLOC_FAILED, ...
+ */
+gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
+    gfmRV rv;
+    volatile int newLen;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilepath, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation isn't active
+    ASSERT(!pCtx->takeSnapshot, GFMRV_OPERATION_ACTIVE);
+    
+    // Alloc as many bytes as required (or fail if not possible/supported)
+    newLen = pCtx->ssDataLen;
+    rv = gfmBackbuffer_getBackbufferData(0, (int*)&newLen, pCtx->pBackbuffer);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Expand the buffer, as necessary
+    if (newLen > pCtx->ssDataLen) {
+        pCtx->pSsData = (unsigned char*)realloc(pCtx->pSsData,
+                newLen * sizeof(unsigned char));
+        ASSERT(pCtx->pSsData, GFMRV_ALLOC_FAILED);
+        
+        // Must store the new buffer len
+        pCtx->ssDataLen = newLen;
+    }
+    
+    // Create the path string, if necessary
+    if (!pCtx->pSsPath) {
+        rv = gfmString_getNew(&(pCtx->pSsPath));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    // store the path
+    if (useLocalPath) {
+        char *pLocalPath;
+        int doCopy;
+        
+        // Retrieve the local path from the save file path
+        rv = gfmString_getString(&pLocalPath, pCtx->pSaveFilename);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        doCopy = 1;
+        rv = gfmString_init(pCtx->pSsPath, pLocalPath, pCtx->saveFilenameLen,
+                doCopy);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Append the file's path
+        rv = gfmString_concat(pCtx->pSsPath, pFilepath, len);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    else {
+        int doCopy;
+        
+        // Create the string with the path
+        doCopy = 1;
+        rv = gfmString_init(pCtx->pSsPath, pFilepath, len, doCopy);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    // TODO check if there's an extension and add it
+    
+    // Request the operation
+    pCtx->takeSnapshot = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
@@ -1511,7 +1606,7 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FORCE_FPS)
     // Store when drawing was initialized
     rv = gfmFPSCounter_initDraw(pCtx->pCounter);
     ASSERT_NR(rv == GFMRV_OK);
@@ -1723,7 +1818,29 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     
-#if defined(DEBUG)
+    // If requested, take the snapshot
+    if (pCtx->takeSnapshot) {
+        int width, height;
+        volatile int len;
+        
+        // Retrieve the data
+        len = pCtx->ssDataLen;
+        rv = gfmBackbuffer_getBackbufferData(pCtx->pSsData, (int*)&len,
+                pCtx->pBackbuffer);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Get the backbuffer's dimesions
+        rv = gfmBackbuffer_getDimensions(&width, &height, pCtx->pBackbuffer);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Store it in a GIF image
+        rv = gfmGif_exportImage(pCtx->pSsData, len, width, height, pCtx->pSsPath);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        pCtx->takeSnapshot = 0;
+    }
+    
+#if defined(DEBUG) || defined(FORCE_FPS)
     // Display the current fps
     if (pCtx->showFPS) {
         rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
@@ -1767,9 +1884,14 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
     gfmEvent_free(&(pCtx->pEvent));
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FORCE_FPS)
     gfmFPSCounter_free(&(pCtx->pCounter));
 #endif
+    if (pCtx->pSsData) {
+        free(pCtx->pSsData);
+        pCtx->pSsData = 0;
+    }
+    gfmString_free(&(pCtx->pSsPath));
     
     rv = GFMRV_OK;
 __ret:

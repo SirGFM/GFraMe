@@ -19,6 +19,7 @@ CC = gcc
           $(OBJDIR)/gfmAccumulator.o      \
           $(OBJDIR)/gfmAnimation.o        \
           $(OBJDIR)/gfmCamera.o           \
+          $(OBJDIR)/gfmGifExporter.o      \
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
@@ -61,6 +62,10 @@ CC = gcc
     CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
   else
     CFLAGS := $(CFLAGS) -O3
+  endif
+# Force fps counter, if requested
+  ifeq ($(FPS_COUNTER), yes)
+    CFLAGS := $(CFLAGS) -DFORCE_FPS
   endif
 # Set flags required by OS
   ifeq ($(OS), Win)
