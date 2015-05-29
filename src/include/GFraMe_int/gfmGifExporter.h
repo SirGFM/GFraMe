@@ -78,6 +78,15 @@ gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len);
 gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx);
 
 /**
+ * Write the GIF's Image data (compressed with variable length LZW)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED,
+ *              GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx);
+
+/**
  * Write a data sub-block; Although a data sub-block should be at most 255 bytes
  * long, this function already breaks it in smaller blocks, if needed
  * 

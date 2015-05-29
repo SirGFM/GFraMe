@@ -2,6 +2,8 @@
  * @file src/include/GFraMe_int/gfmTrie.h
  * 
  * Trie implementation; Used by the GIF exporter to store the LZW dictionary
+ * Only insertion and search are implemented, as those are the only functions
+ * required by the GIF exporter
  */
 #ifndef __GFMTRIE_STRUCT__
 #define __GFMTRIE_STRUCT__
@@ -33,7 +35,9 @@ gfmRV gfmTrie_getNew(gfmTrie **ppCtx);
 gfmRV gfmTrie_free(gfmTrie **ppCtx);
 
 /**
- * Free all child and sibling nodes recursively
+ * Free all child and sibling nodes recursively; It must be called on the root
+ * node and all nodes must have been previously initialized (otherwise, FUN
+ * stuff will happen)
  * 
  * @param  ppCtx The first node to be freed
  * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD

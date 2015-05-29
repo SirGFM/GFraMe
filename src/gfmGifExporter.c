@@ -10,12 +10,15 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
-#include <GFraMe/gfmGenArray.h>
+#include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe_int/gfmGifExporter.h>
 #include <GFraMe_int/gfmTrie.h>
 
 #include <stdio.h>
+
+/** Declare the 'trie nodes array' type */
+gfmGenArray_define(gfmTrie);
 
 /** The gfmGifExporter structure */
 struct stGFMGifExporter {
@@ -31,6 +34,8 @@ struct stGFMGifExporter {
     int totalColorCount;
     /** Palette in a 00RRGGBB format */
     int *pPalette;
+    /** Node of the dictionary's trie */
+    gfmGenArr_var(gfmTrie, pNodes);
 };
 
 /**
@@ -54,6 +59,7 @@ gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
     
     // Initialize this to clean on error
     ctx.pFp = 0;
+    gfmGenArr_zero(ctx.pNodes);
     
     // Sanitize arguments
     ASSERT(pData, GFMRV_ARGUMENTS_BAD);
@@ -89,7 +95,7 @@ gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
     rv = gfmGif_writeLogicalDesc(&ctx);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Write Globa color table
+    // Write Global color table
     rv = gfmGif_writeGlobalPalette(&ctx);
     ASSERT_NR(rv == GFMRV_OK);
     
@@ -110,6 +116,8 @@ __ret:
         fclose(ctx.pFp);
         ctx.pFp = 0;
     }
+    // Free all nodes
+    gfmGenArr_clean(pNodes, gfmTrie_free);
     
     return rv;
 }
@@ -269,11 +277,9 @@ gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len) {
     rv = gfmGif_writeImageDescriptor(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
-    
-    // TODO Write LZO minimum size
-    // TODO Write LZO clean code
-    // TODO Write compressed Image's data
-    // TODO Write LZO clean code + 1
+    // Write the LZW-compresed data
+    rv = gfmGif_writeLZWData(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -314,6 +320,31 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     
     // Actually write the data
     fwrite(pBuf, 10, 1, pCtx->pFp);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Write the GIF's Image data (compressed with variable length LZW)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED,
+ *              GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    
+    // TODO Write LZW minimum size
+    // TODO Write LZW clean code
+    // TODO Write compressed Image's data
+    // TODO Write LZW clean code + 1
     
     rv = GFMRV_OK;
 __ret:
