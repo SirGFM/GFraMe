@@ -95,6 +95,9 @@ enum enGFMError {
     GFMRV_GIF_TOO_MANY_COLORS,
     GFMRV_GIF_IMAGE_TOO_LARGE,
     GFMRV_GIF_IMAGE_TOO_TALL,
+    // Trie errors
+    GFMRV_TRIE_IS_LEAF,
+    GFMRV_TRIE_KEY_NOT_FOUND,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

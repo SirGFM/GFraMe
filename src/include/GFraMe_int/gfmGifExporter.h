@@ -1,7 +1,11 @@
 /**
  * @file src/include/GFraMe_int/gfmGifExporter.h
  * 
- * Module that exports both gif images and animations
+ * Module that exports both GIF images and animations
+ * 
+ * "The Graphics Interchange Format(c) is the Copyright property of
+ *  CompuServe Incorporated. GIF(sm) is a Service Mark property of
+ *  CompuServe Incorporated."
  */
 #ifndef __GFMGIFEXPORTER_STRUCT__
 #define __GFMGIFEXPORTER_STRUCT__
@@ -56,6 +60,22 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
  */
 gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx);
+
+/**
+ * Write the image's data (following its image descriptor)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len);
+
+/**
+ * Write the GIF's Image descriptor
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx);
 
 /**
  * Write a data sub-block; Although a data sub-block should be at most 255 bytes

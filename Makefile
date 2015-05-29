@@ -28,6 +28,7 @@ CC = gcc
           $(OBJDIR)/gfmTileAnimation.o    \
           $(OBJDIR)/gfmTilemap.o          \
           $(OBJDIR)/gfmTileType.o         \
+          $(OBJDIR)/gfmTrie.o             \
           $(OBJDIR)/gfmUtils.o            
 # Add objects based on the current backend
   ifndef ($(BACKEND))

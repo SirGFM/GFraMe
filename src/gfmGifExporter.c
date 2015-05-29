@@ -1,13 +1,19 @@
 /**
  * @file src/gfmGifExporter.c
  * 
- * Module that exports both gif images and animations
+ * Module that exports both GIF images and animations
+ * 
+ * "The Graphics Interchange Format(c) is the Copyright property of
+ *  CompuServe Incorporated. GIF(sm) is a Service Mark property of
+ *  CompuServe Incorporated."
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmGenArray.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe_int/gfmGifExporter.h>
+#include <GFraMe_int/gfmTrie.h>
 
 #include <stdio.h>
 
@@ -87,7 +93,8 @@ gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
     rv = gfmGif_writeGlobalPalette(&ctx);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO Write data
+    rv = gfmGif_writeImage(&ctx, pData, len);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Write Comment extension
     rv = gfmGif_writeComment(&ctx, pCtx);
@@ -234,6 +241,79 @@ gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx) {
         
         i++;
     }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Write the image's data (following its image descriptor)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    
+    // TODO Write the Graphic Control Extension (?)
+    
+    // Write the Image Descriptor
+    rv = gfmGif_writeImageDescriptor(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    
+    // TODO Write LZO minimum size
+    // TODO Write LZO clean code
+    // TODO Write compressed Image's data
+    // TODO Write LZO clean code + 1
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Write the GIF's Image descriptor
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    unsigned char pBuf[10];
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    
+    pBuf[0] = 0x2c; /* Set the image Separator */
+    pBuf[1] = 0;    /* Image's horizontal position lsb */
+    pBuf[2] = 0;    /* Image's horizontal position msb */
+    pBuf[3] = 0;    /* Image's vertical position lsb */
+    pBuf[4] = 0;    /* Image's vertical position msb */
+    pBuf[5] = pCtx->width & 0xff;         /* Set width's lsb */
+    pBuf[6] = (pCtx->width >> 8) & 0xff;  /* Set width's msb */
+    pBuf[7] = pCtx->height & 0xff;        /* Set height's lsb */
+    pBuf[8] = (pCtx->height >> 8) & 0xff; /* Set height's msb */
+    
+    pBuf[9] = 0;      /* Clean this bitfield */
+    pBuf[9] &= ~0x80; /* Remove the local color table flag */
+    pBuf[9] &= ~0x40; /* Remove the interlaced flag */
+    pBuf[9] &= ~0x20; /* Remove the sorted flag */
+    pBuf[9] &= ~0x18; /* Reserved... not sure what goes here */
+    pBuf[9] &= ~0x07; /* Set size local color table to 0 */
+    
+    // Actually write the data
+    fwrite(pBuf, 10, 1, pCtx->pFp);
     
     rv = GFMRV_OK;
 __ret:
