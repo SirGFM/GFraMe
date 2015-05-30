@@ -19,7 +19,6 @@ CC = gcc
           $(OBJDIR)/gfmAccumulator.o      \
           $(OBJDIR)/gfmAnimation.o        \
           $(OBJDIR)/gfmCamera.o           \
-          $(OBJDIR)/gfmGifExporter.o      \
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
@@ -33,6 +32,12 @@ CC = gcc
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
+  endif
+# Add GIF exporter, by default
+  ifneq ($(EXPORT_GIF), no)
+    OBJS += src/core/common/gfmGifExporter.o
+  else
+    OBJS += src/core/noip/gfmGifExporter.o
   endif
   OBJS += $(BKEND_OBJS)
 #==============================================================================
