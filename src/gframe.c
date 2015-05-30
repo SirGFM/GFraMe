@@ -15,12 +15,12 @@
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
+#include <GFraMe/core/gfmGifExporter_bkend.h>
 #include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
 #include <GFraMe_int/gfmFPSCounter.h>
-#include <GFraMe_int/gfmGifExporter.h>
 
 #include <stdlib.h>
 #include <string.h>

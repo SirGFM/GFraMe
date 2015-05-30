@@ -1,5 +1,5 @@
 /**
- * @file src/gfmGifExporter.c
+ * @file src/core/common/gfmGifExporter.c
  * 
  * Module that exports both GIF images and animations
  * 
@@ -12,8 +12,8 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmString.h>
-#include <GFraMe_int/gfmGifExporter.h>
 #include <GFraMe_int/gfmTrie.h>
+#include <GFraMe/core/gfmGifExporter_bkend.h>
 
 #include <stdio.h>
 

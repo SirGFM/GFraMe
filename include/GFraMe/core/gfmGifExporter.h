@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmGifExporter.h
+ * @file include/GFraMe/core/gfmGifExporter_bkend.h
  * 
  * Module that exports both GIF images and animations
  * 
@@ -7,20 +7,27 @@
  *  CompuServe Incorporated. GIF(sm) is a Service Mark property of
  *  CompuServe Incorporated."
  */
-#ifndef __GFMGIFEXPORTER_STRUCT__
-#define __GFMGIFEXPORTER_STRUCT__
+#ifndef __GFMGIFEXPORTER_BKEND_STRUCT__
+#define __GFMGIFEXPORTER_BKEND_STRUCT__
 
 /** 'Exports' the gfmGifExporter structure */
 typedef struct stGFMGifExporter gfmGifExporter;
 
-#endif /* __GFMGIFEXPORTER_STRUCT__ */
+#endif /* __GFMGIFEXPORTER_BKEND_STRUCT__ */
 
-#ifndef __GFMGIFEXPORTER_H__
-#define __GFMGIFEXPORTER_H__
+#ifndef __GFMGIFEXPORTER_BKEND_H__
+#define __GFMGIFEXPORTER_BKEND_H__
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+
+/**
+ * Check whether exporting GIF is supported
+ * 
+ * @return GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmGif_isSupported();
 
 /**
  * Alloc a new GIF exporter
@@ -208,5 +215,5 @@ gfmRV gfmGif_writeComment(gfmGifExporter *pGif, gfmCtx *pCtx);
  */
 gfmRV gfmGif_writeTrailer(gfmGifExporter *pCtx);
 
-#endif /* __GFMGIFEXPORTER_H__ */
+#endif /* __GFMGIFEXPORTER_BKEND_H__ */
 
