@@ -297,6 +297,30 @@ __ret:
 }
 
 /**
+ * Get the game's local path
+ * 
+ * @param  ppLocalPath Local path (a new gfmString is alloc'ed!)
+ * @param  pCtx        The game's context
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getLocalPath(gfmString **ppLocalPath, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppLocalPath, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppLocalPath), GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the path
+    rv = gfmPath_getLocalPath(ppLocalPath, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Query the resolutions and add them to a internal buffer
  * 
  * @param  pCount How many resolutions were found

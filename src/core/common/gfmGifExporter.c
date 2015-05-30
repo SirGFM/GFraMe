@@ -12,16 +12,60 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmString.h>
-#include <GFraMe_int/gfmTrie.h>
 #include <GFraMe/core/gfmGifExporter_bkend.h>
+#include <GFraMe_int/gfmTrie.h>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /** Declare the 'trie nodes array' type */
-gfmGenArray_define(gfmTrie);
+//gfmGenArray_define(gfmTrie);
 
 /** The gfmGifExporter structure */
 struct stGFMGifExporter {
+    /** Whether to operation is active or not */
+    int isActive;
+    /** Image's width */
+    int width;
+    /** Image's height */
+    int height;
+    /** How many frames have been stored */
+    int frameCount;
+    /** Base path for every frame (e.g., [local_path]/gif_[frame] */
+    gfmString *pBasePath;
+    /** Length of the base path */
+    int basePathLen;
+    /** Length of a frame name (i.e., len(basePath+framename) ) */
+    int framenameLen;
+    
+    /** Variable used by the thread */
+    
+    /** Output file */
+    FILE *pOut;
+    /** The value returned from the thread */
+    gfmRV threadRV;
+    /** Path were the image should be stored (just a reference!) */
+    gfmString *pImagePath;
+    /** Current frame being parsed */
+    int curFrame;
+    /** Number of bits needed to be able to represent every color */
+    int colorBits;
+    /** Number of colors in the image */
+    int colorCount;
+    /** Total number of colors in the palette (rounded up from colorCount) */
+    int totalColorCount;
+    /** How many slots there are in the palette */
+    int paletteLen;
+    /** Palette in a 00RRGGBB format */
+    int *pPalette;
+    /** How many useful bytes there are in pData */
+    int dataUsed;
+    /** How many bytes there are in pData */
+    int dataLen;
+    /** Buffer where frames are stored (using the palette) */
+    unsigned char *pData;
+#if 0
     /** Image's output file */
     FILE *pFp;
     /** Image's width */
@@ -38,7 +82,332 @@ struct stGFMGifExporter {
     int *pPalette;
     /** Node of the dictionary's trie */
     gfmGenArr_var(gfmTrie, pNodes);
+#endif
 };
+
+/**
+ * Generates a GIF image from the passed context
+ * 
+ * @param pCtx The GIF context
+ */
+static void _gfmGif_threadHandler(void *pCtx);
+
+/**
+ * Check whether exporting GIF is supported
+ * 
+ * @return GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmGif_isSupported() {
+    return GFMRV_TRUE;
+}
+
+/**
+ * Alloc a new GIF exporter
+ * 
+ * @param  ppCtx The alloc'ed object
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmGif_getNew(gfmGifExporter **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the object
+    *ppCtx = (gfmGifExporter*)malloc(sizeof(gfmGifExporter));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    // Initialize init
+    memset(*ppCtx, 0x0, sizeof(gfmGifExporter));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Clean up and free an previously alloc'ed GIF exporter
+ * 
+ * @param  ppCtx The GIF exporter
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGif_free(gfmGifExporter **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean up the object
+    rv = gfmGif_clean(*ppCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // And free it
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Clean up a GIF exporter; If an operation was active, it will be stopped and
+ * all temporary files will be deleted
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGif_clean(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO Free everything
+    gfmString_free(&(pCtx->pBasePath));
+    if (pCtx->pPalette) {
+        free(pCtx->pPalette);
+        pCtx->pPalette = 0;
+    }
+    if (pCtx->pData) {
+        free(pCtx->pData);
+        pCtx->pData = 0;
+    }
+    memset(pCtx, 0x0, sizeof(gfmGifExporter));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize a GIF exporter
+ * 
+ * @param  pGif   The GIF exporter
+ * @param  pCtx   The game's context
+ * @param  width  The image's width (must be less than 65535 pixels)
+ * @param  height The image's height (must be less than 65535 pixels)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_ACTIVE,
+ *                GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL
+ */
+gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pGif, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    // Check if the operation is already active
+    ASSERT(!pGif->isActive, GFMRV_ARGUMENTS_BAD);
+    // Width and height can't be bigger than 0xffff (65535) pixels
+    ASSERT(width <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_LARGE);
+    ASSERT(height <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_TALL);
+    
+    // Set the base frame's path
+    if (!pGif->pBasePath) {
+        rv = gfm_getLocalPath(&(pGif->pBasePath), pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+        rv = gfmString_getLength(&(pGif->basePathLen), pGif->pBasePath);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    else {
+        // Recycle the previously used name
+        rv = gfmString_setLength(pGif->pBasePath, pGif->basePathLen);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
+    // TODO Concatenate a random string to the frame's names
+    rv = gfmString_concat(pGif->pBasePath, "gifFrame_", 9);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the position where the frame number is inserted
+    rv = gfmString_getLength(&(pGif->framenameLen), pGif->pBasePath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the image's dimensions
+    pGif->width = width;
+    pGif->height = height;
+    // TODO Make sure everything is cleared (so it can be recycled later)
+    pGif->frameCount = 0;
+    // Set the operation as active
+    pGif->isActive = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Store a single frame to be later converted into a GIF; To create an
+ * animation, this function should be called on every frame
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pData Image's data, in 24 bits RGB (8 bits per color)
+ * @param  len   Length of the image's data (must be a multiple of 3)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_INVALID_BUFFER_LEN, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmGif_storeFrame(gfmGifExporter *pCtx, unsigned char *pData, int len) {
+    char *pPath;
+    FILE *pFp;
+    gfmRV rv;
+    
+    // Initialize the file
+    pFp = 0;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len % 3 == 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    // Check that the buffer dimension is valid
+    ASSERT(len / 3 == pCtx->width * pCtx->height, GFMRV_INVALID_BUFFER_LEN);
+    
+    // Append the frame number to the filename
+    rv = gfmString_insertNumberAt(pCtx->pBasePath, pCtx->frameCount,
+            pCtx->framenameLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the path as a string
+    rv = gfmString_getString(&pPath, pCtx->pBasePath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the file and insert the data there
+    pFp = fopen(pPath, "wb");
+    ASSERT(pFp, GFMRV_INTERNAL_ERROR);
+    fwrite(pData, 1, len, pFp);
+    
+    // Increase the number of frames
+    pCtx->frameCount++;
+    
+    rv = GFMRV_OK;
+__ret:
+    if (pFp) {
+        fclose(pFp);
+    }
+    
+    return rv;
+}
+
+/**
+ * Exports the stored frame to a GIF image; This function call spawns a new
+ * thread to actually create the GIF image
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pPath Path where the image should be saved (will overwrite!)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_GIF_TOO_MANY_FRAMES, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pPath, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation is active
+    ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    // Check that there is only one frame
+    ASSERT(pCtx->frameCount == 1, GFMRV_GIF_TOO_MANY_FRAMES);
+    // TODO Check that there's no thread
+    
+    // Set the path (so it can be seen by the thread)
+    pCtx->pImagePath = pPath;
+    pCtx->pOut = 0;
+    
+    // TODO create thread to handle this
+    _gfmGif_threadHandler((void*)pCtx);
+    ASSERT_NR(pCtx->threadRV == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Exports the stored frames to a GIF animation; This function call spawns a new
+ * thread to actually create the GIF animation
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pPath Path where the image should be saved (will overwrite!)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_GIF_NOT_ENOUGH_FRAMES, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath);
+
+/**
+ * Generates a GIF image from the passed context
+ * 
+ * @param pCtx The GIF context
+ */
+static void _gfmGif_threadHandler(void *pArg) {
+    char *pPath;
+    gfmGifExporter *pGif;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pArg, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the GIF context
+    pGif = (gfmGifExporter *)pArg;
+    
+    // Check if the operation is active
+    ASSERT(pGif->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    // Check that the path was set
+    ASSERT(pGif->pImagePath, GFMRV_GIF_PATH_NOT_SET);
+    
+    // Retrieve the path to the actual output image
+    rv = gfmString_getString(&pPath, pGif->pImagePath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the output file
+    pGif->pOut = fopen(pPath, "wb");
+    ASSERT(pGif->pOut, GFMRV_INTERNAL_ERROR);
+    
+    // Write Header
+    rv = gfmGif_writeHeader(pGif);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Write Logical screen descriptor
+    rv = gfmGif_writeLogicalDesc(pGif);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Write each frame
+    pGif->curFrame = 0;
+    while (pGif->curFrame < pGif->frameCount) {
+        // Buffer this frame
+        rv = gfmGif_readFrame(pGif);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Write the frame
+        rv = gfmGif_writeFrame(pGif);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Go to the next frame
+        pGif->curFrame++;
+    }
+    
+    // Write Comment extension
+    rv = gfmGif_writeComment(pGif);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Write Trailer
+    rv = gfmGif_writeTrailer(pGif);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    if (rv != GFMRV_ARGUMENTS_BAD)
+        pGif->threadRV = rv;
+    if (pGif->pOut) {
+        fclose(pGif->pOut);
+        pGif->pOut = 0;
+    }
+    
+    // TODO return to the thread
+}
+
+#if 0
 
 /**
  * Exports a single image to the requested path
@@ -128,75 +497,119 @@ __ret:
     
     return rv;
 }
+#endif
 
 /**
- * Get how many colors are needed by the whole image and store it in a palette
+ * Read the current frame, storing it and its palette info
  * 
  * @param  pCtx  The GIF context
- * @param  pData Buffer with the colors (mustn't be overwritten)
- * @param  len   Length of the color buffer
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *               GFMRV_GIF_TOO_MANY_COLORS
  */
-gfmRV gfmGif_getColors(gfmCtx *pCtx, unsigned char *pData, int len) {
+gfmRV gfmGif_readFrame(gfmGifExporter *pCtx) {
+    char *pFramePath;
+    FILE *pFp;
     gfmRV rv;
-    int i;
+    int i, len;
+    
+    // Initialize things that can be cleaned later
+    pFp = 0;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len % 3 == 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Append the frame number to the filename
+    rv = gfmString_insertNumberAt(pCtx->pBasePath, pCtx->curFrame,
+            pCtx->framenameLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the path as a string
+    rv = gfmString_getString(&pFramePath, pCtx->pBasePath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the frame
+    pFp = fopen(pFramePath, "rb");
+    ASSERT(pFp, GFMRV_INTERNAL_ERROR);
     
     // Initialize those
     pCtx->colorBits = 1;
     pCtx->colorCount = 0;
     pCtx->totalColorCount = 2;
-    pCtx->pPalette = (int*)malloc(sizeof(int)*pCtx->totalColorCount);
-    ASSERT(pCtx->pPalette, GFMRV_ALLOC_FAILED);
+    pCtx->dataUsed = 0;
+    
+    // If the palette is empty, alloc it
+    if (!pCtx->pPalette) {
+        pCtx->paletteLen = pCtx->totalColorCount;
+        
+        pCtx->pPalette = (int*)malloc(sizeof(int)*pCtx->paletteLen);
+        ASSERT(pCtx->pPalette, GFMRV_ALLOC_FAILED);
+    }
+    
+    // Get the buffer length
+    len = pCtx->width * pCtx->height;
+    // Expand the frame buffer, if necessary
+    if (pCtx->dataLen < len) {
+        pCtx->dataLen = len;
+        
+        pCtx->pData = (unsigned char*)realloc(pCtx->pData,
+                sizeof(unsigned char*) * pCtx->dataLen);
+        ASSERT(pCtx->pData, GFMRV_ALLOC_FAILED);
+    }
     
     // Loop through every color >_<
     i = 0;
     while (i < len) {
-        int curColor, newIndex;
+        int curColor, irv, index;
+        unsigned char pData[3];
         
+        // Read the data from the file
+        irv = fread(pData, 1, 3, pFp);
+        ASSERT(irv == 3, GFMRV_INTERNAL_ERROR);
         // Convert the data to palette format: 0x00RRGGBB
-        curColor = (pData[i] << 16) | (pData[i+1] << 8) | (pData[i+2]);
+        curColor = (pData[0] << 16) | (pData[1] << 8) | (pData[2]);
         
         // Check if the color is in the palette (this is *SLOW*)
-        newIndex = 0;
-        while (newIndex < pCtx->colorCount) {
+        index = 0;
+        while (index < pCtx->colorCount) {
             // If the color was found, stop
-            if (pCtx->pPalette[newIndex] == curColor)
+            if (pCtx->pPalette[index] == curColor)
                 break;
             // Otherwise, go to the next one
-            newIndex++;
+            index++;
         }
         // Check if the color should be added
-        if (newIndex >= pCtx->colorCount) {
+        if (index >= pCtx->colorCount) {
             // Check if the palette needs to be expanded
-            if (newIndex >= pCtx->totalColorCount) {
+            if (index >= pCtx->totalColorCount) {
                 // Double the palette's size (i.e., use one more bit)
                 pCtx->totalColorCount *= 2;
                 pCtx->colorBits++;
                 // Check that the maximum number of colors wasn't reached
                 ASSERT(pCtx->colorBits <= 8, GFMRV_GIF_TOO_MANY_COLORS);
-                // Expand the palette
-                pCtx->pPalette = (int*)realloc(pCtx->pPalette,
-                        sizeof(int)*pCtx->totalColorCount);
-                ASSERT(pCtx->pPalette, GFMRV_ALLOC_FAILED);
+                // Expand the palette (if necessary)
+                if (pCtx->totalColorCount > pCtx->paletteLen) {
+                    pCtx->paletteLen = pCtx->totalColorCount;
+                    
+                    pCtx->pPalette = (int*)realloc(pCtx->pPalette,
+                            sizeof(int)*pCtx->paletteLen);
+                    ASSERT(pCtx->pPalette, GFMRV_ALLOC_FAILED);
+                }
             }
             // Insert the color on the palette
-            pCtx->pPalette[newIndex] = curColor;
+            pCtx->pPalette[index] = curColor;
             pCtx->colorCount++;
         }
+        // Insert the color on the buffer
+        pCtx->pData[i] = index;
         
         // Go to the next color
-        i += 3;
+        i++;
     }
     
     rv = GFMRV_OK;
 __ret:
+    if (pFp)
+        fclose(pFp);
+    
     return rv;
 }
 
@@ -212,10 +625,10 @@ gfmRV gfmGif_writeHeader(gfmGifExporter *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
     // Always use the later version (to enable comments and animation)
-    fwrite("GIF89a", 6, 1, pCtx->pFp);
+    fwrite("GIF89a", 6, 1, pCtx->pOut);
     
     rv = GFMRV_OK;
 __ret:
@@ -227,23 +640,19 @@ __ret:
  * 
  * @param  pCtx The GIF exporter
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED,
- *              GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL,
- *              GFMRV_GIF_TOO_MANY_COLORS
+ *              GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL
  */
 gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx) {
     gfmRV rv;
-    int colorBits, colorCount;
     unsigned char pBuf[7];
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     // Width and height can't be bigger than 0xffff (65535) pixels
     ASSERT(pCtx->width <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_LARGE);
     ASSERT(pCtx->height <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_TALL);
-    // Check if the colorCount is OK
-    ASSERT(pCtx->colorCount <= 255, GFMRV_GIF_TOO_MANY_COLORS);
     
     // Prepare the logical screen data
     
@@ -257,24 +666,14 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx) {
     
     // Clean this bitfield
     pBuf[4] = 0;
-    // Set the existance of a global palette
-    pBuf[4] |= 0x80;
-    // Set the source as 8 bits per color
+    // Set the existance of a global palette (bit 0x80)
+    pBuf[4] |= 0x00;
+    // Set the source as 8 bits per color (bits 0x70)
     pBuf[4] |= 0x70;
-    // Set the palette as not sorted
-    pBuf[4] &= ~0x08;
-    
-    // Count the number of 'bits - 1' required by the palette
-    // (i.e., min(n), 2^(n+1) >= colorCount)
-    colorCount = pCtx->colorCount;
-    colorCount >>= 1;
-    colorBits = 0;
-    while (colorCount > 0) {
-        colorCount >>= 1;
-        colorBits++;
-    }
-    // Set the size of the global color table
-    pBuf[4] |= colorBits & 0x07;
+    // Set the palette as not sorted (bit 0x08)
+    pBuf[4] |= 0x00;
+    // Set the size of the global color table (bits 0x07)
+    pBuf[4] |= 0x00;
     
     // Set the bg color (should be useless, but still...)
     pBuf[5] = 0;
@@ -282,13 +681,14 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx) {
     pBuf[6] = 0;
     
     // Actually write the data
-    fwrite(pBuf, 7, 1, pCtx->pFp);
+    fwrite(pBuf, 7, 1, pCtx->pOut);
     
     rv = GFMRV_OK;
 __ret:
     return rv;
 }
 
+#if 0
 /**
  * Writes the GIF's global color table
  * 
@@ -333,24 +733,28 @@ gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx) {
 __ret:
     return rv;
 }
+#endif
 
 /**
- * Write the image's data (following its image descriptor)
+ * Write the frame's data (following its image descriptor)
  * 
  * @param  pCtx The GIF exporter
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
  */
-gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len) {
+gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx) {
     gfmRV rv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
-    // TODO Write the Graphic Control Extension (?)
+    // TODO Finish this
+    ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED);
+    
+    if (pCtx->frameCount > 1) {
+        // TODO Write the Graphic Control Extension (?)
+    }
     
     // Write the Image Descriptor
     rv = gfmGif_writeImageDescriptor(pCtx);
@@ -378,7 +782,7 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
     pBuf[0] = 0x2c; /* Set the image Separator */
     pBuf[1] = 0;    /* Image's horizontal position lsb */
@@ -390,6 +794,7 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     pBuf[7] = pCtx->height & 0xff;        /* Set height's lsb */
     pBuf[8] = (pCtx->height >> 8) & 0xff; /* Set height's msb */
     
+    // TODO Set this a having a palette
     pBuf[9] = 0;      /* Clean this bitfield */
     pBuf[9] &= ~0x80; /* Remove the local color table flag */
     pBuf[9] &= ~0x40; /* Remove the interlaced flag */
@@ -398,7 +803,9 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     pBuf[9] &= ~0x07; /* Set size local color table to 0 */
     
     // Actually write the data
-    fwrite(pBuf, 10, 1, pCtx->pFp);
+    fwrite(pBuf, 10, 1, pCtx->pOut);
+    
+    // TODO write local palette
     
     rv = GFMRV_OK;
 __ret:
@@ -430,13 +837,13 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
     // The buffer length must be the size of the data sub-block
 #define bufLen 255
     gfmRV rv;
-    int bufPos, int lzwSize, remBits;
+    int bufPos, dataPos, lzwSize, remBits;
     unsigned char pBuf[bufLen];
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
     // Write LZW minimum size (i.e., number of bits + 1)
     lzwSize = pCtx->colorBits;
@@ -444,12 +851,12 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
     if (lzwSize == 1)
         lzwSize++;
     pBuf[0] = lzwSize;
-    fwrite(pBuf, 1, 1, pCtx->pFp);
+    fwrite(pBuf, 1, 1, pCtx->pOut);
     
     // (GIF's) LZW requires one more bit from the start (stupid algorithm)
     lzwSize++;
-    // Write LZW clean code
-    rv = gfmGif_writeBitwiseWord(&remBit, pData, bufLen, dataPos, (1 << pCtx->colorBits), lzwSize);
+    // TODO Write LZW clean code
+    //rv = gfmGif_writeBitwiseWord(&remBits, pData, bufLen, dataPos, (1 << pCtx->colorBits), lzwSize);
     // This first word must be completelly written
     ASSERT_NR(rv == GFMRV_OK);
     
@@ -481,7 +888,7 @@ gfmRV gfmGif_writeDataSubBlock(gfmGifExporter *pCtx, unsigned char *pData,
     ASSERT(pData, GFMRV_ARGUMENTS_BAD);
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
     // Write every sub-block
     while (len > 0) { 
@@ -494,9 +901,9 @@ gfmRV gfmGif_writeDataSubBlock(gfmGifExporter *pCtx, unsigned char *pData,
             curLen = (unsigned char)len;
         
         // Write the block's length
-        fwrite(&curLen, 1, 1, pCtx->pFp);
+        fwrite(&curLen, 1, 1, pCtx->pOut);
         // Write the current data
-        fwrite(pData, curLen, 1, pCtx->pFp);
+        fwrite(pData, curLen, 1, pCtx->pOut);
         
         // Go to the next position
         pData += curLen;
@@ -512,35 +919,37 @@ __ret:
  * Writes a comment with the library name & version and the game's title
  * 
  * @param  pGif The GIF exporter
- * @param  pCtx The game's context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
  */
-gfmRV gfmGif_writeComment(gfmGifExporter *pGif, gfmCtx *pCtx) {
+gfmRV gfmGif_writeComment(gfmGifExporter *pGif) {
     gfmRV rv;
     volatile int len;
     unsigned char c, *pOrg, *pTitle;
     
     // Sanitize arguments
     ASSERT(pGif, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pGif->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pGif->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
-    // Get the game's title and organization
+    // TODO Get the game's title and organization
+/*
     rv = gfm_getTitle((char**)&pOrg, (char**)&pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+*/
     
     // Initialize the comment
     c = 0x21;
-    fwrite(&c, 1, 1, pGif->pFp);
+    fwrite(&c, 1, 1, pGif->pOut);
     c = 0xfe;
-    fwrite(&c, 1, 1, pGif->pFp);
+    fwrite(&c, 1, 1, pGif->pOut);
     
     // Write a 'header' for the comment
     rv = gfmGif_writeDataSubBlockStatic(pGif, "GIF made with GFraMe "
             gfmVersion"\n");
     ASSERT_NR(rv == GFMRV_OK);
     
+    // TODO Write the game's title
+/*    
     // Get the organization's length
     len = 0;
     while (pOrg[len] != '\0') len++;
@@ -554,10 +963,11 @@ gfmRV gfmGif_writeComment(gfmGifExporter *pGif, gfmCtx *pCtx) {
     // Write the title
     rv = gfmGif_writeDataSubBlock(pGif, pTitle, len);
     ASSERT_NR(rv == GFMRV_OK);
+*/
     
     // Writes the block terminator
     c = 0x0;
-    fwrite(&c, 1, 1, pGif->pFp);
+    fwrite(&c, 1, 1, pGif->pOut);
     
     rv = GFMRV_OK;
 __ret:
@@ -577,11 +987,11 @@ gfmRV gfmGif_writeTrailer(gfmGifExporter *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
     // Write the trailer
     c = 0x3b;
-    fwrite(&c, 1, 1, pCtx->pFp);
+    fwrite(&c, 1, 1, pCtx->pOut);
     
     rv = GFMRV_OK;
 __ret:

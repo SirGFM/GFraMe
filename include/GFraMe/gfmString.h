@@ -128,6 +128,18 @@ gfmRV gfmString_concat(gfmString *pStr, char *string, int len);
 gfmRV gfmString_insertAt(gfmString *pStr, char *string, int len, int pos);
 
 /**
+ * Insert a decimal number into a string at a random position, and make that the
+ * end of the string
+ * 
+ * @param  pStr The gfmString
+ * @param  num  The number
+ * @param  pos  Position, on the original string, where it should be inserted
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_STRING_WASNT_COPIED
+ */
+gfmRV gfmString_insertNumberAt(gfmString *pStr, int num, int pos);
+
+/**
  * Get the string's content, as a NULL terminated char*
  * 
  * @param  ppStr The retrieved string

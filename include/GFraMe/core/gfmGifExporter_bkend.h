@@ -74,7 +74,7 @@ gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height);
  * @param  pData Image's data, in 24 bits RGB (8 bits per color)
  * @param  len   Length of the image's data (must be a multiple of 3)
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
- *               GFMRV_INVALID_BUFFER_LEN
+ *               GFMRV_INVALID_BUFFER_LEN, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmGif_storeFrame(gfmGifExporter *pCtx, unsigned char *pData, int len);
 
@@ -110,19 +110,17 @@ gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath);
  * @param  height Image's height
  * @param  pPath  Path where the image should be saved (will overwrite!)
  */
-gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
-        int height, gfmString *pPath);
+//gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
+//        int height, gfmString *pPath);
 
 /**
- * Get how many colors are needed by the whole image and store it in a palette
+ * Read the current frame, storing it and its palette info
  * 
  * @param  pCtx  The GIF context
- * @param  pData Buffer with the colors (mustn't be overwritten)
- * @param  len   Length of the color buffer
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *               GFMRV_GIF_TOO_MANY_COLORS
  */
-gfmRV gfmGif_getColors(gfmCtx *pCtx, unsigned char *pData, int len);
+gfmRV gfmGif_readFrame(gfmGifExporter *pCtx);
 
 /**
  * Writes the GIF's header
@@ -137,8 +135,7 @@ gfmRV gfmGif_writeHeader(gfmGifExporter *pCtx);
  * 
  * @param  pCtx The GIF exporter
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED,
- *              GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL,
- *              GFMRV_GIF_TOO_MANY_COLORS
+ *              GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL
  */
 gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
 
@@ -151,12 +148,12 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
 gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx);
 
 /**
- * Write the image's data (following its image descriptor)
+ * Write the frame's data (following its image descriptor)
  * 
  * @param  pCtx The GIF exporter
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
  */
-gfmRV gfmGif_writeImage(gfmGifExporter *pCtx, unsigned char *pData, int len);
+gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx);
 
 /**
  * Write the GIF's Image descriptor
@@ -202,10 +199,9 @@ gfmRV gfmGif_writeDataSubBlock(gfmGifExporter *pCtx, unsigned char *pData,
  * Writes a comment with the library name & version and the game's title
  * 
  * @param  pGif The GIF exporter
- * @param  pCtx The game's context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
  */
-gfmRV gfmGif_writeComment(gfmGifExporter *pGif, gfmCtx *pCtx);
+gfmRV gfmGif_writeComment(gfmGifExporter *pGif);
 
 /**
  * Writes the GIF's trailer (the last part)

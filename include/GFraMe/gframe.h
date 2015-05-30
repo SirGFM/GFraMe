@@ -93,6 +93,15 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
 gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx);
 
 /**
+ * Get the game's local path
+ * 
+ * @param  ppLocalPath Local path (a new gfmString is alloc'ed!)
+ * @param  pCtx        The game's context
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getLocalPath(gfmString **ppLocalPath, gfmCtx *pCtx);
+
+/**
  * Query the resolutions and add them to a internal buffer
  * 
  * @param  pCount How many resolutions were found

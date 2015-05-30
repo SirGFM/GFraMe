@@ -253,6 +253,61 @@ __ret:
 }
 
 /**
+ * Insert a decimal number into a string at a random position, and make that the
+ * end of the string
+ * 
+ * @param  pStr The gfmString
+ * @param  num  The number
+ * @param  pos  Position, on the original string, where it should be inserted
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_STRING_WASNT_COPIED
+ */
+gfmRV gfmString_insertNumberAt(gfmString *pStr, int num, int pos) {
+    gfmRV rv;
+    int numDigits, divisor;
+    
+    // Sanitize the arguments
+    ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(num >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the string was alloc
+    ASSERT(pStr->mustDealloc, GFMRV_STRING_WASNT_COPIED);
+    
+    // Get how many digits there are
+    numDigits = 1;
+    divisor = 10;
+    while (num / divisor > 0) {
+        numDigits++;
+        divisor *= 10;
+    }
+    
+    // Extend the string as necessary
+    rv = gfmString_setMinimumLength(pStr, pStr->len + numDigits + 1);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Insert each digit
+    while (numDigits > 0) {
+        int curDigit;
+        
+        // Prepare to get the next digit
+        divisor /= 10;
+        // Get the current digit
+        curDigit = (num / divisor) % 10;
+        // Insert it at the string
+        pStr->self[pos] = (char)(curDigit + '0');
+        
+        numDigits--;
+        pos++;
+    }
+    // Insert the EOS
+    pStr->self[pos] = '\0';
+    pStr->len = pos;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get the string's content, as a NULL terminated char*
  * 
  * @param  ppStr The retrieved string
