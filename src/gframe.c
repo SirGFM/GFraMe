@@ -1832,9 +1832,9 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
         ASSERT_NR(rv == GFMRV_OK);
         
         // Store it in a GIF image
-        rv = gfmGif_exportImage(pCtx, pCtx->pSsData, len, width, height,
-                pCtx->pSsPath);
-        ASSERT_NR(rv == GFMRV_OK);
+        //rv = gfmGif_exportImage(pCtx, pCtx->pSsData, len, width, height,
+        //        pCtx->pSsPath);
+        //ASSERT_NR(rv == GFMRV_OK);
         
         pCtx->takeSnapshot = 0;
     }

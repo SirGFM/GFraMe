@@ -23,6 +23,77 @@ typedef struct stGFMGifExporter gfmGifExporter;
 #include <GFraMe/gfmString.h>
 
 /**
+ * Alloc a new GIF exporter
+ * 
+ * @param  ppCtx The alloc'ed object
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmGif_getNew(gfmGifExporter **ppCtx);
+
+/**
+ * Clean up and free an previously alloc'ed GIF exporter
+ * 
+ * @param  ppCtx The GIF exporter
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGif_free(gfmGifExporter **ppCtx);
+
+/**
+ * Clean up a GIF exporter; If an operation was active, it will be stopped and
+ * all temporary files will be deleted
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGif_clean(gfmGifExporter *pCtx);
+
+/**
+ * Initialize a GIF exporter
+ * 
+ * @param  pGif   The GIF exporter
+ * @param  pCtx   The game's context
+ * @param  width  The image's width
+ * @param  height The image's height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_ACTIVE,
+ *                GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL
+ */
+gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height);
+
+/**
+ * Store a single frame to be later converted into a GIF; To create an
+ * animation, this function should be called on every frame
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pData Image's data, in 24 bits RGB (8 bits per color)
+ * @param  len   Length of the image's data (must be a multiple of 3)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_INVALID_BUFFER_LEN
+ */
+gfmRV gfmGif_storeFrame(gfmGifExporter *pCtx, unsigned char *pData, int len);
+
+/**
+ * Exports the stored frame to a GIF image; This function call spawns a new
+ * thread to actually create the GIF image
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pPath Path where the image should be saved (will overwrite!)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_GIF_TOO_MANY_FRAMES, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath);
+
+/**
+ * Exports the stored frames to a GIF animation; This function call spawns a new
+ * thread to actually create the GIF animation
+ * 
+ * @param  pCtx  The GIF exporter
+ * @param  pPath Path where the image should be saved (will overwrite!)
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *               GFMRV_GIF_NOT_ENOUGH_FRAMES, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath);
+
+/**
  * Exports a single image to the requested path
  * 
  * @param  pCtx   The game's context
@@ -34,6 +105,17 @@ typedef struct stGFMGifExporter gfmGifExporter;
  */
 gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
         int height, gfmString *pPath);
+
+/**
+ * Get how many colors are needed by the whole image and store it in a palette
+ * 
+ * @param  pCtx  The GIF context
+ * @param  pData Buffer with the colors (mustn't be overwritten)
+ * @param  len   Length of the color buffer
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *               GFMRV_GIF_TOO_MANY_COLORS
+ */
+gfmRV gfmGif_getColors(gfmCtx *pCtx, unsigned char *pData, int len);
 
 /**
  * Writes the GIF's header
