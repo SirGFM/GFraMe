@@ -91,6 +91,7 @@ int main(int arg, char *argv[]) {
     
     // Initalize the FPS counter
     rv = gfm_initFPSCounter(pCtx, pSset8, 64/*firstTile*/);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Create the sprite
     rv = gfmSprite_getNew(&pSpr);
@@ -116,8 +117,9 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Request the recording of an animation
-    ms = 1000;
+    ms = 5000;
     rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
+    //rv = gfm_snapshot(pCtx, "ss.gif", 6, 0);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Run until the window is closed

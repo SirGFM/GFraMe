@@ -498,6 +498,8 @@ gfmRV gfmBackbuffer_getBackbufferData(unsigned char *pData, int *pLen,
     // If requested, return the required size
     ASSERT(pData, GFMRV_OK);
     
+    // Make sure the current target is the backbuffer
+    SDL_SetRenderTarget(pCtx->pRenderer, pCtx->pBackbuffer);
     // Actually retrieve the data
     irv = SDL_RenderReadPixels(pCtx->pRenderer, 0, SDL_PIXELFORMAT_RGB24,
             (void*)pData, pCtx->bbufWidth * 3 * sizeof(unsigned char));

@@ -1902,6 +1902,9 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     }
 #endif
     
+    rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // If requested, take the snapshot
     if (pCtx->takeSnapshot) {
         volatile int len;
@@ -1942,9 +1945,6 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
             }
         }
     }
-    
-    rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:

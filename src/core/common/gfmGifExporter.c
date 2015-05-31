@@ -42,6 +42,10 @@ struct stGFMGifExporter {
     gfmGenArr_var(gfmTrie, pTries);
     /** Dictionary root */
     gfmTrie *pDict;
+    /** The game's 'organization' */
+    unsigned char *pOrg;
+    /** The game's title */
+    unsigned char *pTitle;
     
     /** Variable used by the thread */
     
@@ -260,6 +264,10 @@ gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height) {
     if ((1000 / dps) % 10 >= 5)
         pGif->animDelay++;
     
+    // Get the game's title and organization
+    rv = gfm_getTitle((char**)&(pGif->pOrg), (char**)&(pGif->pTitle), pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -436,6 +444,10 @@ static void _gfmGif_threadHandler(void *pArg) {
         ASSERT_NR(rv == GFMRV_OK);
     }
     
+    // Write Comment extension
+    rv = gfmGif_writeComment(pGif);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // Write each frame
     pGif->curFrame = 0;
     while (pGif->curFrame < pGif->frameCount) {
@@ -454,10 +466,6 @@ static void _gfmGif_threadHandler(void *pArg) {
         // Go to the next frame
         pGif->curFrame++;
     }
-    
-    // Write Comment extension
-    rv = gfmGif_writeComment(pGif);
-    ASSERT_NR(rv == GFMRV_OK);
     
     // Write Trailer
     rv = gfmGif_writeTrailer(pGif);
@@ -489,7 +497,7 @@ gfmRV gfmGif_readFrame(gfmGifExporter *pCtx) {
     char *pFramePath;
     FILE *pFp;
     gfmRV rv;
-    int i, len;
+    int i, len, x, y;
     
     // Initialize things that can be cleaned later
     pFp = 0;
@@ -536,6 +544,8 @@ gfmRV gfmGif_readFrame(gfmGifExporter *pCtx) {
     
     // Loop through every color >_<
     i = 0;
+    x = 0;
+    y = pCtx->height - 1;
     while (i < len) {
         int curColor, irv, index;
         unsigned char pData[3];
@@ -578,10 +588,17 @@ gfmRV gfmGif_readFrame(gfmGifExporter *pCtx) {
             pCtx->colorCount++;
         }
         // Insert the color on the buffer
-        pCtx->pData[i] = index;
+        pCtx->pData[x + y * pCtx->width] = index;
+        //pCtx->pData[i] = index;
         
         // Go to the next color
         i++;
+        x++;
+        // Write the image from the last line to the first
+        if (x >= pCtx->width) {
+            x = 0;
+            y--;
+        }
     }
     // If the palette is full, add another bit (go figure, GIF is stupid)
     if (pCtx->colorCount == pCtx->totalColorCount) {
@@ -897,34 +914,42 @@ gfmRV gfmGif_writeBitwiseWord(gfmGifExporter *pCtx, int word) {
     curLen = pCtx->lzwCurSize;
     while (curLen > 0) {
         unsigned char c;
-        int delta;
+        int bitsWritten, bytesWritten;
         
         // Write part of the word to the buffer
         c = (word << pCtx->lzwBufBitPos) & 0xff;
         pCtx->pLzwBuf[pCtx->lzwBufBytePos] |= c;
         
-        // Check what actually happened
-        delta = 8 - pCtx->lzwCurSize - pCtx->lzwBufBitPos;
-        if (delta > 0) {
-            // The complete word was written and there's still space
+        // Get the maximum number of bits written
+        bitsWritten = 8 - pCtx->lzwBufBitPos;
+        if (bitsWritten >= curLen) {
+            // The whole word was written
+            
+            // Update the position moving the word
             pCtx->lzwBufBitPos += curLen;
-            curLen = 0;
         }
         else {
-            // Either there are still bits or we're on a bit 0
+            // There're some bits missing
             
-            // Remove the already written part
-            word >>= 8 - pCtx->lzwBufBitPos;
-            curLen -= 8 - pCtx->lzwBufBitPos;
+            // Update the position moving the written bits
+            pCtx->lzwBufBitPos += bitsWritten;
+            // Remove the already written bits
+            word >>= bitsWritten;
+        }
+        // Update how many bits there are left
+        curLen -= bitsWritten;
+        
+        // Check how many bytes will be moved
+        bytesWritten = 0;
+        if (pCtx->lzwBufBitPos >= 8) {
+            // Only one byte is written at a time
+            pCtx->lzwBufBitPos -= 8;
+            bytesWritten = 1;
             
-            // Since at most one byte is written at a time
-            pCtx->lzwBufBytePos++;
-            // Nothing was written on the next byte, so set it it 0
-            pCtx->lzwBufBitPos = 0;
         }
         
         // Expand the buffer, as necessary
-        if (pCtx->lzwBufBytePos >= pCtx->lzwBufLen) {
+        if (pCtx->lzwBufBytePos + bytesWritten > pCtx->lzwBufLen) {
             pCtx->lzwBufLen *= 2;
             
             pCtx->pLzwBuf = (unsigned char*)realloc(pCtx->pLzwBuf,
@@ -932,9 +957,11 @@ gfmRV gfmGif_writeBitwiseWord(gfmGifExporter *pCtx, int word) {
             ASSERT(pCtx->pLzwBuf, GFMRV_ALLOC_FAILED);
         }
         
-        if (delta <= 0) {
-            // Clear this new byte
-            pCtx->pLzwBuf[pCtx->lzwBufBytePos] = 0;
+        if (bytesWritten) {
+            // Zero the new byte
+            pCtx->pLzwBuf[pCtx->lzwBufBytePos + 1] = 0;
+            // Update the position, in bytes
+            pCtx->lzwBufBytePos++;
         }
     }
     
@@ -1141,20 +1168,13 @@ __ret:
  */
 gfmRV gfmGif_writeComment(gfmGifExporter *pGif) {
     gfmRV rv;
-    //volatile int len;
+    volatile int len;
     unsigned char c;
-    //unsigned char *pOrg, *pTitle;
     
     // Sanitize arguments
     ASSERT(pGif, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pGif->pOut, GFMRV_GIF_NOT_INITIALIZED);
-    
-    // TODO Get the game's title and organization
-/*
-    rv = gfm_getTitle((char**)&pOrg, (char**)&pTitle, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-*/
     
     // Initialize the comment
     c = 0x21;
@@ -1167,22 +1187,20 @@ gfmRV gfmGif_writeComment(gfmGifExporter *pGif) {
             gfmVersion"\n");
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO Write the game's title
-/*    
+    // Write the game's title
     // Get the organization's length
     len = 0;
-    while (pOrg[len] != '\0') len++;
+    while (pGif->pOrg[len] != '\0') len++;
     // Write the organization
-    rv = gfmGif_writeDataSubBlock(pGif, pOrg, len);
+    rv = gfmGif_writeDataSubBlock(pGif, pGif->pOrg, len);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get the title's length
     len = 0;
-    while (pTitle[len] != '\0') len++;
+    while (pGif->pTitle[len] != '\0') len++;
     // Write the title
-    rv = gfmGif_writeDataSubBlock(pGif, pTitle, len);
+    rv = gfmGif_writeDataSubBlock(pGif, pGif->pTitle, len);
     ASSERT_NR(rv == GFMRV_OK);
-*/
     
     // Writes the block terminator
     c = 0x0;
