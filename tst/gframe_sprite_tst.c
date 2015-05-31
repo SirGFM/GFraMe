@@ -58,7 +58,7 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmSprite *pSpr;
     gfmSpriteset *pSset8, *pSset16;
-    int iTex, anim;
+    int iTex, anim, ms;
     
     // Initialize every variable
     pCtx = 0;
@@ -115,6 +115,11 @@ int main(int arg, char *argv[]) {
     rv = gfm_setFPS(pCtx, FPS);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Request the recording of an animation
+    ms = 1000;
+    rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // Run until the window is closed
     while (gfm_didGetQuitFlag(pCtx) == GFMRV_FALSE) {
         int frames;
@@ -156,9 +161,6 @@ int main(int arg, char *argv[]) {
         rv = gfm_getDraws(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            //rv = gfm_snapshotStatic(pCtx, "bla.gif", 0);
-            //ASSERT_NR(rv == GFMRV_OK);
-            
             rv = gfm_drawBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             

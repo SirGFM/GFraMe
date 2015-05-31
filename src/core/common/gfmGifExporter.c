@@ -51,6 +51,8 @@ struct stGFMGifExporter {
     gfmRV threadRV;
     /** Path were the image should be stored (just a reference!) */
     gfmString *pImagePath;
+    /** Delay, in hundredths of a second (60fps should be rounded down to 50) */
+    int animDelay;
     /** Current frame being parsed */
     int curFrame;
     /** Number of bits needed to be able to represent every color */
@@ -168,6 +170,8 @@ gfmRV gfmGif_clean(gfmGifExporter *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    // TODO If a thread is active, signal it to stop and wait
+    
     // TODO Free everything
     gfmString_free(&(pCtx->pBasePath));
     if (pCtx->pPalette) {
@@ -183,6 +187,10 @@ gfmRV gfmGif_clean(gfmGifExporter *pCtx) {
         pCtx->pLzwBuf = 0;
     }
     gfmGenArr_clean(pCtx->pTries, gfmTrie_free);
+    if (pCtx->pOut) {
+        fclose(pCtx->pOut);
+        pCtx->pOut = 0;
+    }
     memset(pCtx, 0x0, sizeof(gfmGifExporter));
     
     rv = GFMRV_OK;
@@ -202,6 +210,7 @@ __ret:
  */
 gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height) {
     gfmRV rv;
+    int ups, dps;
     
     // Sanitize arguments
     ASSERT(pGif, GFMRV_ARGUMENTS_BAD);
@@ -241,6 +250,15 @@ gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height) {
     pGif->frameCount = 0;
     // Set the operation as active
     pGif->isActive = 1;
+    
+    // Get the current fps
+    rv = gfm_getStateFrameRate(&ups, &dps, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Set the default delay
+    pGif->animDelay = 100 / dps;
+    // Round it up, if necessary
+    if ((1000 / dps) % 10 >= 5)
+        pGif->animDelay++;
     
     rv = GFMRV_OK;
 __ret:
@@ -345,7 +363,32 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE,
  *               GFMRV_GIF_NOT_ENOUGH_FRAMES, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath);
+gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pPath, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation is active
+    ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    // Check that there are some frames
+    ASSERT(pCtx->frameCount > 1, GFMRV_GIF_TOO_MANY_FRAMES);
+    // Check that there's no thread
+    ASSERT(pCtx->threadRV != GFMRV_GIF_THREAD_IS_RUNNING,
+            GFMRV_GIF_THREAD_IS_RUNNING);
+    
+    // Set the path (so it can be seen by the thread)
+    pCtx->pImagePath = pPath;
+    pCtx->pOut = 0;
+    
+    // TODO create thread to handle this
+    _gfmGif_threadHandler((void*)pCtx);
+    ASSERT(pCtx->threadRV == GFMRV_OK, pCtx->threadRV);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Generates a GIF image from the passed context
@@ -386,6 +429,12 @@ static void _gfmGif_threadHandler(void *pArg) {
     // Write Logical screen descriptor
     rv = gfmGif_writeLogicalDesc(pGif);
     ASSERT_NR(rv == GFMRV_OK);
+    
+    // If it's an animation, write the Netscape application block
+    if (pGif->frameCount > 1) {
+        rv = gfmGif_writeNAB(pGif);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
     
     // Write each frame
     pGif->curFrame = 0;
@@ -616,6 +665,49 @@ __ret:
 }
 
 /**
+ * Write the Netscape Applicaton Block (so the animation loops infinitely)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeNAB(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    unsigned char pBuf[19];
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
+    
+    pBuf[0] = 0x21; /** Extension introducer (must be 0x21) */
+    pBuf[1] = 0xff; /** Application extension label (must be 0xff) */
+    pBuf[2]  =  11; /** Size of this block */
+    pBuf[3]  = 'N'; /** Application identifier (byte 1 of 8) */
+    pBuf[4]  = 'E'; /** Application identifier (byte 2 of 8) */
+    pBuf[5]  = 'T'; /** Application identifier (byte 3 of 8) */
+    pBuf[6]  = 'S'; /** Application identifier (byte 4 of 8) */
+    pBuf[7]  = 'C'; /** Application identifier (byte 5 of 8) */
+    pBuf[8]  = 'A'; /** Application identifier (byte 6 of 8) */
+    pBuf[9]  = 'P'; /** Application identifier (byte 7 of 8) */
+    pBuf[10] = 'E'; /** Application identifier (byte 8 of 8) */
+    pBuf[11] = '2'; /** Application Authentication Code (byte 1 of 3) */
+    pBuf[12] = '.'; /** Application Authentication Code (byte 2 of 3) */
+    pBuf[13] = '0'; /** Application Authentication Code (byte 3 of 3) */
+    pBuf[14] = 3;   /** Size of this next sub-block */
+    pBuf[15] = 1;   /** Data sub-block index (must be 1) */
+    pBuf[16] = 0;   /** Number of repetition lsb (0 = infinite) */
+    pBuf[17] = 0;   /** Number of repetition msb (0 = infinite) */
+    pBuf[18] = 0;   /** Block terminator */
+    
+    // Actually write the data
+    fwrite(pBuf, 19, 1, pCtx->pOut);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Write the frame's data (following its image descriptor)
  * 
  * @param  pCtx The GIF exporter
@@ -629,8 +721,10 @@ gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
+    // Write the Graphic Control Extension (if it's an animation)
     if (pCtx->frameCount > 1) {
-        // TODO Write the Graphic Control Extension (?)
+        rv = gfmGif_writeGCE(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
     }
     
     // Write the Image Descriptor
@@ -640,6 +734,42 @@ gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx) {
     // Write the LZW-compresed data
     rv = gfmGif_writeLZWData(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Write the frame's Graphic Control Extension
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeGCE(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    unsigned char pBuf[8];
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
+    
+    pBuf[0] = 0x21; /* Write the 'Extension Introducer */
+    pBuf[1] = 0xf9; /* Set this as a GCE block */
+    pBuf[2] = 4;    /* This block's size */
+    pBuf[3]  = 0x00; /* Clean this bit field */
+    pBuf[3] |= 0x00; /* Reserved (bits 0xe0) */
+    pBuf[3] |= 0x00; /* Set disposal method as undefined (bits 0x1C) */
+    pBuf[3] |= 0x00; /* Whether there should be user input (bit 0x02) */
+    pBuf[3] |= 0x00; /* Whether there's a transparent color (bit 0x01) */
+    pBuf[4] = pCtx->animDelay & 0xff;        /* Delay's lsb */
+    pBuf[5] = (pCtx->animDelay >> 8) & 0xff; /* Delay's lsb */
+    pBuf[6] = 0; /* Transparent color index */
+    pBuf[7] = 0; /* Block terminator */
+    
+    // Actually write the data
+    fwrite(pBuf, 8, 1, pCtx->pOut);
     
     rv = GFMRV_OK;
 __ret:

@@ -583,6 +583,25 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath);
     gfm_snapshot(pCtx, pFilepath, sizeof(pFilepath)-1, useLocalPath)
 
 /**
+ * Record a few milliseconds as a animated GIF
+ * 
+ * @param  pCtx         The game's context
+ * @param  ms           How long should be recorded, in milliseconds
+ * @param  pFilepath    Path (and filename) where it will be saved (depends on
+ *                      useLocalPath); The extension isn't required, but, if
+ *                      present, must be .gif!
+ * @param  len          Filename's length
+ * @param  useLocalPath Whether the path should be appended to the local path
+ *                      (e.g., %APPDATA%\concat(organization, title)\, on
+ *                      windows); or "as-is" (relative or absolute, depending on
+ *                      the actual path)
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *                      GFMRV_ALLOC_FAILED, ...
+ */
+gfmRV gfm_recordGif(gfmCtx *pCtx, int ms, char *pFilepath, int len,
+        int useLocalPath);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context

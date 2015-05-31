@@ -71,8 +71,14 @@ struct stGFMCtx {
     gfmEvent *pEvent;
     /** Whether a quit event was received */
     gfmRV doQuit;
+    /** The GIF exporter */
+    gfmGifExporter *pGif;
     /** Whether a snapshot should be taken */
     int takeSnapshot;
+    /** Whether is recording an animation or a single snapshot */
+    int isAnimation;
+    /** For how long the animation should be recorded, in milliseconds */
+    int animationTime;
     /** Path where the snapshot should be saved */
     gfmString *pSsPath;
     /** Stores the snapshot */
@@ -1547,14 +1553,29 @@ __ret:
  */
 gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
     gfmRV rv;
+    int height, width;
     volatile int newLen;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFilepath, GFMRV_ARGUMENTS_BAD);
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation is available
+    ASSERT(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED);
     // Check that the operation isn't active
     ASSERT(!pCtx->takeSnapshot, GFMRV_OPERATION_ACTIVE);
+    
+    // Create the GIF exporter, if needed)
+    if (!pCtx->pGif) {
+        rv = gfmGif_getNew(&(pCtx->pGif));
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    // Get the backbuffer's dimensions
+    rv = gfmBackbuffer_getDimensions(&width, &height, pCtx->pBackbuffer);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Initialize the gif exporter to the current backbuffer
+    rv = gfmGif_init(pCtx->pGif, pCtx, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Alloc as many bytes as required (or fail if not possible/supported)
     newLen = pCtx->ssDataLen;
@@ -1608,6 +1629,39 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
     
     // Request the operation
     pCtx->takeSnapshot = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Record a few milliseconds as a animated GIF
+ * 
+ * @param  pCtx         The game's context
+ * @param  ms           How long should be recorded, in milliseconds
+ * @param  pFilepath    Path (and filename) where it will be saved (depends on
+ *                      useLocalPath); The extension isn't required, but, if
+ *                      present, must be .gif!
+ * @param  len          Filename's length
+ * @param  useLocalPath Whether the path should be appended to the local path
+ *                      (e.g., %APPDATA%\concat(organization, title)\, on
+ *                      windows); or "as-is" (relative or absolute, depending on
+ *                      the actual path)
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *                      GFMRV_ALLOC_FAILED, ...
+ */
+gfmRV gfm_recordGif(gfmCtx *pCtx, int ms, char *pFilepath, int len,
+        int useLocalPath) {
+    gfmRV rv;
+    
+    // Initialize it as if it's snapshot
+    rv = gfm_snapshot(pCtx, pFilepath, len, useLocalPath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set this as an animation
+    pCtx->isAnimation = 1;
+    pCtx->animationTime = ms;
     
     rv = GFMRV_OK;
 __ret:
@@ -1840,9 +1894,16 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
     
+#if defined(DEBUG) || defined(FORCE_FPS)
+    // Display the current fps
+    if (pCtx->showFPS) {
+        rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+#endif
+    
     // If requested, take the snapshot
     if (pCtx->takeSnapshot) {
-        int width, height;
         volatile int len;
         
         // Retrieve the data
@@ -1851,25 +1912,36 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
                 pCtx->pBackbuffer);
         ASSERT_NR(rv == GFMRV_OK);
         
-        // Get the backbuffer's dimesions
-        rv = gfmBackbuffer_getDimensions(&width, &height, pCtx->pBackbuffer);
-        ASSERT_NR(rv == GFMRV_OK);
-        
         // Store it in a GIF image
-        //rv = gfmGif_exportImage(pCtx, pCtx->pSsData, len, width, height,
-        //        pCtx->pSsPath);
-        //ASSERT_NR(rv == GFMRV_OK);
-        
-        pCtx->takeSnapshot = 0;
-    }
-    
-#if defined(DEBUG) || defined(FORCE_FPS)
-    // Display the current fps
-    if (pCtx->showFPS) {
-        rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
+        rv = gfmGif_storeFrame(pCtx->pGif, pCtx->pSsData, len);
         ASSERT_NR(rv == GFMRV_OK);
+        
+        if (!pCtx->isAnimation) {
+            // If it's a snapshot, simply save the animation
+            rv = gfmGif_exportImage(pCtx->pGif, pCtx->pSsPath);
+            ASSERT_NR(rv == GFMRV_OK);
+        
+            pCtx->takeSnapshot = 0;
+        }
+        else {
+            int delay;
+            
+            // Update the animation timer
+            rv = gfmAccumulator_getDelay(&delay, pCtx->pDrawAcc);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            pCtx->animationTime -= delay;
+            
+            // If enough frames were recorded, export it
+            if (pCtx->animationTime <= 0) {
+                rv = gfmGif_exportAnimation(pCtx->pGif, pCtx->pSsPath);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                pCtx->takeSnapshot = 0;
+                pCtx->isAnimation = 0;
+            }
+        }
     }
-#endif
     
     rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
     ASSERT_NR(rv == GFMRV_OK);
@@ -1910,6 +1982,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #if defined(DEBUG) || defined(FORCE_FPS)
     gfmFPSCounter_free(&(pCtx->pCounter));
 #endif
+    gfmGif_free(&(pCtx->pGif));
     if (pCtx->pSsData) {
         free(pCtx->pSsData);
         pCtx->pSsData = 0;

@@ -127,6 +127,14 @@ gfmRV gfmGif_writeHeader(gfmGifExporter *pCtx);
 gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
 
 /**
+ * Write the Netscape Applicaton Block (so the animation loops infinitely)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeNAB(gfmGifExporter *pCtx);
+
+/**
  * Write the frame's data (following its image descriptor)
  * 
  * @param  pCtx The GIF exporter
@@ -134,6 +142,14 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
  *              GFMRV_GIF_FAILED_TO_COMPRESS
  */
 gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx);
+
+/**
+ * Write the frame's Graphic Control Extension
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ */
+gfmRV gfmGif_writeGCE(gfmGifExporter *pCtx);
 
 /**
  * Write the GIF's Image descriptor
