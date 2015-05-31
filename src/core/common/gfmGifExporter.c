@@ -1,7 +1,8 @@
 /**
  * @file src/core/common/gfmGifExporter.c
  * 
- * Module that exports both GIF images and animations
+ * Module that exports both GIF images and animations; This implementation
+ * requires pthread!!
  * 
  * "The Graphics Interchange Format(c) is the Copyright property of
  *  CompuServe Incorporated. GIF(sm) is a Service Mark property of
@@ -14,6 +15,8 @@
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmGifExporter_bkend.h>
 #include <GFraMe_int/gfmTrie.h>
+
+#include <pthread.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +52,8 @@ struct stGFMGifExporter {
     
     /** Variable used by the thread */
     
+    /** The thread handle */
+    pthread_t threadHnd;
     /** Output file */
     FILE *pOut;
     /** The value returned from the thread */
@@ -101,7 +106,7 @@ struct stGFMGifExporter {
  * 
  * @param pCtx The GIF context
  */
-static void _gfmGif_threadHandler(void *pCtx);
+static void* _gfmGif_threadHandler(void *pCtx);
 
 /**
  * Check whether exporting GIF is supported
@@ -175,6 +180,9 @@ gfmRV gfmGif_clean(gfmGifExporter *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // TODO If a thread is active, signal it to stop and wait
+    gfmGif_waitExport(pCtx);
+    
+    // TODO remove any temp file
     
     // TODO Free everything
     gfmString_free(&(pCtx->pBasePath));
@@ -274,6 +282,72 @@ __ret:
 }
 
 /**
+ * Check whether the current export finished
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE, GFMRV_TRUE,
+ *              GFMRV_FALSE
+ */
+gfmRV gfmGif_didExport(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    
+    // Check that the thread finished
+    ASSERT(pCtx->threadRV != GFMRV_GIF_THREAD_IS_RUNNING, GFMRV_FALSE);
+    
+    // Clean up resources and enable this to be reused
+    rv = gfmGif_waitExport(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_TRUE;
+__ret:
+    return rv;
+}
+
+/**
+ * Wait until the current export finished
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE
+ */
+gfmRV gfmGif_waitExport(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
+    
+    // Initialize the return value
+    rv = GFMRV_OK;
+    
+    // Check that the thread was running
+    if (pCtx->threadHnd) {
+        gfmGifExporter *pGif;
+        int irv;
+        
+        // Wait until the thread exits
+        irv = pthread_join(pCtx->threadHnd, (void**)(&pGif));
+        ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+        // Cleans the handle
+        pCtx->threadHnd = 0;
+        
+        // Retrieve the error code from the object returned by the thread
+        ASSERT(pGif, GFMRV_INTERNAL_ERROR);
+        rv = pGif->threadRV;
+    }
+    
+    // Set this as inactive
+    pCtx->isActive = 0;
+__ret:
+    return rv;
+}
+
+/**
  * Store a single frame to be later converted into a GIF; To create an
  * animation, this function should be called on every frame
  * 
@@ -337,6 +411,8 @@ __ret:
  */
 gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
+    int irv;
+    pthread_attr_t attr;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -353,9 +429,13 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     pCtx->pImagePath = pPath;
     pCtx->pOut = 0;
     
-    // TODO create thread to handle this
-    _gfmGif_threadHandler((void*)pCtx);
-    ASSERT(pCtx->threadRV == GFMRV_OK, pCtx->threadRV);
+    // Set the thread attributes
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    // Create thread to handle this
+    irv = pthread_create(&(pCtx->threadHnd), &attr, _gfmGif_threadHandler,
+            (void*)pCtx);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
 __ret:
@@ -373,6 +453,8 @@ __ret:
  */
 gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
+    int irv;
+    pthread_attr_t attr;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -389,9 +471,12 @@ gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     pCtx->pImagePath = pPath;
     pCtx->pOut = 0;
     
-    // TODO create thread to handle this
-    _gfmGif_threadHandler((void*)pCtx);
-    ASSERT(pCtx->threadRV == GFMRV_OK, pCtx->threadRV);
+    // Set the thread attributes
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    // Create thread to handle this
+    irv = pthread_create(&(pCtx->threadHnd), 0, _gfmGif_threadHandler, (void*)pCtx);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
 __ret:
@@ -403,10 +488,13 @@ __ret:
  * 
  * @param pCtx The GIF context
  */
-static void _gfmGif_threadHandler(void *pArg) {
+static void* _gfmGif_threadHandler(void *pArg) {
     char *pPath;
     gfmGifExporter *pGif;
     gfmRV rv;
+    
+    // Initialize this
+    pGif = 0;
     
     // Sanitize arguments
     ASSERT(pArg, GFMRV_ARGUMENTS_BAD);
@@ -483,7 +571,8 @@ __ret:
         }
     }
     
-    // TODO Return to the thread
+    // Return to the thread
+    pthread_exit(pGif);
 }
 
 /**

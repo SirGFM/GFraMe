@@ -67,6 +67,23 @@ gfmRV gfmGif_clean(gfmGifExporter *pCtx);
 gfmRV gfmGif_init(gfmGifExporter *pGif, gfmCtx *pCtx, int width, int height);
 
 /**
+ * Check whether the current export finished
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE, GFMRV_TRUE,
+ *              GFMRV_FALSE
+ */
+gfmRV gfmGif_didExport(gfmGifExporter *pCtx);
+
+/**
+ * Wait until the current export finished
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_OPERATION_NOT_ACTIVE
+ */
+gfmRV gfmGif_waitExport(gfmGifExporter *pCtx);
+
+/**
  * Store a single frame to be later converted into a GIF; To create an
  * animation, this function should be called on every frame
  * 
