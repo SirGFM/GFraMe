@@ -72,12 +72,16 @@ struct stGFMGifExporter {
     
     /** Stuff used only by the LZW */
     
+    /** Minimum size in bits... */
+    int lzwMinSize;
     /** Current number of bits-per-lzwCode */
     int lzwCurSize;
     /** Next code to be inserted on the dictionary */
     int lzwNextCode;
     /** Position in the buffer, in bits */
-    int lzwBufPos;
+    int lzwBufBitPos;
+    /** Position in the buffer, in bytes */
+    int lzwBufBytePos;
     /** Number of bytes used in the lzw buffer */
     int lzwBufUsed;
     /** Number of bytes in the lzw buffer */
@@ -315,7 +319,9 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     ASSERT(pCtx->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
     // Check that there is only one frame
     ASSERT(pCtx->frameCount == 1, GFMRV_GIF_TOO_MANY_FRAMES);
-    // TODO Check that there's no thread
+    // Check that there's no thread
+    ASSERT(pCtx->threadRV != GFMRV_GIF_THREAD_IS_RUNNING,
+            GFMRV_GIF_THREAD_IS_RUNNING);
     
     // Set the path (so it can be seen by the thread)
     pCtx->pImagePath = pPath;
@@ -323,7 +329,7 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     
     // TODO create thread to handle this
     _gfmGif_threadHandler((void*)pCtx);
-    ASSERT_NR(pCtx->threadRV == GFMRV_OK);
+    ASSERT(pCtx->threadRV == GFMRV_OK, pCtx->threadRV);
     
     rv = GFMRV_OK;
 __ret:
@@ -361,6 +367,9 @@ static void _gfmGif_threadHandler(void *pArg) {
     ASSERT(pGif->isActive, GFMRV_GIF_OPERATION_NOT_ACTIVE);
     // Check that the path was set
     ASSERT(pGif->pImagePath, GFMRV_GIF_PATH_NOT_SET);
+    
+    // Set the thread as active
+    pGif->threadRV = GFMRV_GIF_THREAD_IS_RUNNING;
     
     // Retrieve the path to the actual output image
     rv = gfmString_getString(&pPath, pGif->pImagePath);
@@ -407,107 +416,18 @@ static void _gfmGif_threadHandler(void *pArg) {
     
     rv = GFMRV_OK;
 __ret:
-    if (rv != GFMRV_ARGUMENTS_BAD)
+    // Set the return and close the generated image
+    if (rv != GFMRV_ARGUMENTS_BAD) {
         pGif->threadRV = rv;
-    if (pGif->pOut) {
-        fclose(pGif->pOut);
-        pGif->pOut = 0;
+        
+        if (pGif->pOut) {
+            fclose(pGif->pOut);
+            pGif->pOut = 0;
+        }
     }
     
-    // TODO return to the thread
+    // TODO Return to the thread
 }
-
-#if 0
-
-/**
- * Exports a single image to the requested path
- * 
- * @param  pCtx   The game's context
- * @param  pData  Image's data, in 24 bits RGB (8 bits per color)
- * @param  len    Length of the image's data
- * @param  width  Image's width
- * @param  height Image's height
- * @param  pPath  Path where the image should be saved (will overwrite!)
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_BUFFER_LEN,
- *                GFMRV_GIF_TOO_MANY_COLORS, GFMRV_COULDNT_OPEN_FILE,
- *                GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL,
- */
-gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
-        int height, gfmString *pPath) {
-    char *pFilename;
-    gfmGifExporter ctx;
-    gfmRV rv;
-    
-    // Initialize this to clean on error
-    ctx.pFp = 0;
-    ctx.pPalette = 0;
-    gfmGenArr_zero(ctx.pNodes);
-    
-    // Sanitize arguments
-    ASSERT(pData, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pPath, GFMRV_ARGUMENTS_BAD);
-    // Check that the length is valid
-    ASSERT(len == width * height * sizeof(unsigned char) * 3,
-            GFMRV_INVALID_BUFFER_LEN);
-    // Width and height can't be bigger than 0xffff (65535) pixels
-    ASSERT(width <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_LARGE);
-    ASSERT(height <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_TALL);
-    
-    // Get the palette
-    rv = gfmGif_getColors(&ctx, pData, len);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Set the image's dimensions
-    ctx.width = width;
-    ctx.height = height;
-    
-    // Get the path
-    rv = gfmString_getString(&pFilename, pPath);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Try to open the output file
-    ctx.pFp = fopen(pFilename, "wb");
-    ASSERT(ctx.pFp, GFMRV_COULDNT_OPEN_FILE);
-    
-    // Write Header
-    rv = gfmGif_writeHeader(&ctx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Write Logical screen descriptor
-    rv = gfmGif_writeLogicalDesc(&ctx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Write Global color table
-    rv = gfmGif_writeGlobalPalette(&ctx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    rv = gfmGif_writeImage(&ctx, pData, len);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Write Comment extension
-    rv = gfmGif_writeComment(&ctx, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Write Trailer
-    rv = gfmGif_writeTrailer(&ctx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    rv = GFMRV_OK;
-__ret:
-    // Close the file
-    if (ctx.pFp) {
-        fclose(ctx.pFp);
-        ctx.pFp = 0;
-    }
-    if (ctx.pPalette) {
-        free(ctx.pPalette);
-        ctx.pPalette = 0;
-    }
-    // Free all nodes
-    gfmGenArr_clean(pNodes, gfmTrie_free);
-    
-    return rv;
-}
-#endif
 
 /**
  * Read the current frame, storing it and its palette info
@@ -614,11 +534,21 @@ gfmRV gfmGif_readFrame(gfmGifExporter *pCtx) {
         // Go to the next color
         i++;
     }
+    // If the palette is full, add another bit (go figure, GIF is stupid)
+    if (pCtx->colorCount == pCtx->totalColorCount) {
+        pCtx->totalColorCount *= 2;
+        pCtx->colorBits++;
+    }
+    // Update how many bytes there are in the image buffer
+    pCtx->dataUsed = len;
     
     rv = GFMRV_OK;
 __ret:
-    if (pFp)
+    // If there's a file, close it and delete it
+    if (pFp) {
         fclose(pFp);
+        remove(pFramePath);
+    }
     
     return rv;
 }
@@ -665,30 +595,17 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx) {
     ASSERT(pCtx->height <= 0x0000ffff, GFMRV_GIF_IMAGE_TOO_TALL);
     
     // Prepare the logical screen data
-    
-    // Set the width
-    pBuf[0] = pCtx->width & 0xff;
-    pBuf[1] = (pCtx->width >> 8) & 0xff;
-    
-    // Set the height
-    pBuf[2] = pCtx->height & 0xff;
-    pBuf[3] = (pCtx->height >> 8) & 0xff;
-    
-    // Clean this bitfield
-    pBuf[4] = 0;
-    // Set the existance of a global palette (bit 0x80)
-    pBuf[4] |= 0x00;
-    // Set the source as 8 bits per color (bits 0x70)
-    pBuf[4] |= 0x70;
-    // Set the palette as not sorted (bit 0x08)
-    pBuf[4] |= 0x00;
-    // Set the size of the global color table (bits 0x07)
-    pBuf[4] |= 0x00;
-    
-    // Set the bg color (should be useless, but still...)
-    pBuf[5] = 0;
-    // Set the pixel aspect ratio (should be perfectly square!)
-    pBuf[6] = 0;
+    pBuf[0] = pCtx->width & 0xff;        /* Set width lsb */
+    pBuf[1] = (pCtx->width >> 8) & 0xff; /* Set width msb */
+    pBuf[2] = pCtx->height & 0xff;        /* Set height lsb */
+    pBuf[3] = (pCtx->height >> 8) & 0xff; /* Set height msb */
+    pBuf[4]  = 0x00; /* Clean this bitfield */
+    pBuf[4] |= 0x00; /* Remove any global palette (bit 0x80) */
+    pBuf[4] |= 0x70; /* Set the source as 8 bits per color (bits 0x70) */
+    pBuf[4] |= 0x00; /* Whether the palette is sorted (bit 0x08) */
+    pBuf[4] |= 0x00; /* Size of the global color table (bits 0x07) */
+    pBuf[5] = 0; /* Set the bg color (should be useless, but still...) */
+    pBuf[6] = 0; /* Set the pixel aspect ratio (should be perfectly square!) */
     
     // Actually write the data
     fwrite(pBuf, 7, 1, pCtx->pOut);
@@ -697,53 +614,6 @@ gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx) {
 __ret:
     return rv;
 }
-
-#if 0
-/**
- * Writes the GIF's global color table
- * 
- * @param  pCtx The GIF exporter
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
- */
-gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx) {
-    gfmRV rv;
-    int i;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
-    ASSERT(pCtx->pFp, GFMRV_GIF_NOT_INITIALIZED);
-    
-    // Write the colors to the palette
-    i = 0;
-    while (i < pCtx->colorCount) {
-        unsigned char pBuf[3];
-        
-        // Pallete is organized as 0x00RRGGBB
-        pBuf[0] = (pCtx->pPalette[i] >> 16) & 0xff;
-        pBuf[1] = (pCtx->pPalette[i] >> 8) & 0xff;
-        pBuf[2] = pCtx->pPalette[i] & 0xff;
-        fwrite(pBuf, 3, 1, pCtx->pFp);
-        
-        i++;
-    }
-    // Fill the palette with 0
-    while (i < pCtx->totalColorCount) {
-        unsigned char pBuf[3];
-        
-        pBuf[0] = 0;
-        pBuf[1] = 0;
-        pBuf[2] = 0;
-        fwrite(pBuf, 3, 1, pCtx->pFp);
-        
-        i++;
-    }
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-#endif
 
 /**
  * Write the frame's data (following its image descriptor)
@@ -802,13 +672,12 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     pBuf[6] = (pCtx->width >> 8) & 0xff;  /* Set width's msb */
     pBuf[7] = pCtx->height & 0xff;        /* Set height's lsb */
     pBuf[8] = (pCtx->height >> 8) & 0xff; /* Set height's msb */
-    
-    pBuf[9] = 0;      /* Clean this bitfield */
-    pBuf[9] |=  0x80; /* Set a local color table flag */
-    pBuf[9] &= ~0x40; /* Remove the interlaced flag */
-    pBuf[9] &= ~0x20; /* Remove the sorted flag */
-    pBuf[9] &= ~0x18; /* Reserved... not sure what goes here */
-    pBuf[9] |= pCtx->colorBits & 0x07; /* Set size local color table to 0 */
+    pBuf[9] = 0;     /* Clean this bitfield */
+    pBuf[9] |= 0x80; /* Set a local color table flag */
+    pBuf[9] |= 0x00; /* Whether it's interlaced (bit 0x40) */
+    pBuf[9] |= 0x00; /* Wether it's sorted (bit 0x20) */
+    pBuf[9] |= 0x00; /* Reserved... not sure what goes here (bits 0x18) */
+    pBuf[9] |= (pCtx->colorBits - 1) & 0x07; /* Size of palette (bits 0x07) */
     
     // Actually write the data
     fwrite(pBuf, 10, 1, pCtx->pOut);
@@ -828,12 +697,7 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     }
     // Fill the empty spaces
     while (i < pCtx->totalColorCount) {
-        // Clean up the next palette entrys
-        pBuf[0] = 0x00;
-        pBuf[1] = 0x00;
-        pBuf[2] = 0x00;
-        
-        // Write it
+        // Write the last entry to fill the palette
         fwrite(pBuf, 1, 3, pCtx->pOut);
         
         i++;
@@ -844,6 +708,7 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
             pCtx->pDict, gfmTrie_getNew);
     gfmGenArr_push(pCtx->pTries);
     // Initialize it
+    i = 0;
     rv = gfmTrie_init(pCtx->pDict, i, i);
     ASSERT_NR(rv == GFMRV_OK);
     // Get the root
@@ -882,11 +747,69 @@ __ret:
  */
 gfmRV gfmGif_writeBitwiseWord(gfmGifExporter *pCtx, int word) {
     gfmRV rv;
+    int curLen;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // TODO bitwise write
+    // Check if the buffer was initialized (and do so if needed)
+    if (!pCtx->pLzwBuf) {
+        pCtx->lzwBufLen = 255;
+        
+        pCtx->pLzwBuf = (unsigned char*)malloc(sizeof(unsigned char)
+                * pCtx->lzwBufLen);
+        ASSERT(pCtx->pLzwBuf, GFMRV_ALLOC_FAILED);
+        
+        // Clear the first byte
+        pCtx->pLzwBuf[0] = 0;
+    }
+    
+    curLen = pCtx->lzwCurSize;
+    while (curLen > 0) {
+        unsigned char c;
+        int delta;
+        
+        // Write part of the word to the buffer
+        c = (word << pCtx->lzwBufBitPos) & 0xff;
+        pCtx->pLzwBuf[pCtx->lzwBufBytePos] |= c;
+        
+        // Check what actually happened
+        delta = 8 - pCtx->lzwCurSize - pCtx->lzwBufBitPos;
+        if (delta > 0) {
+            // The complete word was written and there's still space
+            pCtx->lzwBufBitPos += curLen;
+            curLen = 0;
+        }
+        else {
+            // Either there are still bits or we're on a bit 0
+            
+            // Remove the already written part
+            word >>= 8 - pCtx->lzwBufBitPos;
+            curLen -= 8 - pCtx->lzwBufBitPos;
+            
+            // Since at most one byte is written at a time
+            pCtx->lzwBufBytePos++;
+            // Nothing was written on the next byte, so set it it 0
+            pCtx->lzwBufBitPos = 0;
+        }
+        
+        // Expand the buffer, as necessary
+        if (pCtx->lzwBufBytePos >= pCtx->lzwBufLen) {
+            pCtx->lzwBufLen *= 2;
+            
+            pCtx->pLzwBuf = (unsigned char*)realloc(pCtx->pLzwBuf,
+                   sizeof(unsigned char) * pCtx->lzwBufLen * 2);
+            ASSERT(pCtx->pLzwBuf, GFMRV_ALLOC_FAILED);
+        }
+        
+        if (delta <= 0) {
+            // Clear this new byte
+            pCtx->pLzwBuf[pCtx->lzwBufBytePos] = 0;
+        }
+    }
+    
+    // Update how many bytes have been used
+    pCtx->lzwBufUsed = pCtx->lzwBufBytePos + 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -910,40 +833,58 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
-    // Write LZW minimum size (i.e., number of bits in palette)
-    c = pCtx->colorBits;
+    /* Note to future self: The GIF documentation is shit! Although it says
+       "[...] Normally this will be the same as the number of color bits [...]
+       This code size value also implies that the compression codes must start
+       out one bit longer.", the minimum size must be 'pCtx->colorBits + 1' and
+       you MUST use 'pCtx->colorBits + 2' as the minimum word... FUCK whoever
+       wrote that shit! */
+    
+    // Get the LZW minimum code size
+    pCtx->lzwMinSize = pCtx->colorBits;
     // The algorithm says this is necessary, so...
-    if (c == 1)
-        c++;
+    if (pCtx->lzwMinSize == 1) {
+        pCtx->lzwMinSize++;
+    }
+    // Write LZW minimum size (i.e., number of bits in palette)
+    c = pCtx->lzwMinSize;
     fwrite(&c, 1, 1, pCtx->pOut);
     
     // Initialize the write operation
-    pCtx->lzwCurSize = pCtx->colorBits + 1;
+    pCtx->lzwCurSize = pCtx->lzwMinSize + 1;
     // Clean the buffer
-    pCtx->lzwBufPos = 0;
+    pCtx->lzwBufBitPos = 0;
+    pCtx->lzwBufBytePos = 0;
     pCtx->lzwBufUsed = 0;
     // Set the first code to be added
-    pCtx->lzwNextCode = (1 << pCtx->colorBits) + 2;
+    pCtx->lzwNextCode = (1 << pCtx->lzwMinSize) + 2;
     
+    // Clear the buffer's first byte, if any
+    if (pCtx->pLzwBuf)
+        pCtx->pLzwBuf[0] = 0;
     // Write LZW clean code
-    rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->colorBits));
+    rv = gfmGif_writeBitwiseWord(pCtx, 1 << pCtx->lzwMinSize);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Write compressed Image's data
     i = 0;
     while (i < pCtx->dataUsed) {
-        /** Points to the longest sequence (and current code) */
+        gfmRV status;
+        /** Points to end of the longest sequence (and current code) */
         gfmTrie *pAnchor;
-        /** Used as temporary both to search and to insert at the anchor */
+        /** Used as temporary, both to search and to insert at the anchor */
         gfmTrie *pNode;
+        /** Only used as the new child or sibling node */
+        gfmTrie *pNewNode;
         /** Last code found */
         int curCode;
         
         // Get the longest string possible
-        pAnchor = pCtx->pDict;
+        pAnchor = 0;
+        pNode = pCtx->pDict;
         while (1) {
             // Search the current 
-            rv = gfmTrie_searchSiblings(&pNode, pAnchor, pCtx->pData[i]);
+            rv = gfmTrie_searchSiblings(&pNode, pNode, pCtx->pData[i]);
             if (rv == GFMRV_TRIE_KEY_NOT_FOUND)
                 break;
             ASSERT_NR(rv == GFMRV_OK);
@@ -951,33 +892,36 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
             pAnchor = pNode;
             // Update the current character being read
             i++;
+            if (i >= pCtx->dataUsed)
+                break;
             // Search through its child
             rv = gfmTrie_getChild(&pNode, pAnchor);
             if (rv == GFMRV_TRIE_IS_LEAF)
                 break;
             ASSERT_NR(rv == GFMRV_OK);
-            // Update the anchor and the string
-            pAnchor = pNode;
         }
+        status = rv;
+        // Check that a valid sequence was found
+        ASSERT(pAnchor, GFMRV_FUNCTION_FAILED);
         
         // Create a new node
         gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, 8/*INC*/,
-                pNode, gfmTrie_getNew);
+                pNewNode, gfmTrie_getNew);
         gfmGenArr_push(pCtx->pTries);
         
-        if (rv == GFMRV_TRIE_KEY_NOT_FOUND) {
+        if (status == GFMRV_TRIE_KEY_NOT_FOUND) {
             // Add it as a sibling
-            rv = gfmTrie_insertSibling(pAnchor, pNode, pCtx->pData[i],
+            rv = gfmTrie_insertSibling(pNode, pNewNode, pCtx->pData[i],
                     pCtx->lzwNextCode);
             ASSERT_NR(rv == GFMRV_OK);
         }
-        else if (rv == GFMRV_TRIE_IS_LEAF) {
+        else if (status == GFMRV_TRIE_IS_LEAF) {
             // Add it as a child
-            rv = gfmTrie_insertChild(pAnchor, pNode, pCtx->pData[i],
+            rv = gfmTrie_insertChild(pNode, pNewNode, pCtx->pData[i],
                     pCtx->lzwNextCode);
             ASSERT_NR(rv == GFMRV_OK);
         }
-        else {
+        else if (i < pCtx->dataUsed) {
             // Shouldn't happen, but...
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
@@ -986,19 +930,20 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
         rv = gfmTrie_getValue(&curCode, pAnchor);
         ASSERT_NR(rv == GFMRV_OK);
         
+        // Write the current code
+        rv = gfmGif_writeBitwiseWord(pCtx, curCode);
+        ASSERT_NR(rv == GFMRV_OK);
+        
         // Check if the number of bits-per-code should be expanded
-        if (curCode > (1 << (pCtx->lzwCurSize + 1)) - 1) {
+        if (pCtx->lzwNextCode > (1 << pCtx->lzwCurSize) - 1) {
             pCtx->lzwCurSize++;
             // LZW code size can't be greater than 12 bits
             ASSERT(pCtx->lzwCurSize <= 12, GFMRV_GIF_FAILED_TO_COMPRESS);
         }
-        
-        // Write the current code
-        rv = gfmGif_writeBitwiseWord(pCtx, curCode);
-        ASSERT_NR(rv == GFMRV_OK);
+        pCtx->lzwNextCode++;
     }
     // Write LZW end code (LZW clean code + 1)
-    rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->colorBits) + 2);
+    rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->lzwMinSize) + 1);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Write the compressed data

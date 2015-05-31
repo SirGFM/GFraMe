@@ -101,19 +101,6 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath);
 gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath);
 
 /**
- * Exports a single image to the requested path
- * 
- * @param  pCtx   The game's context
- * @param  pData  Image's data, in 24 bits RGB (8 bits per color)
- * @param  len    Length of the image's data
- * @param  width  Image's width
- * @param  height Image's height
- * @param  pPath  Path where the image should be saved (will overwrite!)
- */
-//gfmRV gfmGif_exportImage(gfmCtx *pCtx, unsigned char *pData, int len, int width,
-//        int height, gfmString *pPath);
-
-/**
  * Read the current frame, storing it and its palette info
  * 
  * @param  pCtx  The GIF context
@@ -138,14 +125,6 @@ gfmRV gfmGif_writeHeader(gfmGifExporter *pCtx);
  *              GFMRV_GIF_IMAGE_TOO_LARGE, GFMRV_GIF_IMAGE_TOO_TALL
  */
 gfmRV gfmGif_writeLogicalDesc(gfmGifExporter *pCtx);
-
-/**
- * Writes the GIF's global color table
- * 
- * @param  pCtx The GIF exporter
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
- */
-gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx);
 
 /**
  * Write the frame's data (following its image descriptor)
