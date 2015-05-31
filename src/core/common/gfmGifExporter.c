@@ -20,7 +20,7 @@
 #include <string.h>
 
 /** Declare the 'trie nodes array' type */
-//gfmGenArray_define(gfmTrie);
+gfmGenArr_define(gfmTrie);
 
 /** The gfmGifExporter structure */
 struct stGFMGifExporter {
@@ -38,6 +38,10 @@ struct stGFMGifExporter {
     int basePathLen;
     /** Length of a frame name (i.e., len(basePath+framename) ) */
     int framenameLen;
+    /** List to easily store dictionary nodes */
+    gfmGenArr_var(gfmTrie, pTries);
+    /** Dictionary root */
+    gfmTrie *pDict;
     
     /** Variable used by the thread */
     
@@ -65,24 +69,21 @@ struct stGFMGifExporter {
     int dataLen;
     /** Buffer where frames are stored (using the palette) */
     unsigned char *pData;
-#if 0
-    /** Image's output file */
-    FILE *pFp;
-    /** Image's width */
-    int width;
-    /** Image's height */
-    int height;
-    /** Number of bits needed to be able to represent every color */
-    int colorBits;
-    /** Number of colors in the image */
-    int colorCount;
-    /** Total number of colors in the palette (rounded up from colorCount) */
-    int totalColorCount;
-    /** Palette in a 00RRGGBB format */
-    int *pPalette;
-    /** Node of the dictionary's trie */
-    gfmGenArr_var(gfmTrie, pNodes);
-#endif
+    
+    /** Stuff used only by the LZW */
+    
+    /** Current number of bits-per-lzwCode */
+    int lzwCurSize;
+    /** Next code to be inserted on the dictionary */
+    int lzwNextCode;
+    /** Position in the buffer, in bits */
+    int lzwBufPos;
+    /** Number of bytes used in the lzw buffer */
+    int lzwBufUsed;
+    /** Number of bytes in the lzw buffer */
+    int lzwBufLen;
+    /** Buffer to store the lzw compressed image */
+    unsigned char *pLzwBuf;
 };
 
 /**
@@ -173,6 +174,11 @@ gfmRV gfmGif_clean(gfmGifExporter *pCtx) {
         free(pCtx->pData);
         pCtx->pData = 0;
     }
+    if (pCtx->pLzwBuf) {
+        free(pCtx->pLzwBuf);
+        pCtx->pLzwBuf = 0;
+    }
+    gfmGenArr_clean(pCtx->pTries, gfmTrie_free);
     memset(pCtx, 0x0, sizeof(gfmGifExporter));
     
     rv = GFMRV_OK;
@@ -378,6 +384,10 @@ static void _gfmGif_threadHandler(void *pArg) {
         // Buffer this frame
         rv = gfmGif_readFrame(pGif);
         ASSERT_NR(rv == GFMRV_OK);
+        
+        // Reset the dictionary
+        gfmGenArr_reset(pGif->pTries);
+        pGif->pDict = 0;
         
         // Write the frame
         rv = gfmGif_writeFrame(pGif);
@@ -749,9 +759,6 @@ gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
-    // TODO Finish this
-    ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED);
-    
     if (pCtx->frameCount > 1) {
         // TODO Write the Graphic Control Extension (?)
     }
@@ -777,6 +784,8 @@ __ret:
  */
 gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     gfmRV rv;
+    gfmTrie *pCurNode;
+    int i;
     unsigned char pBuf[10];
     
     // Sanitize arguments
@@ -794,18 +803,70 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     pBuf[7] = pCtx->height & 0xff;        /* Set height's lsb */
     pBuf[8] = (pCtx->height >> 8) & 0xff; /* Set height's msb */
     
-    // TODO Set this a having a palette
     pBuf[9] = 0;      /* Clean this bitfield */
-    pBuf[9] &= ~0x80; /* Remove the local color table flag */
+    pBuf[9] |=  0x80; /* Set a local color table flag */
     pBuf[9] &= ~0x40; /* Remove the interlaced flag */
     pBuf[9] &= ~0x20; /* Remove the sorted flag */
     pBuf[9] &= ~0x18; /* Reserved... not sure what goes here */
-    pBuf[9] &= ~0x07; /* Set size local color table to 0 */
+    pBuf[9] |= pCtx->colorBits & 0x07; /* Set size local color table to 0 */
     
     // Actually write the data
     fwrite(pBuf, 10, 1, pCtx->pOut);
     
-    // TODO write local palette
+    // Write the local palette
+    i = 0;
+    while (i < pCtx->colorCount) {
+        // Set the palette buffer (in R,G,B order)
+        pBuf[0] = (pCtx->pPalette[i] >> 16) & 0xff;
+        pBuf[1] = (pCtx->pPalette[i] >> 8) & 0xff;
+        pBuf[2] = pCtx->pPalette[i] & 0xff;
+        
+        // Write it
+        fwrite(pBuf, 1, 3, pCtx->pOut);
+        
+        i++;
+    }
+    // Fill the empty spaces
+    while (i < pCtx->totalColorCount) {
+        // Clean up the next palette entrys
+        pBuf[0] = 0x00;
+        pBuf[1] = 0x00;
+        pBuf[2] = 0x00;
+        
+        // Write it
+        fwrite(pBuf, 1, 3, pCtx->pOut);
+        
+        i++;
+    }
+    
+    // Get the dictionary's root
+    gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
+            pCtx->pDict, gfmTrie_getNew);
+    gfmGenArr_push(pCtx->pTries);
+    // Initialize it
+    rv = gfmTrie_init(pCtx->pDict, i, i);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the root
+    pCurNode = pCtx->pDict;
+    
+    // Initialize the dictionary
+    i = 1;
+    while (i < pCtx->totalColorCount) {
+        gfmTrie *pNextNode;
+        
+        // Get a new node
+        gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
+                pNextNode, gfmTrie_getNew);
+        gfmGenArr_push(pCtx->pTries);
+        
+        // Insert it as a sibling
+        rv = gfmTrie_insertSibling(pCurNode, pNextNode, i, i);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Go to the next node
+        pCurNode = pNextNode;
+        i++;
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -815,15 +876,21 @@ __ret:
 /**
  * Write a word of a given length to a buffer of bits
  * 
- * @param  pRemBit How many bits still gotta be written (i.e., overflown)
- * @param  pData   Buffer of bits
- * @param  dataLen How many bits there are in the buffer
- * @param  dataPos Current position in the buffer
- * @param  word    Word to be written to the buffer
- * @param  wordLen Length of the word in bits
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_BITS_REMAINING
+ * @param  pCtx   The GIF exporter
+ * @param  word   Word to be written to the buffer
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmGif_writeBitwiseWord(int *pRemBit, unsigned char *pData, int dataLen, int dataPos, int word, int wordLen) {
+gfmRV gfmGif_writeBitwiseWord(gfmGifExporter *pCtx, int word) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO bitwise write
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -834,35 +901,111 @@ gfmRV gfmGif_writeBitwiseWord(int *pRemBit, unsigned char *pData, int dataLen, i
  *              GFMRV_ALLOC_FAILED
  */
 gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
-    // The buffer length must be the size of the data sub-block
-#define bufLen 255
     gfmRV rv;
-    int bufPos, dataPos, lzwSize, remBits;
-    unsigned char pBuf[bufLen];
+    int i;
+    unsigned char c;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pCtx->pOut, GFMRV_GIF_NOT_INITIALIZED);
     
-    // Write LZW minimum size (i.e., number of bits + 1)
-    lzwSize = pCtx->colorBits;
+    // Write LZW minimum size (i.e., number of bits in palette)
+    c = pCtx->colorBits;
     // The algorithm says this is necessary, so...
-    if (lzwSize == 1)
-        lzwSize++;
-    pBuf[0] = lzwSize;
-    fwrite(pBuf, 1, 1, pCtx->pOut);
+    if (c == 1)
+        c++;
+    fwrite(&c, 1, 1, pCtx->pOut);
     
-    // (GIF's) LZW requires one more bit from the start (stupid algorithm)
-    lzwSize++;
-    // TODO Write LZW clean code
-    //rv = gfmGif_writeBitwiseWord(&remBits, pData, bufLen, dataPos, (1 << pCtx->colorBits), lzwSize);
-    // This first word must be completelly written
+    // Initialize the write operation
+    pCtx->lzwCurSize = pCtx->colorBits + 1;
+    // Clean the buffer
+    pCtx->lzwBufPos = 0;
+    pCtx->lzwBufUsed = 0;
+    // Set the first code to be added
+    pCtx->lzwNextCode = (1 << pCtx->colorBits) + 2;
+    
+    // Write LZW clean code
+    rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->colorBits));
     ASSERT_NR(rv == GFMRV_OK);
     
-    // TODO Write compressed Image's data
-    // TODO REMEBE gfmGif_writeDataSubBlock
-    // TODO Write LZW clean code + 1
+    // Write compressed Image's data
+    i = 0;
+    while (i < pCtx->dataUsed) {
+        /** Points to the longest sequence (and current code) */
+        gfmTrie *pAnchor;
+        /** Used as temporary both to search and to insert at the anchor */
+        gfmTrie *pNode;
+        /** Last code found */
+        int curCode;
+        
+        // Get the longest string possible
+        pAnchor = pCtx->pDict;
+        while (1) {
+            // Search the current 
+            rv = gfmTrie_searchSiblings(&pNode, pAnchor, pCtx->pData[i]);
+            if (rv == GFMRV_TRIE_KEY_NOT_FOUND)
+                break;
+            ASSERT_NR(rv == GFMRV_OK);
+            // Update the anchor
+            pAnchor = pNode;
+            // Update the current character being read
+            i++;
+            // Search through its child
+            rv = gfmTrie_getChild(&pNode, pAnchor);
+            if (rv == GFMRV_TRIE_IS_LEAF)
+                break;
+            ASSERT_NR(rv == GFMRV_OK);
+            // Update the anchor and the string
+            pAnchor = pNode;
+        }
+        
+        // Create a new node
+        gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, 8/*INC*/,
+                pNode, gfmTrie_getNew);
+        gfmGenArr_push(pCtx->pTries);
+        
+        if (rv == GFMRV_TRIE_KEY_NOT_FOUND) {
+            // Add it as a sibling
+            rv = gfmTrie_insertSibling(pAnchor, pNode, pCtx->pData[i],
+                    pCtx->lzwNextCode);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
+        else if (rv == GFMRV_TRIE_IS_LEAF) {
+            // Add it as a child
+            rv = gfmTrie_insertChild(pAnchor, pNode, pCtx->pData[i],
+                    pCtx->lzwNextCode);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
+        else {
+            // Shouldn't happen, but...
+            ASSERT(0, GFMRV_FUNCTION_FAILED);
+        }
+        
+        // Retrieve the current code
+        rv = gfmTrie_getValue(&curCode, pAnchor);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Check if the number of bits-per-code should be expanded
+        if (curCode > (1 << (pCtx->lzwCurSize + 1)) - 1) {
+            pCtx->lzwCurSize++;
+            // LZW code size can't be greater than 12 bits
+            ASSERT(pCtx->lzwCurSize <= 12, GFMRV_GIF_FAILED_TO_COMPRESS);
+        }
+        
+        // Write the current code
+        rv = gfmGif_writeBitwiseWord(pCtx, curCode);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    // Write LZW end code (LZW clean code + 1)
+    rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->colorBits) + 2);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Write the compressed data
+    rv = gfmGif_writeDataSubBlock(pCtx, pCtx->pLzwBuf, pCtx->lzwBufUsed);
+    // Write block Terminator (0x00)
+    c = 0x00;
+    fwrite(&c, 1, 1, pCtx->pOut);
     
 #undef bufLen
     rv = GFMRV_OK;
@@ -923,8 +1066,9 @@ __ret:
  */
 gfmRV gfmGif_writeComment(gfmGifExporter *pGif) {
     gfmRV rv;
-    volatile int len;
-    unsigned char c, *pOrg, *pTitle;
+    //volatile int len;
+    unsigned char c;
+    //unsigned char *pOrg, *pTitle;
     
     // Sanitize arguments
     ASSERT(pGif, GFMRV_ARGUMENTS_BAD);

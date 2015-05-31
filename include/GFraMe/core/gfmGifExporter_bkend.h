@@ -151,7 +151,8 @@ gfmRV gfmGif_writeGlobalPalette(gfmGifExporter *pCtx);
  * Write the frame's data (following its image descriptor)
  * 
  * @param  pCtx The GIF exporter
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GIF_NOT_INITIALIZED,
+ *              GFMRV_GIF_FAILED_TO_COMPRESS
  */
 gfmRV gfmGif_writeFrame(gfmGifExporter *pCtx);
 

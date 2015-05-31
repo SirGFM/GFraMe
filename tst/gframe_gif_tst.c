@@ -120,7 +120,7 @@ x w w w w w w w w w w w w w w x
     // Initialize the gif exporter
     rv = gfmGif_getNew(&pGif);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmGif_init(pGif, pCtx, 1/*width*/, 1/*height*/);
+    rv = gfmGif_init(pGif, pCtx, 16/*width*/, 16/*height*/);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Store some frames

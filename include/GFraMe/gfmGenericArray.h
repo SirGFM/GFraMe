@@ -23,7 +23,7 @@
         TYPE **arr; \
         int len; \
         int used; \
-    } TYPE##_genericArray; \
+    } TYPE##_genericArray \
 
 /**
  * Create a variable on the given type

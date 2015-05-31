@@ -45,6 +45,16 @@ gfmRV gfmTrie_free(gfmTrie **ppCtx);
 gfmRV gfmTrie_freeAll(gfmTrie **ppCtx);
 
 /**
+ * Clean up everything
+ * 
+ * @param  pCtx  The current node
+ * @param  key   The node's key
+ * @param  value The node's value
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmTrie_init(gfmTrie *pCtx, unsigned char key, int value);
+
+/**
  * Insert a node as a child to the current one
  * 
  * @param  pCtx   The current node

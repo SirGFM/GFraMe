@@ -101,6 +101,31 @@ __ret:
 }
 
 /**
+ * Clean up everything
+ * 
+ * @param  pCtx  The current node
+ * @param  key   The node's key
+ * @param  value The node's value
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmTrie_init(gfmTrie *pCtx, unsigned char key, int value) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Initialize the context
+    pCtx->pChild = 0;
+    pCtx->pSibling = 0;
+    pCtx->key = key;
+    pCtx->value = value;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Insert a node as a child to the current one
  * 
  * @param  pCtx   The current node
