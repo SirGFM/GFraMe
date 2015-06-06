@@ -11,7 +11,7 @@
 
 // Use a macro to easily make the program sleep in windows and linux
 #if defined(WIN32)
-#  define USLEEP(n) Sleep(n)
+#  define USLEEP(n) ;//Sleep(n)
 #else
 #  include <unistd.h>
 #  define USLEEP(n) usleep(n*100)

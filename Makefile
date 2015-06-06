@@ -35,9 +35,9 @@ CC = gcc
   endif
 # Add GIF exporter, by default
   ifneq ($(EXPORT_GIF), no)
-    OBJS += src/core/common/gfmGifExporter.o
+    OBJS += $(OBJDIR)/core/common/gfmGifExporter.o
   else
-    OBJS += src/core/noip/gfmGifExporter.o
+    OBJS += $(OBJDIR)/core/noip/gfmGifExporter.o
   endif
   OBJS += $(BKEND_OBJS)
 #==============================================================================
@@ -48,6 +48,16 @@ CC = gcc
   OS := $(shell uname)
   ifeq ($(OS), MINGW32_NT-6.1)
     OS := Win
+  endif
+#==============================================================================
+
+#==============================================================================
+# Set the binary extensions (if on Windows)
+#==============================================================================
+  ifeq ($(OS), Win)
+    BIN_EXT := .exe
+  else
+    BIN_EXT :=
   endif
 #==============================================================================
 
@@ -147,7 +157,7 @@ CC = gcc
 # Automatically look up for tests and compile them
 #==============================================================================
  TEST_SRC := $(wildcard $(TESTDIR)/*.c)
- TEST_BIN := $(addprefix $(BINDIR)/, $(TEST_SRC:%.c=%))
+ TEST_BIN := $(addprefix $(BINDIR)/, $(TEST_SRC:%.c=%$(BIN_EXT)))
 #==============================================================================
 
 #==============================================================================
@@ -261,9 +271,15 @@ endif
 #==============================================================================
 # Rule for creating an optimized object file (must be tested!)
 #==============================================================================
-optmized:
+ifeq ($(OS), Win)
+  optmized:
+	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-all-symbols \
+	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
+else
+  optmized:
 	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
+endif
 #==============================================================================
 
 #==============================================================================
@@ -276,7 +292,7 @@ $(OBJDIR)/%.o: %.c
 #==============================================================================
 # Rule for creating every directory
 #==============================================================================
-MAKEDIRS: | $(OBJDIR) $(BINDIR)
+MAKEDIRS: | $(OBJDIR)
 #==============================================================================
 
 #==============================================================================
@@ -293,6 +309,8 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
+	mkdir -p $(OBJDIR)/core/common
+	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(BINDIR)
 	mkdir -p $(BINDIR)/tst
@@ -306,4 +324,3 @@ clean:
 	rm -f $(BINDIR)/$(TARGET).$(MNV)
 	rm -f $(BINDIR)/$(TARGET).$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
-

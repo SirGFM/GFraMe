@@ -52,6 +52,8 @@ struct stGFMGifExporter {
     
     /** Variable used by the thread */
     
+    /** Whether the thread was created (blame WIN32's pthread) */
+    int hasThread;
     /** The thread handle */
     pthread_t threadHnd;
     /** Output file */
@@ -326,7 +328,7 @@ gfmRV gfmGif_waitExport(gfmGifExporter *pCtx) {
     rv = GFMRV_OK;
     
     // Check that the thread was running
-    if (pCtx->threadHnd) {
+    if (pCtx->hasThread) {
         gfmGifExporter *pGif;
         int irv;
         
@@ -334,7 +336,7 @@ gfmRV gfmGif_waitExport(gfmGifExporter *pCtx) {
         irv = pthread_join(pCtx->threadHnd, (void**)(&pGif));
         ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
         // Cleans the handle
-        pCtx->threadHnd = 0;
+        pCtx->hasThread = 0;
         
         // Retrieve the error code from the object returned by the thread
         ASSERT(pGif, GFMRV_INTERNAL_ERROR);
@@ -436,6 +438,7 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     irv = pthread_create(&(pCtx->threadHnd), &attr, _gfmGif_threadHandler,
             (void*)pCtx);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    pCtx->hasThread = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -477,6 +480,7 @@ gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     // Create thread to handle this
     irv = pthread_create(&(pCtx->threadHnd), 0, _gfmGif_threadHandler, (void*)pCtx);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    pCtx->hasThread = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -573,6 +577,9 @@ __ret:
     
     // Return to the thread
     pthread_exit(pGif);
+#ifdef WIN32
+    return pGif;
+#endif
 }
 
 /**
