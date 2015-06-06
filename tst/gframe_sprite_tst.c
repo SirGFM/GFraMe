@@ -58,7 +58,8 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmSprite *pSpr;
     gfmSpriteset *pSset8, *pSset16;
-    int iTex, anim, ms;
+    int iTex, anim;
+    //int ms;
     
     // Initialize every variable
     pCtx = 0;
@@ -117,8 +118,8 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Request the recording of an animation
-    ms = 5000;
-    rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
+    //ms = 5000;
+    //rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
     //rv = gfm_snapshot(pCtx, "ss.gif", 6, 0);
     ASSERT_NR(rv == GFMRV_OK);
     

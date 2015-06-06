@@ -324,3 +324,14 @@ clean:
 	rm -f $(BINDIR)/$(TARGET).$(MNV)
 	rm -f $(BINDIR)/$(TARGET).$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
+
+mostlyclean: clean
+	rmdir $(OBJDIR)/core/common
+	rmdir $(OBJDIR)/core/noip
+	rmdir $(OBJDIR)/core/sdl2
+	rmdir $(OBJDIR)/core
+	rmdir $(OBJDIR)/tst
+	rmdir $(OBJDIR)
+	rmdir $(BINDIR)/tst
+	rmdir $(BINDIR)
+

@@ -1040,19 +1040,22 @@ gfmRV gfmGif_writeBitwiseWord(gfmGifExporter *pCtx, int word) {
         if (pCtx->lzwBufBitPos >= 8) {
             // Only one byte is written at a time
             pCtx->lzwBufBitPos -= 8;
+            // Bytes written acts as a binary value
             bytesWritten = 1;
-            
         }
         
-        // Expand the buffer, as necessary
-        if (pCtx->lzwBufBytePos + bytesWritten > pCtx->lzwBufLen) {
+        // Since bytesWritten is either 1 or 0, it marks the next byte where
+        // input will happen (either the current one or the next one)
+        if (pCtx->lzwBufBytePos + bytesWritten >= pCtx->lzwBufLen) {
             pCtx->lzwBufLen *= 2;
             
+            // Expand the buffer, as necessary
             pCtx->pLzwBuf = (unsigned char*)realloc(pCtx->pLzwBuf,
                    sizeof(unsigned char) * pCtx->lzwBufLen * 2);
             ASSERT(pCtx->pLzwBuf, GFMRV_ALLOC_FAILED);
         }
         
+        // If bytesWritten, write on the current byte ended, so clear the next
         if (bytesWritten) {
             // Zero the new byte
             pCtx->pLzwBuf[pCtx->lzwBufBytePos + 1] = 0;

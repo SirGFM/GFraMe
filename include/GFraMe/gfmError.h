@@ -105,6 +105,8 @@ enum enGFMError {
     // Trie errors
     GFMRV_TRIE_IS_LEAF,
     GFMRV_TRIE_KEY_NOT_FOUND,
+    // Group errors
+    GFMRV_GROUP_MAX_SPRITES,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
