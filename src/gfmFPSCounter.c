@@ -112,7 +112,7 @@ gfmRV gfmFPSCounter_init(gfmFPSCounter *pCtx, gfmSpriteset *pSset,
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
-    ASSERT(firstTile > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(firstTile >= 0, GFMRV_ARGUMENTS_BAD);
     
     // Set the attributes
     pCtx->pSset = pSset;

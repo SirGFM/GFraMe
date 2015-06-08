@@ -1315,7 +1315,7 @@ gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(frame > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(frame >= 0, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
     
@@ -1371,7 +1371,8 @@ gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
     
     // Check if the sprite is inside the camera
     rv = gfm_isSpriteInsideCamera(pCtx, pSpr);
-    ASSERT_NR(rv == GFMRV_TRUE);
+    //ASSERT_NR(rv == GFMRV_TRUE);
+    ASSERT(rv == GFMRV_TRUE, GFMRV_OK);
     
     // Get camera's dimension
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);

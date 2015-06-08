@@ -1336,7 +1336,7 @@ gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx) {
     rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
     ASSERT_NR(rv == GFMRV_OK);
     
-    *pElapsed = 1000.0f / (float)delay;
+    *pElapsed = (float)delay / 1000.0f;
     
     rv = GFMRV_OK;
 __ret:
@@ -1368,7 +1368,7 @@ gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx) {
     rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
     ASSERT_NR(rv == GFMRV_OK);
     
-    *pElapsed = 1000.0 / (double)delay;
+    *pElapsed = (double)delay / 1000.0;
     
     rv = GFMRV_OK;
 __ret:
@@ -1444,7 +1444,7 @@ gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
-    ASSERT(firstTile > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(firstTile >= 0, GFMRV_ARGUMENTS_BAD);
     
     // Initialize the FPS counter
     rv = gfmFPSCounter_init(pCtx->pCounter, pSset, firstTile);

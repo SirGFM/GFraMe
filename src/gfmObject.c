@@ -1057,7 +1057,7 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     
     // Update the horizontal velocity
     if (pObj->ax != 0.0)
-        pObj->vx = pObj->ax * elapsed;
+        pObj->vx += pObj->ax * elapsed;
     else if (pObj->dragX != 0.0) {
         double delta;
         
@@ -1071,7 +1071,7 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     }
     // Update the vertical velocity
     if (pObj->ay != 0.0)
-        pObj->vy = pObj->ay * elapsed;
+        pObj->vy += pObj->ay * elapsed;
     else if (pObj->dragY != 0.0) {
         double delta;
         

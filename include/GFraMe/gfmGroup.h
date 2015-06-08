@@ -130,7 +130,8 @@ gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree);
  * 
  * @param  ppSpr The sprite
  * @param  pCtx  The group
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *               GFMRV_GROUP_MAX_SPRITES
  */
 gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx);
 
