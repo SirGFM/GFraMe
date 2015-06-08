@@ -111,6 +111,7 @@ enum enGFMError {
     GFMRV_GROUP_SPRITESET_NOT_SET,
     GFMRV_GROUP_WIDTH_NOT_SET,
     GFMRV_GROUP_HEIGHT_NOT_SET,
+    GFMRV_GROUP_INVALID_TYPE,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

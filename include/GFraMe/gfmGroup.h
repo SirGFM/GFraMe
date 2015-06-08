@@ -58,13 +58,15 @@ enum enGFMDrawOrder {
     /**  Draw every object in the order they were added */
     gfmDrawOrder_linear            = 0,
     /** Draw the objects at the top of the screen first */
-    gfmDrawOrder_topFirst          = 1,
+    gfmDrawOrder_topFirst,
     /** Draw the objects at the bottom of the screen first */
-    gfmDrawOrder_bottomFirst       = 2,
+    gfmDrawOrder_bottomFirst,
     /** Draw the newest objects first */
-    gfmDrawOrder_newestFirst       = 3,
+    gfmDrawOrder_newestFirst,
     /** Draw the older objects first */
-    gfmDrawOrder_oldestFirst       = 4
+    gfmDrawOrder_oldestFirst,
+    /** Number of possibles draw orders */
+    gfmDrawOrder_max
 };
 
 /**
@@ -262,6 +264,15 @@ gfmRV gfmGroup_setVelocity(gfmGroup *pCtx, int vx, int vy);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmGroup_setAcceleration(gfmGroup *pCtx, int ax, int ay);
+
+/**
+ * Set the group's draw order
+ * 
+ * @param  pCtx  The group
+ * @param  order The new draw order
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setDrawOrder(gfmGroup *pCtx, gfmDrawOrder order);
 
 /**
  * Iterate through every sprite and update'em

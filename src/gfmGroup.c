@@ -652,6 +652,29 @@ __ret:
 }
 
 /**
+ * Set the group's draw order
+ * 
+ * @param  pCtx  The group
+ * @param  order The new draw order
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setDrawOrder(gfmGroup *pCtx, gfmDrawOrder order) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(order >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it's a valid value
+    ASSERT(order < gfmDrawOrder_max, GFMRV_GROUP_INVALID_TYPE);
+    
+    pCtx->drawOrder = order;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Iterate through every sprite and update'em
  * 
  * @param  pGrp The group
@@ -724,14 +747,19 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
             // Otherwise, add it to the visible list (on the same order)
             if (pGroup->pLastVisible)
                 pGroup->pLastVisible->pNextVisible = pTmp;
+            // Move the visible list to its next node
             pGroup->pLastVisible = pTmp;
+            // Put a NULL pointer so it can actually stop
+            pTmp->pNextVisible = 0;
             // Set the first visible object
             if (!pGroup->pVisible)
                 pGroup->pVisible = pTmp;
         }
         
+        // If the current node wasn't removed, make it the previous one
+        if (pGroup->pInactive != pTmp)
+            pPrev = pTmp;
         // Go to the next node
-        pPrev = pTmp;
         pTmp = pNext;
     }
     
@@ -1117,6 +1145,10 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
             rv = gfmGroup_drawTree(pRoot, pCtx);
             ASSERT_NR(rv == GFMRV_OK);
         } break;
+        case gfmDrawOrder_max: {
+            // Shouldn't happen!
+            ASSERT(0, GFMRV_INTERNAL_ERROR);
+        }
     }
     
     // TODO End batch
