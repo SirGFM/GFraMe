@@ -69,6 +69,15 @@ gfmRV gfmSprite_init(gfmSprite *pCtx, int x, int y, int width, int height,
 gfmRV gfmSprite_clean(gfmSprite *pCtx);
 
 /**
+ * Reset the sprite's object (clearing it's velocity, acceleration, collision
+ * flags, etc.); The object is kept at its current place
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_resetObject(gfmSprite *pCtx);
+
+/**
  * Set the sprite's dimensions
  * 
  * @param  pCtx   The sprite

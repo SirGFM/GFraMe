@@ -48,6 +48,7 @@ typedef enum enGFMDrawOrder gfmDrawOrder;
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmSprite.h>
+#include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmGroup */
 extern const int sizeofGFMGroup;
@@ -83,16 +84,26 @@ gfmRV gfmGroup_getNew(gfmGroup **ppCtx);
 gfmRV gfmGroup_free(gfmGroup **ppCtx);
 
 /**
- * Initialize the group; The group can be initialized with a few
- * pre-instantiated sprites; Those (and any other marked as such) will be
- * automatically freed by the group
+ * Pre cache the group; Instantiate and initialize a few sprites; The sprite's
+ * default attributes must be set before calling this function, as to correctly
+ * initialize the sprites
  * 
  * @param  pCtx     The group
  * @param  initLen  How many nodes should be pre-allocated
  * @param  maxLen   Group's maximum length (0 if there's no limit)
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-gfmRV gfmGroup_init(gfmGroup *pCtx, int initLen, int maxLen);
+gfmRV gfmGroup_preCache(gfmGroup *pCtx, int initLen, int maxLen);
+
+/**
+ * Cache more sprite
+ * 
+ * @param  pCtx The group
+ * @param  num  How many new sprites should be cached
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_GROUP_MAX_SPRITES
+ */
+gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num);
 
 /**
  * Clean up the group and all of its member
@@ -122,6 +133,134 @@ gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
 gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx);
+
+/**
+ * Set the default spriteset on every recycled sprite
+ * 
+ * @param  pCtx  The group
+ * @param  pSset The spriteset
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefSpriteset(gfmGroup *pCtx, gfmSpriteset *pSset);
+
+/**
+ * Set the default animation data on every recycled sprite
+ * 
+ * NOTE:  The user must keep this buffer in memory! (i.e., it's not copied)
+ * NOTE2: This should be called before gfmGroup_init, as to correctly set all
+ *        sprites' animations only once
+ * 
+ * @param  pCtx  The group
+ * @param  pData The animation data (same format as gfmSprite_addAnimations)
+ * @param  len   The number of ints in the pData array
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefAnimData(gfmGroup *pCtx, int *pData, int len);
+
+/**
+ * Set the default hitbox and offset on every recycled sprite
+ * 
+ * @param  pCtx   The group
+ * @param  width  The sprite's width (if it's to be collided)
+ * @param  height The sprite's height (if it's to be collided)
+ * @param  offX   Sprite (i.e., 'image') offset from the object's position
+ * @param  offY   Sprite (i.e., 'image') offset from the object's position
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefDimensions(gfmGroup *pCtx, int width, int height, int offX,
+        int offY);
+
+/**
+ * Set the default velocity on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  vx   The horizontal velocity
+ * @param  vy   The vertical velocity
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefVelocity(gfmGroup *pCtx, int vx, int vy);
+
+/**
+ * Set the default acceleration on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  ax   The horizontal acceleration
+ * @param  ay   The vertical acceleration
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefAcceleration(gfmGroup *pCtx, int ax, int ay);
+
+/**
+ * Set whether every recycle sprite should 'die' when it leaves the screen
+ * 
+ * NOTE: This is a "global" attribute and it will take effect on every sprite on
+ * the group AS SOON as it's assigned
+ * 
+ * @param  pCtx  The group
+ * @param  doDie Whether the recycled sprites should die or not
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDeathOnLeave(gfmGroup *pCtx, int doDie);
+
+/**
+ * Set for how long every recycled sprite should live
+ * 
+ * NOTE: This is a "global" attribute and it will take effect on every sprite on
+ * the group AS SOON as it's assigned
+ * 
+ * @param  pCtx The group
+ * @param  ttl  Time to live (0 for infinite)
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl);
+
+/**
+ * Set the position of the last recycled/added sprite
+ * 
+ * @param  pCtx The group
+ * @param  x    Horizontal position
+ * @param  y    Vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setPosition(gfmGroup *pCtx, int x, int y);
+
+/**
+ * Set the frame of the last recycled/added sprite
+ * 
+ * @param  pCtx  The group
+ * @param  frame The frame
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setFrame(gfmGroup *pCtx, int frame);
+
+/**
+ * Set the animation of the last recycled/added sprite
+ * 
+ * @param  pCtx The group
+ * @param  anim The animation's index
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setAnimation(gfmGroup *pCtx, int anim);
+
+/**
+ * Set the velocity of the last recycled/added sprite
+ * 
+ * @param  pCtx The group
+ * @param  vx   The horizontal velocity
+ * @param  vy   The vertical velocity
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setVelocity(gfmGroup *pCtx, int vx, int vy);
+
+/**
+ * Set the acceleration of the last recycled/added sprite
+ * 
+ * @param  pCtx The group
+ * @param  ax   The horizontal acceleration
+ * @param  ay   The vertical acceleration
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setAcceleration(gfmGroup *pCtx, int ax, int ay);
 
 /**
  * Iterate through every sprite and update'em

@@ -179,6 +179,36 @@ __ret:
 }
 
 /**
+ * Reset the sprite's object (clearing it's velocity, acceleration, collision
+ * flags, etc.); The object is kept at its current place
+ * 
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_resetObject(gfmSprite *pCtx) {
+    gfmRV rv;
+    int height, width, x, y;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the sprite's current position and dimensions
+    rv = gfmSprite_getDimensions(&width, &height, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSprite_getPosition(&x, &y, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Reset it
+    rv = gfmObject_init(pCtx->pObject, x, y, width, height, (void*)pCtx,
+            gfmType_sprite);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Set the sprite's dimensions
  * 
  * @param  pCtx   The sprite

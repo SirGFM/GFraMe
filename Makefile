@@ -20,6 +20,8 @@ CC = gcc
           $(OBJDIR)/gfmAnimation.o        \
           $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmFPSCounter.o       \
+          $(OBJDIR)/gfmGroup.o            \
+          $(OBJDIR)/gfmGroupHelpers.o     \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \

@@ -1053,6 +1053,30 @@ __ret:
 }
 
 /**
+ * Retrieve the current camera
+ * 
+ * @param  ppCam The camera
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCamera(gfmCamera **ppCam, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppCam, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    
+    // Retrieve the camera
+    *ppCam = pCtx->pCamera;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get the default camera's current position
  * 
  * @param  pX    The horizontal position

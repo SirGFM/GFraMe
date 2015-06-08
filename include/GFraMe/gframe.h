@@ -14,6 +14,7 @@ typedef struct stGFMCtx gfmCtx;
 #ifndef __GFRAME_H_
 #define __GFRAME_H_
 
+#include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
@@ -373,6 +374,15 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index);
+
+/**
+ * Retrieve the current camera
+ * 
+ * @param  ppCam The camera
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_getCamera(gfmCamera **ppCam, gfmCtx *pCtx);
 
 /**
  * Get the default camera's current position

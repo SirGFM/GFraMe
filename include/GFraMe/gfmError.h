@@ -107,6 +107,10 @@ enum enGFMError {
     GFMRV_TRIE_KEY_NOT_FOUND,
     // Group errors
     GFMRV_GROUP_MAX_SPRITES,
+    GFMRV_GROUP_NO_LAST_SPRITE,
+    GFMRV_GROUP_SPRITESET_NOT_SET,
+    GFMRV_GROUP_WIDTH_NOT_SET,
+    GFMRV_GROUP_HEIGHT_NOT_SET,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
