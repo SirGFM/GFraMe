@@ -67,7 +67,7 @@ int main(int arg, char *argv[]) {
         0/*offY*/);
     ASSERT_NR(rv == GFMRV_OK);
     // Create the group's sprite
-    rv = gfmGroup_preCache(pGrp, 1024/*initLen*/, 1024/*maxLen*/);
+    rv = gfmGroup_preCache(pGrp, 0/*initLen*/, 1024/*maxLen*/);
     ASSERT_NR(rv == GFMRV_OK);
     // Those can be set after caching everything, since they are global
     rv = gfmGroup_setDeathOnTime(pGrp, 2000/*ttl*/);
