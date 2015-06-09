@@ -297,8 +297,10 @@ __ret:
  * @param  autoFree Whether the sprite should be automatically freed
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree);
-// TODO gfmGroup_insert
+gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree) {
+    // TODO gfmGroup_insert
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
 
 /**
  * Reuse an inactive sprite; If none is found, a new one is allocated
@@ -318,7 +320,7 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     
     // Check if the inactive list is empty
     if (!pCtx->pInactive) {
-        int newLen;
+        int curLen, newLen;
         
         // Check that there's space for more sprites
         ASSERT(pCtx->maxLen == 0
@@ -326,9 +328,19 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
                 GFMRV_GROUP_MAX_SPRITES);
         
         // Get the new length of the buffer
-        newLen = gfmGenArr_getUsed(pCtx->pNodes);
-        if (newLen > pCtx->maxLen)
-            newLen = pCtx->maxLen;
+        curLen = gfmGenArr_getUsed(pCtx->pNodes);
+        if (curLen == 0) {
+            // If the list was empty, initialize it
+            newLen = 1;
+        }
+        else if (curLen * 2 > pCtx->maxLen) {
+            // If at the limit, add as many sprites as possible
+            newLen = pCtx->maxLen - curLen;
+        }
+        else {
+            // If possible, double the size
+            newLen = curLen;
+        }
         
         // Expand the buffer and alloc its sprites
         rv = gfmGroup_cacheSprites(pCtx, newLen);
@@ -749,8 +761,6 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
                 pGroup->pLastVisible->pNextVisible = pTmp;
             // Move the visible list to its next node
             pGroup->pLastVisible = pTmp;
-            // Put a NULL pointer so it can actually stop
-            pTmp->pNextVisible = 0;
             // Set the first visible object
             if (!pGroup->pVisible)
                 pGroup->pVisible = pTmp;
@@ -762,6 +772,9 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         // Go to the next node
         pTmp = pNext;
     }
+    // Put a NULL pointer so it can actually stop
+    if (pGroup->pLastVisible)
+        pGroup->pLastVisible->pNextVisible = 0;
     
     rv = GFMRV_OK;
 __ret:
