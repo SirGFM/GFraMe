@@ -97,6 +97,17 @@ gfmRV gfmBackbuffer_getContext(void **ppCtx, gfmBackbuffer *pBbuf);
 gfmRV gfmBackbuffer_getDimensions(int *pWidth, int *pHeight, gfmBackbuffer *pCtx);
 
 /**
+ * Convert a point in 'screen space' to 'backbuffer space'
+ * 
+ * @param  pX   The current (and returned) position
+ * @param  pY   The current (and returned) position
+ * @param  pCtx The backbuffer
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_screenToBackbuffer(int *pX, int *pY, gfmBackbuffer *pCtx);
+
+/**
  * Set the background color
  * 
  * @param  pCtx  The backbuffer

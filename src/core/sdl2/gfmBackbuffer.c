@@ -304,6 +304,34 @@ __ret:
 }
 
 /**
+ * Convert a point in 'screen space' to 'backbuffer space'
+ * 
+ * @param  pX   The current (and returned) position
+ * @param  pY   The current (and returned) position
+ * @param  pCtx The backbuffer
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_screenToBackbuffer(int *pX, int *pY, gfmBackbuffer *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Convert the space
+    *pX = (*pX - pCtx->scrPosX) / (float)pCtx->scrZoom;
+    *pY = (*pY - pCtx->scrPosY) / (float)pCtx->scrZoom;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Set the background color
  * 
  * @param  pCtx  The backbuffer

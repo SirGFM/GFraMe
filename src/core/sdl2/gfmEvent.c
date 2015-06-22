@@ -6,6 +6,7 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
 #include <SDL2/SDL_events.h>
@@ -17,9 +18,9 @@
 /** The gfmEvent structure */
 struct stGFMEvent {
     /** The last time accumulated */
-    unsigned int lastTime;
+    unsigned int accLastTime;
     /** Event that will be pushed on every timer callback */
-    SDL_Event timeEvent;
+    SDL_Event accTimerEvent;
 };
 
 /** Size of gfmEvent */
@@ -45,11 +46,11 @@ gfmRV gfmEvent_getNew(gfmEvent **ppCtx) {
     memset(*ppCtx, 0x0, sizeof(gfmEvent));
     
     // Initialize the time event (to be pushed)
-    (*ppCtx)->timeEvent.type = SDL_USEREVENT;
-    (*ppCtx)->timeEvent.user.type = SDL_USEREVENT;
-    (*ppCtx)->timeEvent.user.code = GFM_TIME_EVENT;
-    (*ppCtx)->timeEvent.user.data1 = NULL;
-    (*ppCtx)->timeEvent.user.data2 = NULL;
+    (*ppCtx)->accTimerEvent.type = SDL_USEREVENT;
+    (*ppCtx)->accTimerEvent.user.type = SDL_USEREVENT;
+    (*ppCtx)->accTimerEvent.user.code = GFM_TIME_EVENT;
+    (*ppCtx)->accTimerEvent.user.data1 = NULL;
+    (*ppCtx)->accTimerEvent.user.data2 = NULL;
     
     rv = GFMRV_OK;
 __ret:
@@ -90,7 +91,7 @@ gfmRV gfmEvent_clean(gfmEvent *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Set the last time to now
-    pCtx->lastTime = SDL_GetTicks();
+    pCtx->accLastTime = SDL_GetTicks();
     
     rv = GFMRV_OK;
 __ret:
@@ -145,8 +146,8 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                         
                         // Update the event's timer
                         curTime = SDL_GetTicks();
-                        dt = curTime - pEv->lastTime;
-                        pEv->lastTime = curTime;
+                        dt = curTime - pEv->accLastTime;
+                        pEv->accLastTime = curTime;
                         
                         // Update the timer on the game's context
                         if (dt > 0) {
@@ -157,11 +158,45 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                     default: {}
                 }
             } break;
+			case SDL_MOUSEMOTION: {
+                gfmBackbuffer *pBbuf;
+                int x, y;
+                
+                // Get the position in the screen
+                x = ev.motion.x;
+                y = ev.motion.y;
+                // Convert it to 'game space'
+                rv = gfm_getBackbuffer(&pBbuf, pCtx);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                // TODO Set the mouse position
+            } break;
+			case SDL_MOUSEBUTTONDOWN: {
+                // TODO Set mouse button as pressed
+            } break;
+			case SDL_MOUSEBUTTONUP: {
+                // TODO Set mouse button as released
+            } break;
+			case SDL_KEYDOWN: {
+                // TODO Set key as pressed
+            } break;
+			case SDL_KEYUP: {
+                // TODO Set key as released
+            } break;
+            case SDL_CONTROLLERDEVICEADDED:
+            case SDL_CONTROLLERDEVICEREMOVED:
+            case SDL_CONTROLLERDEVICEREMAPPED:
+            case SDL_CONTROLLERAXISMOTION:
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP: {
+                // TODO Set controller status
+            } break;
             case SDL_QUIT: {
                 // Signal to the main context that it should quit
                 gfm_setQuitFlag(pCtx);
             } break;
-            // TODO ....
             default: {}
         }
     }
@@ -184,7 +219,7 @@ gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Push the event
-    SDL_PushEvent(&(pCtx->timeEvent));
+    SDL_PushEvent(&(pCtx->accTimerEvent));
     
     rv = GFMRV_OK;
 __ret:
