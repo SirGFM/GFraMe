@@ -22,6 +22,7 @@ CC = gcc
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmGroup.o            \
           $(OBJDIR)/gfmGroupHelpers.o     \
+          ${OBJDIR}/gfmInput.o            \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \

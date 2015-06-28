@@ -19,38 +19,21 @@
  * controller; For now, if an axis is used as input it will have a deadzone of
  * 30% of it's full motion
  */
-#ifndef __GFMINPUT_STRUCT__
-#define __GFMINPUT_STRUCT__
-
-typedef struct enGFMInput gfmInput;
-
-enum enGFMInputStatus {
-    gfmInput_released     = 0x01,
-    gfmInput_pressed      = 0x02,
-    gfmInput_justAction   = 0x04,
-    gfmInput_justPressed  = gfmInput_released | gfmInput_justAction,
-    gfmInput_justReleased = gfmInput_pressed | gfmInput_justAction,
-};
-typedef enum enGFMInputStatus gfmInputStatus;
-
-enum enGFMInputKey {
-    gfmKey_a = 0,
-    gfmKey_max
-};
-typedef enum enGFMInputKey gfmInputKey;
-
-enum enGFMInputController {
-    gfmController_a = 0,
-    gfmController_max
-};
-typedef enum enGFMInputController gfmInputController;
-
-#endif /* __GFMINPUT_STRUCT__ */
-
-#ifndef __GFMINPUT_H__
-#define __GFMINPUT_H__
-
+#include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmInput.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+struct enGFMInput {
+    /** Last/current pointer position (already in screen-space) */
+    int pointerX;
+    /** Last/current pointer position (already in screen-space) */
+    int pointerY;
+    int null;
+};
 
 /**
  * Alloc a new gfmInput context
@@ -58,7 +41,22 @@ typedef enum enGFMInputController gfmInputController;
  * @param  ppCtx The context
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-gfmRV gfmInput_getNew(gfmInput **ppCtx);
+gfmRV gfmInput_getNew(gfmInput **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc and clean the object
+    *ppCtx = (gfmInput*)malloc(sizeof(gfmInput));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    memset(*ppCtx, 0x0, sizeof(gfmInput));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Free and clean up a gfmInput context
@@ -66,7 +64,22 @@ gfmRV gfmInput_getNew(gfmInput **ppCtx);
  * @param  ppCtx The context
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_free(gfmInput **ppCtx);
+gfmRV gfmInput_free(gfmInput **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean the object and release it
+    gfmInput_clean(*ppCtx);
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Initializes the gfmInput
@@ -74,7 +87,18 @@ gfmRV gfmInput_free(gfmInput **ppCtx);
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_init(gfmInput *pCtx);
+gfmRV gfmInput_init(gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Cleans any memory use by the gfmInput
@@ -82,7 +106,18 @@ gfmRV gfmInput_init(gfmInput *pCtx);
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_clean(gfmInput *pCtx);
+gfmRV gfmInput_clean(gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Set how long between presses for an multi-action to trigger; This is
@@ -236,7 +271,20 @@ gfmRV gfmInput_unbindMultiPointer(gfmInput *pCtx, int handle, int num);
  * @param  y    The pointer's vertical position
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y);
+gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Store the position
+    pCtx->pointerX = x;
+    pCtx->pointerY = y;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Get the pointer's position
@@ -318,6 +366,4 @@ gfmRV gfmInput_bindMultiController(gfmInput *pCtx, int handle,
  */
 gfmRV gfmInput_unbindMultiController(gfmInput *pCtx, int handle,
         gfmInputController bt, int index, int num);
-
-#endif /* __GFMINPUT_H__ */
 

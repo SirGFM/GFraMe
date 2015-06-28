@@ -16,6 +16,7 @@ typedef struct stGFMCtx gfmCtx;
 
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
@@ -47,6 +48,14 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_free(gfmCtx **ppCtx);
+
+/**
+ * Initialize and alloc every one of this object's members
+ * 
+ * @param  pCtx The allocated context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_init(gfmCtx *pCtx);
 
 /**
  * Get the binary's running path
@@ -553,6 +562,15 @@ gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx);
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx);
+
+/**
+ * Retrieve the current input context
+ * 
+ * @param  ppInput The input context
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getInput(gfmInput **ppInput, gfmCtx *pCtx);
 
 /**
  * Takes a snapshot as soon as the frame finishes rendering and saves it as a

@@ -9,6 +9,7 @@
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
@@ -69,6 +70,8 @@ struct stGFMCtx {
     gfmAccumulator *pDrawAcc;
     /** Event context */
     gfmEvent *pEvent;
+    /** Input context */
+    gfmInput *pInput;
     /** Whether a quit event was received */
     gfmRV doQuit;
     /** The GIF exporter */
@@ -115,45 +118,9 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     
     // Zero the context's contents
     memset(*ppCtx, 0x00, sizeof(gfmCtx));
-    (*ppCtx)->defaultTexture = -1;
-    
-#ifndef GFRAME_MOBILE
-	// Get current directory
-    rv = gfmPath_getRunningPath(&((*ppCtx)->pBinPath));
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmString_getLength(&((*ppCtx)->binPathLen), (*ppCtx)->pBinPath);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // TODO check if it gets the directory or if the executable name is appended
-#endif
-    
-    // Init the current backend
-    // TODO allow more than one backend?
-    rv = gfmBackend_init();
-    ASSERT_NR(rv == GFMRV_OK);
-    // Set the backend as initialized
-    (*ppCtx)->isBackendInit = 1;
-    
-    // Initialize the event's context
-    rv = gfmEvent_getNew(&((*ppCtx)->pEvent));
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the fps counter, if debug
-#if defined(DEBUG) || defined(FORCE_FPS)
-    rv = gfmFPSCounter_getNew(&((*ppCtx)->pCounter));
-    ASSERT_NR(rv == GFMRV_OK);
-#endif
-    
-    // Set the game as running
-    (*ppCtx)->doQuit = GFMRV_FALSE;
     
     rv = GFMRV_OK;
 __ret:
-    // Clean up the context, on error
-    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
-        free(ppCtx);
-    }
-    
     return rv;
 }
 
@@ -180,6 +147,64 @@ gfmRV gfm_free(gfmCtx **ppCtx) {
     
     rv = GFMRV_OK;
 __ret:
+    return rv;
+}
+
+/**
+ * Initialize and alloc every one of this object's members
+ * 
+ * @param  pCtx The allocated context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_init(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+#ifndef GFRAME_MOBILE
+	// Get current directory
+    rv = gfmPath_getRunningPath(&(pCtx->pBinPath));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_getLength(&(pCtx->binPathLen), pCtx->pBinPath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // TODO check if it gets the directory or if the executable name is appended
+#endif
+    
+    // Init the current backend
+    // TODO allow more than one backend?
+    rv = gfmBackend_init();
+    ASSERT_NR(rv == GFMRV_OK);
+    // Set the backend as initialized
+    pCtx->isBackendInit = 1;
+    
+    // Initialize the event's context
+    rv = gfmEvent_getNew(&(pCtx->pEvent));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the fps counter, if debug
+#if defined(DEBUG) || defined(FORCE_FPS)
+    rv = gfmFPSCounter_getNew(&(pCtx->pCounter));
+    ASSERT_NR(rv == GFMRV_OK);
+#endif
+    
+    // Initialize the input system
+    rv = gfmInput_getNew(&(pCtx->pInput));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmInput_init(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the game as running
+    pCtx->doQuit = GFMRV_FALSE;
+    pCtx->defaultTexture = -1;
+    rv = GFMRV_OK;
+__ret:
+    // Clean up the context, on error
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
+        free(pCtx);
+    }
+    
     return rv;
 }
 
@@ -1532,6 +1557,28 @@ __ret:
 }
 
 /**
+ * Retrieve the current input context
+ * 
+ * @param  ppInput The input context
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_getInput(gfmInput **ppInput, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppInput, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the context
+    *ppInput = pCtx->pInput;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Signal the counter that an update happened; On the release version, this
  * function does nothing but returns GFMRV_OK
  * 
@@ -2006,6 +2053,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #if defined(DEBUG) || defined(FORCE_FPS)
     gfmFPSCounter_free(&(pCtx->pCounter));
 #endif
+    gfmInput_free(&(pCtx->pInput));
     gfmGif_free(&(pCtx->pGif));
     if (pCtx->pSsData) {
         free(pCtx->pSsData);

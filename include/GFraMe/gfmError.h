@@ -112,6 +112,10 @@ enum enGFMError {
     GFMRV_GROUP_WIDTH_NOT_SET,
     GFMRV_GROUP_HEIGHT_NOT_SET,
     GFMRV_GROUP_INVALID_TYPE,
+    // Input errors
+    GFMRV_INPUT_INVALID_HANDLE,
+    GFMRV_INPUT_ALREADY_BOUND,
+    GFMRV_INPUT_NOT_BOUND,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

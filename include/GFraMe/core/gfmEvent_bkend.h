@@ -1,7 +1,8 @@
 /**
  * @file include/GFraMe/core/gfmEvent_bkend.h
  * 
- * Module for managing events (as input, timer, resize, etc)
+ * Module for managing events (as input, timer, resize, etc); It must use
+ * gfmInput to check for events and whatnot
  */
 #ifndef __GFMEVENT_STRUCT__
 #define __GFMEVENT_STRUCT__

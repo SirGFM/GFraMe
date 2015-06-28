@@ -1,11 +1,13 @@
 /**
  * @file src/core/sdl2/gfmEvent.h
  * 
- * Module for managing events (as input, timer, resize, etc)
+ * Module for managing events (as input, timer, resize, etc); It must use
+ * gfmInput to check for events and whatnot
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmInput.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
@@ -128,12 +130,17 @@ __ret:
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
+    gfmInput *pInput;
     gfmRV rv;
     SDL_Event ev;
     
     // Sanitize arguments
     ASSERT(pEv, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the input context
+    rv = gfm_getInput(&pInput, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Poll every event
     while (SDL_PollEvent(&ev)) {
@@ -171,7 +178,9 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
                 ASSERT_NR(rv == GFMRV_OK);
                 
-                // TODO Set the mouse position
+                // Set the mouse position
+                rv = gfmInput_setPointerPosition(pInput, x, y);
+                ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONDOWN: {
                 // TODO Set mouse button as pressed
