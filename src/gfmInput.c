@@ -23,16 +23,31 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmInput.h>
+#include <GFraMe_int/gfmKeyNode.h>
+#include <GFraMe_int/gfmVirtualKey.h>
 
 #include <stdlib.h>
 #include <string.h>
 
+/** Creates the virtual key array type */
+gfmGenArr_define(gfmVirtualKey);
+/** Creates the nodes array type */
+gfmGenArr_define(gfmKeyNode);
+
+/** Input context */
 struct enGFMInput {
+    /** Expandable array of virtual keys */
+    gfmGenArr_var(gfmVirtualKey, pVKeys);
+    /** Expandable array with all keys that form the tree of bound keys */
+    gfmGenArr_var(gfmKeyNode, pKeys);
+    /** Binary tree of bound keys */
+    gfmKeyNode *pTree;
     /** Last/current pointer position (already in screen-space) */
     int pointerX;
     /** Last/current pointer position (already in screen-space) */
     int pointerY;
-    int null;
+    /** How long a between 'presses' in a multi-press (in ms) */
+    unsigned int multiDelay;
 };
 
 /**
@@ -88,12 +103,23 @@ __ret:
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmInput_init(gfmInput *pCtx) {
+    unsigned int ms;
     gfmRV rv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // TODO
+    // Set how long between multi-presses (defaults to 300 ms)
+    ms = 300;
+    rv = gfmInput_setMultiDelay(pCtx, ms);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Pre-allocate the virtual key array
+    gfmGenArr_setMinSize(gfmVirtualKey, pCtx->pVKeys, 14, gfmVirtualKey_getNew);
+    // Pre-allocate some nodes
+    gfmGenArr_setMinSize(gfmKeyNode, pCtx->pKeys, 28, gfmKeyNode_getNew);
+    // Clear everything
+    rv = gfmInput_reset(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -112,7 +138,10 @@ gfmRV gfmInput_clean(gfmInput *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // TODO
+    // Release every previously allocated virtual key
+    gfmGenArr_clean(pCtx->pVKeys, gfmVirtualKey_free);
+    gfmGenArr_clean(pCtx->pKeys, gfmKeyNode_free);
+    pCtx->pTree = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -129,7 +158,18 @@ __ret:
  * @param  ms   The time between presses
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, int ms);
+gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    pCtx->multiDelay = ms;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Updates every input, correctly marking 'em  as just pressed or whatever
@@ -137,7 +177,85 @@ gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, int ms);
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_update(gfmInput *pCtx);
+gfmRV gfmInput_update(gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // TODO Update actions
+    
+    // Update the current pointer status
+    /*
+    pCtx->pointer.state = pCtx->pointer.state & (~gfmInput_justMask);
+    if (pCtx->pointer.state == gfmInput_released) {
+        pCtx->pointer.num = 0;
+    }
+    */
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Removes every virtual key and bound key, so it all can be re-created
+ * 
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_reset(gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Removes every virtual key
+    gfmGenArr_reset(pCtx->pVKeys);
+    // Removes every node from the tree
+    gfmGenArr_reset(pCtx->pKeys);
+    // Reset the tree's root
+    pCtx->pTree = 0;
+    // Reset the pointer back to the origin (0,0)
+    pCtx->pointerX = 0;
+    pCtx->pointerY = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Adds a new virtual key to the context;
+ * The handles are sequentily assigned, starting at 0
+ * 
+ * @param  pHandle Handle to the action
+ * @param  pCtx    The context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmInput_addVirtualKey(int *pHandle, gfmInput *pCtx) {
+    gfmRV rv;
+    gfmVirtualKey *pTmp;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
+    
+    // Get a new virtual key from the array
+    gfmGenArr_getNextRef(gfmVirtualKey, pCtx->pVKeys, 1, pTmp,
+            gfmVirtualKey_getNew);
+    rv = gfmVirtualKey_init(pTmp);
+    // Get this key's handle
+    *pHandle = gfmGenArr_getUsed(pCtx->pVKeys);
+    // 'Push' it into the array
+    gfmGenArr_push(pCtx->pVKeys);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+#if 0
 
 /**
  * Add a new action to the context; Since this is expected to be more of a
@@ -278,8 +396,34 @@ gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Store the position
-    pCtx->pointerX = x;
-    pCtx->pointerY = y;
+    pCtx->pointer.x = x;
+    pCtx->pointer.y = y;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+gfmRV gfmInput_setPointerState(gfmInput *pCtx, gfmInputState state, unsigned int time) {
+    gfmRV rv;
+    unsigned int delay;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(state == gfmInput_justReleased || state == gfmInput_justPressed,
+            GFMRV_ARGUMENTS_BAD);
+    
+    // Check if a multi-press is happening
+    delay = time - pCtx->pointer.lastTime;
+    if (state == gfmInput_justPressed && delay < pCtx->multiDelay) {
+        pCtx->pointer.num++;
+    }
+    else if (state == gfmInput_justPressed) {
+        // Otherwise, set it back to 1
+        pCtx->pointer.num = 1;
+    }
+    // Set the pointer state
+    pCtx->pointer.state = state;
     
     rv = GFMRV_OK;
 __ret:
@@ -294,7 +438,22 @@ __ret:
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
+gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the position
+    *pX = pCtx->pointer.x;
+    *pY = pCtx->pointer.y;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Get how many controllers are available
@@ -366,4 +525,6 @@ gfmRV gfmInput_bindMultiController(gfmInput *pCtx, int handle,
  */
 gfmRV gfmInput_unbindMultiController(gfmInput *pCtx, int handle,
         gfmInputController bt, int index, int num);
+
+#endif /* 0 */
 

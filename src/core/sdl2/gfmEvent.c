@@ -179,14 +179,24 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 // Set the mouse position
-                rv = gfmInput_setPointerPosition(pInput, x, y);
+                //rv = gfmInput_setPointerPosition(pInput, x, y);
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONDOWN: {
-                // TODO Set mouse button as pressed
+                // Set mouse button as pressed
+                /*
+                rv = gfmInput_setPointerState(pInput, gfmInput_justPressed,
+                        ev.button.timestamp);
+                */
+                ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONUP: {
-                // TODO Set mouse button as released
+                // Set mouse button as released
+                /*
+                rv = gfmInput_setPointerState(pInput, gfmInput_justReleased,
+                        ev.button.timestamp);
+                */
+                ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_KEYDOWN: {
                 // TODO Set key as pressed

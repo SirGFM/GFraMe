@@ -22,16 +22,18 @@ CC = gcc
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmGroup.o            \
           $(OBJDIR)/gfmGroupHelpers.o     \
+          $(OBJDIR)/gfmKeyNode.o          \
           ${OBJDIR}/gfmInput.o            \
+          $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
-          $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmTileAnimation.o    \
           $(OBJDIR)/gfmTilemap.o          \
           $(OBJDIR)/gfmTileType.o         \
           $(OBJDIR)/gfmTrie.o             \
-          $(OBJDIR)/gfmUtils.o            
+          $(OBJDIR)/gfmUtils.o            \
+          $(OBJDIR)/gfmVirtualKey.o       
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile

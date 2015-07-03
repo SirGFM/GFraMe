@@ -1,49 +1,122 @@
 /**
  * @file src/include/GFraMe_int/gfmInput.h
  * 
- * Generic input interface; Acts as frontend for the gfmEvent backend; Instead
- * of giving access to each possible input device, this maps inputs to actions,
- * easing customizable controls; A drawback to this implementation is that it
- * forces the user to map each key before using them (but that also forces 'em
- * to use it correctly!)
+ * Generic input interface; Acts as frontend for the gfmEvent backend; It's used
+ * by creating virtual keys, which can be bind to multiple physical keys/buttons
+ * at once. If a key bound to a virtual key is pressed, this virtual key is 
+ * guaranteed to keep a "just pressed" state for a frame (instead of requiring
+ * the user to check for that).
+ * It also should make customizable constrols easier to implement, since it only
+ * requires the binding/mapping to be modified.
  * 
- * Each action may be either 'pressed' or 'released', but there is a flag to
- * signal the frame when the action switched; Also, actions may be assigned to
- * a controller's button; Be aware that as soon as a controller is
- * disconected, its bindings will be released
- * Note that whenever a single and multi-action input is added the library will
- * have to decide between the two types, and only one shall be marked. Therefore
- * this may result in some slight lag.
+ * Each physical key/button/etc is restricted to a single virtual key. This can
+ * be somewhat limiting, but it should be quite easy to work around it.
  * 
- * Eventually, there'll be a special type of action to get the axis value of a
- * controller; For now, if an axis is used as input it will have a deadzone of
- * 30% of it's full motion
+ * Sometime in the future, there will be also "virtual axis", in a way to allow
+ * it to be mapped to either a controller axis or the mouse position
+ * effortlessly. (well, I can dream...)
  */
 #ifndef __GFMINPUT_STRUCT__
 #define __GFMINPUT_STRUCT__
 
 typedef struct enGFMInput gfmInput;
 
-enum enGFMInputStatus {
+enum enGFMInputState {
     gfmInput_released     = 0x01,
     gfmInput_pressed      = 0x02,
-    gfmInput_justAction   = 0x04,
-    gfmInput_justPressed  = gfmInput_released | gfmInput_justAction,
-    gfmInput_justReleased = gfmInput_pressed | gfmInput_justAction,
+    gfmInput_justPressed  = 0x06,
+    gfmInput_justReleased = 0x09,
+    gfmInput_stateMask    = 0x03,
+    gfmInput_justMask     = 0x0C
 };
-typedef enum enGFMInputStatus gfmInputStatus;
+typedef enum enGFMInputState gfmInputState;
 
-enum enGFMInputKey {
-    gfmKey_a = 0,
-    gfmKey_max
+/** Map to input interface; Either a keyboard key, a controller button or a
+    mouse button; Note that the controller must be the last device, as a
+    controller button is multiplied by its ID */
+enum enGFMInputIface {
+    gfmIface_none = 0,
+    gfmKey_q,
+    gfmKey_w,
+    gfmKey_e,
+    gfmKey_r,
+    gfmKey_t,
+    gfmKey_y,
+    gfmKey_u,
+    gfmKey_i,
+    gfmKey_o,
+    gfmKey_p,
+    gfmKey_a,
+    gfmKey_s,
+    gfmKey_d,
+    gfmKey_f,
+    gfmKey_g,
+    gfmKey_h,
+    gfmKey_j,
+    gfmKey_k,
+    gfmKey_l,
+    gfmKey_z,
+    gfmKey_x,
+    gfmKey_c,
+    gfmKey_v,
+    gfmKey_b,
+    gfmKey_n,
+    gfmKey_m,
+    gfmKey_1,
+    gfmKey_2,
+    gfmKey_3,
+    gfmKey_4,
+    gfmKey_5,
+    gfmKey_6,
+    gfmKey_7,
+    gfmKey_8,
+    gfmKey_9,
+    gfmKey_0,
+    gfmKey_n1,
+    gfmKey_n2,
+    gfmKey_n3,
+    gfmKey_n4,
+    gfmKey_n5,
+    gfmKey_n6,
+    gfmKey_n7,
+    gfmKey_n8,
+    gfmKey_n9,
+    gfmKey_n0,
+    gfmKey_lctrl,
+    gfmKey_lalt,
+    gfmKey_lshift,
+    gfmKey_rctrl,
+    gfmKey_ralt,
+    gfmKey_rshift,
+    gfmKey_tab,
+    gfmKey_space,
+    gfmKey_enter,
+    gfmKey_backspace,
+    gfmKey_left,
+    gfmKey_right,
+    gfmKey_up,
+    gfmKey_down,
+    gfmPointer_button,
+    gfmController_left,
+    gfmController_right,
+    gfmController_up,
+    gfmController_down,
+    gfmController_a,
+    gfmController_b,
+    gfmController_x,
+    gfmController_y,
+    gfmController_l1,
+    gfmController_l2,
+    gfmController_l3,
+    gfmController_r1,
+    gfmController_r2,
+    gfmController_r3,
+    gfmController_start,
+    gfmController_select,
+    gfmController_home,
+    gfmIface_max
 };
-typedef enum enGFMInputKey gfmInputKey;
-
-enum enGFMInputController {
-    gfmController_a = 0,
-    gfmController_max
-};
-typedef enum enGFMInputController gfmInputController;
+typedef enum enGFMInputIface gfmInputIface;
 
 #endif /* __GFMINPUT_STRUCT__ */
 
@@ -94,7 +167,7 @@ gfmRV gfmInput_clean(gfmInput *pCtx);
  * @param  ms   The time between presses
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, int ms);
+gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms);
 
 /**
  * Updates every input, correctly marking 'em  as just pressed or whatever
@@ -103,6 +176,26 @@ gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, int ms);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmInput_update(gfmInput *pCtx);
+
+/**
+ * Removes every virtual key and bound key, so it all can be re-created
+ * 
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_reset(gfmInput *pCtx);
+
+/**
+ * Adds a new virtual key to the context;
+ * The handles are sequentily assigned, starting at 0
+ * 
+ * @param  pHandle Handle to the action
+ * @param  pCtx    The context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmInput_addVirtualKey(int *pHandle, gfmInput *pCtx);
+
+#if 0
 
 /**
  * Add a new action to the context; Since this is expected to be more of a
@@ -318,6 +411,8 @@ gfmRV gfmInput_bindMultiController(gfmInput *pCtx, int handle,
  */
 gfmRV gfmInput_unbindMultiController(gfmInput *pCtx, int handle,
         gfmInputController bt, int index, int num);
+
+#endif /* 0 */
 
 #endif /* __GFMINPUT_H__ */
 
