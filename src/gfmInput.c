@@ -255,6 +255,128 @@ __ret:
     return rv;
 }
 
+/**
+ * Bind a key/button to an action
+ * 
+ * @param  pCtx   The context
+ * @param  handle The action's handle
+ * @param  key    The key/button
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key) {
+    gfmKeyNode *pNode;
+    gfmRV rv;
+    gfmVirtualKey *pVKey;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(handle, GFMRV_ARGUMENTS_BAD);
+    ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
+    ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    // Check that the handle is valid
+    ASSERT(handle < gfmGenArr_getUsed(pCtx->pVKeys),
+            GFMRV_INPUT_INVALID_HANDLE);
+    
+    // Check that the key is still unbound
+    rv = gfmKeyNode_isBound(pCtx->pTree, key);
+    ASSERT(rv == GFMRV_FALSE, GFMRV_INPUT_ALREADY_BOUND);
+    
+    // Retrieve the handle's virtual key
+    pVKey = gfmGenArr_getObject(pCtx->pVKeys, handle);
+    
+    // Get a new node
+    gfmGenArr_getNextRef(gfmKeyNode, pCtx->pKeys, 1, pNode,
+            gfmKeyNode_getNew);
+    // Initialize it
+    rv = gfmKeyNode_init(pNode, key, pVKey);
+    ASSERT_NR(rv == GFMRV_OK);
+    // And insert it into the tree
+    rv = gfmKeyNode_insert(pNode, &(pCtx->pTree));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // 'Push' it into the array
+    gfmGenArr_push(pCtx->pKeys);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the pointer's position (used internally)
+ * 
+ * @param  pCtx The context
+ * @param  x    The pointer's horizontal position
+ * @param  y    The pointer's vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Store the position
+    pCtx->pointerX = x;
+    pCtx->pointerY = y;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the pointer's position
+ * 
+ * @param  pX   The pointer's horizontal position
+ * @param  pY   The pointer's vertical position
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the position
+    *pX = pCtx->pointerX;
+    *pY = pCtx->pointerY;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Swtch a key/button's state
+ * 
+ * @param  pCtx  The input context
+ * @param  key   The key/button
+ * @param  state The virtual key's new state
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
+ *               GFMRV_INPUT_INVALID_STATE
+ */
+gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
+        gfmInputState state) {
+    gfmRV rv;
+    
+    // Satinize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
+    ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    // TODO Assert the state?
+    
+    // TODO
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
 #if 0
 
 /**
@@ -381,29 +503,6 @@ gfmRV gfmInput_bindMultiPointer(gfmInput *pCtx, int handle, int num);
  */
 gfmRV gfmInput_unbindMultiPointer(gfmInput *pCtx, int handle, int num);
 
-/**
- * Set the pointer's position (used internally)
- * 
- * @param  pCtx The context
- * @param  x    The pointer's horizontal position
- * @param  y    The pointer's vertical position
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Store the position
-    pCtx->pointer.x = x;
-    pCtx->pointer.y = y;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
 gfmRV gfmInput_setPointerState(gfmInput *pCtx, gfmInputState state, unsigned int time) {
     gfmRV rv;
     unsigned int delay;
@@ -424,31 +523,6 @@ gfmRV gfmInput_setPointerState(gfmInput *pCtx, gfmInputState state, unsigned int
     }
     // Set the pointer state
     pCtx->pointer.state = state;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Get the pointer's position
- * 
- * @param  pX   The pointer's horizontal position
- * @param  pY   The pointer's vertical position
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
-    
-    // Retrieve the position
-    *pX = pCtx->pointer.x;
-    *pY = pCtx->pointer.y;
     
     rv = GFMRV_OK;
 __ret:

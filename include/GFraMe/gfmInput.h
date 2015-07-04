@@ -195,6 +195,49 @@ gfmRV gfmInput_reset(gfmInput *pCtx);
  */
 gfmRV gfmInput_addVirtualKey(int *pHandle, gfmInput *pCtx);
 
+/**
+ * Bind a key/button to an action
+ * 
+ * @param  pCtx   The context
+ * @param  handle The action's handle
+ * @param  key    The key/button
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key);
+
+/**
+ * Set the pointer's position (used internally)
+ * 
+ * @param  pCtx The context
+ * @param  x    The pointer's horizontal position
+ * @param  y    The pointer's vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y);
+
+/**
+ * Get the pointer's position
+ * 
+ * @param  pX   The pointer's horizontal position
+ * @param  pY   The pointer's vertical position
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
+
+/**
+ * Swtch a key/button's state
+ * 
+ * @param  pCtx  The input context
+ * @param  key   The key/button
+ * @param  state The virtual key's new state
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
+ *               GFMRV_INPUT_INVALID_STATE
+ */
+gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
+        gfmInputState state);
+
 #if 0
 
 /**
@@ -229,17 +272,6 @@ gfmRV gfmInput_cleanAction(gfmInput *pCtx, int handle);
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
  */
 gfmRV gfmInput_getAction(gfmInputStatus *pStatus, gfmInput *pCtx, int handle);
-
-/**
- * Bind a keyboard key to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindKey(gfmInput *pCtx, int handle, gfmInputKey key);
 
 /**
  * Unbind a keyboard key from an action
@@ -320,26 +352,6 @@ gfmRV gfmInput_bindMultiPointer(gfmInput *pCtx, int handle, int num);
  *                GFMRV_INPUT_NOT_BOUND
  */
 gfmRV gfmInput_unbindMultiPointer(gfmInput *pCtx, int handle, int num);
-
-/**
- * Set the pointer's position (used internally)
- * 
- * @param  pCtx The context
- * @param  x    The pointer's horizontal position
- * @param  y    The pointer's vertical position
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y);
-
-/**
- * Get the pointer's position
- * 
- * @param  pX   The pointer's horizontal position
- * @param  pY   The pointer's vertical position
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
 
 /**
  * Get how many controllers are available

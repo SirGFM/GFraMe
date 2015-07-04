@@ -148,9 +148,9 @@ gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key) {
     gfmRV rv;
     
     // Sanitize arguments
-    ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
     ASSERT(key > gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    // If the root is NULL, the tree is empty (and the key unbound)
     
     // Search the key through the tree
     while (pRoot) {
