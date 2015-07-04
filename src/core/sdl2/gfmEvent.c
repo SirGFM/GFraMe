@@ -29,6 +29,14 @@ struct stGFMEvent {
 const int sizeofGFMEvent = (int)sizeof(gfmEvent);
 
 /**
+ * Converts a SDL keycode to it's gfmIface mapping
+ * 
+ * @param  sym The key
+ * @return     The respective interface
+ */
+static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym);
+
+/**
  * Alloc a new event context
  * 
  * @param  ppCtx The event's context
@@ -195,10 +203,22 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_KEYDOWN: {
-                // TODO Set key as pressed
+                gfmInputIface key;
+                
+                // Map SDL to gfmIface
+                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
+                // Set key as pressed
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justPressed);
+                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
             } break;
 			case SDL_KEYUP: {
-                // TODO Set key as released
+                gfmInputIface key;
+                
+                // Map SDL to gfmIface
+                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
+                // Set key as released
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justReleased);
+                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
             } break;
             case SDL_CONTROLLERDEVICEADDED:
             case SDL_CONTROLLERDEVICEREMOVED:
@@ -239,5 +259,138 @@ gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx) {
     rv = GFMRV_OK;
 __ret:
     return rv;
+}
+
+/**
+ * Converts a SDL event to it's gfmIface mapping
+ * 
+ * @param  pEv The event
+ * @return     The respective interface
+ */
+static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym) {
+    switch (sym) {
+        case SDLK_RETURN: return gfmKey_return;
+        case SDLK_ESCAPE: return gfmKey_esc;
+        case SDLK_BACKSPACE: return gfmKey_backspace;
+        case SDLK_TAB: return gfmKey_tab;
+        case SDLK_SPACE: return gfmKey_space;
+                         /*
+                            SDLK_EXCLAIM = '!',
+                            SDLK_QUOTEDBL = '"',
+                            SDLK_HASH = '#',
+                            SDLK_PERCENT = '%',
+                            SDLK_DOLLAR = '$',
+                            SDLK_AMPERSAND = '&',
+                            SDLK_QUOTE = '\'',
+                            SDLK_LEFTPAREN = '(',
+                            SDLK_RIGHTPAREN = ')',
+                            SDLK_ASTERISK = '*',
+                            SDLK_PLUS = '+',
+                            SDLK_COMMA = ',',
+                            SDLK_MINUS = '-',
+                            SDLK_PERIOD = '.',
+                            SDLK_SLASH = '/',
+                          */
+        case SDLK_0: return gfmKey_0;
+        case SDLK_1: return gfmKey_1;
+        case SDLK_2: return gfmKey_2;
+        case SDLK_3: return gfmKey_3;
+        case SDLK_4: return gfmKey_4;
+        case SDLK_5: return gfmKey_5;
+        case SDLK_6: return gfmKey_6;
+        case SDLK_7: return gfmKey_7;
+        case SDLK_8: return gfmKey_8;
+        case SDLK_9: return gfmKey_9;
+                     /*
+                        SDLK_COLON = ':',
+                        SDLK_SEMICOLON = ';',
+                        SDLK_LESS = '<',
+                        SDLK_EQUALS = '=',
+                        SDLK_GREATER = '>',
+                        SDLK_QUESTION = '?',
+                        SDLK_AT = '@',
+                        SDLK_LEFTBRACKET = '[',
+                        SDLK_BACKSLASH = '\\',
+                        SDLK_RIGHTBRACKET = ']',
+                        SDLK_CARET = '^',
+                        SDLK_UNDERSCORE = '_',
+                        SDLK_BACKQUOTE = '`',
+                      */
+        case SDLK_a: return gfmKey_a;
+        case SDLK_b: return gfmKey_b;
+        case SDLK_c: return gfmKey_c;
+        case SDLK_d: return gfmKey_d;
+        case SDLK_e: return gfmKey_e;
+        case SDLK_f: return gfmKey_f;
+        case SDLK_g: return gfmKey_g;
+        case SDLK_h: return gfmKey_h;
+        case SDLK_i: return gfmKey_i;
+        case SDLK_j: return gfmKey_j;
+        case SDLK_k: return gfmKey_k;
+        case SDLK_l: return gfmKey_l;
+        case SDLK_m: return gfmKey_m;
+        case SDLK_n: return gfmKey_n;
+        case SDLK_o: return gfmKey_o;
+        case SDLK_p: return gfmKey_p;
+        case SDLK_q: return gfmKey_q;
+        case SDLK_r: return gfmKey_r;
+        case SDLK_s: return gfmKey_s;
+        case SDLK_t: return gfmKey_t;
+        case SDLK_u: return gfmKey_u;
+        case SDLK_v: return gfmKey_v;
+        case SDLK_w: return gfmKey_w;
+        case SDLK_x: return gfmKey_x;
+        case SDLK_y: return gfmKey_y;
+        case SDLK_z: return gfmKey_z;
+        case SDLK_F1: return gfmKey_f1;
+        case SDLK_F2: return gfmKey_f2;
+        case SDLK_F3: return gfmKey_f3;
+        case SDLK_F4: return gfmKey_f4;
+        case SDLK_F5: return gfmKey_f5;
+        case SDLK_F6: return gfmKey_f6;
+        case SDLK_F7: return gfmKey_f7;
+        case SDLK_F8: return gfmKey_f8;
+        case SDLK_F9: return gfmKey_f9;
+        case SDLK_F10: return gfmKey_f10;
+        case SDLK_F11: return gfmKey_f11;
+        case SDLK_F12: return gfmKey_f12;
+        case SDLK_INSERT: return gfmKey_insert;
+        case SDLK_HOME: return gfmKey_home;
+        case SDLK_PAGEUP: return gfmKey_pageUp;
+        case SDLK_DELETE: return gfmKey_delete;
+        case SDLK_END: return gfmKey_end;
+        case SDLK_PAGEDOWN: return gfmKey_pageDown;
+        case SDLK_RIGHT: return gfmKey_right;
+        case SDLK_LEFT: return gfmKey_left;
+        case SDLK_DOWN: return gfmKey_down;
+        case SDLK_UP: return gfmKey_up;
+                      /*
+                         SDLK_KP_DIVIDE = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_KP_DIVIDE),
+                         SDLK_KP_MULTIPLY = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_KP_MULTIPLY),
+                         SDLK_KP_MINUS = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_KP_MINUS),
+                         SDLK_KP_PLUS = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_KP_PLUS),
+                       */
+        case SDLK_KP_ENTER: return gfmKey_nReturn;
+        case SDLK_KP_1: return gfmKey_n1;
+        case SDLK_KP_2: return gfmKey_n2;
+        case SDLK_KP_3: return gfmKey_n3;
+        case SDLK_KP_4: return gfmKey_n4;
+        case SDLK_KP_5: return gfmKey_n5;
+        case SDLK_KP_6: return gfmKey_n6;
+        case SDLK_KP_7: return gfmKey_n7;
+        case SDLK_KP_8: return gfmKey_n8;
+        case SDLK_KP_9: return gfmKey_n9;
+        case SDLK_KP_0: return gfmKey_n0;
+                        /*
+                           SDLK_KP_PERIOD = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_KP_PERIOD),
+                         */
+        case SDLK_LCTRL: return gfmKey_lctrl;
+        case SDLK_LSHIFT: return gfmKey_lshift;
+        case SDLK_LALT: return gfmKey_lalt;
+        case SDLK_RCTRL: return gfmKey_rctrl;
+        case SDLK_RSHIFT: return gfmKey_rshift;
+        case SDLK_RALT: return gfmKey_ralt;
+        default: return gfmIface_none;
+    }
 }
 
