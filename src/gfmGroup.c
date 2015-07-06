@@ -1024,6 +1024,8 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
     // Sanitize arguments
     ASSERT(pGroup, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Assert there's anything to draw, at all
+    ASSERT(pGroup->pVisible, GFMRV_OK);
     
     // Reset the tree nodes
     gfmGenArr_reset(pGroup->pTree);
