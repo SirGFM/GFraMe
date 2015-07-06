@@ -1557,6 +1557,58 @@ __ret:
 }
 
 /**
+ * Adds a new virtual key to the game's context
+ * 
+ * @param  pHandle Handle to the action
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the input system was initialized
+    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    
+    // Add a new virtual key to the input
+    rv = gfmInput_addVirtualKey(pHandle, pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Bind a key/button to an action
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param  key    The key/button
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Everything else will be checked inside
+    // Check that the input system was initialized
+    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    
+    // Bind the new input
+    rv = gfmInput_bind(pCtx->pInput, handle, key);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Retrieve the current input context
  * 
  * @param  ppInput The input context

@@ -564,6 +564,26 @@ gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx);
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx);
 
 /**
+ * Adds a new virtual key to the game's context
+ * 
+ * @param  pHandle Handle to the action
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx);
+
+/**
+ * Bind a key/button to an action
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param  key    The key/button
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key);
+
+/**
  * Retrieve the current input context
  * 
  * @param  ppInput The input context

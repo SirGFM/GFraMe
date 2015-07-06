@@ -102,7 +102,7 @@ gfmRV gfmKeyNode_insert(gfmKeyNode *pCtx, gfmKeyNode **ppRoot) {
     rv = gfmKeyNode_isBound(*ppRoot, pCtx->key);
     ASSERT(rv == GFMRV_FALSE, GFMRV_INPUT_ALREADY_BOUND);
     
-    if (!ppRoot) {
+    if (!(*ppRoot)) {
         // Insert the tree's root
         *ppRoot = pCtx;
     }
@@ -113,7 +113,8 @@ gfmRV gfmKeyNode_insert(gfmKeyNode *pCtx, gfmKeyNode **ppRoot) {
         
         // Move deeper into the tree until an "empty node" is found
         while (1) {
-            if (pCtx->key > pTmp->key) {
+            if (pCtx->key < pTmp->key) {
+                // If the context key is smaller, insert to the left
                 if (pTmp->pLeft)
                     pTmp = pTmp->pLeft;
                 else {
@@ -121,7 +122,8 @@ gfmRV gfmKeyNode_insert(gfmKeyNode *pCtx, gfmKeyNode **ppRoot) {
                     break;
                 }
             }
-            else if (pCtx->key < pTmp->key) {
+            else if (pCtx->key > pTmp->key) {
+                // If the context key is greater, insert to the right
                 if (pTmp->pRight)
                     pTmp = pTmp->pRight;
                 else {
@@ -149,15 +151,15 @@ gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key) {
     
     // Sanitize arguments
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
-    ASSERT(key > gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // If the root is NULL, the tree is empty (and the key unbound)
     
     // Search the key through the tree
     while (pRoot) {
         if (key < pRoot->key)
             pRoot = pRoot->pLeft;
-        else if (key < pRoot->key)
-            pRoot = pRoot->pLeft;
+        else if (key > pRoot->key)
+            pRoot = pRoot->pRight;
         else {
             // If the value was found, stop
             break;
@@ -167,6 +169,42 @@ gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key) {
     ASSERT(pRoot, GFMRV_FALSE);
     
     rv = GFMRV_TRUE;
+__ret:
+    return rv;
+}
+
+/**
+ * Search a tree for a key node's bound virtual key
+ * 
+ * @param  ppVKey The bound virtual key
+ * @param  pRoot  The root of the binary tree
+ * @param  key   Physical key/device to be checked
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_NOT_BOUND
+ */
+gfmRV gfmKeyNode_getVirtualKey(gfmVirtualKey **ppVKey, gfmKeyNode *pRoot,
+        gfmInputIface key) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppVKey, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
+    
+    // Search the key through the tree
+    while (pRoot) {
+        if (key < pRoot->key)
+            pRoot = pRoot->pLeft;
+        else if (key > pRoot->key)
+            pRoot = pRoot->pRight;
+        else {
+            // If the value was found, stop
+            break;
+        }
+    }
+    ASSERT(pRoot, GFMRV_INPUT_NOT_BOUND);
+    
+    // Set the return values
+    *ppVKey = pRoot->pVKey;
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }

@@ -74,6 +74,17 @@ gfmRV gfmKeyNode_insert(gfmKeyNode *pCtx, gfmKeyNode **ppRoot);
 gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key);
 
 /**
+ * Search a tree for a key node's bound virtual key
+ * 
+ * @param  ppVKey The bound virtual key
+ * @param  pRoot  The root of the binary tree
+ * @param  key   Physical key/device to be checked
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_NOT_BOUND
+ */
+gfmRV gfmKeyNode_getVirtualKey(gfmVirtualKey **ppVKey, gfmKeyNode *pRoot,
+        gfmInputIface key);
+
+/**
  * Balance the tree as to optimize search
  * 
  * @param  ppRoot Root of the bound key's tree

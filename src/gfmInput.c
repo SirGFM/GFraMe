@@ -271,7 +271,6 @@ gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(handle, GFMRV_ARGUMENTS_BAD);
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
     ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // Check that the handle is valid
@@ -363,6 +362,7 @@ __ret:
 gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
         gfmInputState state) {
     gfmRV rv;
+    gfmVirtualKey *pVKey;
     
     // Satinize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -370,7 +370,15 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // TODO Assert the state?
     
-    // TODO
+    // Try to retrieve the bound virtual key
+    rv = gfmKeyNode_getVirtualKey(&pVKey, pCtx->pTree, key);
+    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
+    
+    // If the input wasn't bound, do nothing!
+    if (rv == GFMRV_OK) {
+        pVKey->state = state;
+        // TODO Check for multi-press
+    }
     
     rv = GFMRV_OK;
 __ret:
