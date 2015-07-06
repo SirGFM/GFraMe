@@ -584,6 +584,18 @@ gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx);
 gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key);
 
 /**
+ * Retrieves a virtual key state
+ * 
+ * @param  pState The current state
+ * @param  pNum   How many consecutive times the key has been pressed
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
+ */
+gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
+        int handle);
+
+/**
  * Retrieve the current input context
  * 
  * @param  ppInput The input context

@@ -179,19 +179,43 @@ __ret:
  */
 gfmRV gfmInput_update(gfmInput *pCtx) {
     gfmRV rv;
+    int i;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // TODO Update actions
-    
-    // Update the current pointer status
-    /*
-    pCtx->pointer.state = pCtx->pointer.state & (~gfmInput_justMask);
-    if (pCtx->pointer.state == gfmInput_released) {
-        pCtx->pointer.num = 0;
+    // Update every virtual key
+    i = 0;
+    while (i < gfmGenArr_getUsed(pCtx->pVKeys)){
+        gfmVirtualKey *pVKey;
+        
+        pVKey = gfmGenArr_getObject(pCtx->pVKeys, i);
+        
+        if ((pVKey->state & (gfmInput_justPressed << 8))
+                == (gfmInput_justPressed << 8)) {
+            // If the key was just pressed (it's set on byte 1!!)
+            pVKey->state = pVKey->state & ~(gfmInput_justPressed << 8);
+            pVKey->state = pVKey->state | gfmInput_justPressed;
+        }
+        else if ((pVKey->state & (gfmInput_justReleased << 8))
+                == (gfmInput_justReleased << 8)) {
+            // If the key was just released (it's set on byte 1!!)
+            pVKey->state = pVKey->state & ~(gfmInput_justReleased << 8);
+            pVKey->state = pVKey->state | gfmInput_justReleased;
+        }
+        else if ((pVKey->state & gfmInput_justPressed)
+                == gfmInput_justPressed) {
+            // If the key was pressed on the last frame
+            pVKey->state = gfmInput_pressed;
+        }
+        else if ((pVKey->state & gfmInput_justReleased)
+                == gfmInput_justReleased) {
+            // If the key was released on the last frame
+            pVKey->state = gfmInput_released;
+        }
+        
+        i++;
     }
-    */
     
     rv = GFMRV_OK;
 __ret:
@@ -356,11 +380,12 @@ __ret:
  * @param  pCtx  The input context
  * @param  key   The key/button
  * @param  state The virtual key's new state
+ * @param  time  Time, in milliseconds, when the event happened
  * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
  *               GFMRV_INPUT_INVALID_STATE
  */
 gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
-        gfmInputState state) {
+        gfmInputState state, unsigned int time) {
     gfmRV rv;
     gfmVirtualKey *pVKey;
     
@@ -376,9 +401,54 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     
     // If the input wasn't bound, do nothing!
     if (rv == GFMRV_OK) {
-        pVKey->state = state;
-        // TODO Check for multi-press
+        // Set the next state on byte 1
+        pVKey->state |= state << 8;
+        
+        // Check for multi-press
+        if ((state & gfmInput_pressed) == gfmInput_pressed) {
+            if (time - pVKey->lastPress <= pCtx->multiDelay) {
+                pVKey->num++;
+            }
+            else {
+                pVKey->num = 1;
+            }
+            // Update the time
+            pVKey->lastPress = time;
+        }
     }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieves a virtual key state
+ * 
+ * @param  pState The current state
+ * @param  pNum   How many consecutive times the key has been pressed
+ * @param  pCtx   The input context
+ * @param  handle The action's handle
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
+ */
+gfmRV gfmInput_getKeyState(gfmInputState *pState, int *pNum, gfmInput *pCtx,
+        int handle) {
+    gfmRV rv;
+    gfmVirtualKey *pVKey;
+    
+    // Sanitize arguments
+    ASSERT(pState, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the handle is valid
+    ASSERT(handle < gfmGenArr_getUsed(pCtx->pVKeys),
+            GFMRV_INPUT_INVALID_HANDLE);
+    
+    // Retrieve the virtual key
+    pVKey = gfmGenArr_getObject(pCtx->pVKeys, handle);
+    // Get its state
+    *pState = pVKey->state;
+    *pNum = pVKey->num;
     
     rv = GFMRV_OK;
 __ret:

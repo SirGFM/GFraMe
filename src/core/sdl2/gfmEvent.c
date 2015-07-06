@@ -193,13 +193,13 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
 			case SDL_MOUSEBUTTONDOWN: {
                 // Set mouse button as pressed
                 rv = gfmInput_setKeyState(pInput, gfmPointer_button,
-                        gfmInput_justPressed);
+                        gfmInput_justPressed, ev.button.timestamp);
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONUP: {
                 // Set mouse button as released
                 rv = gfmInput_setKeyState(pInput, gfmPointer_button,
-                        gfmInput_justReleased);
+                        gfmInput_justReleased, ev.button.timestamp);
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_KEYDOWN: {
@@ -208,7 +208,8 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 // Map SDL to gfmIface
                 key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
                 // Set key as pressed
-                rv = gfmInput_setKeyState(pInput, key, gfmInput_justPressed);
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justPressed,
+                        ev.key.timestamp);
                 ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
             } break;
 			case SDL_KEYUP: {
@@ -217,7 +218,8 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 // Map SDL to gfmIface
                 key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
                 // Set key as released
-                rv = gfmInput_setKeyState(pInput, key, gfmInput_justReleased);
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justReleased,
+                        ev.key.timestamp);
                 ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
             } break;
             case SDL_CONTROLLERDEVICEADDED:

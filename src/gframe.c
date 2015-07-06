@@ -1445,6 +1445,9 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+    // Update every input
+    rv = gfmInput_update(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -1601,6 +1604,34 @@ gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key) {
     
     // Bind the new input
     rv = gfmInput_bind(pCtx->pInput, handle, key);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieves a virtual key state
+ * 
+ * @param  pState The current state
+ * @param  pNum   How many consecutive times the key has been pressed
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
+ */
+gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
+        int handle) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Everything else will be checked inside
+    // Check that the input system was initialized
+    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    
+    // Get the key state
+    rv = gfmInput_getKeyState(pState, pNum, pCtx->pInput, handle);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;

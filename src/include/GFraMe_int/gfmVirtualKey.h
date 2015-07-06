@@ -14,8 +14,8 @@ struct enGFMVirtualKey {
     gfmInputState state;
     /** How many times the buttons has been pressed consecutively */
     int num;
-    /** Last time, since a common time frame, that the state changed */
-    unsigned int lastTime;
+    /** Last time, since a common reference, that the state became pressed */
+    unsigned int lastPress;
 };
 typedef struct enGFMVirtualKey gfmVirtualKey;
 

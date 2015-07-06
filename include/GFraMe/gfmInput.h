@@ -27,7 +27,8 @@ enum enGFMInputState {
     gfmInput_justPressed  = 0x06,
     gfmInput_justReleased = 0x09,
     gfmInput_stateMask    = 0x03,
-    gfmInput_justMask     = 0x0C
+    gfmInput_justMask     = 0x0C,
+    gfmInput_curFrame     = 0x0F
 };
 typedef enum enGFMInputState gfmInputState;
 
@@ -252,11 +253,24 @@ gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
  * @param  pCtx  The input context
  * @param  key   The key/button
  * @param  state The virtual key's new state
+ * @param  time  Time, in milliseconds, when the event happened
  * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
  *               GFMRV_INPUT_INVALID_STATE
  */
 gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
-        gfmInputState state);
+        gfmInputState state, unsigned int time);
+
+/**
+ * Retrieves a virtual key state
+ * 
+ * @param  pState The current state
+ * @param  pNum   How many consecutive times the key has been pressed
+ * @param  pCtx   The input context
+ * @param  handle The action's handle
+ * @param        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
+ */
+gfmRV gfmInput_getKeyState(gfmInputState *pState, int *pNum, gfmInput *pCtx,
+        int handle);
 
 #if 0
 

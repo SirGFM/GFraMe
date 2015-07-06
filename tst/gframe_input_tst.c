@@ -147,8 +147,48 @@ int main(int arg, char *argv[]) {
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            int i;
+            gfmInputState kleft, kright, kup, kdown;
+            int i, nleft, nright, nup, ndown, x, y;
             rv = gfm_fpsCounterUpdateBegin(pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            // Retrieve every key state
+            rv = gfm_getKeyState(&kleft, &nleft, pCtx, left);
+            ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kright, &nright, pCtx, right);
+            ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kup, &nup, pCtx, up);
+            ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kdown, &ndown, pCtx, down);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            if (kleft & gfmInput_pressed) {
+                rv = gfmSprite_setHorizontalVelocity(pPlayer, -100);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (kright & gfmInput_pressed) {
+                rv = gfmSprite_setHorizontalVelocity(pPlayer, 100);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else {
+                rv = gfmSprite_setHorizontalVelocity(pPlayer, 0);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            if (kup & gfmInput_pressed) {
+                rv = gfmSprite_setVerticalVelocity(pPlayer, -100);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (kdown & gfmInput_pressed) {
+                rv = gfmSprite_setVerticalVelocity(pPlayer, 100);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else {
+                rv = gfmSprite_setVerticalVelocity(pPlayer, 0);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            
+            // Get the sprite's position
+            rv = gfmSprite_getPosition(&x, &y, pPlayer);
             ASSERT_NR(rv == GFMRV_OK);
             
             // Recycle a few sprites
@@ -159,7 +199,7 @@ int main(int arg, char *argv[]) {
                 if (rv == GFMRV_OK) {
                     int vx, vy;
                     
-                    rv = gfmGroup_setPosition(pGrp, (WNDW - 4) / 2, (WNDH - 4)/2);
+                    rv = gfmGroup_setPosition(pGrp, x, y);
                     ASSERT_NR(rv == GFMRV_OK);
                     rv = gfmGroup_setFrame(pGrp, i);
                     ASSERT_NR(rv == GFMRV_OK);
@@ -170,7 +210,6 @@ int main(int arg, char *argv[]) {
                 }
                 i++;
             }
-            
             
             // Update group
             rv = gfmGroup_update(pGrp, pCtx);
