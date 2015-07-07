@@ -23,7 +23,7 @@ int main(int arg, char *argv[]) {
     gfmSpriteset *pSset4, *pSset8;
     int iTex;
     //int ms;
-    int left, right, up, down;
+    int left, right, up, down, space;
     
     // Initialize every variable
     pCtx = 0;
@@ -37,7 +37,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Try to set a title
-    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_group_loop");
+    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_input");
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the window
@@ -52,6 +52,8 @@ int main(int arg, char *argv[]) {
     rv = gfm_addVirtualKey(&up, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_addVirtualKey(&down, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_addVirtualKey(&space, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Bind a few keys to each input (this generates a perfectly balanced tree)
@@ -70,6 +72,8 @@ int main(int arg, char *argv[]) {
     rv = gfm_bindInput(pCtx, down, gfmKey_down);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_bindInput(pCtx, down, gfmKey_s);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_bindInput(pCtx, space, gfmKey_space);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load the texture
@@ -109,7 +113,7 @@ int main(int arg, char *argv[]) {
         0/*offY*/);
     ASSERT_NR(rv == GFMRV_OK);
     // Create the group's sprite
-    rv = gfmGroup_preCache(pGrp, 0/*initLen*/, 1024/*maxLen*/);
+    rv = gfmGroup_preCache(pGrp, 0/*initLen*/, 8192/*maxLen*/);
     ASSERT_NR(rv == GFMRV_OK);
     // Those can be set after caching everything, since they are global
     rv = gfmGroup_setDeathOnTime(pGrp, 2000/*ttl*/);
@@ -130,12 +134,6 @@ int main(int arg, char *argv[]) {
     rv = gfm_setFPS(pCtx, FPS);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Request the recording of an animation
-    //ms = 5000;
-    //rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
-    //rv = gfm_snapshot(pCtx, "ss.gif", 6, 0);
-    //ASSERT_NR(rv == GFMRV_OK);
-    
     // Run until the window is closed
     while (gfm_didGetQuitFlag(pCtx) == GFMRV_FALSE) {
         int frames;
@@ -147,8 +145,8 @@ int main(int arg, char *argv[]) {
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            gfmInputState kleft, kright, kup, kdown;
-            int i, nleft, nright, nup, ndown, x, y;
+            gfmInputState kleft, kright, kup, kdown, kspace;
+            int i, nleft, nright, nup, ndown, nspace, x, y;
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
@@ -161,7 +159,10 @@ int main(int arg, char *argv[]) {
             ASSERT_NR(rv == GFMRV_OK);
             rv = gfm_getKeyState(&kdown, &ndown, pCtx, down);
             ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kspace, &nspace, pCtx, space);
+            ASSERT_NR(rv == GFMRV_OK);
             
+            // Set horizontal speed
             if (kleft & gfmInput_pressed) {
                 rv = gfmSprite_setHorizontalVelocity(pPlayer, -100);
                 ASSERT_NR(rv == GFMRV_OK);
@@ -174,6 +175,7 @@ int main(int arg, char *argv[]) {
                 rv = gfmSprite_setHorizontalVelocity(pPlayer, 0);
                 ASSERT_NR(rv == GFMRV_OK);
             }
+            // Set vertical speed
             if (kup & gfmInput_pressed) {
                 rv = gfmSprite_setVerticalVelocity(pPlayer, -100);
                 ASSERT_NR(rv == GFMRV_OK);
@@ -184,6 +186,15 @@ int main(int arg, char *argv[]) {
             }
             else {
                 rv = gfmSprite_setVerticalVelocity(pPlayer, 0);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            
+            if ((kspace & gfmInput_justPressed) == gfmInput_justPressed) {
+                int ms;
+                
+                ms = 5000;
+                // start GIF
+                rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
                 ASSERT_NR(rv == GFMRV_OK);
             }
             

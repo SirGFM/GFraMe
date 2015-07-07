@@ -195,12 +195,14 @@ gfmRV gfmInput_update(gfmInput *pCtx) {
                 == (gfmInput_justPressed << 8)) {
             // If the key was just pressed (it's set on byte 1!!)
             pVKey->state = pVKey->state & ~(gfmInput_justPressed << 8);
+            pVKey->state = pVKey->state & ~gfmInput_curFrame;
             pVKey->state = pVKey->state | gfmInput_justPressed;
         }
         else if ((pVKey->state & (gfmInput_justReleased << 8))
                 == (gfmInput_justReleased << 8)) {
             // If the key was just released (it's set on byte 1!!)
             pVKey->state = pVKey->state & ~(gfmInput_justReleased << 8);
+            pVKey->state = pVKey->state & ~gfmInput_curFrame;
             pVKey->state = pVKey->state | gfmInput_justReleased;
         }
         else if ((pVKey->state & gfmInput_justPressed)
@@ -400,7 +402,7 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
     
     // If the input wasn't bound, do nothing!
-    if (rv == GFMRV_OK) {
+    if (rv == GFMRV_OK && ((pVKey->state & state) & gfmInput_stateMask) == 0) {
         // Set the next state on byte 1
         pVKey->state |= state << 8;
         
@@ -447,7 +449,7 @@ gfmRV gfmInput_getKeyState(gfmInputState *pState, int *pNum, gfmInput *pCtx,
     // Retrieve the virtual key
     pVKey = gfmGenArr_getObject(pCtx->pVKeys, handle);
     // Get its state
-    *pState = pVKey->state;
+    *pState = pVKey->state & gfmInput_curFrame;
     *pNum = pVKey->num;
     
     rv = GFMRV_OK;
