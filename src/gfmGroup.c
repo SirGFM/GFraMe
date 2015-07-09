@@ -1017,9 +1017,55 @@ __ret:
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
-    gfmDrawTree *pRoot;
     gfmGroupNode *pNode;
     gfmRV rv;
+    
+    /**
+     * Macro to insert all visible nodes into a tree and draw it; It expects the
+     * first visible node to be at pNode;
+     * This macro already ASSERT errors
+     * 
+     * @param insertFunction The function to insert a node into the tree (must
+     *                       receive two gfmDrawTree*, the first being the
+     *                       tree's root and the second the current node)
+     */
+#define insertAndDrawTree(insertFunction) \
+    do { \
+        gfmDrawTree *pRoot; \
+        int inc; \
+        /* Reset the tree nodes */ \
+        gfmGenArr_reset(pGroup->pTree); \
+        /* Manually set the first tree node */ \
+        inc = 1; \
+        gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, inc, pRoot,\
+                gfmDrawTree_getNew); \
+        gfmGenArr_push(pGroup->pTree); \
+        pRoot->pLeft = 0; \
+        pRoot->pRight = 0; \
+        pRoot->pSelf = pNode; \
+        /* Go to the visible node */\
+        pNode = pNode->pNextVisible; \
+        /* Add all nodes iteratively */ \
+        while (pNode) { \
+            gfmDrawTree *pTreeNode; \
+            /* Get the current tree node (and insert the actual node) */ \
+            gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, inc, \
+                    pTreeNode, gfmDrawTree_getNew); \
+            gfmGenArr_push(pGroup->pTree); \
+            pTreeNode->pSelf = pNode; \
+            /* Make sure the node is clean */ \
+            pTreeNode->pLeft = 0; \
+            pTreeNode->pRight = 0; \
+            /* Insert it into the tree */ \
+            rv = insertFunction(pRoot, pTreeNode); \
+            ASSERT_NR(rv == GFMRV_OK); \
+            /* Go to the next visible node */ \
+            pNode = pNode->pNextVisible; \
+        } \
+        /* Draw the tree */ \
+        rv = gfmGroup_drawTree(pRoot, pCtx); \
+        ASSERT_NR(rv == GFMRV_OK); \
+    } while (0);
     
     // Sanitize arguments
     ASSERT(pGroup, GFMRV_ARGUMENTS_BAD);
@@ -1027,16 +1073,6 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
     // Assert there's anything to draw, at all
     ASSERT(pGroup->pVisible, GFMRV_OK);
     
-    // Reset the tree nodes
-    gfmGenArr_reset(pGroup->pTree);
-    
-    // Manually set the first tree node
-    gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, 1/*inc*/, pRoot,
-            gfmDrawTree_getNew);
-    gfmGenArr_push(pGroup->pTree);
-    pRoot->pLeft = 0;
-    pRoot->pRight = 0;
-    pRoot->pSelf = pGroup->pVisible;
     // Get the first node on the visible list
     pNode = pGroup->pVisible;
     
@@ -1053,112 +1089,16 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
             }
         } break;
         case gfmDrawOrder_topFirst: {
-            // Actually start the list at the second node
-            if (pNode)
-                pNode = pNode->pNext;
-            // Sort the visible list from top to bottom
-            while (pNode) {
-                gfmDrawTree *pTreeNode;
-                
-                // Get the current tree node (and insert the actual node)
-                gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, 1/*inc*/, pTreeNode,
-                        gfmDrawTree_getNew);
-                gfmGenArr_push(pGroup->pTree);
-                pTreeNode->pSelf = pNode;
-                // Make sure the node is clean
-                pTreeNode->pLeft = 0;
-                pTreeNode->pRight = 0;
-                // Insert it into the tree
-                rv = gfmGroup_addTopBottom(pRoot, pTreeNode);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                pNode = pNode->pNextVisible;
-            }
-            
-            // Draw the tree
-            rv = gfmGroup_drawTree(pRoot, pCtx);
-            ASSERT_NR(rv == GFMRV_OK);
+            insertAndDrawTree(gfmGroup_addTopBottom);
         } break;
         case gfmDrawOrder_bottomFirst: {
-            // Actually start the list at the second node
-            if (pNode)
-                pNode = pNode->pNext;
-            // Sort the visible list from top to bottom
-            while (pNode) {
-                gfmDrawTree *pTreeNode;
-                
-                // Get the current tree node (and insert the actual node)
-                gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, 1/*inc*/, pTreeNode,
-                        gfmDrawTree_getNew);
-                gfmGenArr_push(pGroup->pTree);
-                pTreeNode->pSelf = pNode;
-                // Make sure the node is clean
-                pTreeNode->pLeft = 0;
-                pTreeNode->pRight = 0;
-                // Insert it into the tree
-                rv = gfmGroup_addBottomTop(pRoot, pTreeNode);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                pNode = pNode->pNextVisible;
-            }
-            
-            // Draw the tree
-            rv = gfmGroup_drawTree(pRoot, pCtx);
-            ASSERT_NR(rv == GFMRV_OK);
+            insertAndDrawTree(gfmGroup_addBottomTop);
         } break;
         case gfmDrawOrder_newestFirst: {
-            // Actually start the list at the second node
-            if (pNode)
-                pNode = pNode->pNext;
-            // Sort the visible list from top to bottom
-            while (pNode) {
-                gfmDrawTree *pTreeNode;
-                
-                // Get the current tree node (and insert the actual node)
-                gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, 1/*inc*/, pTreeNode,
-                        gfmDrawTree_getNew);
-                gfmGenArr_push(pGroup->pTree);
-                pTreeNode->pSelf = pNode;
-                // Make sure the node is clean
-                pTreeNode->pLeft = 0;
-                pTreeNode->pRight = 0;
-                // Insert it into the tree
-                rv = gfmGroup_addNewest(pRoot, pTreeNode);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                pNode = pNode->pNextVisible;
-            }
-            
-            // Draw the tree
-            rv = gfmGroup_drawTree(pRoot, pCtx);
-            ASSERT_NR(rv == GFMRV_OK);
+            insertAndDrawTree(gfmGroup_addNewest);
         } break;
         case gfmDrawOrder_oldestFirst: {
-            // Actually start the list at the second node
-            if (pNode)
-                pNode = pNode->pNext;
-            // Sort the visible list from top to bottom
-            while (pNode) {
-                gfmDrawTree *pTreeNode;
-                
-                // Get the current tree node (and insert the actual node)
-                gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, 1/*inc*/, pTreeNode,
-                        gfmDrawTree_getNew);
-                gfmGenArr_push(pGroup->pTree);
-                pTreeNode->pSelf = pNode;
-                // Make sure the node is clean
-                pTreeNode->pLeft = 0;
-                pTreeNode->pRight = 0;
-                // Insert it into the tree
-                rv = gfmGroup_addOldest(pRoot, pTreeNode);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                pNode = pNode->pNextVisible;
-            }
-            
-            // Draw the tree
-            rv = gfmGroup_drawTree(pRoot, pCtx);
-            ASSERT_NR(rv == GFMRV_OK);
+            insertAndDrawTree(gfmGroup_addOldest);
         } break;
         case gfmDrawOrder_max: {
             // Shouldn't happen!

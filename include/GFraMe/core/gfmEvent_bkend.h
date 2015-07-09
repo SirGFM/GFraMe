@@ -85,7 +85,5 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx);
  */
 gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx);
 
-// TODO interface to manually handle events
-
 #endif /* __GFMEVENT_BKEND_H__ */
 
