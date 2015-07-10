@@ -15,6 +15,34 @@
 #define WNDW     160
 #define WNDH     120
 
+/**
+ * Reset all key bindings
+ * 
+ * @param  pCtx  The game's context
+ * @param  space The space v-key handle
+ * @param  reset The reset v-key handle
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV resetBinding(gfmCtx *pCtx, int space, int reset) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Reset all bindings
+    rv = gfm_resetInput(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Bind both 'space' and 'reset'
+    rv = gfm_bindInput(pCtx, space, gfmKey_space);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_bindInput(pCtx, reset, gfmKey_r);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
 int main(int arg, char *argv[]) {
     gfmCtx *pCtx;
     gfmGroup *pGrp;
@@ -23,7 +51,8 @@ int main(int arg, char *argv[]) {
     gfmSpriteset *pSset4, *pSset8;
     int iTex;
     //int ms;
-    int left, right, up, down, space;
+    int left, right, up, down, space, reset;
+    int keysSet;
     
     // Initialize every variable
     pCtx = 0;
@@ -55,26 +84,14 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_addVirtualKey(&space, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_addVirtualKey(&reset, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
-    // Bind a few keys to each input (this generates a perfectly balanced tree)
-    rv = gfm_bindInput(pCtx, left, gfmKey_left);
+    // Bind only the 'genGif' and 'reset' buttons
+    rv = resetBinding(pCtx, space, reset);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, left, gfmKey_a);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, up, gfmKey_up);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, up, gfmKey_w);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, right, gfmKey_right);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, right, gfmKey_d);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, down, gfmKey_down);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, down, gfmKey_s);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, space, gfmKey_space);
-    ASSERT_NR(rv == GFMRV_OK);
+    // Force all keys to be rebound
+    keysSet = 0;
     
     // Load the texture
     rv = gfm_loadTextureStatic(&iTex, pCtx, "rainbow_atlas.bmp", 0xff00ff);
@@ -145,22 +162,51 @@ int main(int arg, char *argv[]) {
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            gfmInputState kleft, kright, kup, kdown, kspace;
-            int i, nleft, nright, nup, ndown, nspace, x, y;
+            gfmInputState kleft, kright, kup, kdown, kspace, kreset;
+            int i, nleft, nright, nup, ndown, nspace, nreset, x, y;
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
-            // Retrieve every key state
-            rv = gfm_getKeyState(&kleft, &nleft, pCtx, left);
-            ASSERT_NR(rv == GFMRV_OK);
-            rv = gfm_getKeyState(&kright, &nright, pCtx, right);
-            ASSERT_NR(rv == GFMRV_OK);
-            rv = gfm_getKeyState(&kup, &nup, pCtx, up);
-            ASSERT_NR(rv == GFMRV_OK);
-            rv = gfm_getKeyState(&kdown, &ndown, pCtx, down);
-            ASSERT_NR(rv == GFMRV_OK);
-            rv = gfm_getKeyState(&kspace, &nspace, pCtx, space);
-            ASSERT_NR(rv == GFMRV_OK);
+            // Retrieve every key state (or set keys, if not yet set)
+            if (keysSet < 4) {
+                gfmInputIface iface;
+                
+                kleft = gfmInput_released;
+                kright = gfmInput_released;
+                kup = gfmInput_released;
+                kdown = gfmInput_released;
+                
+                // Get the last pressed key
+                rv = gfm_getLastPressed(&iface, pCtx);
+                ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_WAITING);
+                
+                if (rv == GFMRV_OK) {
+                    int handle;
+                    
+                    switch (keysSet) {
+                        case 0: handle = left; break;
+                        case 1: handle = right; break;
+                        case 2: handle = up; break;
+                        case 3: handle = down; break;
+                        default: handle = 0;
+                    }
+                    
+                    rv = gfm_bindInput(pCtx, handle, iface);
+                    ASSERT_NR(rv == GFMRV_OK);
+                    
+                    keysSet++;
+                }
+            }
+            else {
+                rv = gfm_getKeyState(&kleft, &nleft, pCtx, left);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfm_getKeyState(&kright, &nright, pCtx, right);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfm_getKeyState(&kup, &nup, pCtx, up);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfm_getKeyState(&kdown, &ndown, pCtx, down);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
             
             // Set horizontal speed
             if (kleft & gfmInput_pressed) {
@@ -189,6 +235,11 @@ int main(int arg, char *argv[]) {
                 ASSERT_NR(rv == GFMRV_OK);
             }
             
+            rv = gfm_getKeyState(&kspace, &nspace, pCtx, space);
+            ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kreset, &nreset, pCtx, reset);
+            ASSERT_NR(rv == GFMRV_OK);
+            
             if ((kspace & gfmInput_justPressed) == gfmInput_justPressed) {
                 int ms;
                 
@@ -196,6 +247,13 @@ int main(int arg, char *argv[]) {
                 // start GIF
                 rv = gfm_recordGif(pCtx, ms, "anim.gif", 8, 0);
                 ASSERT_NR(rv == GFMRV_OK);
+            }
+            // Reset all bindings
+            if ((kreset & gfmInput_justPressed) == gfmInput_justPressed) {
+                rv = resetBinding(pCtx, space, reset);
+                ASSERT_NR(rv == GFMRV_OK);
+                // Force all keys to be rebound
+                keysSet = 0;
             }
             
             // Get the sprite's position

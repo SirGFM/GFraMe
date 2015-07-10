@@ -1612,6 +1612,28 @@ __ret:
 }
 
 /**
+ * Reset all bindings from the input
+ * 
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_resetInput(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the input system was initialized
+    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    
+    rv = gfmInput_reset(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Retrieves a virtual key state
  * 
  * @param  pState The current state
@@ -1635,6 +1657,41 @@ gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the last key/button/whatever pressed; This function doesn't block but,
+ * unless it's ready, it will return GFMRV_WAITING; The 'key' pressed is only
+ * valid when the function return GFMRV_OK
+ * 
+ * @param  pIface The last 'iface' pressed
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WAITING
+ */
+gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pIface, GFMRV_ARGUMENTS_BAD);
+    // Check that the input system was initialized
+    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    
+    // Try to retrieve the last 'key' pressed
+    rv = gfmInput_getLastPressed(pIface, pCtx->pInput);
+    if (rv == GFMRV_OPERATION_NOT_ACTIVE) {
+        // If the operation hadn't been initialized, initialize it
+        rv =  gfmInput_requestLastPressed(pCtx->pInput);
+        ASSERT_NR(rv == GFMRV_OK);
+        // Force the function to be run at last another time
+        rv = GFMRV_WAITING;
+    }
+    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_WAITING);
+    
+    // Return with either GFMRV_OK or GFMRV_WAITING (whichever was return by
+    // the function
 __ret:
     return rv;
 }

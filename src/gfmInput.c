@@ -48,6 +48,10 @@ struct enGFMInput {
     int pointerY;
     /** How long a between 'presses' in a multi-press (in ms) */
     unsigned int multiDelay;
+    /** Whether this context is expecting a key press */
+    int waitingInput;
+    /** Last 'iface' pressed */
+    gfmInputIface lastIface;
 };
 
 /**
@@ -117,6 +121,8 @@ gfmRV gfmInput_init(gfmInput *pCtx) {
     gfmGenArr_setMinSize(gfmVirtualKey, pCtx->pVKeys, 14, gfmVirtualKey_getNew);
     // Pre-allocate some nodes
     gfmGenArr_setMinSize(gfmKeyNode, pCtx->pKeys, 28, gfmKeyNode_getNew);
+    // Removes every virtual key
+    gfmGenArr_reset(pCtx->pVKeys);
     // Clear everything
     rv = gfmInput_reset(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
@@ -225,7 +231,7 @@ __ret:
 }
 
 /**
- * Removes every virtual key and bound key, so it all can be re-created
+ * Removes every bound key, so it all can be re-created
  * 
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -236,8 +242,6 @@ gfmRV gfmInput_reset(gfmInput *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // Removes every virtual key
-    gfmGenArr_reset(pCtx->pVKeys);
     // Removes every node from the tree
     gfmGenArr_reset(pCtx->pKeys);
     // Reset the tree's root
@@ -419,6 +423,11 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
         }
     }
     
+    // Store the last pressed key, if the operation is active
+    if (pCtx->waitingInput && (state & gfmInput_pressed)) {
+        pCtx->lastIface = key;
+    }
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -451,6 +460,58 @@ gfmRV gfmInput_getKeyState(gfmInputState *pState, int *pNum, gfmInput *pCtx,
     // Get its state
     *pState = pVKey->state & gfmInput_curFrame;
     *pNum = pVKey->num;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the last key pressed; This function must be called after
+ * 'gfmInput_requestLastPressed', because it won't be able to correctly detect
+ * a key press correctly; Also, note that this function won't block!
+ * 
+ * @param  pIface The pressed key
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *                GFMRV_WAITING
+ */
+gfmRV gfmInput_getLastPressed(gfmInputIface *pIface, gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pIface, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    ASSERT(pCtx->waitingInput, GFMRV_OPERATION_NOT_ACTIVE);
+    // Check that a key was pressed
+    ASSERT(pCtx->lastIface != gfmIface_none, GFMRV_WAITING);
+    
+    // Deactivate the operation
+    pCtx->waitingInput = 0;
+    // Set the return
+    *pIface = pCtx->lastIface;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Request that the next key pressed be store
+ * 
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_requestLastPressed(gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Activate the request operation
+    pCtx->waitingInput = 1;
+    pCtx->lastIface = gfmIface_none;
     
     rv = GFMRV_OK;
 __ret:

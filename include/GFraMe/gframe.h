@@ -584,6 +584,14 @@ gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx);
 gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key);
 
 /**
+ * Reset all bindings from the input
+ * 
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_resetInput(gfmCtx *pCtx);
+
+/**
  * Retrieves a virtual key state
  * 
  * @param  pState The current state
@@ -594,6 +602,17 @@ gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key);
  */
 gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
         int handle);
+
+/**
+ * Get the last key/button/whatever pressed; This function doesn't block but,
+ * unless it's ready, it will return GFMRV_WAITING; The 'key' pressed is only
+ * valid when the function return GFMRV_OK
+ * 
+ * @param  pIface The last 'iface' pressed
+ * @param  pCtx   The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WAITING
+ */
+gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx);
 
 /**
  * Retrieve the current input context

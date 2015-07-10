@@ -199,7 +199,7 @@ gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms);
 gfmRV gfmInput_update(gfmInput *pCtx);
 
 /**
- * Removes every virtual key and bound key, so it all can be re-created
+ * Removes every bound key, so it all can be re-created
  * 
  * @param  pCtx The context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -271,6 +271,26 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
  */
 gfmRV gfmInput_getKeyState(gfmInputState *pState, int *pNum, gfmInput *pCtx,
         int handle);
+
+/**
+ * Get the last key pressed; This function must be called after
+ * 'gfmInput_requestLastPressed', because it won't be able to correctly detect
+ * a key press correctly; Also, note that this function won't block!
+ * 
+ * @param  pIface The pressed key
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *                GFMRV_WAITING
+ */
+gfmRV gfmInput_getLastPressed(gfmInputIface *pIface, gfmInput *pCtx);
+
+/**
+ * Request that the next key pressed be store
+ * 
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_requestLastPressed(gfmInput *pCtx);
 
 #if 0
 
