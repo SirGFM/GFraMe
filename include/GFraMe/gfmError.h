@@ -119,6 +119,8 @@ enum enGFMError {
     GFMRV_INPUT_INVALID_HANDLE,
     GFMRV_INPUT_ALREADY_BOUND,
     GFMRV_INPUT_NOT_BOUND,
+    // Text errors
+    GFMRV_TEXT_NO_CHAR,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
