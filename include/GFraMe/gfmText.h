@@ -70,24 +70,36 @@ gfmRV gfmText_init(gfmText *pCtx, int x, int y, int maxWidth, int maxLines,
 gfmRV gfmText_clean(gfmText *pCtx);
 
 /**
- * Set the text's content; It will be copied into a gfmString(?)
+ * Set the text's content; The string WILL BE MODIFIED as needed, but it's
+ * length won't be modified; Therefore, it's a users choice if the string will
+ * be copied or not;
  * 
- * @param  pCtx The text
- * @param  pStr The string to be displayed
- * @param  len  The string's length
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * The string must be NULL terminated; so the user must take this care if he
+ * doesn't copy the string
+ * 
+ * @param  pCtx   The text
+ * @param  pStr   The string to be displayed
+ * @param  len    The string's length
+ * @param  doCopy Whether the string should be copied or only its pointer
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmText_setText(gfmText *pCtx, char *pStr, int len);
+gfmRV gfmText_setText(gfmText *pCtx, char *pStr, int len, int doCopy);
 
 /**
- * Set the text's contents, from a static buffer
+ * Set the text's content; The string WILL BE MODIFIED as needed, but it's
+ * length won't be modified; Therefore, it's a users choice if the string will
+ * be copied or not;
  * 
- * @param  pCtx The text
- * @param  pStr The string to be displayed
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * The string must be NULL terminated; so the user must take this care if he
+ * doesn't copy the string
+ * 
+ * @param  pCtx   The text
+ * @param  pStr   The string to be displayed (in a static buffer)
+ * @param  doCopy Whether the string should be copied or only its pointer
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-#define gfmText_setTextState(pCtx, pStr) \
-        gfmText_setText(pCtx, pStr, sizeof(pStr) - 1)
+#define gfmText_setTextStatic(pCtx, pStr, doCopy) \
+        gfmText_setText(pCtx, pStr, sizeof(pStr) - 1, doCopy)
 
 /**
  * Set the text's position
@@ -131,6 +143,17 @@ gfmRV gfmText_setTypingAnimation(gfmText *pCtx, int delay);
  */
 gfmRV gfmText_setRenderSpace(gfmText *pCtx, int bindToWorld);
 
+/**
+ * Set the text's spriteset
+ * 
+ * @param  pCtx        The text
+ * @param  pSset       The spriteset
+ * @param  firstTile   Index of the first character tile on the spriteset; Must
+ *                     be in ASCII order and start at '!'
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmText_setSpriteset(gfmText *pCtx, gfmSpriteset *pSset, int firstTile);
+
 // TODO Getters
 
 /**
@@ -151,9 +174,11 @@ gfmRV gfmText_didFinish(gfmText *pCtx);
 gfmRV gfmText_forceFinish(gfmText *pCtx);
 
 /**
- * If a character was displayed this frame, return it; If more than one
+ * If a character was displayed this frame*, return it; If more than one
  * character was displayed, returns the last character;
  * This can be useful to play a SFX whenever a 'non-null' character is displayed
+ * 
+ * * "this frame" means "since the previous gfmText_update"
  * 
  * @param  pChar The character
  * @param  pCtx  The text
@@ -164,18 +189,22 @@ gfmRV gfmText_getJustRendered(char *pChar, gfmText *pCtx);
 /**
  * If the text's content has more than 'maxLines' lines, moves the display
  * region one line above
+ * If the animation hasn't ended, this will return GFMRV_OPERATION_ACTIVE
  * 
  * @param  pCtx  The text
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *               GFMRV_TEXT_NO_MORE_LINES
  */
 gfmRV gfmText_moveLineUp(gfmText *pCtx);
 
 /**
  * If the text's content has more than 'maxLines' lines, moves the display
  * region one line bellow
+ * If the animation hasn't ended, this will return GFMRV_OPERATION_ACTIVE
  * 
  * @param  pCtx  The text
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_ACTIVE,
+ *               GFMRV_TEXT_NO_MORE_LINES
  */
 gfmRV gfmText_moveLineDown(gfmText *pCtx);
 

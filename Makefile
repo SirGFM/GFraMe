@@ -28,6 +28,7 @@ CC = gcc
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
+          $(OBJDIR)/gfmText.o             \
           $(OBJDIR)/gfmTileAnimation.o    \
           $(OBJDIR)/gfmTilemap.o          \
           $(OBJDIR)/gfmTileType.o         \
