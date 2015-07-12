@@ -9,11 +9,18 @@
 #include <GFraMe/gfmGroup.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
+#include <GFraMe/gfmText.h>
 
 // Set the game's FPS
 #define FPS       60
 #define WNDW     160
 #define WNDH     120
+
+static char pressLeft[]  = "PRESS THE LEFT KEY";
+static char pressRight[] = "PRESS THE RIGHT KEY";
+static char pressUp[]    = "PRESS THE UP KEY";
+static char pressDown[]  = "PRESS THE DOWN KEY";
+static char pressReset[] = "PRESS 'R' TO REBIND";
 
 /**
  * Reset all key bindings
@@ -49,8 +56,8 @@ int main(int arg, char *argv[]) {
     gfmRV rv;
     gfmSprite *pSpr, *pPlayer;
     gfmSpriteset *pSset4, *pSset8;
+    gfmText *pText;
     int iTex;
-    //int ms;
     int left, right, up, down, space, reset;
     int keysSet;
     
@@ -58,6 +65,7 @@ int main(int arg, char *argv[]) {
     pCtx = 0;
     pGrp = 0;
     pPlayer = 0;
+    pText = 0;
     
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
@@ -118,6 +126,17 @@ int main(int arg, char *argv[]) {
             -4/*offX*/, -4/*offY*/, 0, 0);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmSprite_setFrame(pPlayer, '*' - '!');
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the text
+    rv = gfmText_getNew(&pText);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmText_init(pText, 0/*x*/, WNDH - 8/*y*/, WNDW / 8/*maxWidth*/,
+            1/*maxLines*/, 60/*delay*/, 0/*bindToWorld*/, pSset8,
+            0/*firstTile*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Also set the first text
+    rv = gfmText_setTextStatic(pText, pressLeft, 0/*doCopy*/);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Create the group
@@ -184,10 +203,30 @@ int main(int arg, char *argv[]) {
                     int handle;
                     
                     switch (keysSet) {
-                        case 0: handle = left; break;
-                        case 1: handle = right; break;
-                        case 2: handle = up; break;
-                        case 3: handle = down; break;
+                        case 0: {
+                            handle = left;
+                            rv = gfmText_setTextStatic(pText, pressRight,
+                                    0/*doCopy*/);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        } break;
+                        case 1: {
+                            handle = right;
+                            rv = gfmText_setTextStatic(pText, pressUp,
+                                    0/*doCopy*/);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        } break;
+                        case 2: {
+                            handle = up;
+                            rv = gfmText_setTextStatic(pText, pressDown,
+                                    0/*doCopy*/);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        } break;
+                        case 3: {
+                            handle = down;
+                            rv = gfmText_setTextStatic(pText, pressReset,
+                                    0/*doCopy*/);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        } break;
                         default: handle = 0;
                     }
                     
@@ -254,6 +293,9 @@ int main(int arg, char *argv[]) {
                 ASSERT_NR(rv == GFMRV_OK);
                 // Force all keys to be rebound
                 keysSet = 0;
+                rv = gfmText_setTextStatic(pText, pressLeft,
+                        0/*doCopy*/);
+                ASSERT_NR(rv == GFMRV_OK);
             }
             
             // Get the sprite's position
@@ -286,6 +328,9 @@ int main(int arg, char *argv[]) {
             // Update the player's physics
             rv = gfmSprite_update(pPlayer, pCtx);
             ASSERT_NR(rv == GFMRV_OK);
+            // Update the text
+            rv = gfmText_update(pText, pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
             
             rv = gfm_fpsCounterUpdateEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
@@ -306,6 +351,9 @@ int main(int arg, char *argv[]) {
             // Draw the 'player'
             rv = gfmSprite_draw(pPlayer, pCtx);
             ASSERT_NR(rv == GFMRV_OK);
+            // Draw the text
+            rv = gfmText_draw(pText, pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
             
             rv = gfm_drawEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
@@ -316,6 +364,7 @@ int main(int arg, char *argv[]) {
     
     rv = GFMRV_OK;
 __ret:
+    gfmText_free(&pText);
     gfmSprite_free(&pPlayer);
     gfmGroup_free(&pGrp);
     gfm_free(&pCtx);

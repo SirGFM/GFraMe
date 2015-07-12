@@ -626,7 +626,7 @@ gfmRV gfmText_draw(gfmText *pText, gfmCtx *pCtx) {
             int tile;
             
             // Render the character
-            tile = pStr[i] - '!';
+            tile = pStr[i] - '!' + pText->firstTile;
             rv = gfm_drawTile(pCtx, pText->pSset, x, y, tile);
             ASSERT_NR(rv == GFMRV_OK);
         }
