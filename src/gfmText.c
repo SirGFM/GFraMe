@@ -467,7 +467,7 @@ gfmRV gfmText_moveLineDown(gfmText *pCtx) {
     ASSERT(rv == GFMRV_TRUE, GFMRV_OPERATION_ACTIVE);
     
     // Check that there are hidden lines
-    ASSERT(pCtx->curLine + pCtx->maxLines < pCtx->lineCount,
+    ASSERT(pCtx->curLine + pCtx->maxLines - 1 < pCtx->lineCount,
             GFMRV_TEXT_NO_MORE_LINES);
     // Move the displayed area one line bellow
     pCtx->curLine++;
