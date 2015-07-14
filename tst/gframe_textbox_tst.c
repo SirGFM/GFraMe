@@ -34,7 +34,7 @@ int main(int arg, char *argv[]) {
     gfmText *pText;
     gfmTilemap *pTmap;
     int i, iTex;
-    int up, down;
+    int up, down, space;
     
     // Initialize every variable
     pCtx = 0;
@@ -60,10 +60,14 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_addVirtualKey(&down, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_addVirtualKey(&space, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     // Bind 'em to keys
     rv = gfm_bindInput(pCtx, up, gfmKey_up);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_bindInput(pCtx, down, gfmKey_down);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfm_bindInput(pCtx, space, gfmKey_space);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load the texture
@@ -148,8 +152,8 @@ int main(int arg, char *argv[]) {
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         while (frames > 0) {
-            gfmInputState kup, kdown;
-            int nup, ndown;
+            gfmInputState kup, kdown, kspace;
+            int nup, ndown, nspace;
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
@@ -158,6 +162,14 @@ int main(int arg, char *argv[]) {
             ASSERT_NR(rv == GFMRV_OK);
             rv = gfm_getKeyState(&kdown, &ndown, pCtx, down);
             ASSERT_NR(rv == GFMRV_OK);
+            rv = gfm_getKeyState(&kspace, &nspace, pCtx, space);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            // Finish the animation if space was pressed
+            if ((kspace & gfmInput_justPressed) == gfmInput_justPressed) {
+                rv = gfmText_forceFinish(pText);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
             
             // If the text finished, allow scrolling
             rv = gfmText_didFinish(pText);

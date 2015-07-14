@@ -169,7 +169,7 @@ gfmRV gfmText_didFinish(gfmText *pCtx);
  * move to the last one
  * 
  * @param  pCtx The text
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXT_NOT_SET
  */
 gfmRV gfmText_forceFinish(gfmText *pCtx);
 
@@ -207,6 +207,14 @@ gfmRV gfmText_moveLineUp(gfmText *pCtx);
  *               GFMRV_TEXT_NO_MORE_LINES
  */
 gfmRV gfmText_moveLineDown(gfmText *pCtx);
+
+/**
+ * Normalizes a string up to its current position
+ * 
+ * @param  pCtx  The text
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXT_NOT_SET
+ */
+gfmRV gfmText_normalize(gfmText *pCtx);
 
 /**
  * Updates the text animation; If it's not animated, does nothing

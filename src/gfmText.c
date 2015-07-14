@@ -260,7 +260,11 @@ gfmRV gfmText_setDimensions(gfmText *pCtx, int maxWidth, int maxLines) {
     pCtx->maxWidth = maxWidth;
     pCtx->maxLines = maxLines;
     
-    // TODO Normalize the text if it changes while a string is being animated
+    // Normalize the text if it changes while a string is being animated
+    if (pCtx->strLen) {
+        rv = gfmText_normalize(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -374,20 +378,23 @@ __ret:
  * move to the last one
  * 
  * @param  pCtx The text
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXT_NOT_SET
  */
 gfmRV gfmText_forceFinish(gfmText *pCtx) {
     gfmRV rv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check if there's a string
+    ASSERT(pCtx->strLen > 0, GFMRV_TEXT_NOT_SET);
     
-    // TODO Check if there's a string
-    // TODO Set the string to its max size
-    // TODO Normalize the string
+    // Set the string to its max size
+    pCtx->curPos = pCtx->strLen - 1;
+    // Normalize the string
+    rv = gfmText_normalize(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
-    //rv = GFMRV_OK;
-    rv = GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }
@@ -471,6 +478,70 @@ gfmRV gfmText_moveLineDown(gfmText *pCtx) {
             GFMRV_TEXT_NO_MORE_LINES);
     // Move the displayed area one line bellow
     pCtx->curLine++;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Normalizes a string up to its current position
+ * 
+ * @param  pCtx  The text
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXT_NOT_SET
+ */
+gfmRV gfmText_normalize(gfmText *pCtx) {
+    char *pStr;
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a string
+    ASSERT(pCtx->strLen > 0, GFMRV_TEXT_NOT_SET);
+    ASSERT(pCtx->pStr, GFMRV_TEXT_NOT_SET);
+    
+    // Retrieve the text's content
+    rv = gfmString_getString(&pStr, pCtx->pStr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Normalize the current string
+    i = 0;
+    pCtx->lineStart = 0;
+    pCtx->lineCount = 0;
+    while (i < pCtx->curPos) {
+        char c;
+        
+        // Get the current character
+        c = pStr[i];
+        
+        // If we just got a line break, go to the next character
+        if (c == '\n') {
+            pCtx->lineCount++;
+            // Skip all blank characters
+            while (pStr[i + 1] == ' ') {
+                i++;
+            }
+            // Set the line's starting position
+            pCtx->lineStart = i + 1;
+        }
+        else if (i - pCtx->lineStart > pCtx->maxWidth) {
+            int tmp;
+            
+            // Find the last blank character
+            tmp = i - 1;
+            while (pStr[tmp] != ' ') {
+                tmp--;
+            }
+            // Set it to a linebreak
+            pStr[tmp] = '\n';
+            // Update the line count and line start
+            pCtx->lineCount++;
+            pCtx->lineStart = tmp + 1;
+        }
+        
+        i++;
+    }
     
     rv = GFMRV_OK;
 __ret:
