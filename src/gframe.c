@@ -88,8 +88,10 @@ struct stGFMCtx {
     unsigned char *pSsData;
     /** Number of bytes on the snapshot data */
     int ssDataLen;
-    /** How many frames were accumulated */
-    int updFrames;
+    /** How many update frames were accumulated */
+    int updateFrames;
+    /** How many draw frames were accumulated */
+    int drawFrames;
 #if defined(DEBUG) || defined(FORCE_FPS)
     /** Whether the FPS counter should be displayed */
     int showFPS;
@@ -1259,33 +1261,6 @@ __ret:
 }
 
 /**
- * Get how many updates frames have been issued since last call
- * 
- * @param  pAcc The number of frames
- * @param  pCtx The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
- */
-gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pAcc, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the accumulator was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Get the number of frames
-    rv = gfmAccumulator_getFrames(&(pCtx->updFrames), pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Set the return
-    *pAcc = pCtx->updFrames;
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Check if there are any frames left and updates the inputs
  * 
  * @param  pCtx The game's context
@@ -1297,10 +1272,10 @@ gfmRV gfm_isUpdating(gfmCtx *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check if there are any updates left
-    ASSERT(pCtx->updFrames > 0, GFMRV_FALSE);
+    ASSERT(pCtx->updateFrames > 0, GFMRV_FALSE);
     
     // Remove a frame
-    pCtx->updFrames--;
+    pCtx->updateFrames--;
     
     // Handle any events that happened since the start of the frame
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
@@ -1315,27 +1290,23 @@ __ret:
 }
 
 /**
- * Get how many draw frames have been issued since last call; This number will
- * never go higher than '1'
+ * Check if there are any frames left to be drawn
  * 
- * @param  pAcc The number of frames
  * @param  pCtx The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FALSE, GFMRV_TRUE
  */
-gfmRV gfm_getDraws(int *pAcc, gfmCtx *pCtx) {
+gfmRV gfm_isDrawing(gfmCtx *pCtx) {
     gfmRV rv;
     
     // Sanitize arguments
-    ASSERT(pAcc, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the accumulator was initialized
-    ASSERT(pCtx->pDrawAcc, GFMRV_ACC_NOT_INITIALIZED);
+    // Check if there are any updates left
+    ASSERT(pCtx->drawFrames > 0, GFMRV_FALSE);
     
-    // Get the number of frames
-    rv = gfmAccumulator_getFrames(pAcc, pCtx->pDrawAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    // Remove a frame
+    pCtx->drawFrames--;
     
-    rv = GFMRV_OK;
+    rv = GFMRV_TRUE;
 __ret:
     return rv;
 }
@@ -1477,6 +1448,13 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     rv = gfmEvent_waitEvent(pCtx->pEvent);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Update the frames to be updated
+    rv = gfmAccumulator_getFrames(&(pCtx->updateFrames), pCtx->pUpdateAcc);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Update the frames to be drawn
+    rv = gfmAccumulator_getFrames(&(pCtx->drawFrames), pCtx->pDrawAcc);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;

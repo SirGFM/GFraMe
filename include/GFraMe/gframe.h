@@ -444,16 +444,6 @@ gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps);
 gfmRV gfm_getStateFrameRate(int *pUps, int *pDps, gfmCtx *pCtx);
 
 /**
- * Get how many updates frames have been issued since last call; This function
- * must be called before gfm_isUpdating!
- * 
- * @param  pAcc The number of frames
- * @param  pCtx The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
- */
-gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx);
-
-/**
  * Check if there are any frames left and updates the inputs
  * 
  * @param  pCtx The game's context
@@ -462,14 +452,12 @@ gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx);
 gfmRV gfm_isUpdating(gfmCtx *pCtx);
 
 /**
- * Get how many draw frames have been issued since last call; This number will
- * never go higher than '1'
+ * Check if there are any frames left to be drawn
  * 
- * @param  pAcc The number of frames
  * @param  pCtx The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FALSE, GFMRV_TRUE
  */
-gfmRV gfm_getDraws(int *pAcc, gfmCtx *pCtx);
+gfmRV gfm_isDrawing(gfmCtx *pCtx);
 
 /**
  * Get how many time elapsed on each frame, in milliseconds; If static time loop

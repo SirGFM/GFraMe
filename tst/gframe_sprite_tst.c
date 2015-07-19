@@ -127,15 +127,11 @@ int main(int arg, char *argv[]) {
     
     // Run until the window is closed
     while (gfm_didGetQuitFlag(pCtx) == GFMRV_FALSE) {
-        int frames;
-        
         rv = gfm_handleEvents(pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         
         // Update stuff
-        rv = gfm_getUpdates(&frames, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
-        while (frames > 0) {
+        while (gfm_isUpdating(pCtx) == GFMRV_TRUE) {
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
@@ -158,14 +154,10 @@ int main(int arg, char *argv[]) {
             
             rv = gfm_fpsCounterUpdateEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
-            
-            frames--;
         }
         
         // Draw stuff
-        rv = gfm_getDraws(&frames, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
-        while (frames > 0) {
+        while (gfm_isDrawing(pCtx) == GFMRV_TRUE) {
             rv = gfm_drawBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
@@ -174,8 +166,6 @@ int main(int arg, char *argv[]) {
             
             rv = gfm_drawEnd(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
-            
-            frames--;
         }
     }
     
