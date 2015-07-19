@@ -214,12 +214,14 @@ gfmRV gfmInput_update(gfmInput *pCtx) {
         else if ((pVKey->state & gfmInput_justPressed)
                 == gfmInput_justPressed) {
             // If the key was pressed on the last frame
-            pVKey->state = gfmInput_pressed;
+            pVKey->state = pVKey->state & ~gfmInput_curFrame;
+            pVKey->state = pVKey->state | gfmInput_pressed;
         }
         else if ((pVKey->state & gfmInput_justReleased)
                 == gfmInput_justReleased) {
             // If the key was released on the last frame
-            pVKey->state = gfmInput_released;
+            pVKey->state = pVKey->state & ~gfmInput_curFrame;
+            pVKey->state = pVKey->state | gfmInput_released;
         }
         
         i++;
@@ -405,7 +407,7 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     rv = gfmKeyNode_getVirtualKey(&pVKey, pCtx->pTree, key);
     ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
     
-    // If the input wasn't bound, do nothing!
+    // If the input is bound and this isn't a repeated press
     if (rv == GFMRV_OK && ((pVKey->state & state) & gfmInput_stateMask) == 0) {
         // Set the next state on byte 1
         pVKey->state |= state << 8;

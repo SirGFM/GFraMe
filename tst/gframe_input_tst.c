@@ -180,9 +180,10 @@ int main(int arg, char *argv[]) {
         // Update stuff
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
-        while (frames > 0) {
+        while (gfm_isUpdating(pCtx) == GFMRV_TRUE) {
             gfmInputState kleft, kright, kup, kdown, kspace, kreset;
             int i, nleft, nright, nup, ndown, nspace, nreset, x, y;
+            
             rv = gfm_fpsCounterUpdateBegin(pCtx);
             ASSERT_NR(rv == GFMRV_OK);
             
@@ -248,11 +249,11 @@ int main(int arg, char *argv[]) {
             }
             
             // Set horizontal speed
-            if (kleft & gfmInput_pressed) {
+            if ((kleft & gfmInput_pressed) == gfmInput_pressed) {
                 rv = gfmSprite_setHorizontalVelocity(pPlayer, -100);
                 ASSERT_NR(rv == GFMRV_OK);
             }
-            else if (kright & gfmInput_pressed) {
+            else if ((kright & gfmInput_pressed) == gfmInput_pressed) {
                 rv = gfmSprite_setHorizontalVelocity(pPlayer, 100);
                 ASSERT_NR(rv == GFMRV_OK);
             }
@@ -261,11 +262,11 @@ int main(int arg, char *argv[]) {
                 ASSERT_NR(rv == GFMRV_OK);
             }
             // Set vertical speed
-            if (kup & gfmInput_pressed) {
+            if ((kup & gfmInput_pressed) == gfmInput_pressed) {
                 rv = gfmSprite_setVerticalVelocity(pPlayer, -100);
                 ASSERT_NR(rv == GFMRV_OK);
             }
-            else if (kdown & gfmInput_pressed) {
+            else if ((kdown & gfmInput_pressed) == gfmInput_pressed) {
                 rv = gfmSprite_setVerticalVelocity(pPlayer, 100);
                 ASSERT_NR(rv == GFMRV_OK);
             }

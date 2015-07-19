@@ -151,7 +151,7 @@ int main(int arg, char *argv[]) {
         // Update stuff
         rv = gfm_getUpdates(&frames, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
-        while (frames > 0) {
+        while (gfm_isUpdating(pCtx) == GFMRV_TRUE) {
             gfmInputState kup, kdown, kspace;
             int nup, ndown, nspace;
             rv = gfm_fpsCounterUpdateBegin(pCtx);

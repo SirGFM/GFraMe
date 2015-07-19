@@ -88,6 +88,8 @@ struct stGFMCtx {
     unsigned char *pSsData;
     /** Number of bytes on the snapshot data */
     int ssDataLen;
+    /** How many frames were accumulated */
+    int updFrames;
 #if defined(DEBUG) || defined(FORCE_FPS)
     /** Whether the FPS counter should be displayed */
     int showFPS;
@@ -1273,10 +1275,41 @@ gfmRV gfm_getUpdates(int *pAcc, gfmCtx *pCtx) {
     ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
     
     // Get the number of frames
-    rv = gfmAccumulator_getFrames(pAcc, pCtx->pUpdateAcc);
+    rv = gfmAccumulator_getFrames(&(pCtx->updFrames), pCtx->pUpdateAcc);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Set the return
+    *pAcc = pCtx->updFrames;
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if there are any frames left and updates the inputs
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FALSE, GFMRV_TRUE
+ */
+gfmRV gfm_isUpdating(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check if there are any updates left
+    ASSERT(pCtx->updFrames > 0, GFMRV_FALSE);
+    
+    // Remove a frame
+    pCtx->updFrames--;
+    
+    // Handle any events that happened since the start of the frame
+    rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Update every input
+    rv = gfmInput_update(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_TRUE;
 __ret:
     return rv;
 }
@@ -1444,9 +1477,6 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     rv = gfmEvent_waitEvent(pCtx->pEvent);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Update every input
-    rv = gfmInput_update(pCtx->pInput);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
