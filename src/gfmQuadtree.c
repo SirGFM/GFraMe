@@ -77,7 +77,7 @@ struct stGFMQuadtreeStack {
 /** Quadtree node type */
 struct stGFMQuadtree {
     /** The tree's sub-nodes */
-    gfmQuadtree *children;
+    gfmQuadtree *pChildren;
     /** List of all objects inside this node */
     gfmQuadtreeLL *pNodes;
     /** Center of the hitbox */
@@ -108,15 +108,14 @@ struct stGFMQuadtreeRoot {
     gfmQuadtree *self;
     /** List of available LL nodes */
     gfmQuadtreeLL *pAvailable;
+    /** List of nodes to be collided */
+    gfmQuadtreeLL *pColliding;
     /** Stack of nodes which the object must still be added to */
     gfmQuadtreeStack stack;
     /** Object being collided */
     gfmObject *pObject;
-    /** One of the objects that just overlaped */
-    gfmObject *pObj1;
-    /** The other of the objects that just overlaped */
-    gfmObject *pObj2;
-    /** TODO Members for the interactive addition */
+    /** The object that was just overlapped */
+    gfmObject *pOther;
 };
 
 gfmRV gfmQuadtree_getNew(gfmQuadtreeRoot **ppCtx);
@@ -185,12 +184,51 @@ __ret:
 }
 
 /**
+ * Adds an object to a node
+ * 
+ * @param  pCtx  The quadtree root context
+ * @param  pNode The node where insertion should happen
+ * @param  pObj  The object to be added
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+static gfmRV gfmQuadtree_insertObject(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode,
+        gfmObject *pObj) {
+    gfmQuadtreeLL *pQTLL;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pObj, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve a new linked-list node
+    if (pCtx->pAvailable) {
+        // Recycle a used node
+        pQTLL = pCtx->pAvailable;
+        pCtx->pAvailable = pCtx->pAvailable->pNext;
+    }
+    else {
+        // TODO Alloc a new node
+    }
+    
+    // Add the object to the LL node
+    pQTLL->pSelf = pObj;
+    // Prepend the node to the list
+    pQTLL->pNext = pNode->pNodes;
+    pNode->pNodes = pQTLL;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Subdivides a quadtree
  * 
  * @param  pCtx The node to be subdivided
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-static gfmRV gfmQuadtree_subdivied(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode) {
+static gfmRV gfmQuadtree_subdivide(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode) {
     gfmRV rv;
     
     // Sanitize arguments
@@ -203,11 +241,25 @@ static gfmRV gfmQuadtree_subdivied(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode) {
     // Insert every child to the tree it's contained
     while (pNode->pNodes) {
         gfmQuadtreeLL *pTmp;
+        gfmQuadtreePosition i;
         
         // Get the current node
         pTmp = pNode->pNodes;
         
-        // TODO Add it to every child (that it overlaps)
+        // Add it to every child (that it overlaps)
+        i = gfmQT_nw;
+        while (i < gfmQT_max) {
+            gfmQuadtree *pChild;
+            
+            // Get the current child
+            pChild = pNode->pChildren[i];
+            // TODO Check if the object collides this node
+            // Add it to the child
+            rv = gfmQuadtree_insertObject(pCtx, pChild, pTmp->pSelf);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            i++;
+        }
         
         // Go to the next node
         pNode->pNodes = pTmp->next;
@@ -225,12 +277,11 @@ __ret:
  * Prepare the 'stack' and initialize the collisiong for a new node
  * 
  * @param  pCtx The quadtree's root
- * @param  pPtr Pointer to whatever is being added
- * @param  type Type of whatever is being added
+ * @param  pObj Pointer to whatever is being added (as a gfmObject)
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, 
  *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
  */
-static gfmRV gfmQuadtree_collide(gfmQuadtreeRoot *pCtx, void *pPtr, int type) {
+static gfmRV gfmQuadtree_collide(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     gfmRV rv;
     
     // Sanitize arguments
@@ -240,13 +291,13 @@ static gfmRV gfmQuadtree_collide(gfmQuadtreeRoot *pCtx, void *pPtr, int type) {
     ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
     // TODO Check if this node overlaps the root
     
-    // Set the initial context (to be able to call 'continue', later)
-    pCtx->curDepth = 0;
-    pCtx->curNode = 0;
-    pCtx->pQtStack[0] = &(pCtx->self);
-    pCtx->pQtPosStack[0] = gfmQT_nw;
-    pCtx->type = type;
-    pCtx->pObject = pPtr;
+    // Store the object to be added
+    pCtx->pObject = pObj;
+    // Clear the call stack
+    pCtx->pStack.pushPos = 0;
+    // Push the root node to start colliding
+    rv = gfmQuadtree_pushNode(pCtx, pSelf);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Collide it
     rv = gfmQuadtree_continue(pCtx);
@@ -268,7 +319,7 @@ gfmRV gfmQuadtree_collideGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
 gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     gfmRV rv;
     
-    rv = gfmQuadtree_collide(pCtx, (void*)pObj, gfmType_object);
+    rv = gfmQuadtree_collide(pCtx, pObj);
     
     return rv;
 }
@@ -292,7 +343,7 @@ gfmRV gfmQuadtree_collideSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr) {
     rv = gfmSprite_getObject(&pObj, pSpr);
     ASSERT_NR(rv == GFMRV_OK);
     // Add it to the quadtree
-    rv = gfmQuadtree_collide(pCtx, (void*)pObj, gfmType_object);
+    rv = gfmQuadtree_collide(pCtx, pObj);
 __ret:
     return rv;
 }
@@ -302,8 +353,34 @@ gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
 gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
 gfmRV gfmQuadtree_populateSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
 gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
-gfmRV gfmQuadtree_getOverlaping(gfmObjectRoot **ppObj1, gfmObject **ppObj2,
-        gfmQuadtree *pCtx);
+
+/**
+ * Return both objects that overlaped
+ * 
+ * @param  ppObj1 A object that just overlapped another
+ * @param  ppObj2 A object that just overlapped another
+ * @param  pCtx   The quadtree's root
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NO_OVERLAP
+ */
+gfmRV gfmQuadtree_getOverlaping(gfmObject **ppObj1, gfmObject **ppObj2,
+        gfmQuadtreeRoot  *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppObj1, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppObj2, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that an overlap just happened
+    ASSERT(pCtx->pOther, GFMRV_QUADTREE_NO_OVERLAP);
+    
+    // Return both objects
+    *ppObj1 = pCtx->pObject;
+    *ppObj2 = pCtx->pOther;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Adds a node to the quadtree
@@ -320,16 +397,49 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
     // Check that the operation is active
     ASSERT(pCtx->pObject, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
     
-    // TODO Continue adding the object
+    // Continue adding the object
     while (1) {
         gfmQuadtree *pNode;
         
-        // Pop the current node
-        rv = gfmQuadtree_popNode(&pNode, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
-        // TODO If it has children, push its children
-        rv = gfmQuadtree_pushNode(pCtx, gfmQuadtree *pNode);
-        // TODO Otherwise, collide with its nodes
+        // If we were colliding againts objects
+        if (pCtx->pColliding) {
+            gfmQuadtreeLL *pTmp;
+            
+            // Retrieve the current object and update the list
+            pTmp = pCtx->pColliding;
+            pCtx->pColliding = pCtx->pColliding->pNext;
+            
+            // Check if both objects overlaps
+            pCtx->pOther = pTmp->pSelf;
+            rv = gfmObject_isOverlaping(pCtx->pObject, pCtx->Other);
+            // If they did overlap, return with that status
+            ASSERT(rv != GFMRV_TRUE, GFMRV_QUADTREE_OVERLAPED);
+        }
+        else {
+            // Pop the current node
+            rv = gfmQuadtree_popNode(&pNode, pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+
+            // If it has children, push its children
+            if (pNode->pChildren) {
+                gfmQuadtreePosition i;
+
+                i = gfmQT_nw;
+                while (i < gfmQT_max) {
+                    // TODO Check if the object overlaps this node
+                    // Push it (so it will collide later)
+                    rv = gfmQuadtree_pushNode(pCtx, &(pNode->pChildren[i]));
+                    ASSERT_NR(rv == GFMRV_OK);
+                    
+                    i++;
+                }
+            }
+            else {
+                // TODO Check if adding the node will subdivide the tree
+                // Otherwise, collide with its nodes
+                pCtx->pColliding = pNode->pNodes;
+            }
+        }
     }
     
     rv = GFMRV_QUADTREE_DONE;
