@@ -41,11 +41,39 @@ typedef struct stGFMQuadtreeRoot gfmQuadtreeRoot;
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmTilemap.h>
 
+/**
+ * Alloc a new root quadtree
+ * 
+ * @param ppCtx The root quadtree
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmQuadtree_getNew(gfmQuadtreeRoot **ppCtx);
+
+/**
+ * Release a quadtree's root and all its members
+ * 
+ * @param ppCtx The quadtree root
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmQuadtree_free(gfmQuadtreeRoot **ppCtx);
+
 gfmRV gfmQuadtree_clean(gfmQuadtreeRoot *pCtx);
+
+/**
+ * Clean up the previous state and ready the quadtree for collision
+ * 
+ * @param  pCtx     The quadtree root context
+ * @param  x        The quadtree top-left position
+ * @param  y        The quadtree top-left position
+ * @param  width    The quadtree width
+ * @param  height   The quadtree height
+ * @param  maxDepth How many levels can the quadtree branch
+ * @param  maxNodes How many objects a subtree can have until it must split
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
         int height, int maxDepth, int maxNodes);
+
 gfmRV gfmQuadtree_collideGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
 gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
 gfmRV gfmQuadtree_collideSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
