@@ -713,8 +713,10 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
                 }
             }
             else {
-                // Check if adding the node will subdivide the tree
-                if (pNode->numObjects + 1 >= pCtx->maxNodes) {
+                // Check if adding the node will subdivide the tree and if it
+                // can still be subdivided
+                if (pNode->numObjects + 1 >= pCtx->maxNodes &&
+                        pNode->depth + 1 < pCtx->maxDepth) {
                     // Subdivide the tree
                     rv = gfmQuadtree_subdivide(pCtx, pNode);
                     ASSERT_NR(rv == GFMRV_OK);
