@@ -44,19 +44,25 @@ typedef struct stGFMQuadtreeRoot gfmQuadtreeRoot;
 /**
  * Alloc a new root quadtree
  * 
- * @param ppCtx The root quadtree
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ * @param  ppCtx The root quadtree
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
 gfmRV gfmQuadtree_getNew(gfmQuadtreeRoot **ppCtx);
 
 /**
  * Release a quadtree's root and all its members
  * 
- * @param ppCtx The quadtree root
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  ppCtx The quadtree root
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmQuadtree_free(gfmQuadtreeRoot **ppCtx);
 
+/**
+ * Clean all memory used by the entire quadtree
+ * 
+ * @param  pCtx The quadtree root
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmQuadtree_clean(gfmQuadtreeRoot *pCtx);
 
 /**
@@ -74,11 +80,16 @@ gfmRV gfmQuadtree_clean(gfmQuadtreeRoot *pCtx);
 gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
         int height, int maxDepth, int maxNodes);
 
+/**
+ * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
+ * colliding with every possible node
+ * 
+ * @param  pCtx The quadtree's root
+ * @param  pGrp The gfmGroup
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, 
+ *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
+ */
 gfmRV gfmQuadtree_collideGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
-gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
-gfmRV gfmQuadtree_collideSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
-gfmRV gfmQuadtree_collideTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
-gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
 
 /**
  * Adds a new gfmObject to the quadtree, subdividing it as necessary and
@@ -89,7 +100,7 @@ gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, 
  *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
  */
-gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
+gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
 
 /**
  * Adds a new gfmSprite to the quadtree, subdividing it as necessary and
@@ -99,6 +110,37 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
  * @param  pObj The gfmObject
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, 
  *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
+ */
+gfmRV gfmQuadtree_collideSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
+
+/**
+ * Adds a new gfmTilemap to the quadtree, subdividing it as necessary and
+ * colliding with every possible node
+ * 
+ * @param  pCtx  The quadtree's root
+ * @param  pTMap The gfmTilemap
+ * @return       GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, 
+ *               GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
+ */
+gfmRV gfmQuadtree_collideTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
+
+gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
+
+/**
+ * Add an object to the quadtree without collinding it against the tree's objs
+ * 
+ * @param  pCtx The quadtree's root
+ * @param  pObj The gfmObject
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ */
+gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
+
+/**
+ * Add a sprite to the quadtree without collinding it against the tree's objs
+ * 
+ * @param  pCtx The quadtree's root
+ * @param  pSpr The gfmSprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
  */
 gfmRV gfmQuadtree_populateSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
 
