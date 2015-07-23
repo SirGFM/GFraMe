@@ -401,6 +401,8 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
     ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    // If there're no keys, return
+    ASSERT(pCtx->pTree, GFMRV_OK);
     // TODO Assert the state?
     
     // Try to retrieve the bound virtual key

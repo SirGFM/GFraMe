@@ -417,6 +417,7 @@ gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmObject_setFixed(gfmObject *pCtx);
+
 /**
  * Allow this object to move on collision
  * 

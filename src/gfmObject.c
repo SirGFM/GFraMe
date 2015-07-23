@@ -1531,7 +1531,7 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     // Check that at least one isn't fixed
     ASSERT(!pSelf->isFixed || !pOther->isFixed, GFMRV_OBJECTS_CANT_COLLIDE);
     // Check that collision happened in the X axis
-    ASSERT(pSelf->instantHit & gfmCollision_hor, GFMRV_COLLISION_NOT_TRIGGERED);
+    ASSERT(pSelf->instantHit & gfmCollision_ver, GFMRV_COLLISION_NOT_TRIGGERED);
     
     // If an object is static, get the other one
     if (pOther->isFixed) {

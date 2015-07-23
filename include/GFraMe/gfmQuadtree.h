@@ -145,9 +145,27 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
 gfmRV gfmQuadtree_populateSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
 
 gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
+
+/**
+ * Return both objects that overlaped
+ * 
+ * @param  ppObj1 A object that just overlapped another
+ * @param  ppObj2 A object that just overlapped another
+ * @param  pCtx   The quadtree's root
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NO_OVERLAP
+ */
 gfmRV gfmQuadtree_getOverlaping(gfmObject **ppObj1, gfmObject **ppObj2,
         gfmQuadtreeRoot *pCtx);
+
+/**
+ * Continue colliding and adding the node to the quadtree
+ * 
+ * @param  pCtx The quadtree's root
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE,
+ *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
+ */
 gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx);
+
 gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx);
 
 #endif /* __GFMQUADTREE_H__ */

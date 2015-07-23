@@ -1502,6 +1502,10 @@ gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index) {
     
     // Get the animation
     pAnim = gfmGenArr_getObject(pCtx->pAnimations, index);
+    
+    // Don't re-play the animation
+    ASSERT(pAnim != pCtx->pCurAnim, GFMRV_OK);
+    
     // Reset it
     rv = gfmAnimation_reset(pAnim);
     ASSERT_NR(rv == GFMRV_OK);

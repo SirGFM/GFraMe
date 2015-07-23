@@ -746,6 +746,10 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     // Check if initialized
     ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
     
+    // Check that the object overlaps the root node
+    rv = gfmQuadtree_overlap(pCtx->pSelf, pObj);
+    ASSERT(rv == GFMRV_TRUE, GFMRV_OK);
+    
     // Clear the call stack
     pCtx->stack.pushPos = 0;
     // Clear any previous overlap
@@ -756,7 +760,7 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Continue adding the object
-    while (pCtx->stack.len > 0) {
+    while (pCtx->stack.pushPos > 0) {
         gfmQuadtree *pNode;
         
         // Pop the current node
@@ -773,7 +777,7 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
                 // Get the current child
                 pChild = pNode->ppChildren[i];
                 // Check if the object overlaps this node
-                rv = gfmQuadtree_overlap(pChild, pCtx->pObject);
+                rv = gfmQuadtree_overlap(pChild, pObj);
                 if (rv == GFMRV_TRUE) {
                     // Push it (so it will collide later)
                     rv = gfmQuadtree_pushNode(pCtx, pChild);
@@ -796,13 +800,13 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
             }
             else {
                 // Add the object to this node 
-                rv = gfmQuadtree_insertObject(pCtx, pNode, pCtx->pObject);
+                rv = gfmQuadtree_insertObject(pCtx, pNode, pObj);
                 ASSERT_NR(rv == GFMRV_OK);
             }
         }
     }
     
-    rv = GFMRV_QUADTREE_DONE;
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }
@@ -860,7 +864,7 @@ __ret:
 }
 
 /**
- * Adds a node to the quadtree
+ * Continue colliding and adding the node to the quadtree
  * 
  * @param  pCtx The quadtree's root
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE,
@@ -875,7 +879,7 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
     ASSERT(pCtx->pObject, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
     
     // Continue adding the object
-    while (pCtx->stack.len > 0 || pCtx->pColliding) {
+    while (pCtx->stack.pushPos > 0 || pCtx->pColliding) {
         gfmQuadtree *pNode;
         
         // If we were colliding againts objects
