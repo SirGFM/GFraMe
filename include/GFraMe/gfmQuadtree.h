@@ -166,7 +166,20 @@ gfmRV gfmQuadtree_getOverlaping(gfmObject **ppObj1, gfmObject **ppObj2,
  */
 gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx);
 
-gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx);
+/**
+ * Draw the quadtree to the screen; Colors are configured accordingly to the
+ * object's type (therefore, there are 20 basic colors and a default one)
+ * NOTE: This functions will be most likely slow!! Be careful when calling it!
+ * 
+ * @param  pQt     The quadtree's root
+ * @param  pCtx    The game's context
+ * @param  pColors The colors to be used; Must have 21 colors, each with RGB
+ *                 components; The first set is for quadtree nodes, while the
+ *                 others respect the types on gfmTypes.h
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
+        unsigned char *pColors);
 
 #endif /* __GFMQUADTREE_H__ */
 

@@ -461,6 +461,54 @@ __ret:
 }
 
 /**
+ * Renders a rectangle (only its vertices);
+ * NOTE: This function isn't guaranteed to be fast, so use it wisely
+ * 
+ * @param  pCtx   The game's context
+ * @param  x      Top-left position, in screen-space
+ * @param  y      Top-left position, in screen-space
+ * @param  width  Rectangle's width
+ * @param  height Rectangle's height
+ * @param  red    Color's red component
+ * @param  green  Color's green component
+ * @param  blue   Color's blue component
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawRect(gfmBackbuffer *pCtx, int x, int y, int width,
+        int height, unsigned char red, unsigned char green, unsigned char blue){
+    gfmRV rv;
+    int irv;
+    SDL_Rect rect;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    // Check that the rectangle is inside the screen
+    ASSERT(x > 0 || x + width > 0, GFMRV_OK);
+    ASSERT(y > 0 || y + height > 0, GFMRV_OK);
+    ASSERT(x < pCtx->bbufWidth || x + width < pCtx->bbufWidth, GFMRV_OK);
+    ASSERT(y < pCtx->bbufHeight || y + height < pCtx->bbufHeight, GFMRV_OK);
+    
+    // Set the rect's dimensions
+    rect.x = x;
+    rect.y = y;
+    rect.w = width;
+    rect.h = height;
+    
+    // Set the color to render it
+    irv = SDL_SetRenderDrawColor(pCtx->pRenderer, red, green, blue, 0xff);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RenderDrawRect(pCtx->pRenderer, &rect);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Render the current frame to the screen
  * 
  * @param  pCtx The backbuffer

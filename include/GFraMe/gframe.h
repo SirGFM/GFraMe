@@ -752,6 +752,24 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
 gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
 
 /**
+ * Renders a rectangle (only its vertices);
+ * NOTE: This function isn't guaranteed to be fast, so use it wisely
+ * 
+ * @param  pCtx   The game's context
+ * @param  x      Top-left position, in world-space
+ * @param  y      Top-left position, in world-space
+ * @param  width  Rectangle's width
+ * @param  height Rectangle's height
+ * @param  red    Color's red component
+ * @param  green  Color's green component
+ * @param  blue   Color's blue component
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
+        unsigned char red, unsigned char green, unsigned char blue);
+
+/**
  * Finalize a batch of renders (i.e., render many sprites in a single draw call)
  * 
  * @param  pCtx  The game's context

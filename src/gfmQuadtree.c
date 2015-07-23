@@ -32,9 +32,36 @@
 #include <GFraMe/gfmQuadtree.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmTilemap.h>
+#include <GFraMe/gfmTypes.h>
 
 #include <stdlib.h>
 #include <string.h>
+
+static unsigned char gfmQt_defColors[(gfmType_max + 1) * 3] =
+{
+/* red ,green, blue */
+  0x72 ,0xab , 0x97,  /* quadtree_node */
+  0x8c ,0x7a , 0xae,  /* gfmType_object */
+  0xff ,0xf4 , 0xaa,  /* gfmType_sprite */
+  0xff ,0xc6 , 0xaa,  /* gfmType_tilemap */
+  0x47 ,0x8e , 0x75,  /* gfmType_group */
+  0x67 ,0x50 , 0x91,  /* gfmType_reserved_2 */
+  0xd4 ,0xc7 , 0x6a,  /* gfmType_reserved_3 */
+  0xd4 ,0x8d , 0x6a,  /* gfmType_reserved_4 */
+  0x26 ,0x72 , 0x57,  /* gfmType_reserved_5 */
+  0xff ,0xff , 0xff,  /* gfmType_reserved_6 */
+  0x47 ,0x2e , 0x74,  /* gfmType_reserved_7 */
+  0xaa ,0x9c , 0x39,  /* gfmType_reserved_8 */
+  0xaa ,0x5d , 0x39,  /* gfmType_reserved_9 */
+  0x0e ,0x55 , 0x3c,  /* gfmType_reserved_10 */
+  0x2d ,0x16 , 0x57,  /* gfmType_reserved_11 */
+  0x80 ,0x72 , 0x15,  /* gfmType_reserved_12 */
+  0x80 ,0x38 , 0x15,  /* gfmType_reserved_13 */
+  0x00 ,0x39 , 0x26,  /* gfmType_reserved_14 */
+  0x18 ,0x06 , 0x3a,  /* gfmType_reserved_15 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_16 */
+  0x55 ,0x1c , 0x00,  /* gfmType_max */
+};
 
 /** Quadtree node type */
 typedef struct stGFMQuadtree gfmQuadtree;
@@ -237,7 +264,7 @@ static gfmRV gfmQuadtree_init(gfmQuadtree *pCtx, gfmQuadtree *pParent,
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pParent, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pos > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pos >= gfmQT_nw, GFMRV_ARGUMENTS_BAD);
     ASSERT(pos < gfmQT_max, GFMRV_ARGUMENTS_BAD);
     
     // Clear all children
@@ -410,13 +437,19 @@ static gfmRV gfmQuadtree_overlap(gfmQuadtree *pCtx, gfmObject *pObj) {
     hHeight = hHeight / 2 + (hHeight % 2);
     
     // Check that they are overlaping (horizontally)
-    dist = cX + hWidth - pCtx->centerX - pCtx->halfWidth;
+    dist = cX - pCtx->centerX;
+    if (dist < 0) {
+        dist = -dist;
+    }
     maxDist = hWidth + pCtx->halfWidth;
-    ASSERT(dist < maxDist, GFMRV_FALSE);
+    ASSERT(dist <= maxDist, GFMRV_FALSE);
     // Check vertically...
-    dist = cY + hHeight - pCtx->centerY - pCtx->halfHeight;
+    dist = cY - pCtx->centerY;
+    if (dist < 0) {
+        dist = -dist;
+    }
     maxDist = hHeight + pCtx->halfHeight;
-    ASSERT(dist < maxDist, GFMRV_FALSE);
+    ASSERT(dist <= maxDist, GFMRV_FALSE);
     
     rv = GFMRV_TRUE;
 __ret:
@@ -789,7 +822,7 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
         else {
             // Check if adding the node will subdivide the tree and if it
             // can still be subdivided
-            if (pNode->numObjects + 1 >= pCtx->maxNodes &&
+            if (pNode->numObjects + 1 > pCtx->maxNodes &&
                     pNode->depth + 1 < pCtx->maxDepth) {
                 // Subdivide the tree
                 rv = gfmQuadtree_subdivide(pCtx, pNode);
@@ -925,7 +958,7 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
             else {
                 // Check if adding the node will subdivide the tree and if it
                 // can still be subdivided
-                if (pNode->numObjects + 1 >= pCtx->maxNodes &&
+                if (pNode->numObjects + 1 > pCtx->maxNodes &&
                         pNode->depth + 1 < pCtx->maxDepth) {
                     // Subdivide the tree
                     rv = gfmQuadtree_subdivide(pCtx, pNode);
@@ -953,5 +986,122 @@ __ret:
     return rv;
 }
 
-gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx);
+/**
+ * Draw the quadtree to the screen; Colors are configured accordingly to the
+ * object's type (therefore, there are 20 basic colors and a default one)
+ * NOTE: This functions will be most likely slow!! Be careful when calling it!
+ * 
+ * @param  pQt     The quadtree's root
+ * @param  pCtx    The game's context
+ * @param  pColors The colors to be used; Must have 21 colors, each with RGB
+ *                 components; The first set is for quadtree nodes, while the
+ *                 others respect the types on gfmTypes.h
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
+        unsigned char *pColors) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pQt, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // If no color was set, use the default ones
+    if (pColors == 0) {
+        pColors = gfmQt_defColors;
+    }
+    
+    // Clear the call stack
+    pQt->stack.pushPos = 0;
+    
+    // Push the root node to start colliding
+    rv = gfmQuadtree_pushNode(pQt, pQt->pSelf);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Iterate through all nodes
+    while (pQt->stack.pushPos > 0 || pQt->pColliding) {
+        gfmQuadtree *pNode;
+        unsigned char *pNodeColor;
+        
+        // Pop the current node
+        rv = gfmQuadtree_popNode(&pNode, pQt);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Get the colors for the qt node
+        pNodeColor = pColors;
+        // Draw the current node
+        rv = gfm_drawRect(pCtx, pNode->centerX - pNode->halfWidth,
+                pNode->centerY - pNode->halfHeight, pNode->halfWidth * 2,
+                pNode->halfHeight * 2, pNodeColor[0], pNodeColor[1],
+                pNodeColor[2]);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // If it has children, push its children
+        if (pNode->ppChildren[gfmQT_nw]) {
+            gfmQuadtreePosition i;
+            gfmQuadtree *pChild;
+
+            i = gfmQT_nw;
+            while (i < gfmQT_max) {
+                // Get the current child
+                pChild = pNode->ppChildren[i];
+                // Push it (so it will be drawn later)
+                rv = gfmQuadtree_pushNode(pQt, pChild);
+                ASSERT_NR(rv == GFMRV_OK);
+                i++;
+            }
+        }
+        else {
+            gfmQuadtreeLL *pTmp;
+            
+            // Otherwise, draw its nodes
+            pTmp = pNode->pNodes;
+            
+            while (pTmp) {
+                int height, type, width, x, y;
+                void *pChild;
+                
+                // Get the object's child
+                rv = gfmObject_getChild(&pChild, &type, pTmp->pSelf);
+                ASSERT_NR(rv == GFMRV_OK);
+                if (type == gfmType_sprite) {
+                    rv = gfmSprite_getChild(&pChild, &type, (gfmSprite*)pChild);
+                    ASSERT_NR(rv == GFMRV_OK);
+                    
+                    if (type == gfmType_none) {
+                        // If no custom type was specified, set it to sprite
+                        type = gfmType_sprite;
+                    }
+                }
+                else if (type == gfmType_none) {
+                    // If no custom type was specified, set it to object
+                    type = gfmType_object;
+                }
+                
+                // Get the object's color
+                if (type >= gfmType_max)
+                    type = gfmType_max;
+                pNodeColor = pColors + type * 3;
+                
+                // Get the object's position
+                rv = gfmObject_getPosition(&x, &y, pTmp->pSelf);
+                ASSERT_NR(rv == GFMRV_OK);
+                // Get the object's dimensions
+                rv = gfmObject_getDimensions(&width, &height, pTmp->pSelf);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                // Draw the current node
+                rv = gfm_drawRect(pCtx, x, y, width, height, pNodeColor[0],
+                        pNodeColor[1], pNodeColor[2]);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                pTmp = pTmp->pNext;
+            }
+        }
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 

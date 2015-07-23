@@ -2090,6 +2090,51 @@ __ret:
 gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
 
 /**
+ * Renders a rectangle (only its vertices);
+ * NOTE: This function isn't guaranteed to be fast, so use it wisely
+ * 
+ * @param  pCtx   The game's context
+ * @param  x      Top-left position, in world-space
+ * @param  y      Top-left position, in world-space
+ * @param  width  Rectangle's width
+ * @param  height Rectangle's height
+ * @param  red    Color's red component
+ * @param  green  Color's green component
+ * @param  blue   Color's blue component
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
+        unsigned char red, unsigned char green, unsigned char blue) {
+    gfmRV rv;
+    int camX, camY;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the backbuffer was initialized
+    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    
+    // Get the camera's position
+    rv = gfm_getCameraPosition(&camX, &camY, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Convert the position from world-space to screen-space
+    x -= camX;
+    y -= camY;
+    
+    // Draw the rectangle
+    rv = gfmBackbuffer_drawRect(pCtx->pBackbuffer, x, y, width, height, red,
+            green, blue);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Finalize a batch of renders (i.e., render many sprites in a single draw call)
  * 
  * @param  pCtx  The game's context

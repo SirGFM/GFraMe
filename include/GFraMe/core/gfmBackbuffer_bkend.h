@@ -148,6 +148,24 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
         int y, int tile);
 
 /**
+ * Renders a rectangle (only its vertices);
+ * NOTE: This function isn't guaranteed to be fast, so use it wisely
+ * 
+ * @param  pCtx   The game's context
+ * @param  x      Top-left position, in screen-space
+ * @param  y      Top-left position, in screen-space
+ * @param  width  Rectangle's width
+ * @param  height Rectangle's height
+ * @param  red    Color's red component
+ * @param  green  Color's green component
+ * @param  blue   Color's blue component
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfmBackbuffer_drawRect(gfmBackbuffer *pCtx, int x, int y, int width,
+        int height, unsigned char red, unsigned char green, unsigned char blue);
+
+/**
  * Render the current frame to the screen
  * 
  * @param  pCtx The backbuffer

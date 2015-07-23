@@ -145,7 +145,12 @@ int main(int arg, char *argv[]) {
             ASSERT_NR(rv == GFMRV_OK);
             
             // Initialize the root of the quadtree
-            rv = gfmQuadtree_initRoot(pQTRoot, -16, -16, WNDW+32, WNDH+32, 2, 4);
+            //rv = gfmQuadtree_initRoot(pQTRoot, -16, -16, WNDW+32, WNDH+32, 2, 4);
+            //ASSERT_NR(rv == GFMRV_OK);
+            
+            // These parameters forces the qt to be subdivided even with 2 objs
+            // Also, it's a little smaller than the screen to be visible
+            rv = gfmQuadtree_initRoot(pQTRoot, 2, 2, WNDW-4, WNDH-4, 2, 1);
             ASSERT_NR(rv == GFMRV_OK);
             // Populate the quadtree with the object
             rv = gfmQuadtree_populateObject(pQTRoot, pObj);
@@ -209,6 +214,10 @@ int main(int arg, char *argv[]) {
             
             // Draw the sprite
             rv = gfmSprite_draw(pSpr, pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            // Draw the quadtree's bounds
+            rv = gfmQuadtree_drawBounds(pQTRoot, pCtx, 0);
             ASSERT_NR(rv == GFMRV_OK);
             
             rv = gfm_drawEnd(pCtx);
