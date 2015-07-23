@@ -1,7 +1,7 @@
 /**
- * @file tst/gframe_group_tst.c
+ * @file tst/gframe_quadtree_basic_tst.c
  * 
- * Simple test with group
+ * Basic quadtree test
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>

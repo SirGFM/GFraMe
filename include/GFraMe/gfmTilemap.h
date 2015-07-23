@@ -28,6 +28,7 @@ typedef struct stGFMTilemap gfmTilemap;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 
 /** 'Exportable' size of gfmTilemap */
@@ -107,11 +108,42 @@ gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen, int mapWidth,
 gfmRV gfmTilemap_loadf(gfmTilemap *pCtx, char *pFilename, int filenameLen);
 #define gfmTilemap_loadfStatic(pCtx, pFilename) \
     gfmTilemap_loadf(pCtx, pFilename, sizeof(pFilename)-1)
+
+/**
+ * Adds a single rectangular area of a given type
+ * 
+ * @param  pCtx   The tilemap
+ * @param  x      The area top-left position
+ * @param  y      The area to-left position
+ * @param  width  The area width
+ * @param  height The area height
+ * @param  type   The area type (i.e., the gfmObject's child type)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
         int height, int type);
 gfmRV gfmTilemap_addAreas(gfmTilemap *pCtx, int *pData, int dataLen);
 #define gfmTilemap_addAreasStatic(pCtx, pData) \
     gfmTilemap_addAreasStatic(pCtx, pData, (int)(sizeof(pData) / sizeof(int)))
+
+/**
+ * Get how many areas there are in the tilemap
+ * 
+ * @param  pLen The number of areas
+ * @param  pCtx The tilemap
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_getAreasLength(int *pLen, gfmTilemap *pCtx);
+
+/**
+ * Get an area from the tilemap
+ * 
+ * @param  ppObj The retrieved area
+ * @param  pCtx  The tilemap
+ * @param  i     Index of the desired area
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfmTilemap_getArea(gfmObject **ppObj, gfmTilemap *pCtx, int i);
 
 /**
  * Add a two frames animation (i.e., from one tile to another)

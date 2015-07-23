@@ -21,6 +21,7 @@
 #include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmTilemap.h>
+#include <GFraMe/gfmTypes.h>
 #include <GFraMe_int/gfmTileAnimation.h>
 #include <GFraMe_int/gfmTileType.h>
 
@@ -240,9 +241,99 @@ __ret:
     return rv;
 }
 
+/**
+ * Adds a single rectangular area of a given type; Every object is set as fixed,
+ * but if collision is not desired, simply don't call gfmObject_separate*
+ * 
+ * @param  pCtx   The tilemap
+ * @param  x      The area top-left position
+ * @param  y      The area to-left position
+ * @param  width  The area width
+ * @param  height The area height
+ * @param  type   The area type (i.e., the gfmObject's child type)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
         int height, int type) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmObject *pObj;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(x >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(y >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    // The type must be something not used by the lib
+    ASSERT(type >= gfmType_reserved_2, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve a gfmObject from the pool
+    gfmGenArr_getNextRef(gfmObject, pCtx->pAreas, 1/*INC*/, pObj,
+            gfmObject_getNew);
+    
+    // Initialize it with the given parameters; Since this only represents an
+    // area, the child is NULL but it has a custom subtype
+    rv = gfmObject_init(pObj, x, y, width, height, 0/*pChild*/, type);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Set the area as fixed, in case the user wants to collide against it
+    rv = gfmObject_setFixed(pObj);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Actually push the object, now that it was initialized
+    gfmGenArr_push(pCtx->pAreas);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many areas there are in the tilemap
+ * 
+ * @param  pLen The number of areas
+ * @param  pCtx The tilemap
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_getAreasLength(int *pLen, gfmTilemap *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+    
+    // Retrieve the array length
+    *pLen = gfmGenArr_getUsed(pCtx->pAreas);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get an area from the tilemap
+ * 
+ * @param  ppObj The retrieved area
+ * @param  pCtx  The tilemap
+ * @param  i     Index of the desired area
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+gfmRV gfmTilemap_getArea(gfmObject **ppObj, gfmTilemap *pCtx, int i) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppObj, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the index is valid
+    ASSERT(i < gfmGenArr_getUsed(pCtx->pAreas), GFMRV_INVALID_INDEX);
+    
+    // Retrieve the object
+    *ppObj = gfmGenArr_getObject(pCtx->pAreas, i);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -480,7 +571,9 @@ __ret:
 }
 
 /**
- * Add a tile type, used when automatically generating areas
+ * Add a tile type, used when automatically generating areas; Note that the
+ * type must be an integer greater or equal to gfmType_reserved_2 (from
+ * gfmTypes.h);
  * 
  * @param  pCtx The tilemap
  * @param  tile The tile
@@ -495,6 +588,8 @@ gfmRV gfmTilemap_addTileType(gfmTilemap *pCtx, int tile, int type) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    // The type must be something not used by the lib
+    ASSERT(type >= gfmType_reserved_2, GFMRV_ARGUMENTS_BAD);
     
     // TODO Check if the tile is already in the array
     

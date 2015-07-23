@@ -144,6 +144,13 @@ gfmRV gfmQuadtree_populateObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj);
  */
 gfmRV gfmQuadtree_populateSprite(gfmQuadtreeRoot *pCtx, gfmSprite *pSpr);
 
+/**
+ * Populates a quadtree with tilemap's areas
+ * 
+ * @param  pCtx  The quadtree's root
+ * @param  pTMap The tilemap
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ */
 gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
 
 /**

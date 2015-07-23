@@ -866,7 +866,45 @@ __ret:
     return rv;
 }
 
-gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap);
+/**
+ * Populates a quadtree with tilemap's areas
+ * 
+ * @param  pCtx  The quadtree's root
+ * @param  pTMap The tilemap
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ */
+gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap) {
+    gfmRV rv;
+    int i, len;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pTMap, GFMRV_ARGUMENTS_BAD);
+    
+    // Get how many areas there are
+    rv = gfmTilemap_getAreasLength(&len, pTMap);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Add every object
+    i = 0;
+    while (i < len) {
+        gfmObject *pObj;
+        
+        // Retrieve the object
+        rv = gfmTilemap_getArea(&pObj, pTMap, i);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Add it to the quadtree
+        rv = gfmQuadtree_populateObject(pCtx, pObj);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        i++;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Return both objects that overlaped
