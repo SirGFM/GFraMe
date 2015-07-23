@@ -761,7 +761,16 @@ gfmRV gfmQuadtree_collideTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
-gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp);
+/**
+ * Populates a quadtree with a group's objects
+ * 
+ * @param  pCtx The quadtree's root
+ * @param  pGrp The tilemap
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ */
+gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
 
 /**
  * Add an object to the quadtree without collinding it against the tree's objs
@@ -871,7 +880,7 @@ __ret:
  * 
  * @param  pCtx  The quadtree's root
  * @param  pTMap The tilemap
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
  */
 gfmRV gfmQuadtree_populateTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap) {
     gfmRV rv;
