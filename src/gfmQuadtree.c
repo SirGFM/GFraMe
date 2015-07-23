@@ -499,7 +499,7 @@ static gfmRV gfmQuadtree_subdivide(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode) {
             // Get the current child
             pChild = pNode->ppChildren[i];
             // Check if the object collides this node
-            rv = gfmQuadtree_overlap(pChild, pCtx->pObject);
+            rv = gfmQuadtree_overlap(pChild, pTmp->pSelf);
             if (rv == GFMRV_TRUE) {
                 // Add it to the child
                 rv = gfmQuadtree_insertObject(pCtx, pChild, pTmp->pSelf);
@@ -638,13 +638,13 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     pCtx->pOther = 0;
     
     // Check that the stack is big enough
-    if (pCtx->stack.len < maxNodes * gfmQT_max) {
+    if (pCtx->stack.len < maxDepth * gfmQT_max) {
         // Expand the stack so it's big enough
         pCtx->stack.ppStack = (gfmQuadtree**)realloc(pCtx->stack.ppStack,
-                sizeof(gfmQuadtree*) * maxNodes * gfmQT_max);
+                sizeof(gfmQuadtree*) * maxDepth * gfmQT_max);
         ASSERT(pCtx->stack.ppStack, GFMRV_ALLOC_FAILED);
         // Set the stack's size
-        pCtx->stack.len = maxNodes * gfmQT_max;
+        pCtx->stack.len = maxDepth * gfmQT_max;
     }
     // Clear the stack
     pCtx->stack.pushPos = 0;

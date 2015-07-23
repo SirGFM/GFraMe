@@ -326,6 +326,7 @@ gfmRV gfmTilemap_getArea(gfmObject **ppObj, gfmTilemap *pCtx, int i) {
     ASSERT(ppObj, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the index is valid
+    ASSERT(i >= 0, GFMRV_INVALID_INDEX);
     ASSERT(i < gfmGenArr_getUsed(pCtx->pAreas), GFMRV_INVALID_INDEX);
     
     // Retrieve the object
@@ -737,6 +738,9 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
     // Get the tile's dimension
     rv = gfmSpriteset_getDimension(&width, &height, pCtx->pSset);
     ASSERT_NR(rv == GFMRV_OK);
+    // Get the tile's center
+    x = width * x + width / 2;
+    y = height * y + height / 2;
     
     // Iterate the array, checking every tile
     i = 0;
@@ -747,7 +751,7 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
         pObj = gfmGenArr_getObject(pCtx->pAreas, i);
         
         // Check if the tiles is inside this object
-        rv = gfmObject_isPointInside(pObj, x + width / 2, y + height / 2);
+        rv = gfmObject_isPointInside(pObj, x, y);
         ASSERT_NR(rv == GFMRV_FALSE);
         
         i++;
@@ -805,9 +809,13 @@ gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
         // Get the next tile's type
         rv = gfmTilemap_getTileType(&nextType, pCtx,
                 pCtx->pData[tileIndex + i]);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE);
         // Stop if it's a different type of tile
-        if (nextType != type)
+        if (nextType != type || rv == GFMRV_TILEMAP_NO_TILETYPE)
+            break;
+        // Also check that this new tile doesn't belong to another area
+        rv = gfmTilemap_isTileInAnyArea(pCtx, tileIndex + i);
+        if (rv == GFMRV_TRUE)
             break;
         
         i++;
@@ -826,10 +834,16 @@ gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
             // Get the next tile's type
             rv = gfmTilemap_getTileType(&nextType, pCtx,
                     pCtx->pData[tileIndex + i + j * pCtx->widthInTiles]);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE);
             // Stop if it's a different type of tile
-            if (nextType != type)
+            if (nextType != type || rv == GFMRV_TILEMAP_NO_TILETYPE)
                 break;
+            // Also check that this new tile doesn't belong to another area
+            rv = gfmTilemap_isTileInAnyArea(pCtx,
+                    tileIndex + i + j * pCtx->widthInTiles);
+            if (rv == GFMRV_TRUE)
+                break;
+            
             j++;
         }
         // If this 'column' is shorter than the previous, update the height
@@ -887,8 +901,8 @@ gfmRV gfmTilemap_recalculateAreas(gfmTilemap *pCtx) {
         if (rv == GFMRV_TILEMAP_NO_TILETYPE)
             continue;
         // Check if the tile is already inside an area
-        rv = gfmTilemap_isTileInAnyArea(pCtx, tile);
-        if (rv == GFMRV_FALSE)
+        rv = gfmTilemap_isTileInAnyArea(pCtx, i);
+        if (rv == GFMRV_TRUE)
             continue;
         
         // Then, get this area's bounds

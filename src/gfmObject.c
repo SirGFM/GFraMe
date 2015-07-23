@@ -1331,8 +1331,10 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(delta <= maxWidth && delta >= -maxWidth, GFMRV_FALSE);
     // Check that they weren't overlaping previous frame; or they just moved
     delta = lsx - lox;
-    if (delta >= maxWidth || delta <= -maxWidth || pSelf->justMoved
-            || pOther->justMoved) {
+    // TODO Fix 'justMoved', as it bugs on self collision
+    //if (delta >= maxWidth || delta <= -maxWidth || pSelf->justMoved
+    //        || pOther->justMoved) {
+    if (delta >= maxWidth || delta <= -maxWidth) {
         // Check their relative position and set the collision results
         if (pSelf->x < pOther->x) {
             // pSelf is to the left, so it collided on its right
@@ -1351,8 +1353,10 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(delta <= maxHeight && delta >= -maxHeight, GFMRV_FALSE);
     // Check that they weren't overlaping previous frame; or they just moved
     delta = lsy - loy;
-    if (delta >= maxHeight || delta <= -maxHeight || pSelf->justMoved
-            || pOther->justMoved) {
+    // TODO Fix 'justMoved', as it bugs on self collision
+    // if (delta >= maxHeight || delta <= -maxHeight || pSelf->justMoved
+    //        || pOther->justMoved) {
+    if (delta >= maxHeight || delta <= -maxHeight) {
         // Check their relative position and set the collision results
         if (pSelf->y < pOther->y) {
             // pSelf is above, so it collided bellow
