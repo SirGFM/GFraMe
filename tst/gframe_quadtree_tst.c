@@ -79,6 +79,7 @@ int main(int arg, char *argv[]) {
     pCtx = 0;
     pQTRoot = 0;
     pSpr = 0;
+    pTMap = 0;
     
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
