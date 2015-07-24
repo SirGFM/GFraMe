@@ -9,6 +9,11 @@ CC = gcc
   MAJOR_VERSION := 1
   MINOR_VERSION := 0
   REV_VERSION := 0
+# If the DEBUG flag was set, generate another binary (so it doesn't collide
+# with the release one)
+  ifeq ($(DEBUG), yes)
+    TARGET := $(TARGET)_dbg
+  endif
 #==============================================================================
 
 #==============================================================================
@@ -190,7 +195,30 @@ CC = gcc
 #==============================================================================
 # Define default compilation rule
 #==============================================================================
-all: static shared tests
+all: static tests
+	date
+#==============================================================================
+
+#==============================================================================
+# Define the release rule, to compile everything on RELEASE mode (it's done in
+# quite an ugly way.... =/)
+#==============================================================================
+release: MAKEDIRS
+	# Remove all old binaries
+	make clean
+	# Compile everything in release mode
+	make RELEASE=yes static
+	make RELEASE=yes shared
+	make RELEASE=yes optmized
+	# Remove all debug info from the binaries
+	strip $(BINDIR)/$(TARGET).a
+	strip $(BINDIR)/$(TARGET).$(MNV)
+	strip $(BINDIR)/$(TARGET)_opt.$(MNV)
+	# Delete all .o to recompile as debug
+	rm -f $(OBJS)
+	# Recompile the lib with debug info
+	make DEBUG=yes static
+	make DEBUG=yes shared
 	date
 #==============================================================================
 
@@ -215,29 +243,47 @@ tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 # Rule for installing the library
 #==============================================================================
-install: static shared
+ifeq ($(OS), Win)
+  install: release
+	echo "-- TODO --"
+else
+  install: release
 	# Create destiny directories
 	mkdir -p $(LIBPATH)/GFraMe
 	mkdir -p $(HEADERPATH)/GFraMe
-	# Copy the shared lib
-	cp -f $(BINDIR)/$(TARGET).$(MJV) $(LIBPATH)/GFraMe
-	cp -f $(BINDIR)/$(TARGET).$(MNV) $(LIBPATH)/GFraMe
-	cp -f $(BINDIR)/$(TARGET).$(SO) $(LIBPATH)/GFraMe
+	# Copy every shared lib (normal, optmized and debug)
+	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
+	# -P = don't follow sym-link
+	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
+	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)/GFraMe
 	# Copy the static lib
 	cp -f $(BINDIR)/$(TARGET).a $(LIBPATH)/GFraMe
 	# Copy the headers
 	cp -rf ./include/GFraMe/* $(HEADERPATH)/GFraMe
 	# Make the lib be automatically found
 	echo "$(LIBPATH)/GFraMe" > /etc/ld.so.conf.d/gframe.conf
+	# Update the paths
+	ldconfig
+endif
 #==============================================================================
 
 #==============================================================================
 # Rule for uninstalling the library
 #==============================================================================
-uninstall:
+ifeq ($(OS), Win)
+  uninstall:
+	echo "-- TODO --"
+else
+  uninstall:
 	# Remove the libraries
-	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MJV)
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MNV)
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MJV)
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(SO)
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MNV) 
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MJV) 
+	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(SO) 
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MNV)
+	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MJV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(SO)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).a
 	# Remove the headers
@@ -247,6 +293,9 @@ uninstall:
 	rmdir $(HEADERPATH)/GFraMe
 	# Remove the lib from the default path
 	rm /etc/ld.so.conf.d/gframe.conf
+	# Update the paths
+	ldconfig
+endif
 #==============================================================================
 
 #==============================================================================
@@ -267,10 +316,10 @@ ifeq ($(OS), Win)
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 else
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV) $(TARGET).$(SO)
+	rm -f $(BINDIR)/$(TARGET).$(MNV) $(BINDIR)/$(TARGET).$(SO)
 	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-	ldconfig -n $(BINDIR)
+	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
 endif
 #==============================================================================
@@ -284,8 +333,11 @@ ifeq ($(OS), Win)
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
 else
   optmized:
+	rm -f $(BINDIR)/$(TARGET)_opt.$(MNV) $(BINDIR)/$(TARGET)_opt.$(SO)
 	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
+	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MNV) $(TARGET)_opt.$(MJV)
+	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MJV) $(TARGET)_opt.$(SO)
 endif
 #==============================================================================
 
@@ -327,9 +379,9 @@ $(OBJDIR):
 clean:
 	rm -f $(OBJS)
 	rm -f $(TEST_BIN)
-	rm -f $(BINDIR)/$(TARGET).$(MJV)
-	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	rm -f $(BINDIR)/$(TARGET).$(SO)
+	rm -f $(BINDIR)/$(TARGET)*.$(MJV)
+	rm -f $(BINDIR)/$(TARGET)*.$(MNV)
+	rm -f $(BINDIR)/$(TARGET)*.$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
 
 mostlyclean: clean
