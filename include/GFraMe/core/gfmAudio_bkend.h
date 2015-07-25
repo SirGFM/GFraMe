@@ -48,7 +48,7 @@ enum enGFMAudioQuality {
     gfmAudio_medQuality  = gfmAudio_stereo | gfmAudio_medFreq,
     gfmAudio_highQuality = gfmAudio_5      | gfmAudio_highFreq
 };
-typedef enum entGFMAudioQuality gfmAudioQuality;
+typedef enum enGFMAudioQuality gfmAudioQuality;
 
 /**
  * Alloc a new gfmAudioCtx
@@ -99,11 +99,11 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
         int filenameLen);
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
-gfmRV gfmAudio_playAudio(gfmAudioHandle **ppCtx, gfmAudio *pCtx, int handle
+gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
         , int volume);
-gfmRV gfmAudio_stopAudio(gfmAudioHandle **ppCtx, gfmAudio *pCtx);
-gfmRV gfmAudio_pauseAudio(gfmAudioHandle *pCtx, gfmAudio *pCtx);
-gfmRV gfmAudio_resumeAudio(gfmAudioHandle *pCtx, gfmAudio *pCtx);
+gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd);
+gfmRV gfmAudio_pauseAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
+gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
 gfmRV gfmAudio_setHandleVolume(gfmAudioHandle *pCtx, int volume);
 
 gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx);

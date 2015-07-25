@@ -131,6 +131,9 @@ enum enGFMError {
     GFMRV_QUADTREE_DONE,
     GFMRV_QUADTREE_EMPTY,
     GFMRV_QUADTREE_STACK_OVERFLOW,
+    // Audio error
+    GFMRV_AUDIO_ALREADY_INITIALIZED,
+    GFMRV_AUDIO_NOT_INITIALIZED,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
