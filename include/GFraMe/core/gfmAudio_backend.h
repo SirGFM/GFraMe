@@ -31,9 +31,68 @@ typedef struct stGFMAudioHandle gfmAudioHandle;
 
 #include <GFraMe/gfmError.h>
 
-gfmRV gfmAudio_initSubsystem(gfmAudioCtx **ppCtx);
-gfmRV gfmAudio_closeSubSystem(gfmAudioCtx **ppCtx);
+/** Custom quality settings */
+enum enGFMAudioQuality {
+    /** Possibles number of channeles */
+    gfmAudio_stereo      = 0x000000,
+    gfmAudio_mono        = 0x000001,
+    gfmAudio_5           = 0x000002,
+    /** Possible sample rates         */
+    gfmAudio_defFreq     = 0x000000,
+    gfmAudio_lowFreq     = 0x000010,
+    gfmAudio_medFreq     = 0x000020,
+    gfmAudio_highFreq    = 0x000040,
+    /** Default settings              */
+    gfmAudio_defQuality  = gfmAudio_stereo | gfmAudio_defFreq,
+    gfmAudio_lowQuality  = gfmAudio_mono   | gfmAudio_lowFreq,
+    gfmAudio_medQuality  = gfmAudio_stereo | gfmAudio_medFreq,
+    gfmAudio_highQuality = gfmAudio_5      | gfmAudio_highFreq
+};
+typedef enum entGFMAudioQuality gfmAudioQuality;
+
+/**
+ * Alloc a new gfmAudioCtx
+ * 
+ * @param  ppCtx The audio context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmAudio_getNew(gfmAudioCtx **ppCtx);
+
+/**
+ * Frees (and close, if it was initialized) the audio context
+ * 
+ * @param  ppCtx The audio context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmAudio_Free(gfmAudioCtx **ppCtx);
+
+/**
+ * Initialize the audio subsystem
+ * 
+ * @param  pCtx    The audio context
+ * @param  setting The desired audio settings
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                 GFMRV_AUDIO_ALREADY_INITIALIZED, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings);
+
+gfmRV gfmAudio_closeSubSystem(gfmAudioCtx *pCtx);
+
+/**
+ * Stop the audio system, if it was playing
+ * 
+ * @param  pCtx The audio context
+ * @return      GFMRV_OK, GFMRV_ARUMGENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
 gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx);
+
+/**
+ * Pauses the audio system; It will restart playing as soon as a new audio is
+ * played or gfmAudio_resumeSubSystem is called
+ * 
+ * @param  pCtx The audio context
+ * @return      GFMRV_OK, GFMRV_ARUMGENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
 gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx);
 
 gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
@@ -46,6 +105,10 @@ gfmRV gfmAudio_stopAudio(gfmAudioHandle **ppCtx, gfmAudio *pCtx);
 gfmRV gfmAudio_pauseAudio(gfmAudioHandle *pCtx, gfmAudio *pCtx);
 gfmRV gfmAudio_resumeAudio(gfmAudioHandle *pCtx, gfmAudio *pCtx);
 gfmRV gfmAudio_setHandleVolume(gfmAudioHandle *pCtx, int volume);
+
+gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx);
+gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle);
+gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, int volume);
 
 #endif /* __GFMAUDIO_BKEND_H__ */
 
