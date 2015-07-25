@@ -99,16 +99,61 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
         int filenameLen);
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
+/**
+ * Play an audio and return its instance's handle (so you can pause/play/stop it
+ * and change its volume)
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
 gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
-        , int volume);
+        , double volume);
+
+/**
+ * Stops an audio instance
+ * 
+ * @param  pCtx  The audio context
+ * @param  ppHnd The instance to be stopped
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
 gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd);
+
+/**
+ * Pause a currently playing audio
+ * 
+ * @param  pCtx The audio context
+ * @param  pHnd The instance handle
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
 gfmRV gfmAudio_pauseAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
+
+/**
+ * Resume a paused audio
+ * 
+ * @param  pCtx The audio context
+ * @param  pHnd The instance handle
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
 gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
-gfmRV gfmAudio_setHandleVolume(gfmAudioHandle *pCtx, int volume);
+
+/**
+ * Set an audio's volume
+ * 
+ * @param  pCtx   The audio context
+ * @param  pHnd   The instance handle
+ * @param  volume The new volume (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfmAudio_setHandleVolume(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd,
+        double volume);
 
 gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx);
 gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle);
-gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, int volume);
+gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, double volume);
 
 #endif /* __GFMAUDIO_BKEND_H__ */
 

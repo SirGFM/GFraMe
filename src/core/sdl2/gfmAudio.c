@@ -7,7 +7,7 @@
  * Before playing/loading any sound, it's necessary to manually initialize this
  * subsystem; During this initialization, one can define the system's quality;
  * At highers qualities, the system must respond more quickly and have more bits
- * per samples; TODO Check if this will be really done...
+ * per samples;
  * Then, audio files may be loaded into "audio structs"; Those should be managed
  * by the backend itself, only returning a handle (i.e., int) to the user; Each
  * audio may be set as repeating, with a custom repeat point (i.e., start at
@@ -76,9 +76,11 @@ struct stGFMAudioHandle {
     /** Next audio being played/available for recycling */
     gfmAudioHandle *pNext;
     /** Volume at which this should be played */
-    int volume;
+    double volume;
     /** Position in the current audio */
     int pos;
+    /** Whether this instance is playing or not */
+    int isPlaying;
 };
 
 /******************************************************************************/
@@ -120,7 +122,9 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     // Loop through every node
     pTmp = pCtx->pAudioHndPlaying;
     while (pTmp) {
-        // TODO Play the buffer
+        if (pTmp->isPlaying) {
+            // TODO Play the buffer
+        }
         // Go to the next node
         pTmp = pTmp->pNext;
     }
@@ -131,6 +135,30 @@ __ret:
         pCtx->callbackRV = rv;
         // TODO Unlock the mutex
     }
+}
+
+/**
+ * Alloc a new gfmAudioHandle
+ * 
+ * @param  ppCtx The audio handle
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmAudio_getNewHandle(gfmAudioHandle **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the object
+    *ppCtx = (gfmAudioHandle*)malloc(sizeof(gfmAudioHandle));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    // Clean it
+    memset(*ppCtx, 0x0, sizeof(gfmAudioHandle));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /******************************************************************************/
@@ -300,14 +328,195 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
         int filenameLen);
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
+/**
+ * Play an audio and return its instance's handle (so you can pause/play/stop it
+ * and change its volume)
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
 gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
-        , int volume);
-gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd);
-gfmRV gfmAudio_pauseAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
-gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
-gfmRV gfmAudio_setHandleVolume(gfmAudioHandle *pCtx, int volume);
+        , double volume) {
+    gfmAudio *pAudio;
+    gfmAudioHandle *pAudioHnd;
+    gfmRV rv;
+    int isLocked;
+    
+    // Set default values
+    isLocked = 0;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(volume > 0.0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(volume <= 1.0, GFMRV_ARGUMENTS_BAD);
+    // Check that the handle is valid
+    ASSERT(handle >= 0, GFMRV_INVALID_INDEX);
+    ASSERT(handle < gfmGenArr_getUsed(pCtx->pAudioPool), GFMRV_INVALID_INDEX);
+    // Check that it was initialized
+    ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
+    
+    // Retrieve the audio
+    pAudio = gfmGenArr_getObject(pCtx->pAudioPool, handle);
+    
+    // TODO Lock the mutex
+    isLocked = 1;
+    
+    // Check if there's any handle to be recycled
+    if (pCtx->pAudioHndAvailable) {
+        // Recycle a handle
+        pAudioHnd = pCtx->pAudioHndAvailable;
+        // Remove that handle from the list
+        pCtx->pAudioHndAvailable = pCtx->pAudioHndAvailable->pNext;
+    }
+    else {
+        // Otherwise, alloc a new handle
+        gfmGenArr_getNextRef(gfmAudioHandle, pCtx->pAudioHndPool, 1, pAudioHnd,
+                gfmAudio_getNewHandle);
+        gfmGenArr_push(pCtx->pAudioHndPool);
+    }
+    // Set the audio to be played
+    pAudioHnd->pSelf = pAudio;
+    // Set the audio's volume
+    pAudioHnd->volume = volume;
+    // Set the at the audio's start
+    pAudioHnd->pos = 0;
+    // Set the instance as playing
+    pAudioHnd->isPlaying = 1;
+    // Prepend it to the playing list
+    pAudioHnd->pNext = pCtx->pAudioHndPlaying;
+    pCtx->pAudioHndPlaying = pAudioHnd->pNext;
+    
+    rv = GFMRV_OK;
+__ret:
+    if (isLocked) {
+        // TODO Unlock the mutex
+    }
+    return rv;
+}
 
-gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx);
-gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle);
-gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, int volume);
+/**
+ * Stops an audio instance
+ * 
+ * @param  pCtx  The audio context
+ * @param  ppHnd The instance to be stopped
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppHnd, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppHnd, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
+    
+    // TODO Lock the mutex
+    // Instead of actually removing it, put it at the buffer's end, so it will
+    // be removed next time the callback is called
+    (*ppHnd)->pos = (*ppHnd)->pSelf->len;
+    // "Clean" the returned pointer
+    *ppHnd = 0;
+    // TODO Unlock the mutex
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Pause a currently playing audio
+ * 
+ * @param  pCtx The audio context
+ * @param  pHnd The instance handle
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfmAudio_pauseAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHnd, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
+    
+    // TODO Lock the mutex
+    pHnd->isPlaying = 0;
+    // TODO Unlock the mutex
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Resume a paused audio
+ * 
+ * @param  pCtx The audio context
+ * @param  pHnd The instance handle
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHnd, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
+    
+    // TODO Lock the mutex
+    pHnd->isPlaying = 1;
+    // TODO Unlock the mutex
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set an audio's volume
+ * 
+ * @param  pCtx   The audio context
+ * @param  pHnd   The instance handle
+ * @param  volume The new volume (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfmAudio_setHandleVolume(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd,
+        double volume) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHnd, GFMRV_ARGUMENTS_BAD);
+    ASSERT(volume > 0.0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(volume <= 1.0, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
+    
+    // TODO Lock the mutex
+    pHnd->volume = volume;
+    // TODO Unlock the mutex
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx) {
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
+gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle) {
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
+gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, double volume) {
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
 
