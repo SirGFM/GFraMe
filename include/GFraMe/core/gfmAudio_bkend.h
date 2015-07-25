@@ -76,6 +76,12 @@ gfmRV gfmAudio_Free(gfmAudioCtx **ppCtx);
  */
 gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings);
 
+/**
+ * Clear all alloc'ed memory and closed the subsystem
+ * 
+ * @param  pCtx The audio context
+ * @return      GFMRV_OK, GFMRV_ARUMGENTS_BAD
+ */
 gfmRV gfmAudio_closeSubSystem(gfmAudioCtx *pCtx);
 
 /**

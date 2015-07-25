@@ -124,10 +124,8 @@ CC = gcc
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
-# Don't add pthread unless using GIF
-  ifneq ($(EXPORT_GIF), no)
-    LFLAGS := $(LFLAGS) -lpthread
-  endif
+# Add pthread (for the audio subsystem)
+  LFLAGS := $(LFLAGS) -lpthread
 # Add OpenGL lib
  # ifeq ($(USE_OPENGL), yes)
  #   ifeq ($(OS), Win)
