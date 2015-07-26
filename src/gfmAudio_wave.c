@@ -40,6 +40,8 @@ struct stWAVEFormat {
     int bytesPerSample;
     /** How many bits are needed per sample */
     int bitsPerSample;
+    /** Ratio between samples in the source and destination */
+    int downsampleRate;
 };
 typedef struct stWAVEFormat waveFormat;
 
@@ -151,6 +153,129 @@ __ret:
 }
 
 /**
+ * Read a few samples from an input buffer and downsample it; It expects the
+ * input to have at most two channels
+ * 
+ * @param  pSamples The downsampled sample(s)
+ * @param  pBuf     The input buffer
+ * @param  pFormat  The input format
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmAudio_downsampleWave(int pSamples[2], char *pBuf,
+        waveFormat *pFormat) {
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pSamples, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pBuf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFormat, GFMRV_ARGUMENTS_BAD);
+    
+    // Clean the output
+    pSamples[0] = 0;
+    pSamples[1] = 0;
+    
+    // Accumulate the samples (according to bitsPerSample and input channels)
+    i = 0;
+    if (pFormat->bitsPerSample == 8 && pFormat->numChannels == 1) {
+        while (i < pFormat->downsampleRate) {
+            pSamples[0] += (int)pBuf[i];
+            i += pFormat->bytesPerSample;
+        }
+    }
+    else if (pFormat->bitsPerSample == 8 && pFormat->numChannels == 2) {
+        while (i < pFormat->downsampleRate) {
+            pSamples[0] += (int)pBuf[i];
+            pSamples[1] += (int)pBuf[i + 1];
+            i += pFormat->bytesPerSample;
+        }
+    }
+    else if (pFormat->bitsPerSample == 16 && pFormat->numChannels == 1) {
+        while (i < pFormat->downsampleRate) {
+            int tmp;
+            
+            tmp = gfmAudio_getHalfWordLE(pBuf + i);
+            // If the input was negative (it's a 2-complement number), fix it
+            if (tmp & 0x7000) {
+                tmp |= 0xffff0000;
+            }
+            
+            pSamples[0] += tmp;
+            
+            i += pFormat->bytesPerSample;
+        }
+    }
+    else if (pFormat->bitsPerSample == 16 && pFormat->numChannels == 2) {
+        while (i < pFormat->downsampleRate) {
+            int tmp;
+            
+            tmp = gfmAudio_getHalfWordLE(pBuf + i);
+            // If the input was negative (it's a 2-complement number), fix it
+            if (tmp & 0x8000) {
+                tmp |= 0xffff0000;
+            }
+            pSamples[0] += tmp;
+            
+            tmp = gfmAudio_getHalfWordLE(pBuf + i + 2);
+            // If the input was negative (it's a 2-complement number), fix it
+            if (tmp & 0x8000) {
+                tmp |= 0xffff0000;
+            }
+            pSamples[1] += tmp;
+            
+            i += pFormat->bytesPerSample;
+        }
+    }
+    
+    // Normalize the downsampled data
+    pSamples[0] /= pFormat->downsampleRate;
+    pSamples[1] /= pFormat->downsampleRate;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get some samples in a 'bit rate' and convert it to the output 'bit rate'
+ * 
+ * @param  pDst          The destination buffer (still as integers)
+ * @param  pSrc          The source buffer
+ * @param  pFormat       Format of the input buffer
+ * @param  bitsPerSample Desired bits per sample
+ */
+static gfmRV gfmAudio_convertWaveBits(int pDst[2], int pSrc[2],
+        waveFormat *pFormat, int bitsPerSample) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSrc, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFormat, GFMRV_ARGUMENTS_BAD);
+    ASSERT(bitsPerSample == 8 || bitsPerSample == 16, GFMRV_ARGUMENTS_BAD);
+    
+    if (pFormat->bitsPerSample == bitsPerSample) {
+        // If the sample rate is the same, just return it
+        pDst[0] = pSrc[0];
+        pDst[1] = pSrc[1];
+    }
+    else if (pFormat->bitsPerSample == 8 && bitsPerSample == 16) {
+        // Otherwise, expand its range and normalize it
+        pDst[0] = (pSrc[0] << 8) - 0x8000;
+        pDst[1] = (pSrc[1] << 8) - 0x8000;
+    }
+    else if (pFormat->bitsPerSample == 16 && bitsPerSample == 8) {
+        // Make the range shorter
+        pDst[0] = (pSrc[0] + 0x8000) >> 8;
+        pDst[1] = (pSrc[1] + 0x8000) >> 8;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Read the format of the wave data
  * 
  * @param  pFormat The retrieved format
@@ -228,16 +353,41 @@ __ret:
     return rv;
 }
 
-gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp) {
+/**
+ * Loads a wave audio into a buffer
+ * 
+ * @param  ppBuf          Output buffer, must be cleared by the caller
+ * @param  pLen           Size of the output buffer, in bytes
+ * @param  pFp            The audio file
+ * @param  freq           Audio sub-system's frequency/sampling rate
+ * @param  bitsPerSamples Audio sub-system's bit per samples
+ * @param  numChannels    Audio sub-system's number of channels
+ * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR,
+ *                        GFMRV_FUNCTION_FAILED, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+ *                        GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
+        int bitsPerSample, int numChannels) {
+    char *pBuf, *pDst;
     gfmRV rv;
-    int size;
+    int bufLen, dstLen, irv, size;
     waveFormat format;
+    
+    // Set default values
+    bufLen = 0;
+    dstLen = 0;
+    pBuf = 0;
+    pDst = 0;
     
     // Sanitize arguments
     ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
     ASSERT(ppBuf, GFMRV_ARGUMENTS_BAD);
     ASSERT(!(*ppBuf), GFMRV_ARGUMENTS_BAD);
     ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
+    ASSERT(freq > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(bitsPerSample == 8 || bitsPerSample == 16, GFMRV_ARGUMENTS_BAD);
+    ASSERT(numChannels > 0, GFMRV_ARGUMENTS_BAD);
+    
     // Rewind the file
     rewind(pFp);
     
@@ -263,16 +413,95 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp) {
             // Read the file format
             rv = gfmAudio_readWaveFormat(&format, pFp, chunk.size);
             ASSERT_NR(rv == GFMRV_OK);
-            // TODO Check that the format is valid
+            
+            // Check that the format is valid
+            // Check that the sample rate is valid (and easy to work with)
+            ASSERT(format.sampleRate == 11025 || format.sampleRate == 22050 ||
+                    format.sampleRate == 44100 || format.sampleRate == 88200,
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            // The file must have at least the same sample rate as the audio
+            // device (so audios are only downsampled, and no noise is added)
+            ASSERT(format.sampleRate >= freq, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            // This is quite easy to convert, so both are supported
+            ASSERT(format.bitsPerSample == 8 || format.bitsPerSample == 16,
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            // I'll be lazy an only support those for now...
+            ASSERT(format.numChannels == 1 || format.numChannels == 2,
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            
+            // Calculate the downsample rate
+            format.downsampleRate = format.sampleRate / freq;
         }
         else if (strcmp(chunk.pId, "LIST") == 0) {
             // This type of chunk may be ignored
             fseek(pFp, chunk.size, SEEK_CUR);
         }
         else if (strcmp(chunk.pId, "data") == 0) {
-            // TODO Read the bytes
-            // TODO Convert it to the desired format
-            // TODO Store it in the buffer that will be returned
+            int i, j, len;
+            
+            // Check that the format was already gotten
+            ASSERT(format.sampleRate != 0, GFMRV_READ_ERROR);
+            
+            // Check that the input buffer is big enough to hold the data
+            if (bufLen < chunk.size) {
+                // Enpand it as necessary
+                pBuf = (char*)realloc(pBuf, sizeof(char)*chunk.size);
+                ASSERT(pBuf, GFMRV_ALLOC_FAILED);
+            }
+            
+            // Read the bytes
+            irv = fread(pBuf, chunk.size, sizeof(char), pFp);
+            ASSERT(irv == chunk.size, GFMRV_READ_ERROR);
+            
+            // Calculate how many more bytes are required on the destination
+            // Get how many samples were read from the source
+            len = chunk.size / format.bytesPerSample;
+            // Downsample it as necessary
+            len /= format.downsampleRate;
+            // Get the length, in bytes, per channel
+            len *= bitsPerSample / 8;
+            // Get the total length
+            len *= numChannels;
+            
+            // Expand the destination buffer
+            pDst = (char*)realloc(pDst, sizeof(char) * len);
+            ASSERT(pDst, GFMRV_ALLOC_FAILED);
+            
+            // Convert it to the desired format
+            i = 0;
+            j = 0;
+            while (i < chunk.size) {
+                int pSamples[2], pDstSamples[2];
+                
+                // Downsample the wave to the desired sample rate
+                rv = gfmAudio_downsampleWave(pSamples, pBuf + i, &format);
+                ASSERT_NR(rv == GFMRV_OK);
+                // Convert it to the desired 'bit rate'
+                rv = gfmAudio_convertWaveBits(pDstSamples, pSamples, &format,
+                        bitsPerSample);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                // Output it to the buffer
+                pBuf[j] = pDstSamples[0] & 0xff;
+                j++;
+                if (bitsPerSample == 16) {
+                    pBuf[j] = (pDstSamples[0] >> 8 ) & 0xff;
+                    j++;
+                }
+                if (numChannels == 2) {
+                    pBuf[j] = pDstSamples[1] & 0xff;
+                    j++;
+                    if (bitsPerSample == 16) {
+                        pBuf[j] = (pDstSamples[1] >> 8 ) & 0xff;
+                        j++;
+                    }
+                }
+                
+                // Go to the next sample
+                i += format.bytesPerSample * format.downsampleRate;
+            }
+            // Store how many bytes were read
+            dstLen += len;
         }
         else {
             // Got an invalid chunk
@@ -283,8 +512,16 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp) {
         size -= chunk.size;
     }
     
+    // Set the return values
+    *ppBuf = pDst;
+    *pLen = dstLen;
     rv = GFMRV_OK;
 __ret:
+    if (rv != GFMRV_OK && pDst)
+        free(pDst);
+    if (pBuf)
+        free(pBuf);
+    
     return rv;
 }
 

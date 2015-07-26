@@ -480,14 +480,16 @@ __ret:
  */
 gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
         char *pFilename, int filenameLen) {
-    char *pPath;
+    char *pPath, *pBuf;
     FILE *pFp;
     gfmRV rv;
     gfmString *pStr;
     int didParse;
+    int bufLen;
     
     // Set default values
     pFp = 0;
+    pBuf = 0;
     didParse = 0;
     
     // Sanitize arguments
@@ -517,7 +519,19 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isWave(pFp);
         if (rv == GFMRV_TRUE) {
-            // TODO Parse the wave file
+            int bitsPerSample;
+            
+            // Retrieve the number of bits per sample; Except for 8-bits mode,
+            // it must be signed!
+            switch (pAud->spec.format) {
+                case AUDIO_U8:     bitsPerSample = 8; break;
+                case AUDIO_S16LSB: bitsPerSample = 16; break;
+                default:           bitsPerSample = 0; break;
+            }
+            // Load the wave from the file
+            rv = gfmAudio_loadWave(&pBuf, &bufLen, pFp, pAud->spec.freq,
+                    bitsPerSample, pAud->spec.channels);
+            ASSERT_NR(rv == GFMRV_OK);
             didParse = 1;
         }
     }
