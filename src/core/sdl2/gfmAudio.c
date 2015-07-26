@@ -19,12 +19,18 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmString.h>
+#include <GFraMe/gframe.h>
 #include <GFraMe/core/gfmAudio_bkend.h>
+#include <GFraMe_int/gfmAudio_mml.h>
+#include <GFraMe_int/gfmAudio_vorbis.h>
+#include <GFraMe_int/gfmAudio_wave.h>
 
 // Required because of SDL_InitSubSystem... >_<
 #include <SDL2/SDL.h>
 
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -458,9 +464,94 @@ __ret:
     return rv;
 }
 
-// TODO
-gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
-        int filenameLen);
+/**
+ * Loads an audio from a file, converting it (if possible) to the current
+ * format and sample rate; The file must be in the assets folder, but only the
+ * relative path to assets should be sent
+ * 
+ * @param  pHandle     
+ * @param  pAud        
+ * @param  pCtx        
+ * @param  pFilename   
+ * @param  filenameLen 
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_COULDNT_OPEN_FILE,
+ *                     GFMRV_READ_ERROR, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+ GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
+        char *pFilename, int filenameLen) {
+    char *pPath;
+    FILE *pFp;
+    gfmRV rv;
+    gfmString *pStr;
+    int didParse;
+    
+    // Set default values
+    pFp = 0;
+    didParse = 0;
+    
+    // Sanitize arguments
+    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pAud, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
+    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Append 'assets/' to the file path (note that 'pStr' is managed by the
+    // game's context)
+    rv = gfm_getBinaryPath(&pStr, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_concatStatic(pStr, "assets/");
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_concat(pStr, pFilename, filenameLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the pointer to the string managed by 'pStr'
+    rv = gfmString_getString(&pPath, pStr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the file
+    pFp = fopen(pPath, "rb");
+    ASSERT(pFp, GFMRV_COULDNT_OPEN_FILE);
+    
+    // Try to parse the file as WAVE
+    if (didParse == 0) {
+        rv = gfmAudio_isWave(pFp);
+        if (rv == GFMRV_TRUE) {
+            // TODO Parse the wave file
+            didParse = 1;
+        }
+    }
+    // Try to parse the file as MML
+    if (didParse == 0) {
+        rv = gfmAudio_isMml(pFp);
+        if (rv == GFMRV_TRUE) {
+            // TODO Add support for MML
+            ASSERT(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+        }
+        didParse = 1;
+    }
+    // Try to parse the file as vorbis
+    if (didParse == 0) {
+        rv = gfmAudio_isVorbis(pFp);
+        if (rv == GFMRV_TRUE) {
+            // TODO Add support for MML
+            ASSERT(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+        }
+        didParse = 1;
+    }
+    // Check that the file was parsed
+    ASSERT(didParse == 1, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+    
+    rv = GFMRV_OK;
+__ret:
+    // Close the file, if it was opened
+    if (pFp) {
+        fclose(pFp);
+    }
+    
+    return rv;
+}
+
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
 /**

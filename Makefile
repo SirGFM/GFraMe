@@ -23,6 +23,9 @@ CC = gcc
           $(OBJDIR)/gframe.o              \
           $(OBJDIR)/gfmAccumulator.o      \
           $(OBJDIR)/gfmAnimation.o        \
+          $(OBJDIR)/gfmAudio_mml.o        \
+          $(OBJDIR)/gfmAudio_vorbis.o     \
+          $(OBJDIR)/gfmAudio_wave.o       \
           $(OBJDIR)/gfmCamera.o           \
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmGroup.o            \

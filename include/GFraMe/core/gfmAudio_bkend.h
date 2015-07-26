@@ -30,6 +30,7 @@ typedef struct stGFMAudioHandle gfmAudioHandle;
 #define __GFMAUDIO_BKEND_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gframe.h>
 
 /** Custom quality settings */
 enum enGFMAudioQuality {
@@ -101,8 +102,8 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx);
  */
 gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx);
 
-gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pCtx, char *pFilename,
-        int filenameLen);
+gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
+        char *pFilename, int filenameLen);
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
 /**
