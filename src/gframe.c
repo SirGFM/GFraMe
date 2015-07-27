@@ -13,6 +13,7 @@
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmAudio_bkend.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
@@ -50,6 +51,8 @@ struct stGFMCtx {
     int saveFilenameLen;
     /** Whether the backend was initialized */
     int isBackendInit;
+    /** Audio sub-system context */
+    gfmAudioCtx *pAudio;
     /** The game's backbuffer */
     gfmBackbuffer *pBackbuffer;
     /** Game's window */
@@ -524,6 +527,83 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
             bufHeight);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize the audio sub-system; This function must be called before loading
+ * any song
+ * 
+ * @param  pCtx     The game's context
+ * @param  settings Audio quality (sampling rate, etc)
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_initAudio(gfmCtx *pCtx, gfmAudioQuality settings) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the audio sub-system
+    rv = gfmAudio_getNew(&(pCtx->pAudio));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize it
+    rv = gfmAudio_initSubsystem(pCtx->pAudio, settings);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set to which sample the song must loop
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The handle of the looped audio
+ * @param  pos    Sample to which the song should go back when looping
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_INVALID_BUFFER_LEN
+ */
+gfmRV gfm_setRepeat(gfmCtx *pCtx, int handle, int pos) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Sanitize the other arguments on the actual call
+    
+    rv = gfmAudio_setRepeat(pCtx->pAudio, handle, pos);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Plays an audio and returns its instance
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx The game's context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
+        double volume) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Sanitize the other arguments on the actual call
+    
+    rv = gfmAudio_playAudio(ppHnd, pCtx->pAudio, handle, volume);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -1075,6 +1155,36 @@ gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index) {
     
     // Cache the default texture
     pCtx->defaultTexture = index;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Loads an audio
+ * 
+ * @param  pHandle     Handle of the loaded audio
+ * @param  pCtx        The game's context
+ * @param  pFilename   The filename
+ * @param  filenameLen Length of the filename
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_COULDNT_OPEN_FILE,
+ *                     GFMRV_READ_ERROR, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+ *                     GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfm_loadAudio(int *pHandle, gfmCtx *pCtx, char *pFilename, int filenameLen) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
+    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Try to load the audio
+    rv = gfmAudio_loadAudio(pHandle, pCtx->pAudio, pCtx, pFilename,
+            filenameLen);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -2253,6 +2363,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
         pCtx->pSsData = 0;
     }
     gfmString_free(&(pCtx->pSsPath));
+    gfmAudio_free(&(pCtx->pAudio));
     
     rv = GFMRV_OK;
 __ret:

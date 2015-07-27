@@ -72,12 +72,16 @@ struct stGFMAudioCtx {
     SDL_AudioDeviceID dev;
     /** Specs of the opened audio device */
     SDL_AudioSpec spec;
+    /** Bits per sample (in an easier var than fetching from the spec) */
+    int bitsPerSample;
+    /** Number of channels */
+    int numChannels;
 };
 
 /** An audio representation */
 struct stGFMAudio {
     /** Audio samples buffer */
-    unsigned char *pBuf;
+    char *pBuf;
     /** Number of bytes in pBuf */
     int len;
     /** Whether should repeat */
@@ -107,6 +111,105 @@ struct stGFMAudioHandle {
 /******************************************************************************/
 
 /**
+ * Remove an instance from the playing list; The mutex must be already locked!
+ * 
+ * @param  pCtx  The audio context
+ * @param  pNode The node to be removed
+ * @param  pPrev The previous node
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmAudio_removeInstance(gfmAudioCtx *pCtx, gfmAudioHandle *pNode,
+        gfmAudioHandle *pPrev) {
+    gfmRV rv;
+
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+    // pPrev may be null, if it's the first node
+
+    if (pPrev == 0) {
+        // Remove the first node
+        pCtx->pAudioHndPlaying = pNode->pNext;
+    }
+    else {
+        // Remove the node from the middle of the list
+        pPrev->pNext = pNode->pNext;
+    }
+    // Add the node to the available list
+    pNode->pNext = pCtx->pAudioHndAvailable;
+    pCtx->pAudioHndAvailable = pNode;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Mix a 16-bit audio instance into a stereo buffer
+ * 
+ * @param  pCtx The instance being played
+ * @param  pDst The output buffer
+ * @param  len  How many bytes should be played
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
+        int len) {
+    unsigned char *pBuf;
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the buffer
+    pBuf = (unsigned char*)pCtx->pSelf->pBuf;
+    // Loop through all samples
+    i = 0;
+    while (i < len) {
+        Sint16 chan1, chan2;
+        
+        // Get the data to be put into both channels
+        chan1 = (pBuf[i + pCtx->pos] & 0x00ff)
+                | ((pBuf[i + pCtx->pos + 1] << 8) & 0xff00);
+        chan2 = (pBuf[i + pCtx->pos + 2] & 0x00ff)
+                | ((pBuf[i + pCtx->pos + 3] << 8) & 0xff00);
+        
+        // Modify its volume
+        chan1 = ((Sint16)(chan1 * pCtx->volume))&0xffff;
+        chan2 = ((Sint16)(chan2 * pCtx->volume))&0xffff;
+        
+        // Add it to the channel
+        pDst[i]   += (Uint8)( chan1       & 0xff);
+        pDst[i+1] += (Uint8)((chan1 >> 8) & 0xff);
+        pDst[i+2] += (Uint8)( chan2       & 0xff);
+        pDst[i+3] += (Uint8)((chan2 >> 8) & 0xff);
+
+        i += 4;
+        // If the sample is over
+        if (i + pCtx->pos >= pCtx->pSelf->len) {
+            // Loop it
+            if (pCtx->pSelf->doRepeat) {
+                len -= i;
+                i = 0;
+                pCtx->pos = pCtx->pSelf->repeatPosition;
+            }
+            else {
+                // Otherwise, simpl
+                break;
+            }
+        }
+    }
+    // Update the sample position
+    pCtx->pos += i;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Callback called by SDL2 to fill the audio buffer
  * 
  * @param  pArg    The audio context (set on SDL_OpenAudioDevice)
@@ -115,7 +218,7 @@ struct stGFMAudioHandle {
  */
 static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     gfmAudioCtx *pCtx;
-    gfmAudioHandle *pTmp;
+    gfmAudioHandle *pTmp, *pPrev;
     gfmRV rv;
     int isLocked;
     int irv;
@@ -141,18 +244,47 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     
     // Loop through every node
     pTmp = pCtx->pAudioHndPlaying;
+    pPrev = 0;
     while (pTmp) {
+        gfmAudioHandle *pNext;
+        
         if (pTmp->isPlaying) {
-            // TODO Play the buffer
+            if (pCtx->numChannels == 1 && pCtx->bitsPerSample == 8) {
+                // TODO Play the buffer
+            }
+            else if (pCtx->numChannels == 1 && pCtx->bitsPerSample == 16) {
+                // TODO Play the buffer
+            }
+            else if (pCtx->numChannels == 2 && pCtx->bitsPerSample == 8) {
+                // TODO Play the buffer
+            }
+            else if (pCtx->numChannels == 2 && pCtx->bitsPerSample == 16) {
+                rv = gfmAudio_mixStereo16(pTmp, pStream, len);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+        }
+        // Get the next node
+        pNext = pTmp->pNext;
+        // Remove it from the list if it finished playing
+        if (pTmp->pos >= pTmp->pSelf->len) {
+            // Remove it and don't modify the previous node
+            rv = gfmAudio_removeInstance(pCtx, pTmp, pPrev);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
+        else {
+            // Update the previous node
+            pPrev = pTmp;
         }
         // Go to the next node
-        pTmp = pTmp->pNext;
+        pTmp = pNext;
     }
     // TODO Pause the device if there're no more audios
+    
+    rv = GFMRV_OK;
 __ret:
+    // Set the return value on the context
+    pCtx->callbackRV = rv;
     if (isLocked) {
-        // Set the return value on the context
-        pCtx->callbackRV = rv;
         // Unlock the mutex
         pthread_mutex_unlock(&(pCtx->mutex));
     }
@@ -290,7 +422,7 @@ __ret:
  * @param  ppCtx The audio context
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAudio_Free(gfmAudioCtx **ppCtx) {
+gfmRV gfmAudio_free(gfmAudioCtx **ppCtx) {
     gfmRV rv;
     
     // Sanitize arguments
@@ -359,6 +491,9 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings) {
     ASSERT(pCtx->dev > 0, GFMRV_INTERNAL_ERROR);
     // Set the device as initialized
     pCtx->init |= gfmAudio_device;
+    // Hard coded since it's the only supported format, for now
+    pCtx->bitsPerSample = 16;
+    pCtx->numChannels = wanted.channels;
     
     rv = GFMRV_OK;
 __ret:
@@ -416,14 +551,14 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was playing
-    ASSERT(pCtx->isPlaying, GFMRV_OK);
+    ASSERT(!(pCtx->isPlaying), GFMRV_OK);
     
     // Lock the mutex
     irv = pthread_mutex_lock(&(pCtx->mutex));
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Only unpause if there's anything to play
     if (pCtx->pAudioHndPlaying) {
-        SDL_PauseAudioDevice(pCtx->dev, 1);
+        SDL_PauseAudioDevice(pCtx->dev, 0);
     }
     // Unlock the mutex
     pthread_mutex_unlock(&(pCtx->mutex));
@@ -449,13 +584,13 @@ gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was paused
-    ASSERT(!(pCtx->isPlaying), GFMRV_OK);
+    ASSERT(pCtx->isPlaying, GFMRV_OK);
     
     // Lock the mutex
     irv = pthread_mutex_lock(&(pCtx->mutex));
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Pause the sub-system
-    SDL_PauseAudioDevice(pCtx->dev, 0);
+    SDL_PauseAudioDevice(pCtx->dev, 1);
     // Unlock the mutex
     pthread_mutex_unlock(&(pCtx->mutex));
     
@@ -469,19 +604,20 @@ __ret:
  * format and sample rate; The file must be in the assets folder, but only the
  * relative path to assets should be sent
  * 
- * @param  pHandle     
- * @param  pAud        
- * @param  pCtx        
- * @param  pFilename   
- * @param  filenameLen 
+ * @param  pHandle     The audio handle (used to play it)
+ * @param  pAud        The audio context
+ * @param  pCtx        The game's context
+ * @param  pFilename   The audio filename
+ * @param  filenameLen The filename length
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_COULDNT_OPEN_FILE,
  *                     GFMRV_READ_ERROR, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
- GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
+ *                     GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
         char *pFilename, int filenameLen) {
     char *pPath, *pBuf;
     FILE *pFp;
+    gfmAudio *pAudio;
     gfmRV rv;
     gfmString *pStr;
     int didParse;
@@ -519,18 +655,9 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isWave(pFp);
         if (rv == GFMRV_TRUE) {
-            int bitsPerSample;
-            
-            // Retrieve the number of bits per sample; Except for 8-bits mode,
-            // it must be signed!
-            switch (pAud->spec.format) {
-                case AUDIO_U8:     bitsPerSample = 8; break;
-                case AUDIO_S16LSB: bitsPerSample = 16; break;
-                default:           bitsPerSample = 0; break;
-            }
             // Load the wave from the file
             rv = gfmAudio_loadWave(&pBuf, &bufLen, pFp, pAud->spec.freq,
-                    bitsPerSample, pAud->spec.channels);
+                    pAud->bitsPerSample, pAud->numChannels);
             ASSERT_NR(rv == GFMRV_OK);
             didParse = 1;
         }
@@ -556,6 +683,20 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     // Check that the file was parsed
     ASSERT(didParse == 1, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
     
+    // Retrieve a valid audio struct
+    gfmGenArr_getNextRef(gfmAudio, pAud->pAudioPool, 1, pAudio,
+            gfmAudio_getNewAudio);
+    gfmGenArr_push(pAud->pAudioPool);
+    // Store the loaded buffer
+    pAudio->pBuf = pBuf;
+    pAudio->len = bufLen;
+    // Clean the repeat (shouldn't be necessary, though...)
+    pAudio->doRepeat = 0;
+    pAudio->repeatPosition = 0;
+    
+    // Retrieve the audio's handle
+    *pHandle = gfmGenArr_getUsed(pAud->pAudioPool) - 1;
+    
     rv = GFMRV_OK;
 __ret:
     // Close the file, if it was opened
@@ -566,7 +707,41 @@ __ret:
     return rv;
 }
 
-gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
+/**
+ * Set to which sample the song must loop
+ * 
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the looped audio
+ * @param  pos    Sample to which the song should go back when looping
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_INVALID_BUFFER_LEN
+ */
+gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos) {
+    gfmAudio *pAudio;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the handle is valid
+    ASSERT(handle >= 0, GFMRV_INVALID_INDEX);
+    ASSERT(handle < gfmGenArr_getUsed(pCtx->pAudioPool), GFMRV_INVALID_INDEX);
+    
+    // Calculate the actual byte of the loop
+    pos *= pCtx->numChannels * pCtx->bitsPerSample / 8;
+    
+    // Retrieve the audio
+    pAudio = gfmGenArr_getObject(pCtx->pAudioPool, handle);
+    // Check that the sample is valid (i.e., within the audio)
+    ASSERT(pos < pAudio->len, GFMRV_INVALID_BUFFER_LEN);
+    
+    // Set the position and loop flag
+    pAudio->doRepeat = 1;
+    pAudio->repeatPosition = pos;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Play an audio and return its instance's handle (so you can pause/play/stop it
@@ -579,8 +754,8 @@ gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
  *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
  */
-gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
-        , double volume) {
+gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+        double volume) {
     gfmAudio *pAudio;
     gfmAudioHandle *pAudioHnd;
     gfmRV rv;
@@ -631,7 +806,14 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
     pAudioHnd->isPlaying = 1;
     // Prepend it to the playing list
     pAudioHnd->pNext = pCtx->pAudioHndPlaying;
-    pCtx->pAudioHndPlaying = pAudioHnd->pNext;
+    pCtx->pAudioHndPlaying = pAudioHnd;
+    
+    // Unlock the mutex
+    isLocked = 0;
+    pthread_mutex_unlock(&(pCtx->mutex));
+    // Unpause the device
+    rv = gfmAudio_resumeSubsystem(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:

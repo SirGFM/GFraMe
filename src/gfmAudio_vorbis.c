@@ -27,7 +27,7 @@ gfmRV gfmAudio_isVorbis(FILE *pFp) {
     // Try to read the first 7 bytes (that must contain {<type>, 'v', 'o', 'r'
     //  'b', 'i', 's'}, to be a valid vorbis file
     count = 7;
-    irv = fread(pBuf, count, sizeof(char), pFp);
+    irv = fread(pBuf, sizeof(char), count, pFp);
     ASSERT(irv == count, GFMRV_READ_ERROR);
     // Check what was obtained
     ASSERT(pBuf[1] == 'v' && pBuf[2] == 'o' && pBuf[3] == 'r' && pBuf[4] == 'b'

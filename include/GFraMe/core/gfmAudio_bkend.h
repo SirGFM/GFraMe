@@ -65,7 +65,7 @@ gfmRV gfmAudio_getNew(gfmAudioCtx **ppCtx);
  * @param  ppCtx The audio context
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAudio_Free(gfmAudioCtx **ppCtx);
+gfmRV gfmAudio_free(gfmAudioCtx **ppCtx);
 
 /**
  * Initialize the audio subsystem
@@ -102,8 +102,32 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx);
  */
 gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx);
 
+/**
+ * Loads an audio from a file, converting it (if possible) to the current
+ * format and sample rate; The file must be in the assets folder, but only the
+ * relative path to assets should be sent
+ * 
+ * @param  pHandle     The audio handle (used to play it)
+ * @param  pAud        The audio context
+ * @param  pCtx        The game's context
+ * @param  pFilename   The audio filename
+ * @param  filenameLen The filename length
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_COULDNT_OPEN_FILE,
+ *                     GFMRV_READ_ERROR, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+ *                     GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
+ */
 gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
         char *pFilename, int filenameLen);
+
+/**
+ * Set to which sample the song must loop
+ * 
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the looped audio
+ * @param  pos    Sample to which the song should go back when looping
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_INVALID_BUFFER_LEN
+ */
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
 /**
@@ -117,8 +141,8 @@ gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
  *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
  */
-gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle
-        , double volume);
+gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+        double volume);
 
 /**
  * Stops an audio instance

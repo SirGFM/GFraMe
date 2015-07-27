@@ -20,6 +20,7 @@ typedef struct stGFMCtx gfmCtx;
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmAudio_bkend.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 #include <GFraMe/core/gfmTexture_bkend.h>
@@ -167,6 +168,16 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
  */
 gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int resIndex, int isUserResizable);
+
+/**
+ * Initialize the audio sub-system; This function must be called before loading
+ * any song
+ * 
+ * @param  pCtx     The game's context
+ * @param  settings Audio quality (sampling rate, etc)
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfm_initAudio(gfmCtx *pCtx, gfmAudioQuality settings);
 
 /**
  * Set the game's fps resolution; This defines when will the game automatically
@@ -383,6 +394,43 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index);
+
+/**
+ * Loads an audio
+ * 
+ * @param  pHandle     Handle of the loaded audio
+ * @param  pCtx        The game's context
+ * @param  pFilename   The filename
+ * @param  filenameLen Length of the filename
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_COULDNT_OPEN_FILE,
+ *                     GFMRV_READ_ERROR, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+ *                     GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfm_loadAudio(int *pHandle, gfmCtx *pCtx, char *pFilename, int filenameLen);
+
+/**
+ * Set to which sample the song must loop
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The handle of the looped audio
+ * @param  pos    Sample to which the song should go back when looping
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_INVALID_BUFFER_LEN
+ */
+gfmRV gfm_setRepeat(gfmCtx *pCtx, int handle, int pos);
+
+/**
+ * Plays an audio and returns its instance
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx The game's context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
+        double volume);
 
 /**
  * Retrieve the current camera

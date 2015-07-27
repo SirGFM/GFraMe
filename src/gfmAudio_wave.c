@@ -47,8 +47,8 @@ typedef struct stWAVEFormat waveFormat;
 
 /** RIFF files are comprised of chunks/sub chunks with this 'format' */
 struct stRIFFChunk {
-    /** Chunk ID (always 4 bytes) */
-    char pId[4];
+    /** Chunk ID (always 4 bytes + '\0') */
+    char pId[5];
     /** Chunk size (4 bytes integer) */
     int size;
     /** Chunk data (of size bytes) */
@@ -96,12 +96,14 @@ static gfmRV gfmAudio_readRIFFChunkHeader(riffChunk *pCtx, FILE *pFp) {
     
     // Read the chunk's ID (4 bytes)
     count = 4;
-    irv = fread(pCtx->pId, count, sizeof(char), pFp);
+    irv = fread(pCtx->pId, sizeof(char), count, pFp);
     ASSERT(irv == count, GFMRV_READ_ERROR);
+    // Set the string's end
+    pCtx->pId[4] = '\0';
     
     // Read the chunk's size (4 bytes)
     count = 4;
-    irv = fread(pBuf, count, sizeof(char), pFp);
+    irv = fread(pBuf, sizeof(char), count, pFp);
     ASSERT(irv == count, GFMRV_READ_ERROR);
     // Convert the chunk's size (it's in little-endian)
     pCtx->size = gfmAudio_getWordLE(pBuf);
@@ -139,7 +141,7 @@ static gfmRV gfmAudio_readMasterChunk(int *pSize, FILE *pFp) {
     ASSERT(chunk.size >= 4, GFMRV_FUNCTION_FAILED);
     // Read those next 4 bytes
     count = 4;
-    irv = fread(pBuf, count, sizeof(char), pFp);
+    irv = fread(pBuf, sizeof(char), count, pFp);
     ASSERT(irv == count, GFMRV_READ_ERROR);
     // Check that those bytes actually read "WAVE"
     ASSERT(pBuf[0] == 'W' && pBuf[1] == 'A' && pBuf[2] == 'V' && pBuf[3] == 'E',
@@ -269,6 +271,10 @@ static gfmRV gfmAudio_convertWaveBits(int pDst[2], int pSrc[2],
         pDst[0] = (pSrc[0] + 0x8000) >> 8;
         pDst[1] = (pSrc[1] + 0x8000) >> 8;
     }
+    else {
+        // Shouldn't happen, but avoids compiler warnings
+        return GFMRV_FUNCTION_FAILED;
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -303,7 +309,7 @@ static gfmRV gfmAudio_readWaveFormat(waveFormat *pFormat, FILE *pFp, int size) {
     ASSERT(pBuf, GFMRV_ALLOC_FAILED);
     
     // Read the data format from the file
-    irv = fread(pBuf, size, sizeof(char), pFp);
+    irv = fread(pBuf, sizeof(char), size, pFp);
     ASSERT(irv == size, GFMRV_READ_ERROR);
     
     // Read from the buffer into a format struct (so it can be returned)
@@ -450,7 +456,7 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
             }
             
             // Read the bytes
-            irv = fread(pBuf, chunk.size, sizeof(char), pFp);
+            irv = fread(pBuf, sizeof(char), chunk.size, pFp);
             ASSERT(irv == chunk.size, GFMRV_READ_ERROR);
             
             // Calculate how many more bytes are required on the destination
@@ -482,17 +488,17 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 // Output it to the buffer
-                pBuf[j] = pDstSamples[0] & 0xff;
+                pDst[j] = pDstSamples[0] & 0xff;
                 j++;
                 if (bitsPerSample == 16) {
-                    pBuf[j] = (pDstSamples[0] >> 8 ) & 0xff;
+                    pDst[j] = (pDstSamples[0] >> 8 ) & 0xff;
                     j++;
                 }
                 if (numChannels == 2) {
-                    pBuf[j] = pDstSamples[1] & 0xff;
+                    pDst[j] = pDstSamples[1] & 0xff;
                     j++;
                     if (bitsPerSample == 16) {
-                        pBuf[j] = (pDstSamples[1] >> 8 ) & 0xff;
+                        pDst[j] = (pDstSamples[1] >> 8 ) & 0xff;
                         j++;
                     }
                 }
@@ -504,8 +510,15 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
             dstLen += len;
         }
         else {
-            // Got an invalid chunk
-            ASSERT(0, GFMRV_READ_ERROR);
+            if (size > 8) {
+                // Got an invalid chunk at the middle of the file
+                ASSERT(0, GFMRV_READ_ERROR);
+            }
+            else {
+                // It was after the last chunk, so...
+                // TODO Check why this happens
+                break;
+            }
         }
         
         // Update how many bytes were read
