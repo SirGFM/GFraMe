@@ -45,8 +45,7 @@ enum enGFMAudioQuality {
     gfmAudio_highFreq    = 0x000040,   /* 88200 Hertz      */
     /** Default settings             */
     gfmAudio_defQuality  = gfmAudio_stereo | gfmAudio_defFreq,
-    //gfmAudio_lowQuality  = gfmAudio_mono   | gfmAudio_lowFreq,
-    gfmAudio_lowQuality  = gfmAudio_stereo | gfmAudio_lowFreq,
+    gfmAudio_lowQuality  = gfmAudio_mono   | gfmAudio_lowFreq,
     gfmAudio_medQuality  = gfmAudio_stereo | gfmAudio_medFreq,
     gfmAudio_highQuality = gfmAudio_stereo | gfmAudio_highFreq
   //gfmAudio_highQuality = gfmAudio_5      | gfmAudio_highFreq

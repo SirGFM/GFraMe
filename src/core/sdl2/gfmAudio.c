@@ -145,6 +145,66 @@ __ret:
 }
 
 /**
+ * Mix a 16-bit audio instance into a mono buffer
+ * 
+ * @param  pCtx The instance being played
+ * @param  pDst The output buffer
+ * @param  len  How many bytes should be played
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmAudio_mixMono16(gfmAudioHandle *pCtx, unsigned char *pDst,
+        int len) {
+    unsigned char *pBuf;
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the buffer
+    pBuf = (unsigned char*)pCtx->pSelf->pBuf;
+    // Loop through all samples
+    i = 0;
+    while (i < len) {
+        Sint16 chan;
+        
+        // Get the data to be put into both channels
+        chan = (pBuf[i + pCtx->pos] & 0x00ff)
+                | ((pBuf[i + pCtx->pos + 1] << 8) & 0xff00);
+        
+        // Modify its volume
+        chan = ((Sint16)(chan * pCtx->volume)) & 0xffff;
+        
+        // Add it to the channel
+        pDst[i]   += (Uint8)( chan       & 0xff);
+        pDst[i+1] += (Uint8)((chan >> 8) & 0xff);
+
+        i += 2;
+        // If the sample is over
+        if (i + pCtx->pos >= pCtx->pSelf->len) {
+            // Loop it
+            if (pCtx->pSelf->doRepeat) {
+                len -= i;
+                i = 0;
+                pCtx->pos = pCtx->pSelf->repeatPosition;
+            }
+            else {
+                // Otherwise, simpl
+                break;
+            }
+        }
+    }
+    // Update the sample position
+    pCtx->pos += i;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Mix a 16-bit audio instance into a stereo buffer
  * 
  * @param  pCtx The instance being played
@@ -177,8 +237,8 @@ static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
                 | ((pBuf[i + pCtx->pos + 3] << 8) & 0xff00);
         
         // Modify its volume
-        chan1 = ((Sint16)(chan1 * pCtx->volume))&0xffff;
-        chan2 = ((Sint16)(chan2 * pCtx->volume))&0xffff;
+        chan1 = ((Sint16)(chan1 * pCtx->volume)) & 0xffff;
+        chan2 = ((Sint16)(chan2 * pCtx->volume)) & 0xffff;
         
         // Add it to the channel
         pDst[i]   += (Uint8)( chan1       & 0xff);
@@ -253,7 +313,8 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
                 // TODO Play the buffer
             }
             else if (pCtx->numChannels == 1 && pCtx->bitsPerSample == 16) {
-                // TODO Play the buffer
+                rv = gfmAudio_mixMono16(pTmp, pStream, len);
+                ASSERT_NR(rv == GFMRV_OK);
             }
             else if (pCtx->numChannels == 2 && pCtx->bitsPerSample == 8) {
                 // TODO Play the buffer
