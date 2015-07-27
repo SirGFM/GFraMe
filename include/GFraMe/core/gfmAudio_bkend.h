@@ -37,17 +37,19 @@ enum enGFMAudioQuality {
     /** Possibles number of channels */
     gfmAudio_stereo      = 0x000000,   /* A single channel */
     gfmAudio_mono        = 0x000001,   /* Two channels     */
-    gfmAudio_5           = 0x000002,   /* Five channels    */
+  //gfmAudio_5           = 0x000002,   /* Five channels    */
     /** Possible sample rates        */
+    gfmAudio_defFreq     = 0x000000,   /* 44100 Hertz      */
     gfmAudio_lowFreq     = 0x000010,   /* 11025 Hertz      */
     gfmAudio_medFreq     = 0x000020,   /* 22050 Hertz      */
-    gfmAudio_defFreq     = 0x000040,   /* 44100 Hertz      */
-    gfmAudio_highFreq    = 0x000080,   /* 88200 Hertz      */
+    gfmAudio_highFreq    = 0x000040,   /* 88200 Hertz      */
     /** Default settings             */
     gfmAudio_defQuality  = gfmAudio_stereo | gfmAudio_defFreq,
-    gfmAudio_lowQuality  = gfmAudio_mono   | gfmAudio_lowFreq,
+    //gfmAudio_lowQuality  = gfmAudio_mono   | gfmAudio_lowFreq,
+    gfmAudio_lowQuality  = gfmAudio_stereo | gfmAudio_lowFreq,
     gfmAudio_medQuality  = gfmAudio_stereo | gfmAudio_medFreq,
-    gfmAudio_highQuality = gfmAudio_5      | gfmAudio_highFreq
+    gfmAudio_highQuality = gfmAudio_stereo | gfmAudio_highFreq
+  //gfmAudio_highQuality = gfmAudio_5      | gfmAudio_highFreq
 };
 typedef enum enGFMAudioQuality gfmAudioQuality;
 

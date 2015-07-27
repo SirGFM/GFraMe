@@ -32,7 +32,10 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the audio sub-system
+    //rv = gfm_initAudio(pCtx, gfmAudio_lowQuality);
+    //rv = gfm_initAudio(pCtx, gfmAudio_medQuality);
     rv = gfm_initAudio(pCtx, gfmAudio_defQuality);
+    //rv = gfm_initAudio(pCtx, gfmAudio_highQuality);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load an audio
@@ -44,7 +47,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Play the audio
-    volume = 0.1;
+    volume = 0.8;
     rv = gfm_playAudio(0/* ignore the instance */, pCtx, handle, volume);
     ASSERT_NR(rv == GFMRV_OK);
     

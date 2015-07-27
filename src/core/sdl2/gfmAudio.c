@@ -458,8 +458,6 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that it still wasn't initialized
     ASSERT(!pCtx->init, GFMRV_AUDIO_ALREADY_INITIALIZED);
-    // TODO Add support for others settings
-    ASSERT(settings == gfmAudio_defQuality, GFMRV_FUNCTION_NOT_SUPPORTED);
     
     // Initialize the audio subsystem
     irv = SDL_InitSubSystem(SDL_INIT_AUDIO);
@@ -475,11 +473,35 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings) {
     
     // Set the desired audio format
     // Samples per second
-    wanted.freq = 44100;
+    if ((settings & gfmAudio_lowFreq) == gfmAudio_lowFreq) {
+        wanted.freq = 11025;
+    }
+    else if ((settings & gfmAudio_medFreq) == gfmAudio_medFreq) {
+        wanted.freq = 22050;
+    }
+    else if ((settings & gfmAudio_highFreq) == gfmAudio_highFreq) {
+        wanted.freq = 88200;
+    }
+    else {
+        wanted.freq = 44100;
+    }
+    
+    // Number of channels (defaults to stereo)
+    if ((settings & gfmAudio_mono) == gfmAudio_mono) {
+        wanted.channels = 1;
+    }
+    /*
+    else if ((settings & gfmAudio_5) == gfmAudio_5) {
+        wanted.channels = 5;
+    }
+    */
+    else {
+        wanted.channels = 2;
+    }
+    
     // Sample format (i.e., signedness, endianess, number of bits per samples)
     wanted.format = AUDIO_S16LSB;
-    // Number of channels (defaults to stereo)
-    wanted.channels = 2;
+    
     // Callback used to fill the buffer
     wanted.callback = gfmAudio_callback;
     // Send the audio context itself to the callback
