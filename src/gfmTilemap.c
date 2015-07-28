@@ -41,6 +41,10 @@ gfmGenArr_define(gfmObject);
 struct stGFMTilemap {
     /** The tilemap's tileset */
     gfmSpriteset *pSset;
+    /** Horizontal position of the tilemap */
+    int x;
+    /** Vertical position of the tilemap */
+    int y;
     /** Tiles info (yay, upgraded from unsigned char) */
     int *pData;
     /** How many tiles there are in pData (not how many are in use!) */
@@ -229,12 +233,40 @@ gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen, int mapWidth,
     ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
     
     // Reinitialize the map, to be sure it can fit this new tilemap
-    rv = gfmTilemap_init(pCtx, pCtx->pSset, mapWidth, mapHeight, 0/*defTile*/);
+    // -1 is used as default tile to fail the draw and 'draw' an invisible tile
+    rv = gfmTilemap_init(pCtx, pCtx->pSset, mapWidth, mapHeight, -1/*defTile*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Reset it back to the origin
+    rv = gfmTilemap_setPosition(pCtx, 0, 0);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Copy the new map into the tilemap
     // Can't think of a good reason not to use memcpy, so...
     memcpy(pCtx->pData, pData, dataLen*sizeof(int));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Modify a tilemap position
+ * 
+ * @param  pCtx   The tilemap
+ * @param  x      The tilemap top-left position
+ * @param  y      The tilemap to-left position
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmTilemap_setPosition(gfmTilemap *pCtx, int x, int y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the position
+    pCtx->x = x;
+    pCtx->y = y;
     
     rv = GFMRV_OK;
 __ret:
