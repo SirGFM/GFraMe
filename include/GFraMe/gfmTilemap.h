@@ -110,6 +110,16 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pCtx, char *pFilename, int filenameLen);
     gfmTilemap_loadf(pCtx, pFilename, sizeof(pFilename)-1)
 
 /**
+ * Modify a tilemap position
+ * 
+ * @param  pCtx   The tilemap
+ * @param  x      The tilemap top-left position
+ * @param  y      The tilemap to-left position
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmTilemap_setPosition(gfmTilemap *pCtx, int x, int y);
+
+/**
  * Adds a single rectangular area of a given type
  * 
  * @param  pCtx   The tilemap
