@@ -1111,8 +1111,6 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     ASSERT(pTMap->widthInTiles > 0, GFMRV_TILEMAP_NOT_INITIALIZED);
     ASSERT(pTMap->heightInTiles > 0, GFMRV_TILEMAP_NOT_INITIALIZED);
     
-    // TODO implement for tilemaps smaller than the screen
-    
     // Get the tile's dimension
     rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pTMap->pSset);
     ASSERT_NR(rv == GFMRV_OK);
@@ -1130,6 +1128,10 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // If the camera's position doesn't match a tile, it will render 1 extra one
     if (iniX != 0)
         dX--;
+    // If the tilemap is smaller than the camera, we would have to go back some
+    // tiles; Simply ignore that
+    if (dX < 0)
+        dX = 0;
     
     // Check if should batch
     if (pTMap->doBatched)
@@ -1146,12 +1148,14 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
         
         // Render the tile to the screen
         rv = gfm_drawTile(pCtx, pTMap->pSset, x, y, tile);
-        // TODO Add a debug ASSERT (?)
+        // Ignore the rv, as there are invalid tiles (-1) for "drawing 
+        // invisible tiles"
         
         // Update the tile position
         i++;
         x += tileWidth;
-        if (x >= camWidth) {
+        if (x >= camWidth ||
+                ((firstTile + i + offX) % pTMap->widthInTiles) == 0) {
             x = iniX;
             y += tileHeight;
             offX += dX;
