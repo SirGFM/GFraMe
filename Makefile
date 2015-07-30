@@ -241,6 +241,19 @@ shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 
+install-test:
+	make DEBUG=yes shared
+	# Create destiny directories
+	mkdir -p $(LIBPATH)/GFraMe
+	mkdir -p $(HEADERPATH)/GFraMe
+	# Copy every shared lib (normal, optmized and debug)
+	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
+	# -P = don't follow sym-link
+	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
+	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)/GFraMe
+	# Copy the headers
+	cp -rf ./include/GFraMe/* $(HEADERPATH)/GFraMe
+
 #==============================================================================
 # Rule for installing the library
 #==============================================================================

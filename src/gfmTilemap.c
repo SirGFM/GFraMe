@@ -1100,8 +1100,11 @@ __ret:
  */
 gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     gfmRV rv;
-    int camX, camY, camWidth, camHeight, dX, firstTile, i, iniX, offX,
-            tile, tileWidth, tileHeight, x, y;
+    int camX, camY, camWidth, camHeight;
+    int i, j;
+    int horTiles, verTiles;
+    int screenX, screenY;
+    int tileX, tileY, tileWidth, tileHeight;
     
     // Sanitize arguments
     ASSERT(pTMap, GFMRV_ARGUMENTS_BAD);
@@ -1117,6 +1120,88 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // Get camera's dimension
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);
     rv = gfm_getCameraDimensions(&camWidth, &camHeight, pCtx);
+    
+    // Get the horizontal index for first visible tile on the screen and its in
+    // screen position
+    if (camX <= pTMap->x) {
+        tileX = 0;
+        screenX = pTMap->x;
+    }
+    else {
+        tileX = (pTMap->x - camX) / tileWidth;
+        // The position will be either 0 or the start of the previous tile
+        screenX = -(camX % tileWidth);
+    }
+    // Get the vertical index for first visible tile on the screen and its in
+    // screen position
+    if (camY <= pTMap->y) {
+        tileY = 0;
+        screenY = pTMap->y;
+    }
+    else {
+        tileY = (pTMap->y - camY) / tileHeight;
+        // The position will be either 0 or the start of the previous tile
+        screenY = -(camY % tileHeight);
+    }
+    
+    // Get how many tiles must be drawn horizontally
+    // numTiles = (screenDimension - inScreenPosition) / tileDimension
+    horTiles = (camWidth - screenX) / tileWidth;
+    // If the last tile will be partially drawn, add it
+    if ((camWidth - screenX) % tileWidth != 0) {
+        horTiles++;
+    }
+    // Cap the number of tiles to the tilemap width
+    if (horTiles > pTMap->widthInTiles) {
+        horTiles = pTMap->widthInTiles;
+    }
+    
+    // Get how many tiles must be drawn vertically
+    verTiles = (camHeight - screenY) / tileHeight;
+    // If the last tile will be partially drawn, add it
+    if ((camHeight - screenY) % tileHeight != 0) {
+        verTiles++;
+    }
+    // Cap the number of tiles to the tilemap width
+    if (verTiles > pTMap->heightInTiles) {
+        verTiles = pTMap->heightInTiles;
+    }
+    
+    // Check if should batch
+    if (pTMap->doBatched)
+        gfm_batchBegin(pCtx);
+    
+    i = 0;
+    j = 0;
+    // Loop through every visible tile
+    while (j < verTiles) {
+        int tile;
+        
+        // Get the tile
+        tile = pTMap->pData[(tileX + i) + (tileY + j) * pTMap->widthInTiles];
+        // Render the tile to the screen (ignore errors)
+        gfm_drawTile(pCtx, pTMap->pSset, screenX + i * tileWidth,
+                screenY + j * tileHeight, tile);
+        
+        i++;
+        if (i >= horTiles) {
+            i = 0;
+            j++;
+        }
+    }
+    
+    // Check if should end batch
+    if (pTMap->doBatched)
+        gfm_batchEnd(pCtx);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+/*
+    gfmRV rv;
+    int camX, camY, camWidth, camHeight, dX, firstTile, i, iniX, offX,
+            tile, tileX, tileY, tileWidth, tileHeight, x, y;
     
     // Get the first tile's position on the screen
     iniX = -(camX % tileWidth);
@@ -1170,4 +1255,5 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
 __ret:
     return rv;
 }
+*/
 
