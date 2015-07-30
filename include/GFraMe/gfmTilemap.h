@@ -120,6 +120,16 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pCtx, char *pFilename, int filenameLen);
 gfmRV gfmTilemap_setPosition(gfmTilemap *pCtx, int x, int y);
 
 /**
+ * Retrieves the tilemap data, so it can be modified (BE SURE TO RECALCULATE THE
+ * AREA AFTEWARD)
+ * 
+ * @param  ppData The tilemap data
+ * @param  pCtx   The tilemap
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_getData(int **ppData, gfmTilemap *pCtx);
+
+/**
  * Adds a single rectangular area of a given type
  * 
  * @param  pCtx   The tilemap

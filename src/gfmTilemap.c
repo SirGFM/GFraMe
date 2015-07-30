@@ -274,6 +274,30 @@ __ret:
 }
 
 /**
+ * Retrieves the tilemap data, so it can be modified (BE SURE TO RECALCULATE THE
+ * AREA AFTEWARD)
+ * 
+ * @param  ppData The tilemap data
+ * @param  pCtx   The tilemap
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TILEMAP_NOT_INITIALIZED
+ */
+gfmRV gfmTilemap_getData(int **ppData, gfmTilemap *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppData, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pData, GFMRV_TILEMAP_NOT_INITIALIZED);
+    
+    *ppData = pCtx->pData;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Adds a single rectangular area of a given type; Every object is set as fixed,
  * but if collision is not desired, simply don't call gfmObject_separate*
  * 
