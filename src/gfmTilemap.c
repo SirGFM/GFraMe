@@ -1152,9 +1152,9 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
         screenX = pTMap->x;
     }
     else {
-        tileX = (pTMap->x - camX) / tileWidth;
+        tileX = (camX - pTMap->x) / tileWidth;
         // The position will be either 0 or the start of the previous tile
-        screenX = -(camX % tileWidth);
+        screenX = -((camX - pTMap->x) % tileWidth);
     }
     // Get the vertical index for first visible tile on the screen and its in
     // screen position
@@ -1163,32 +1163,21 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
         screenY = pTMap->y;
     }
     else {
-        tileY = (pTMap->y - camY) / tileHeight;
+        tileY = (camY - pTMap->y) / tileHeight;
         // The position will be either 0 or the start of the previous tile
-        screenY = -(camY % tileHeight);
+        screenY = -((camY -pTMap->y) % tileHeight);
     }
     
     // Get how many tiles must be drawn horizontally
-    // numTiles = (screenDimension - inScreenPosition) / tileDimension
-    horTiles = (camWidth - screenX) / tileWidth;
-    // If the last tile will be partially drawn, add it
-    if ((camWidth - screenX) % tileWidth != 0) {
-        horTiles++;
-    }
-    // Cap the number of tiles to the tilemap width
-    if (horTiles > pTMap->widthInTiles) {
-        horTiles = pTMap->widthInTiles;
+    horTiles = pTMap->widthInTiles - tileX;
+    if (horTiles > camWidth / tileWidth + 2) {
+        horTiles = camWidth / tileWidth + 2;
     }
     
     // Get how many tiles must be drawn vertically
-    verTiles = (camHeight - screenY) / tileHeight;
-    // If the last tile will be partially drawn, add it
-    if ((camHeight - screenY) % tileHeight != 0) {
-        verTiles++;
-    }
-    // Cap the number of tiles to the tilemap width
-    if (verTiles > pTMap->heightInTiles) {
-        verTiles = pTMap->heightInTiles;
+    verTiles = pTMap->heightInTiles - tileY;
+    if (verTiles > camHeight / tileHeight + 2) {
+        verTiles = camHeight / tileHeight + 2;
     }
     
     // Check if should batch
