@@ -212,6 +212,12 @@ gfmRV gfmText_setText(gfmText *pCtx, char *pStr, int len, int doCopy) {
     // TODO Remove trailing '\0' from length?
     pCtx->strLen = len;
     
+    // Finish the 'animation', if there's no delay
+    if (pCtx->charDelay <= 0) {
+        rv =  gfmText_forceFinish(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -389,7 +395,7 @@ gfmRV gfmText_forceFinish(gfmText *pCtx) {
     ASSERT(pCtx->strLen > 0, GFMRV_TEXT_NOT_SET);
     
     // Set the string to its max size
-    pCtx->curPos = pCtx->strLen - 1;
+    pCtx->curPos = pCtx->strLen;
     // Normalize the string
     rv = gfmText_normalize(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
