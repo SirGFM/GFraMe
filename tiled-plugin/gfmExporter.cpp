@@ -22,6 +22,7 @@
 #include "map.h"
 #include "mapobject.h"
 #include "objectgroup.h"
+#include "terrain.h"
 #include "tile.h"
 #include "tilelayer.h"
 
@@ -51,6 +52,8 @@ GFMExporterPlugin::GFMExporterPlugin()
  */
 bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 {
+    int i, foundTerrain, terrainTilesetindex;
+    
     // Open the output file
 #ifdef HAS_QSAVEFILE_SUPPORT
     QSaveFile file(fileName);
@@ -58,10 +61,66 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
     QFile file(fileName);
 #endif
     
-    // Check that the file was correctly opened
+    // Open the file for writing
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         mError = tr("Could not open file for writing.");
         return false;
+    }
+    
+    // Flag that we've yet to find a terrain
+    foundTerrain = 0;
+    // Terrain information is stored on the tileset, so iterate over them and
+    // check get how many of those have terrain (only one can have!)
+    i = 0;
+    while (i < map->tilesetCount()) {
+        Tileset *pTset;
+        
+        pTset = map->tilesetAt(i);
+        // Check if it has any terrain
+        if (pTset->terrainCount() > 0) {
+            // This tileset has a terrain, so no other can
+            if (foundTerrain) {
+                // If another has, set the error string and exit
+                mError = tr("Found more than one tileset with terrain "
+                        "information.\n For now, only a single tileset can have"
+                        "it.");
+                return false;
+            }
+            // Flag it as found
+            foundTerrain = 1;
+            // Also, store the index of the tileset with the terrain
+            terrainTilesetindex = i;
+        }
+        
+        i++;
+    }
+    
+    // If we found a terrain, we must add that info to the tilemap
+    if (foundTerrain) {
+        Tileset *pTset;
+        
+        pTset = map->tilesetAt(terrainTilesetindex );
+        
+        // Loop through all terrains and loop their info
+        i = 0;
+        while (i < pTset->terrainCount()) {
+            Terrain *pTerr;
+            Tile *pTile;
+            
+            // Retrieve the current terrain
+            pTerr = pTset->terrain(i);
+            // Retrieve it's assigned tile
+            pTile = pTerr->imageTile();
+            
+            // Output to the file: 'area <terrain_name> <tile_id>
+            file.write("area ");
+            file.write(pTerr->name().toLatin1());
+            file.write(" ");
+            file.write(QByteArray::number(pTile->id()));
+            file.write("\n");
+            
+            i++;
+        }
     }
     
     // TODO Get the area's info
