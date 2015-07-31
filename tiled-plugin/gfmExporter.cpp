@@ -124,7 +124,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             // Retrieve it's assigned tile
             pTile = pTerr->imageTile();
             
-            // Output to the file: 'area <terrain_name> <tile_id>
+            // Output to the file: 'area <terrain_name> <tile_id>'
             file.write("area ");
             file.write(pTerr->name().toLatin1());
             file.write(" ");
@@ -155,6 +155,9 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         }
         
         // Output the current layer
+        // Output to the file: 'map <width_in_tiles> <height_in_tiles>\n'
+        //                     '  tile_0,tile_1,...,'
+        //                     '  tile_0,tile_1,...,last_tile'
         tileLayer = static_cast<const TileLayer*>(layer);
         gfm_writeTilemap(file, tileLayer);
     }
