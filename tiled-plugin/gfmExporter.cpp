@@ -39,6 +39,18 @@
 using namespace Tiled;
 using namespace GFMExporter;
 
+/**
+ * Write a tilemap layer to the output file
+ * 
+ * @param  file      The output file
+ * @param  tileLayer The layer to be outputed
+ */
+#ifdef HAS_QSAVEFILE_SUPPORT
+static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer);
+#else
+static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer);
+#endif
+
 /** Constructor... that does nothing */
 GFMExporterPlugin::GFMExporterPlugin()
 {
@@ -52,7 +64,7 @@ GFMExporterPlugin::GFMExporterPlugin()
  */
 bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 {
-    int i, foundTerrain, terrainTilesetindex;
+    int i, foundTilemap, foundTerrain, terrainTilesetindex;
     
     // Open the output file
 #ifdef HAS_QSAVEFILE_SUPPORT
@@ -123,11 +135,28 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         }
     }
     
-    // TODO Get the area's info
     // Write every layer
+    foundTilemap = 0;
     foreach (const Layer *layer, map->layers()) {
+        const TileLayer *tileLayer;
+        
+        // Check that the layer is visible
         if (!layer->isVisible())
             continue;
+        // Check that the layer is a tilemap
+        if (layer->layerType() != Layer::TileLayerType)
+            continue;
+        
+        // Check that there's only a single tilemap to be exported
+        if (foundTilemap) {
+            mError = tr("Found more than one visible layers, but the plugin can"
+                    "only handle a single layer at a time");
+            return false;
+        }
+        
+        // Output the current layer
+        tileLayer = static_cast<const TileLayer*>(layer);
+        gfm_writeTilemap(file, tileLayer);
     }
 
     if (file.error() != QFile::NoError) {
@@ -157,6 +186,45 @@ QString GFMExporterPlugin::errorString() const
 {
     return mError;
 }
+
+/**
+ * Write a tilemap layer to the output file
+ * 
+ * @param  file      The output file
+ * @param  tileLayer The layer to be outputed
+ */
+#ifdef HAS_QSAVEFILE_SUPPORT
+static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer) {
+#else
+static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
+#endif
+    // Write a tilemap 'header'
+    file.write("map ");
+    file.write(QByteArray::number(tileLayer->width()));
+    file.write(" ");
+    file.write(QByteArray::number(tileLayer->height()));
+    file.write("\n");
+    
+    // Write the buffer data
+    for (int y = 0; y < tileLayer->height(); y++) {
+        file.write("  ");
+        for (int x = 0; x < tileLayer->width(); x++) {
+            const Cell &cell = tileLayer->cellAt(x, y);
+            const Tile *tile = cell.tile;
+            const int id = tile ? tile->id() : -1;
+            
+            // Write the curren tile (or -1, if there's none)
+            file.write(QByteArray::number(id));
+            // Don't write a comma after the last tile
+            if (y != tileLayer->height() - 1 || x < tileLayer->width() -1) {
+                file.write(",", 1);
+            }
+        }
+        
+        file.write("\n", 1);
+    }
+}
+
 
 #if QT_VERSION < 0x050000
 Q_EXPORT_PLUGIN2(Gfm, GFMExporterPlugin)

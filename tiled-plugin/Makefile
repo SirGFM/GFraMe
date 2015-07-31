@@ -11,7 +11,7 @@ ifndef TILED_DIR
   $(info Must specify the directory where Tiled was checked out through the \
          TILED_DIR variable;)
   $(info option 1: '$$ make TILED_DIR=dir')
-  $(info option 2: '$$ exporter TILED_DIR=dir' (only once))
+  $(info option 2: '$$ exporte TILED_DIR=dir' (only once))
   $(info .         '$$ make' (any number of times, afterward))
   $(error NO TILED_DIR SPECIFIED)
 endif
