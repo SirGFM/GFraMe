@@ -514,7 +514,7 @@ static gfmRV gfmTilemap_parseInt(int *pVal, FILE *pFp) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set the return value
-    *pVal = num;
+    *pVal = num * signal;
     isPosSet = 0;
     rv = GFMRV_OK;
 __ret:
