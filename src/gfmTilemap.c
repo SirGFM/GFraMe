@@ -305,8 +305,10 @@ static gfmRV gfmTilemap_ignoreBlank(FILE *pFp) {
         
         // Read the current character
         c = fgetc(pFp);
-        // Check that the string didn't end
-        ASSERT(c != EOF, GFMRV_READ_ERROR);
+        // Simply exit on EOF
+        if (c == EOF) {
+            break;
+        }
         
         // Stop if it's not a blank char
         if (!gfmTilemap_isBlank(c)) {
@@ -529,11 +531,10 @@ __ret:
  * TileType := type_str tile_index '\n'
  * Area := NOT_YET_IMPLEMENTED
  * TilemapData := "map" width_in_tiles height_in_tiles '\n'
- *                tile_1_1 ',' tile_2_1 ',' ... ','
- *                      tile_(width_in_tiles - 1)_1 '\n'
+ *                tile_1_1 tile_2_1 ... tile_(width_in_tiles - 1)_1
  *                ...
- *                tile_1_(height_in_tiles - 1) ',' tile_2_(height_in_tiles - 1)
- *                      ',' ... ',' tile_(width_in_tiles - 1)_(height_in_tiles - 1)
+ *                tile_1_(height_in_tiles - 1) tile_2_(height_in_tiles - 1)
+ *                      ... tile_(width_in_tiles - 1)_(height_in_tiles - 1)
  * 
  * Note that the 'type_str' will be searched in the passed dictionary
  * 
@@ -652,22 +653,10 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             // Read and set it the actual data
             i = 0;
             while (i < width * height) {
-                int c, tile;
+                int tile;
                 
                 // Get the tile
                 rv = gfmTilemap_parseInt(&tile, pFp);
-                ASSERT_NR(rv == GFMRV_OK);
-                // On the middle of a line, check that the next tile is a comma
-                if (i % width < width - 1) {
-                    c = fgetc(pFp);
-                    ASSERT(c = ',', GFMRV_TILEMAP_PARSING_ERROR);
-                }
-                else {
-                    // Otherwise, check that it's a newline
-                    c = fgetc(pFp);
-                    ASSERT(c = '\n', GFMRV_TILEMAP_PARSING_ERROR);
-                }
-                rv = gfmTilemap_ignoreBlank(pFp);
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 pTMap->pData[i] = tile;
@@ -683,9 +672,9 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     
     // Recache the animations and areas
     rv = gfmTilemap_recacheAnimations(pTMap);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILEANIM);
     rv = gfmTilemap_recalculateAreas(pTMap);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE);
     
     rv = GFMRV_OK;
 __ret:

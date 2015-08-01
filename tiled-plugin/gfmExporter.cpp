@@ -222,7 +222,7 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
             file.write(QByteArray::number(id));
             // Don't write a comma after the last tile
             if (y != tileLayer->height() - 1 || x < tileLayer->width() -1) {
-                file.write(",", 1);
+                file.write(" ", 1);
             }
         }
         
