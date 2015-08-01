@@ -105,9 +105,33 @@ gfmRV gfmTilemap_load(gfmTilemap *pCtx, int *pData, int dataLen, int mapWidth,
     gfmTilemap_load(pCtx, pData, (int)(sizeof(pData)/sizeof(int)), mapWidth, \
             mapHeight)
 
-gfmRV gfmTilemap_loadf(gfmTilemap *pCtx, char *pFilename, int filenameLen);
-#define gfmTilemap_loadfStatic(pCtx, pFilename) \
-    gfmTilemap_loadf(pCtx, pFilename, sizeof(pFilename)-1)
+/**
+ * Loads a tilemap from a file; It must be described as:
+ * Tilemap := (<TileType>|<Area>)* <TilemapData>
+ * TileType := type_str tile_index '\n'
+ * Area := NOT_YET_IMPLEMENTED
+ * TilemapData := "map" width_in_tiles height_in_tiles '\n'
+ *                tile_1_1 ',' tile_2_1 ',' ... ','
+ *                      tile_(width_in_tiles - 1)_1 '\n'
+ *                ...
+ *                tile_1_(height_in_tiles - 1) ',' tile_2_(height_in_tiles - 1)
+ *                      ',' ... ',' tile_(width_in_tiles - 1)_(height_in_tiles - 1)
+ * 
+ * Note that the 'type_str' will be searched in the passed dictionary
+ * 
+ * @param  pTMap       The tilemap
+ * @param  pCtx        The game`s context
+ * @param  pFilename   The file where the tile data is written
+ * @param  filenameLen How many characters there are in the filename
+ * @param  pDictNames  Dictionary with the types' names
+ * @param  pDictTypes  Dictionary with the types's values
+ * @param  dictLen     How many entries there are in the dictionary
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_ALLOC_FAILED,
+ *                     GFMRV_TILEMAP_PARSING_ERROR
+ */
+gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
+        int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen);
 
 /**
  * Modify a tilemap position

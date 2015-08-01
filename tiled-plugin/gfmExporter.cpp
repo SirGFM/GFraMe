@@ -125,7 +125,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             pTile = pTerr->imageTile();
             
             // Output to the file: 'area <terrain_name> <tile_id>'
-            file.write("area ");
+            file.write("type ");
             file.write(pTerr->name().toLatin1());
             file.write(" ");
             file.write(QByteArray::number(pTile->id()));
@@ -143,6 +143,8 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         // Check that the layer is visible
         if (!layer->isVisible())
             continue;
+        
+        // TODO Add areas
         // Check that the layer is a tilemap
         if (layer->layerType() != Layer::TileLayerType)
             continue;
