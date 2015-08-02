@@ -1542,6 +1542,7 @@ gfmRV gfmTilemap_update(gfmTilemap *pTMap, gfmCtx *pCtx) {
             else {
                 // "Remove" the animation from the list
                 pTAnim->index = -1;
+                break;
             }
         }
 __nextAnim:
