@@ -285,7 +285,7 @@ __ret:
  * Check if a character if blank
  */
 #define gfmTilemap_isBlank(c) \
-        ((c) == ' ' || (c) == '\n' || (c) == '\t')
+        ((c) == ' ' || (c) == '\n' || (c) == '\r' || (c) == '\t')
 
 /**
  * Advance through all blank characters
@@ -1330,7 +1330,7 @@ gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
                     pCtx->pData[tileIndex + i + j * pCtx->widthInTiles]);
             ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE);
             // Stop if it's a different type of tile
-            if (nextType != type || rv == GFMRV_TILEMAP_NO_TILETYPE)
+            if (rv == GFMRV_TILEMAP_NO_TILETYPE || nextType != type)
                 break;
             // Also check that this new tile doesn't belong to another area
             rv = gfmTilemap_isTileInAnyArea(pCtx,
