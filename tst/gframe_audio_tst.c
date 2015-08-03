@@ -10,6 +10,7 @@
 
 // Use a macro to easily make the program sleep in windows and linux
 #if defined(WIN32)
+#  include <windows.h>
 #  define USLEEP(n) ;//Sleep(n)
 #else
 #  include <unistd.h>
@@ -52,7 +53,11 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Wait for some time while the song should be playing...
+#if defined(WIN32)
+    Sleep(10);
+#else
     sleep(10);
+#endif
     
     rv = GFMRV_OK;
 __ret:
