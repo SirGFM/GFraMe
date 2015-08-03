@@ -241,25 +241,23 @@ shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
 tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 
-install-test:
-	make DEBUG=yes shared
-	# Create destiny directories
-	mkdir -p $(LIBPATH)/GFraMe
-	mkdir -p $(HEADERPATH)/GFraMe
-	# Copy every shared lib (normal, optmized and debug)
-	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
-	# -P = don't follow sym-link
-	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
-	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)/GFraMe
-	# Copy the headers
-	cp -rf ./include/GFraMe/* $(HEADERPATH)/GFraMe
-
 #==============================================================================
 # Rule for installing the library
 #==============================================================================
 ifeq ($(OS), Win)
   install: release
-	echo "-- TODO --"
+	# Create destiny directories
+	mkdir -p /c/GFraMe/lib/
+	mkdir -p /c/GFraMe/include/GFrame
+	# Copy every shared lib (normal, optmized and debug)
+	cp -f $(BINDIR)/$(TARGET)*.$(MNV) /c/GFraMe/lib
+	# -P = don't follow sym-link
+	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
+	cp -fP $(BINDIR)/$(TARGET)*.$(SO) /c/GFraMe/lib
+	# Copy the static lib
+	cp -f $(BINDIR)/$(TARGET).a /c/GFraMe/lib
+	# Copy the headers
+	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
 else
   install: release
 	# Create destiny directories
@@ -286,7 +284,23 @@ endif
 #==============================================================================
 ifeq ($(OS), Win)
   uninstall:
-	echo "-- TODO --"
+	# Remove the libraries
+	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MNV)
+	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MJV)
+	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(SO)
+	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MNV) 
+	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MJV) 
+	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(SO) 
+	rm -f /c/GFraMe/lib/$(TARGET).$(MNV)
+	rm -f /c/GFraMe/lib/$(TARGET).$(MJV)
+	rm -f /c/GFraMe/lib/$(TARGET).$(SO)
+	rm -f /c/GFraMe/lib/$(TARGET).a
+	# Remove the headers
+	rm -rf /c/GFraMe/include/*
+	# Remove its directories
+	rmdir /c/GFraMe/lib/
+	rmdir /c/GFraMe/include/
+	rmdir /c/GFraMe/
 else
   uninstall:
 	# Remove the libraries
