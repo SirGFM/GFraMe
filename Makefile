@@ -254,8 +254,6 @@ ifeq ($(OS), Win)
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
 	cp -fP $(BINDIR)/$(TARGET)*.$(SO) /c/GFraMe/lib
-	# Copy the static lib
-	cp -f $(BINDIR)/$(TARGET).a /c/GFraMe/lib
 	# Copy the headers
 	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
 else
@@ -294,7 +292,6 @@ ifeq ($(OS), Win)
 	rm -f /c/GFraMe/lib/$(TARGET).$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(MJV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(SO)
-	rm -f /c/GFraMe/lib/$(TARGET).a
 	# Remove the headers
 	rm -rf /c/GFraMe/include/*
 	# Remove its directories
