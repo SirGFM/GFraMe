@@ -35,8 +35,8 @@ On Windows, download and install MinGW (http://www.mingw.org/). Then, on
 its package manager, download the core utilities and MSYS.
 
 Afterward, download, compile and install SDL2
-(https://www.libsdl.org/download-2.0.php). You can get the precompiled dev
-libraries, but that would be no fun... :)
+(https://www.libsdl.org/download-2.0.php). You could get the precompiled
+dev libraries, but that would be no fun... :)
 
 ## Compiling and installing
 
