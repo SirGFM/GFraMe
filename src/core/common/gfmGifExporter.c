@@ -2,7 +2,7 @@
  * @file src/core/common/gfmGifExporter.c
  * 
  * Module that exports both GIF images and animations; This implementation
- * requires pthread!!
+ * requires SDL for threading =(
  * 
  * "The Graphics Interchange Format(c) is the Copyright property of
  *  CompuServe Incorporated. GIF(sm) is a Service Mark property of
@@ -16,7 +16,7 @@
 #include <GFraMe/core/gfmGifExporter_bkend.h>
 #include <GFraMe_int/gfmTrie.h>
 
-#include <pthread.h>
+#include <SDL2/SDL_thread.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ struct stGFMGifExporter {
     /** Whether the thread was created (blame WIN32's pthread) */
     int hasThread;
     /** The thread handle */
-    pthread_t threadHnd;
+    SDL_Thread *pThread;
     /** Output file */
     FILE *pOut;
     /** The value returned from the thread */
@@ -108,7 +108,7 @@ struct stGFMGifExporter {
  * 
  * @param pCtx The GIF context
  */
-static void* _gfmGif_threadHandler(void *pCtx);
+static int _gfmGif_threadHandler(void *pCtx);
 
 /**
  * Check whether exporting GIF is supported
@@ -330,17 +330,14 @@ gfmRV gfmGif_waitExport(gfmGifExporter *pCtx) {
     // Check that the thread was running
     if (pCtx->hasThread) {
         gfmGifExporter *pGif;
-        int irv;
+        int irv, threadRV;
         
         // Wait until the thread exits
-        irv = pthread_join(pCtx->threadHnd, (void**)(&pGif));
-        ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+        SDL_WaitThread(pCtx->pThread, &threadRV);
         // Cleans the handle
         pCtx->hasThread = 0;
         
-        // Retrieve the error code from the object returned by the thread
-        ASSERT(pGif, GFMRV_INTERNAL_ERROR);
-        rv = pGif->threadRV;
+        rv = threadRV;
     }
     
     // Set this as inactive
@@ -414,7 +411,6 @@ __ret:
 gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
     int irv;
-    pthread_attr_t attr;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -431,13 +427,10 @@ gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     pCtx->pImagePath = pPath;
     pCtx->pOut = 0;
     
-    // Set the thread attributes
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     // Create thread to handle this
-    irv = pthread_create(&(pCtx->threadHnd), &attr, _gfmGif_threadHandler,
+    pCtx->pThread = SDL_CreateThread(_gfmGif_threadHandler, "GFraMe_gif_thread",
             (void*)pCtx);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT(pCtx->pThread, GFMRV_INTERNAL_ERROR);
     pCtx->hasThread = 1;
     
     rv = GFMRV_OK;
@@ -457,7 +450,6 @@ __ret:
 gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
     int irv;
-    pthread_attr_t attr;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -474,12 +466,10 @@ gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     pCtx->pImagePath = pPath;
     pCtx->pOut = 0;
     
-    // Set the thread attributes
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     // Create thread to handle this
-    irv = pthread_create(&(pCtx->threadHnd), 0, _gfmGif_threadHandler, (void*)pCtx);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    pCtx->pThread = SDL_CreateThread(_gfmGif_threadHandler, "GFraMe_gif_thread",
+            (void*)pCtx);
+    ASSERT(pCtx->pThread, GFMRV_INTERNAL_ERROR);
     pCtx->hasThread = 1;
     
     rv = GFMRV_OK;
@@ -492,7 +482,7 @@ __ret:
  * 
  * @param pCtx The GIF context
  */
-static void* _gfmGif_threadHandler(void *pArg) {
+static int _gfmGif_threadHandler(void *pArg) {
     char *pPath;
     gfmGifExporter *pGif;
     gfmRV rv;
@@ -576,10 +566,7 @@ __ret:
     }
     
     // Return to the thread
-    pthread_exit(pGif);
-#ifdef WIN32
-    return pGif;
-#endif
+    return rv;
 }
 
 /**

@@ -122,13 +122,9 @@ CC = gcc
       LFLAGS := $(LFLAGS) -I"/d/windows/mingw/mingw32/lib"
     endif
     LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
-  else
-    LFLAGS := $(LFLAGS) -lm
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
-# Add pthread (for the audio subsystem)
-  LFLAGS := $(LFLAGS) -lpthread
 # Add OpenGL lib
  # ifeq ($(USE_OPENGL), yes)
  #   ifeq ($(OS), Win)
