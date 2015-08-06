@@ -64,7 +64,7 @@ GFMExporterPlugin::GFMExporterPlugin()
  */
 bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 {
-    int i, foundTilemap, foundTerrain, terrainTilesetindex;
+    int foundTilemap;
     
     // Open the output file
 #ifdef HAS_QSAVEFILE_SUPPORT
@@ -78,92 +78,42 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         mError = tr("Could not open file for writing.");
         return false;
     }
-    
-    // Flag that we've yet to find a terrain
-    foundTerrain = 0;
-    // Terrain information is stored on the tileset, so iterate over them and
-    // check get how many of those have terrain (only one can have!)
-    i = 0;
-    while (i < map->tilesetCount()) {
-        Tileset *pTset;
-        
-        pTset = map->tilesetAt(i);
-        // Check if it has any terrain
-        if (pTset->terrainCount() > 0) {
-            // This tileset has a terrain, so no other can
-            if (foundTerrain) {
-                // If another has, set the error string and exit
-                mError = tr("Found more than one tileset with terrain "
-                        "information.\n For now, only a single tileset can have"
-                        "it.");
-                return false;
-            }
-            // Flag it as found
-            foundTerrain = 1;
-            // Also, store the index of the tileset with the terrain
-            terrainTilesetindex = i;
-        }
-        
-        i++;
-    }
-    
-    // If we found a terrain, we must add that info to the tilemap
-    if (foundTerrain) {
-        Tileset *pTset;
-        
-        pTset = map->tilesetAt(terrainTilesetindex );
-        
-        // Loop through all terrains and loop their info
-        i = 0;
-        while (i < pTset->terrainCount()) {
-            Terrain *pTerr;
-            Tile *pTile;
-            
-            // Retrieve the current terrain
-            pTerr = pTset->terrain(i);
-            // Retrieve it's assigned tile
-            pTile = pTerr->imageTile();
-            
-            // Output to the file: 'area <terrain_name> <tile_id>'
-            file.write("type ");
-            file.write(pTerr->name().toLatin1());
-            file.write(" ");
-            file.write(QByteArray::number(pTile->id()));
-            file.write("\n");
-            
-            i++;
-        }
-    }
-    
+
     // Write every layer
     foundTilemap = 0;
     foreach (const Layer *layer, map->layers()) {
-        const TileLayer *tileLayer;
-        
         // Check that the layer is visible
         if (!layer->isVisible())
             continue;
         
-        // TODO Add areas
         // Check that the layer is a tilemap
-        if (layer->layerType() != Layer::TileLayerType)
+        if (layer->layerType() == Layer::TileLayerType) {
+            const TileLayer *tileLayer;
+            
+            // Check that there's only a single tilemap to be exported
+            if (foundTilemap) {
+                mError = tr("Found more than one visible layers, but the plugin can"
+                        "only handle a single layer at a time");
+                return false;
+            }
+            
+            // Retrieve the current tilemap
+            tileLayer = static_cast<const TileLayer*>(layer);
+            // Output to the file: 'type <terrain_name> <tile_index>'
+            //                     '...'
+            //                     'map <width_in_tiles> <height_in_tiles>\n'
+            //                     '  tile_0 tile_1 ...\n'
+            //                     '  ...\n'
+            //                     '  tile_0 tile_1 ... last_tile'
+            gfm_writeTilemap(file, tileLayer);
+        }
+        else {
+            // TODO Add areas
             continue;
-        
-        // Check that there's only a single tilemap to be exported
-        if (foundTilemap) {
-            mError = tr("Found more than one visible layers, but the plugin can"
-                    "only handle a single layer at a time");
-            return false;
         }
         
-        // Output the current layer
-        // Output to the file: 'map <width_in_tiles> <height_in_tiles>\n'
-        //                     '  tile_0,tile_1,...,'
-        //                     '  tile_0,tile_1,...,last_tile'
-        tileLayer = static_cast<const TileLayer*>(layer);
-        gfm_writeTilemap(file, tileLayer);
     }
-
+    
     if (file.error() != QFile::NoError) {
         mError = file.errorString();
         return false;
@@ -203,13 +153,49 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer) {
 #else
 static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
 #endif
+    QSet<Tileset*>::iterator tileset;
+    QSet<Tileset*> tilesets = tileLayer->usedTilesets();
+
+    // First, export it's terrain data
+    // Loop through the tilemap's iterators
+    tileset = tilesets.begin();
+    while (tileset != tilesets.end()) {
+        QList<Tile*>::iterator tile;
+        QList<Tile*> tiles = (*tileset)->tiles();
+
+        // Loop through all of it's tiles and print the terrain info
+        tile = tiles.begin();
+        while (tile != tiles.end()) {
+            Terrain *terrain;
+
+            // Retrieve the terrain's index (since we always set tiles to a
+            // single type, simply retrieve one of the corners)
+            terrain = (*tile)->terrainAtCorner(0);
+            // If we actually found a terrain, output it
+            if (terrain) {
+                // Output to the file: 'area <terrain_name> <tile_id>'
+                file.write("type ");
+                file.write(terrain->name().toLatin1());
+                file.write(" ");
+                file.write(QByteArray::number((*tile)->id()));
+                file.write("\n");
+            }
+
+            // Iterate to the next node
+            tile++;
+        }
+
+        // Iterate to the next node
+        tileset++;
+    }
+
     // Write a tilemap 'header'
     file.write("map ");
     file.write(QByteArray::number(tileLayer->width()));
     file.write(" ");
     file.write(QByteArray::number(tileLayer->height()));
     file.write("\n");
-    
+
     // Write the buffer data
     for (int y = 0; y < tileLayer->height(); y++) {
         file.write("  ");
@@ -217,7 +203,7 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
             const Cell &cell = tileLayer->cellAt(x, y);
             const Tile *tile = cell.tile;
             const int id = tile ? tile->id() : -1;
-            
+
             // Write the curren tile (or -1, if there's none)
             file.write(QByteArray::number(id));
             // Don't write a comma after the last tile
@@ -225,7 +211,7 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
                 file.write(" ", 1);
             }
         }
-        
+
         file.write("\n", 1);
     }
 }
