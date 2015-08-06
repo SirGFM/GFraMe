@@ -329,8 +329,7 @@ gfmRV gfmGif_waitExport(gfmGifExporter *pCtx) {
     
     // Check that the thread was running
     if (pCtx->hasThread) {
-        gfmGifExporter *pGif;
-        int irv, threadRV;
+        int threadRV;
         
         // Wait until the thread exits
         SDL_WaitThread(pCtx->pThread, &threadRV);
@@ -410,7 +409,6 @@ __ret:
  */
 gfmRV gfmGif_exportImage(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
-    int irv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -449,7 +447,6 @@ __ret:
  */
 gfmRV gfmGif_exportAnimation(gfmGifExporter *pCtx, gfmString *pPath) {
     gfmRV rv;
-    int irv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);

@@ -156,13 +156,15 @@ static gfmRV gfmAudio_mixMono16(gfmAudioHandle *pCtx, unsigned char *pDst,
         int len) {
     unsigned char *pBuf;
     gfmRV rv;
-    int i;
+    int i, intVol;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
     ASSERT(len, GFMRV_ARGUMENTS_BAD);
     
+    // Convert the volume to an integer in the range [0, 1024]
+    intVol = (int)(pCtx->volume * 1024);
     // Retrieve the buffer
     pBuf = (unsigned char*)pCtx->pSelf->pBuf;
     // Loop through all samples
@@ -175,7 +177,7 @@ static gfmRV gfmAudio_mixMono16(gfmAudioHandle *pCtx, unsigned char *pDst,
                 | ((pBuf[i + pCtx->pos + 1] << 8) & 0xff00);
         
         // Modify its volume
-        chan = ((Sint16)(chan * pCtx->volume)) & 0xffff;
+        chan = (Sint16)(((chan * intVol) >> 10) & 0xffff);
         
         // Add it to the channel
         pDst[i]   += (Uint8)( chan       & 0xff);
@@ -216,13 +218,15 @@ static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
         int len) {
     unsigned char *pBuf;
     gfmRV rv;
-    int i;
+    int i, intVol;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
     ASSERT(len, GFMRV_ARGUMENTS_BAD);
     
+    // Convert the volume to an integer in the range [0, 1024]
+    intVol = (int)(pCtx->volume * 1024);
     // Retrieve the buffer
     pBuf = (unsigned char*)pCtx->pSelf->pBuf;
     // Loop through all samples
@@ -237,8 +241,8 @@ static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
                 | ((pBuf[i + pCtx->pos + 3] << 8) & 0xff00);
         
         // Modify its volume
-        chan1 = ((Sint16)(chan1 * pCtx->volume)) & 0xffff;
-        chan2 = ((Sint16)(chan2 * pCtx->volume)) & 0xffff;
+        chan1 = (Sint16)(((chan1 * intVol) >> 10) & 0xffff);
+        chan2 = (Sint16)(((chan2 * intVol) >> 10) & 0xffff);
         
         // Add it to the channel
         pDst[i]   += (Uint8)( chan1       & 0xff);
