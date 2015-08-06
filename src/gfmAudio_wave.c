@@ -182,6 +182,8 @@ static gfmRV gfmAudio_downsampleWave(int pSamples[2], char *pBuf,
     if (pFormat->bitsPerSample == 8 && pFormat->numChannels == 1) {
         while (i < pFormat->downsampleRate) {
             pSamples[0] += (int)pBuf[i];
+            // Repeat the channel, in case output is stereo
+            pSamples[1] += (int)pBuf[i];
             i += pFormat->bytesPerSample;
         }
     }
@@ -203,6 +205,8 @@ static gfmRV gfmAudio_downsampleWave(int pSamples[2], char *pBuf,
             }
             
             pSamples[0] += tmp;
+            // Repeat the channel, in case output is stereo
+            pSamples[1] += tmp;
             
             i += pFormat->bytesPerSample;
         }
