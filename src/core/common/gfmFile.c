@@ -11,7 +11,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
-#include <GFraMe/core/gfmFile.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 
 #include <stdio.h>
 #include <stdlib.h>

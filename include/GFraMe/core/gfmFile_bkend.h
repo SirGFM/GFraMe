@@ -1,5 +1,5 @@
 /**
- * @file include/GFraMe/core/gfmFile.h
+ * @file include/GFraMe/core/gfmFile_bkend.h
  * 
  * Generic file interface; It should be used to abstract opening assests (which
  * might be compressed, on mobile) and opening a file (e.g., the Log) on the
