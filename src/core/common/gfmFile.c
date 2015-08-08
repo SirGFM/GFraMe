@@ -1,24 +1,33 @@
 /**
- * @file include/GFraMe/core/gfmFile.h
+ * @file src/core/commmon/gfmFile.c
  * 
  * Generic file interface; It should be used to abstract opening assests (which
  * might be compressed, on mobile) and opening a file (e.g., the Log) on the
  * default path (e.g., ~/.local/share/<company>/<game> or
  * %APPDATA%\<company>\<game>)
+ * NOTE: This implementation shouldn't be used for mobile!
  */
-#ifndef __GFMFILE_STRUCT__
-#define __GFMFILE_STRUCT__
-
-/** 'Export' the file type */
-typedef struct stGFMFile gfmFile;
-
-#endif /* __GFMFILE_STRUCT__ */
-
-#ifndef __GFMFILE_H__
-#define __GFMFILE_H__
-
 #include <GFraMe/gframe.h>
+#include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmString.h>
+#include <GFraMe/core/gfmFile.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Includes for checking a file size on non-Windows */
+#if !defined(__WIN32) && !defined(__WIN32__)
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <unistd.h>
+#endif
+
+struct stGFMFile {
+    /** The currently opened file pointer */
+    FILE *pFp;
+};
 
 /**
  * Alloc a new gfmFile struct
@@ -26,7 +35,23 @@ typedef struct stGFMFile gfmFile;
  * @param  ppCtxe The alloc'ed file
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-gfmRV gfmFile_getNew(gfmFile **ppCtx);
+gfmRV gfmFile_getNew(gfmFile **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitizer arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the struct
+    *ppCtx = (gfmFile*)malloc(sizeof(gfmFile));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    // Clean it
+    memset(*ppCtx, 0x0, sizeof(gfmFile));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Close and free a gfmFile
@@ -34,7 +59,63 @@ gfmRV gfmFile_getNew(gfmFile **ppCtx);
  * @param  ppCtx The file
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmFile_free(gfmFile **ppCtx);
+gfmRV gfmFile_free(gfmFile **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Close the file (in case it's still open)
+    gfmFile_close(*ppCtx);
+    // Free the memory
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Open a file
+ *
+ * @param  pCtx        The file struct
+ * @param  pFilename   The filename
+ * @param  filenameLen Length of the filename
+ * @param  pStr        gfmString with the file's directory
+ * @param  mode        Mode to open the file
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_ALREADY_OPEN,
+ *                     GFMRV_FILE_NOT_FOUND
+ */
+static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
+        gfmString *pStr, const char *mode) {
+    char *pPath;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
+    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the file isn't opened
+    ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
+    
+    // Append the filename to its path
+    rv = gfmString_concat(pStr, pFilename, filenameLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Retrieve it
+    rv = gfmString_getString(&pPath, pStr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the file
+    pCtx->pFp = fopen(pPath, mode);
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Open a file on the game's local path. It changes with the OS:
@@ -51,25 +132,31 @@ gfmRV gfmFile_free(gfmFile **ppCtx);
  *                     GFMRV_FILE_NOT_FOUND
  */
 gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
-        int filenameLen, int isText);
-
-/**
- * Open a file on the game's local path. It changes with the OS:
- *   - android: ???
- *   - linux: ~/.local/share/<company>/<game>/
- * The path must be a statically allocat'ed buffer! (i.e., either
- * 'gfmFile_openFileStatic(pCtx, "some-file-name);' or
- * 'char filename[] = "...";')
- * 
- * @param  pFile  The file struct
- * @param  pCtx   The game's context
- * @param  pPath  The filename
- * @param  isText Whether the asset file is a text file
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_ALREADY_OPEN,
- *                GFMRV_FILE_NOT_FOUND
- */
-#define gfmFile_openFileStatic(pFile, pCtx, pPath, isText) \
-    gfmFile_openFile(pFile, pCtx, pPath, sizeof(pPath) - 1, isText)
+        int filenameLen, int isText) {
+    gfmRV rv;
+    gfmString *pStr;
+    
+    // Sanitize arguments
+    ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the absolute file path
+    rv = gfm_getLocalPath(&pStr, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the file
+    if (isText) {
+        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rt+");
+    }
+    else {
+        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rb+");
+    }
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Open an asset file; The file is expected to be found on an 'assets'
@@ -85,25 +172,33 @@ gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
  *                     GFMRV_FILE_NOT_FOUND
  */
 gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
-        int filenameLen, int isText);
-
-/**
- * Open an asset file; The file is expected to be found on an 'assets'
- * directory, which must be found on the same directory as the game's binary;
- * Note that the file will be opened only for reading!
- * The path must be a statically allocat'ed buffer! (i.e., either
- * 'gfmFile_openAssetStatic(pCtx, "some-file-name);' or
- * 'char filename[] = "...";')
- * 
- * @param  pFile  The file struct
- * @param  pCtx   The game's context
- * @param  pPath  The filename
- * @param  isText Whether the asset file is a text file
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_ALREADY_OPEN,
- *                GFMRV_FILE_NOT_FOUND
- */
-#define gfmFile_openAssetStatic(pFile, pCtx, pPath, isText) \
-    gfmFile_openFile(pFile, pCtx, pPath, sizeof(pPath) - 1, isText)
+        int filenameLen, int isText) {
+    gfmRV rv;
+    gfmString *pStr;
+    
+    // Sanitize arguments
+    ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the absolute file path
+    rv = gfm_getBinaryPath(&pStr, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_concatStatic(pStr, "assets/");
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Open the file
+    if (isText) {
+        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rt");
+    }
+    else {
+        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rb");
+    }
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Close a file
@@ -111,7 +206,21 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
  * @param  pCtx The file struct
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
  */
-gfmRV gfmFile_close(gfmFile *pCtx);
+gfmRV gfmFile_close(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the file is actually open
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    fclose(pCtx->pFp);
+    pCtx->pFp = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Retrieve the file's size
@@ -201,6 +310,4 @@ gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes);
  * @param  len  How many bytes were actually read from the file
  */
 gfmRV gfmFile_writeBytes(gfmFile *pCtx, char *pVal, int len);
-
-#endif /* __GFMFILE_H__ */
 

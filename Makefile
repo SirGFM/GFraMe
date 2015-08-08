@@ -48,6 +48,8 @@ CC = gcc
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
   endif
+# Use the stdio file interface on desktops
+  OBJS += $(OBJDIR)/core/common/gfmFile.o
 # Add GIF exporter, by default
   ifneq ($(EXPORT_GIF), no)
     OBJS += $(OBJDIR)/core/common/gfmGifExporter.o
