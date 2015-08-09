@@ -5,9 +5,8 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 #include <GFraMe_int/gfmAudio_mml.h>
-
-#include <stdio.h>
 
 /**
  * Check if an audio file is encoded as mml
@@ -15,20 +14,21 @@
  * @param  pFp The file pointer
  * @return     GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
  */
-gfmRV gfmAudio_isMml(FILE *pFp) {
+gfmRV gfmAudio_isMml(gfmFile *pFp) {
     char pBuf[3];
     gfmRV rv;
-    int irv, count;
+    int count;
     
     // Sanitize arguments
     ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
     // Rewind the file
-    rewind(pFp);
+    rv = gfmFile_rewind(pFp);
+    ASSERT_NR(rv == GFMRV_OK);
     // Try to read the first 3 bytes (that must contain {'M', 'M', 'L'}, to be a
     // valid mml file
-    count = 3;
-    irv = fread(pBuf, sizeof(char), count, pFp);
-    ASSERT(irv == count, GFMRV_READ_ERROR);
+    rv = gfmFile_readBytes(pBuf, &count, pFp, 3/*numBytes*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(count == 3, GFMRV_READ_ERROR);
     // Check what was obtained
     ASSERT(pBuf[0] == 'M' && pBuf[1] == 'M' && pBuf[2] == 'L', GFMRV_FALSE);
     

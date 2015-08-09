@@ -24,9 +24,15 @@
 #  include <unistd.h>
 #endif
 
+/** Static buffer for reading stuff (which screws thread safety... but who uses
+ those, anyway?) */
+static char pBuf[4];
+
 struct stGFMFile {
     /** The currently opened file pointer */
     FILE *pFp;
+    /** Last read char */
+    int lastChar;
 };
 
 /**
@@ -111,6 +117,7 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     // Open the file
     pCtx->pFp = fopen(pPath, mode);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
+    pCtx->lastChar = -1;
     
     rv = GFMRV_OK;
 __ret:
@@ -231,12 +238,78 @@ __ret:
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
 
 /**
+ * Rewind a file back to its start
+ * 
+ * @param  pCtx  The file struct
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_rewind(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    rewind(pCtx->pFp);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Move a few bytes forward/backward from the current position
+ * 
+ * @param  pCtx     The file struct
+ * @param  numBytes How many bytes should be seeked
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                  GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(numBytes > 0, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    irv = fseek(pCtx->pFp, numBytes, SEEK_CUR);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Read a character from the file
  * 
  * @param  pVal The character
  * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_EOF_REACHED
  */
-gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx);
+gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguents
+    ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    // Read a char
+    pCtx->lastChar = fgetc(pCtx->pFp);
+    ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED);
+    
+    *pVal = (char)pCtx->lastChar;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Write a character to the file
@@ -249,10 +322,32 @@ gfmRV gfmFile_writeChar(gfmFile *pCtx, char val);
 /**
  * Roll back a character (similar to stdio's ungetc); The last read character
  * (if needed) must be retrieved from the file context
+ * NOTE: This function doesn't need to allow more than one unread (but it can!)
  * 
  * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_CANT_UNREAD, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmFile_unreadChar(gfmFile *pCtx);
+gfmRV gfmFile_unreadChar(gfmFile *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    // Check that there's a character to be unread
+    ASSERT(pCtx->lastChar >= 0, GFMRV_FILE_CANT_UNREAD);
+    
+    // Unread the character
+    irv = ungetc(pCtx->lastChar, pCtx->pFp);
+    ASSERT(irv == pCtx->lastChar, GFMRV_INTERNAL_ERROR);
+    
+    pCtx->lastChar = -1;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Read 2 bytes (i.e., half a 32 bits word) into an integer; The value is
@@ -278,8 +373,34 @@ gfmRV gfmFile_writeHalfWord(gfmFile *pCtx, int val);
  * 
  * @param  pVal The word
  * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_READ_ERROR
  */
-gfmRV gfmFile_readWord(int *pVal, gfmFile *pCtx);
+gfmRV gfmFile_readWord(int *pVal, gfmFile *pCtx) {
+    gfmRV rv;
+    int irv, count;
+    
+    // Sanitize arguments
+    ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    // Try to read a integer (i.e., 4 bytes)
+    count = 4;
+    irv = fread(pBuf, sizeof(char), count, pCtx->pFp);
+    ASSERT(irv == count, GFMRV_READ_ERROR);
+    // Convert the word (the arch is expected to be little-endian)
+    *pVal = (int)( ( ((pBuf)[0]      ) & 0x000000ff)
+                 | ( ((pBuf)[1] << 8 ) & 0x0000ff00)
+                 | ( ((pBuf)[2] << 16) & 0x00ff0000)
+                 | ( ((pBuf)[3] << 24) & 0xff000000) );
+    
+    pCtx->lastChar = -1;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Read 4 bytes (i.e., a 32 bits integer) into an integer; The value will be
@@ -298,8 +419,29 @@ gfmRV gfmFile_writeWord(gfmFile *pCtx, int val);
  * @param  pLen     How many bytes were actually read from the file
  * @param  pCtx     The file
  * @param  numBytes How many bytes should be read
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                  GFMRV_READ_ERROR
  */
-gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes);
+gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes) {
+    gfmRV rv;
+    int count;
+    
+    // Sanitize arguments
+    ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    count = fread(pVal, sizeof(char), numBytes, pCtx->pFp);
+    ASSERT(count > 0, GFMRV_READ_ERROR);
+    
+    *pLen = count;
+    pCtx->lastChar = -1;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Read a stream of bytes from the file; If the EOF is reached before reading

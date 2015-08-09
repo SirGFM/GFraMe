@@ -7,8 +7,7 @@
 #define __GFMAUDIO_VORBIS_H__
 
 #include <GFraMe/gfmError.h>
-
-#include <stdio.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 
 /**
  * Check if an audio file is encoded as vorbis
@@ -16,7 +15,7 @@
  * @param  pFp The file pointer
  * @return     GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
  */
-gfmRV gfmAudio_isVorbis(FILE *pFp);
+gfmRV gfmAudio_isVorbis(gfmFile *pFp);
 
 #endif /* __GFMAUDIO_VORBIS_H__ */
 

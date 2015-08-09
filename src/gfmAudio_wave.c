@@ -6,8 +6,8 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe_int/gfmAudio_wave.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -85,28 +85,24 @@ typedef struct stRIFFChunk riffChunk;
  * @param  pFp  The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
  */
-static gfmRV gfmAudio_readRIFFChunkHeader(riffChunk *pCtx, FILE *pFp) {
-    char pBuf[4];
+static gfmRV gfmAudio_readRIFFChunkHeader(riffChunk *pCtx, gfmFile *pFp) {
     gfmRV rv;
-    int irv, count;
+    int count;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
     
     // Read the chunk's ID (4 bytes)
-    count = 4;
-    irv = fread(pCtx->pId, sizeof(char), count, pFp);
-    ASSERT(irv == count, GFMRV_READ_ERROR);
+    rv =  gfmFile_readBytes(pCtx->pId, &count, pFp, 4/*numBytes*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(count == 4, GFMRV_READ_ERROR);
     // Set the string's end
     pCtx->pId[4] = '\0';
     
     // Read the chunk's size (4 bytes)
-    count = 4;
-    irv = fread(pBuf, sizeof(char), count, pFp);
-    ASSERT(irv == count, GFMRV_READ_ERROR);
-    // Convert the chunk's size (it's in little-endian)
-    pCtx->size = gfmAudio_getWordLE(pBuf);
+    rv = gfmFile_readWord(&(pCtx->size), pFp);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -121,10 +117,10 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR,
  *               GFMRV_FUNCTION_FAILED
  */
-static gfmRV gfmAudio_readMasterChunk(int *pSize, FILE *pFp) {
+static gfmRV gfmAudio_readMasterChunk(int *pSize, gfmFile *pFp) {
     char pBuf[4];
     gfmRV rv;
-    int irv, count;
+    int count;
     riffChunk chunk;
     
     // Sanitize arguments
@@ -140,9 +136,9 @@ static gfmRV gfmAudio_readMasterChunk(int *pSize, FILE *pFp) {
     // Check that there are at least 4 more byte (that must contain "WAVE")
     ASSERT(chunk.size >= 4, GFMRV_FUNCTION_FAILED);
     // Read those next 4 bytes
-    count = 4;
-    irv = fread(pBuf, sizeof(char), count, pFp);
-    ASSERT(irv == count, GFMRV_READ_ERROR);
+    rv = gfmFile_readBytes(pBuf, &count, pFp, 4/*numBytes*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(count == 4, GFMRV_READ_ERROR);
     // Check that those bytes actually read "WAVE"
     ASSERT(pBuf[0] == 'W' && pBuf[1] == 'A' && pBuf[2] == 'V' && pBuf[3] == 'E',
             GFMRV_FUNCTION_FAILED);
@@ -294,10 +290,10 @@ __ret:
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *                 GFMRV_READ_ERROR
  */
-static gfmRV gfmAudio_readWaveFormat(waveFormat *pFormat, FILE *pFp, int size) {
+static gfmRV gfmAudio_readWaveFormat(waveFormat *pFormat, gfmFile *pFp, int size) {
     char *pBuf;
     gfmRV rv;
-    int irv;
+    int count;
     
     // Set default values
     pBuf = 0;
@@ -313,8 +309,9 @@ static gfmRV gfmAudio_readWaveFormat(waveFormat *pFormat, FILE *pFp, int size) {
     ASSERT(pBuf, GFMRV_ALLOC_FAILED);
     
     // Read the data format from the file
-    irv = fread(pBuf, sizeof(char), size, pFp);
-    ASSERT(irv == size, GFMRV_READ_ERROR);
+    rv = gfmFile_readBytes(pBuf, &count, pFp, size);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(count == size, GFMRV_READ_ERROR);
     
     // Read from the buffer into a format struct (so it can be returned)
     pFormat->format         = gfmAudio_getHalfWordLE(pBuf + 0);
@@ -345,14 +342,15 @@ __ret:
  * @param  pFp The file pointer
  * @return     GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
  */
-gfmRV gfmAudio_isWave(FILE *pFp) {
+gfmRV gfmAudio_isWave(gfmFile *pFp) {
     gfmRV rv;
     int size;
     
     // Sanitize arguments
     ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
     // Rewind the file
-    rewind(pFp);
+    rv = gfmFile_rewind(pFp);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Try to read the master chunk (will succeed if it's an wave file)
     rv = gfmAudio_readMasterChunk(&size, pFp);
@@ -376,7 +374,7 @@ __ret:
  *                        GFMRV_FUNCTION_FAILED, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
  *                        GFMRV_ALLOC_FAILED
  */
-gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
+gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
         int bitsPerSample, int numChannels) {
     char *pBuf, *pDst;
     gfmRV rv;
@@ -399,7 +397,8 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
     ASSERT(numChannels > 0, GFMRV_ARGUMENTS_BAD);
     
     // Rewind the file
-    rewind(pFp);
+    rv = gfmFile_rewind(pFp);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Read the master chunk and retrieve its size
     rv = gfmAudio_readMasterChunk(&size, pFp);
@@ -444,7 +443,8 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
         }
         else if (strcmp(chunk.pId, "LIST") == 0) {
             // This type of chunk may be ignored
-            fseek(pFp, chunk.size, SEEK_CUR);
+            rv = gfmFile_seek(pFp, chunk.size);
+            ASSERT_NR(rv == GFMRV_OK);
         }
         else if (strcmp(chunk.pId, "data") == 0) {
             int i, j, len;
@@ -460,7 +460,8 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
             }
             
             // Read the bytes
-            irv = fread(pBuf, sizeof(char), chunk.size, pFp);
+            rv = gfmFile_readBytes(pBuf, &irv, pFp, chunk.size);
+            ASSERT_NR(rv == GFMRV_OK);
             ASSERT(irv == chunk.size, GFMRV_READ_ERROR);
             
             // Calculate how many more bytes are required on the destination

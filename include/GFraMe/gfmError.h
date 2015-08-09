@@ -141,6 +141,8 @@ enum enGFMError {
     GFMRV_FILE_ALREADY_OPEN,
     GFMRV_FILE_NOT_OPEN,
     GFMRV_FILE_NOT_FOUND,
+    GFMRV_FILE_EOF_REACHED,
+    GFMRV_FILE_CANT_UNREAD,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

@@ -122,10 +122,30 @@ gfmRV gfmFile_close(gfmFile *pCtx);
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
 
 /**
+ * Rewind a file back to its start
+ * 
+ * @param  pCtx  The file struct
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_rewind(gfmFile *pCtx);
+
+/**
+ * Move a few bytes forward/backward from the current position
+ * 
+ * @param  pCtx     The file struct
+ * @param  numBytes How many bytes should be seeked
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                  GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes);
+
+/**
  * Read a character from the file
  * 
  * @param  pVal The character
  * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_EOF_REACHED
  */
 gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx);
 

@@ -7,8 +7,7 @@
 #define __GFMAUDIO_WAVE_H__
 
 #include <GFraMe/gfmError.h>
-
-#include <stdio.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 
 /**
  * Check if an audio file is encoded as WAVE
@@ -16,7 +15,7 @@
  * @param  pFp The file pointer
  * @return     GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
  */
-gfmRV gfmAudio_isWave(FILE *pFp);
+gfmRV gfmAudio_isWave(gfmFile *pFp);
 
 /**
  * Loads a wave audio into a buffer
@@ -31,7 +30,7 @@ gfmRV gfmAudio_isWave(FILE *pFp);
  *                        GFMRV_FUNCTION_FAILED, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
  *                        GFMRV_ALLOC_FAILED
  */
-gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, FILE *pFp, int freq,
+gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
         int bitsPerSample, int numChannels);
 
 #endif /* __GFMAUDIO_WAVE_H__ */
