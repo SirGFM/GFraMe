@@ -209,6 +209,8 @@ gfmRV gfmFile_writeWord(gfmFile *pCtx, int val);
  * @param  pLen     How many bytes were actually read from the file
  * @param  pCtx     The file
  * @param  numBytes How many bytes should be read
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                  GFMRV_READ_ERROR, GFMRV_FILE_EOF_REACHED
  */
 gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes);
 

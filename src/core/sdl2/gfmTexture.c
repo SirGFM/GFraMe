@@ -4,15 +4,14 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
-#include <GFraMe/gfmString.h>
 #include <GFraMe/gfmUtils.h>
 #include <GFraMe/gframe.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
+#include <GFraMe/core/gfmFile_bkend.h>
 #include <GFraMe/core/gfmTexture_bkend.h>
 
 #include <SDL2/SDL_render.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -184,10 +183,9 @@ __ret:
  */
 gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
-    char *pData, *pPath, pBuffer[4];
-    FILE *pFile;
+    char *pData, pBuffer[4];
+    gfmFile *pFile;
     gfmRV rv;
-    gfmString *pStr;
     //int bytesInRow, height, i, irv, dataOffset, rowOffset, width;
     int bytesInRow, i, irv, rowOffset;
     volatile int height, dataOffset, width;
@@ -208,32 +206,42 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     ASSERT(pFilename[filenameLen - 2] == 'm', GFMRV_TEXTURE_NOT_BITMAP);
     ASSERT(pFilename[filenameLen - 1] == 'p', GFMRV_TEXTURE_NOT_BITMAP);
     
-    // Get the correct file path
-    rv = gfm_getBinaryPath(&pStr, pCtx);
+    // Open the asset file
+    rv = gfmFile_getNew(&pFile);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmString_concatStatic(pStr, "assets/");
+    rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmString_concat(pStr, pFilename, filenameLen);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmString_getString(&pPath, pStr);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Open the file
-    pFile = fopen(pPath, "rb");
-    ASSERT(pFile, GFMRV_TEXTURE_FILE_NOT_FOUND);
     
     // Get the offset to the image's "data section"
-    fseek(pFile, BMP_OFFSET_POS, SEEK_SET);
-    irv = fread(pBuffer, 4, 1, pFile);
+    rv = gfmFile_rewind(pFile);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_seek(pFile, BMP_OFFSET_POS);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    
     dataOffset = READ_UINT(pBuffer);
     
     // Get the image's dimensions
-    fseek(pFile, BMP_HEIGHT_POS, SEEK_SET);
-    irv = fread(pBuffer, 4, 1, pFile);
+    rv = gfmFile_rewind(pFile);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_seek(pFile, BMP_HEIGHT_POS);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    
     height = READ_UINT(pBuffer);
     
-    fseek(pFile, BMP_WIDTH_POS, SEEK_SET);
-    irv = fread(pBuffer, 4, 1, pFile);
+    rv = gfmFile_rewind(pFile);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_seek(pFile, BMP_WIDTH_POS);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    
     width = READ_UINT(pBuffer);
     
     // Check if the image fit on the current texture
@@ -252,7 +260,10 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     bytesInRow += rowOffset;
     
     // Buffer the data (in the desired format)
-    fseek(pFile, dataOffset, SEEK_SET);
+    rv = gfmFile_rewind(pFile);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmFile_seek(pFile, dataOffset);
+    ASSERT_NR(rv == GFMRV_OK);
     // Data is written starting by the last line
     i = width * (height - 1);
     // Start "alpha" with 0 (since the image is in RGB-24)
@@ -263,9 +274,11 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         volatile int color;
         
         // Read until the EOF
-        n = fread(pBuffer, 3, 1, pFile);
-        if (n == 0 || i < 0)
+        rv = gfmFile_readBytes(pBuffer, &n, pFile, 3/*numBytes*/);
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
+        if (rv == GFMRV_FILE_EOF_REACHED) {
             break;
+        }
         
         // Get the actual color
         color = READ_UINT(pBuffer);
@@ -296,7 +309,10 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         if (i % width == 0) {
             i -= width * 2;
             // Go to the next line on the file
-            fseek(pFile, rowOffset, SEEK_CUR);
+            if (rowOffset != 0) {
+                rv = gfmFile_seek(pFile, rowOffset);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
         }
     }
     
@@ -316,8 +332,7 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     rv = GFMRV_OK;
 __ret:
     // Clean up memory
-    if (pFile)
-        fclose(pFile);
+    gfmFile_free(&pFile);
     if (pData)
         free(pData);
     

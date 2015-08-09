@@ -420,7 +420,7 @@ gfmRV gfmFile_writeWord(gfmFile *pCtx, int val);
  * @param  pCtx     The file
  * @param  numBytes How many bytes should be read
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
- *                  GFMRV_READ_ERROR
+ *                  GFMRV_READ_ERROR, GFMRV_FILE_EOF_REACHED
  */
 gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes) {
     gfmRV rv;
@@ -434,11 +434,16 @@ gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes) {
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
     
     count = fread(pVal, sizeof(char), numBytes, pCtx->pFp);
-    ASSERT(count > 0, GFMRV_READ_ERROR);
+    ASSERT(count >= 0, GFMRV_READ_ERROR);
     
     *pLen = count;
     pCtx->lastChar = -1;
-    rv = GFMRV_OK;
+    if (count == 0) {
+        rv = GFMRV_FILE_EOF_REACHED;
+    }
+    else {
+        rv = GFMRV_OK;
+    }
 __ret:
     return rv;
 }
