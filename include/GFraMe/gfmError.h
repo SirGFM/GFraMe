@@ -143,6 +143,8 @@ enum enGFMError {
     GFMRV_FILE_NOT_FOUND,
     GFMRV_FILE_EOF_REACHED,
     GFMRV_FILE_CANT_UNREAD,
+    GFMRV_FILE_MAX_STACK_POS,
+    GFMRV_FILE_STACK_EMPTY,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

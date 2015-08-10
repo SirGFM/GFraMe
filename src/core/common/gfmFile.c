@@ -24,6 +24,8 @@
 #  include <unistd.h>
 #endif
 
+#define STACK_SIZE 4
+
 /** Static buffer for reading stuff (which screws thread safety... but who uses
  those, anyway?) */
 static char pBuf[4];
@@ -33,6 +35,10 @@ struct stGFMFile {
     FILE *pFp;
     /** Last read char */
     int lastChar;
+    /** Current node to be popped */
+    int curStackPos;
+    /** The actual stack */
+    fpos_t stack[STACK_SIZE];
 };
 
 /**
@@ -117,7 +123,10 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     // Open the file
     pCtx->pFp = fopen(pPath, mode);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
+    
+    // Clear stuff
     pCtx->lastChar = -1;
+    pCtx->curStackPos = STACK_SIZE;
     
     rv = GFMRV_OK;
 __ret:
@@ -235,7 +244,9 @@ __ret:
  * @param  pSize The file size (in bytes)
  * @param  pCtx  The file struct
  */
-gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
+gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
 
 /**
  * Rewind a file back to its start
@@ -278,6 +289,107 @@ gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes) {
     
     irv = fseek(pCtx->pFp, numBytes, SEEK_CUR);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get how many 'nodes' left there are on the stack
+ * 
+ * @param  pNum The number of 'nodes' left
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPosStackLeft(int *pNum, gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguents
+    ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    *pNum = pCtx->curStackPos;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Push the current position into a stack (really useful for parsing stuff)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_MAX_STACK_POS, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_pushPos(gfmFile *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    // Check that there are spaces left at the stack
+    ASSERT(pCtx->curStackPos > 0, GFMRV_FILE_MAX_STACK_POS);
+    
+    // Push the position into the stack
+    pCtx->curStackPos--;
+    irv = fgetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Pop the previous position from the stack (really useful for parsing stuff)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_STACK_EMPTY, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_popPos(gfmFile *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    // Check that the stack isn't empty
+    ASSERT(pCtx->curStackPos < STACK_SIZE, GFMRV_FILE_STACK_EMPTY);
+    
+    // Move the stream to the previous position
+    irv = fsetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    // Pop it from the stack
+    pCtx->curStackPos++;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Clear the 'position stack'
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_clearPosStack(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    pCtx->curStackPos = STACK_SIZE;
     
     rv = GFMRV_OK;
 __ret:

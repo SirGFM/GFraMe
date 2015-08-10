@@ -140,6 +140,41 @@ gfmRV gfmFile_rewind(gfmFile *pCtx);
 gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes);
 
 /**
+ * Get how many 'nodes' left there are on the stack
+ * 
+ * @param  pNum The number of 'nodes' left
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPosStackLeft(int *pNum, gfmFile *pCtx);
+
+/**
+ * Push the current position into a stack (really useful for parsing stuff)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_MAX_STACK_POS, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_pushPos(gfmFile *pCtx);
+
+/**
+ * Pop the previous position from the stack (really useful for parsing stuff)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_STACK_EMPTY, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_popPos(gfmFile *pCtx);
+
+/**
+ * Clear the 'position stack'
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_clearPosStack(gfmFile *pCtx);
+
+/**
  * Read a character from the file
  * 
  * @param  pVal The character
