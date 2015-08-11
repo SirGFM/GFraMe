@@ -9,6 +9,25 @@
 #ifndef __GFMASSERT_H__
 #define __GFMASSERT_H__
 
+#include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
+
+/**
+ * Check if a statement is true and jump to an error handling part of the code
+ * if not; Also, log if the assert failed
+ * 
+ * @param stmt The statement to be evaluated
+ * @param err  The return value
+ * @param ctx  The logger
+ */
+#define ASSERT_LOG(stmt, err, ctx) \
+  do { \
+    if (!(stmt)) { \
+      gfmLog_log(ctx, gfmLog_error, "Assert failed with code %i (\"%s\")", \
+        err, gfmError_dict[err]); \
+    } \
+  } while (0)
+
 /**
  * Check if a statement is true and jump to an error handling part of the code
  * if not;

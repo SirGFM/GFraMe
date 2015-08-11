@@ -51,12 +51,30 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
 gfmRV gfm_free(gfmCtx **ppCtx);
 
 /**
- * Initialize and alloc every one of this object's members
+ * Initialize and alloc every one of this object's members; Also sets the
+ * game's title
  * 
- * @param  pCtx The allocated context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  pCtx    The allocated context
+ * @param  pOrg    Organization's name (used by log and save file)
+ * @param  orgLen  Organization's name's length
+ * @param  pName   Game's title (also used as window's title)
+ * @param  nameLen Game's title's length
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_init(gfmCtx *pCtx);
+gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen);
+
+/**
+ * Initialize and alloc every one of this object's members; Also sets the
+ * game's title from static buffers
+ * 
+ * @param  pCtx    The allocated context
+ * @param  pOrg    Organization's name (used by log and save file)
+ * @param  pName   Game's title (also used as window's title)
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+#define gfm_initStatic(pCtx, pOrg, pName) \
+    gfm_init(pCtx, pOrg, sizeof(pOrg) - 1, pName, sizeof(pName) - 1)
+
 
 /**
  * Get the binary's running path

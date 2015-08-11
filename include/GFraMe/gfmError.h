@@ -155,5 +155,8 @@ enum enGFMError {
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
 
+/** Dictionary of error strings */
+const char *gfmError_dict[GFMRV_MAX + 1];
+
 #endif /* __GFMERROR__ */
 

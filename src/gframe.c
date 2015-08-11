@@ -163,10 +163,14 @@ __ret:
 /**
  * Initialize and alloc every one of this object's members
  * 
- * @param  pCtx The allocated context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  pCtx    The allocated context
+ * @param  pOrg    Organization's name (used by log and save file)
+ * @param  orgLen  Organization's name's length
+ * @param  pName   Game's title (also used as window's title)
+ * @param  nameLen Game's title's length
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_init(gfmCtx *pCtx) {
+gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     gfmRV rv;
     
     // Sanitize the arguments
@@ -205,6 +209,21 @@ gfmRV gfm_init(gfmCtx *pCtx) {
     rv = gfmInput_getNew(&(pCtx->pInput));
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmInput_init(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Set the game's title
+    rv = gfm_setTitle(pCtx, pOrg, orgLen, pName, nameLen);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the logger
+#if defined(DEBUG) || defined(FORCE_FPS)
+    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
+#else
+    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
+#endif
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe initialized!");
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set the game as running
@@ -297,16 +316,6 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
     rv = gfmString_getLength(&(pCtx->saveFilenameLen), pCtx->pSaveFilename);
     ASSERT_NR(rv == GFMRV_OK);
     
-#if defined(DEBUG) || defined(FORCE_FPS)
-    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
-#else
-    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
-#endif
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe library...");
-    ASSERT_NR(rv == GFMRV_OK);
-    
     rv = GFMRV_OK;
 __ret:
     if (rv != GFMRV_OK && rv != GFMRV_TITLE_ALREADY_SET &&
@@ -340,9 +349,9 @@ gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
     
     // Retrieve the strings
     rv = gfmString_getString(ppOrg, pCtx->pGameOrg);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmString_getString(ppTitle, pCtx->pGameTitle);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -470,27 +479,34 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window to %ix%i "
+            "(backbuffer: %ix%i)", wndWidth, wndHeight, bufWidth, bufHeight);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
     // Alloc and initialize the window
     if (!(pCtx->pWindow)) {
         rv = gfmWindow_getNew(&(pCtx->pWindow));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle,
             isUserResizable);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Alloc and initialize the backbuffer
     rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
             bufHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Alloc and initialize the camera
     rv = gfmCamera_getNew(&(pCtx->pCamera));
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmCamera_init(pCtx->pCamera, pCtx, bufWidth, bufHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -528,21 +544,34 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window in "
+            "fullscreen mode (backbuffer: %ix%i)", bufWidth, bufHeight);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
     // Alloc and initialize the window
     if (!(pCtx->pWindow)) {
         rv = gfmWindow_getNew(&(pCtx->pWindow));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     rv = gfmWindow_initFullScreen(pCtx->pWindow, resIndex, pTitle,
             isUserResizable);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Alloc and initialize the backbuffer
     rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
             bufHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    // Alloc and initialize the camera
+    rv = gfmCamera_getNew(&(pCtx->pCamera));
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmCamera_init(pCtx->pCamera, pCtx, bufWidth, bufHeight);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -563,13 +592,16 @@ gfmRV gfm_initAudio(gfmCtx *pCtx, gfmAudioQuality settings) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing audio subsystem...");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
     // Alloc the audio sub-system
     rv = gfmAudio_getNew(&(pCtx->pAudio));
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Initialize it
     rv = gfmAudio_initSubsystem(pCtx->pAudio, settings);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:

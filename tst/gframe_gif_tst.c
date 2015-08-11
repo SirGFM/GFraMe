@@ -112,11 +112,7 @@ x w w w w w w w w w w w w w w x
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_init(pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Try to set a title
-    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_gif");
+    rv = gfm_initStatic(pCtx, "com.gfmgamecorner", "gframe_gif");
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the gif exporter

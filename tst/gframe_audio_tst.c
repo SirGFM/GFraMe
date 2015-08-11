@@ -29,7 +29,7 @@ int main(int arg, char *argv[]) {
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_init(pCtx);
+    rv = gfm_initStatic(pCtx, "com.gfmgamecorner", "gfmAudioTest");
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the audio sub-system

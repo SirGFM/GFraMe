@@ -27,6 +27,7 @@ CC = gcc
           $(OBJDIR)/gfmAudio_vorbis.o     \
           $(OBJDIR)/gfmAudio_wave.o       \
           $(OBJDIR)/gfmCamera.o           \
+          $(OBJDIR)/gfmError.o            \
           $(OBJDIR)/gfmFPSCounter.o       \
           $(OBJDIR)/gfmGroup.o            \
           $(OBJDIR)/gfmGroupHelpers.o     \

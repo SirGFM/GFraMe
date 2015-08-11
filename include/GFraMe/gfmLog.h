@@ -25,6 +25,7 @@ typedef enum enGFMLogLevel gfmLogLevel;
 #ifndef __GFMLOG_H__
 #define __GFMLOG_H__
 
+#include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
 
 /**

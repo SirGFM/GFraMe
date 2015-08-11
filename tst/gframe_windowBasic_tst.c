@@ -22,12 +22,9 @@ int main(int arg, char *argv[]) {
     rv = gfm_getNew(&pCtx);
     ASSERT_NR(rv == GFMRV_ARGUMENTS_BAD);
     
-    rv = gfm_init(pCtx);
+    rv = gfm_initStatic(pCtx, "com.gfmgamecorner", "gframe_test");
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Try to set a title
-    rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_test");
-    ASSERT_NR(rv == GFMRV_OK);
     // Try to set the title again
     rv = gfm_setTitleStatic(pCtx, "com.gfmgamecorner", "gframe_test");
     ASSERT_NR(rv != GFMRV_OK);
