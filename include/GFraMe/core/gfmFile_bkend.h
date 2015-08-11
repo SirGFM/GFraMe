@@ -46,12 +46,12 @@ gfmRV gfmFile_free(gfmFile **ppCtx);
  * @param  pCtx        The game's context
  * @param  pFilename   The filename
  * @param  filenameLen Length of the filename
- * @param  isText      Whether the asset file is a text file
+ * @param  mode        The mode to open the file
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_ALREADY_OPEN,
  *                     GFMRV_FILE_NOT_FOUND
  */
 gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
-        int filenameLen, int isText);
+        int filenameLen, const char *mode);
 
 /**
  * Open a file on the game's local path. It changes with the OS:

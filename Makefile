@@ -32,6 +32,7 @@ CC = gcc
           $(OBJDIR)/gfmGroupHelpers.o     \
           $(OBJDIR)/gfmKeyNode.o          \
           $(OBJDIR)/gfmInput.o            \
+          $(OBJDIR)/gfmLog.o              \
           $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmQuadtree.o         \
           $(OBJDIR)/gfmSprite.o           \

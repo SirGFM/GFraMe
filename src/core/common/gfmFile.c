@@ -143,14 +143,17 @@ __ret:
  * @param  pCtx        The game's context
  * @param  pFilename   The filename
  * @param  filenameLen Length of the filename
- * @param  isText      Whether the asset file is a text file
+ * @param  mode        The mode to open the file
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_ALREADY_OPEN,
  *                     GFMRV_FILE_NOT_FOUND
  */
 gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
-        int filenameLen, int isText) {
+        int filenameLen, const char *mode) {
     gfmRV rv;
     gfmString *pStr;
+    
+    // Set default values
+    pStr = 0;
     
     // Sanitize arguments
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
@@ -161,16 +164,13 @@ gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
     ASSERT_NR(rv == GFMRV_OK);
     
     // Open the file
-    if (isText) {
-        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rt+");
-    }
-    else {
-        rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rb+");
-    }
+    rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, mode);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
+    gfmString_free(&pStr);
+    
     return rv;
 }
 
@@ -567,6 +567,25 @@ __ret:
  * @param  pCtx The file
  * @param  pVal A array of bytes of numBytes length
  * @param  len  How many bytes were actually read from the file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_FILE_WRITE_ERROR
  */
-gfmRV gfmFile_writeBytes(gfmFile *pCtx, char *pVal, int len);
+gfmRV gfmFile_writeBytes(gfmFile *pCtx, char *pVal, int len) {
+    gfmRV rv;
+    int count;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    count = fwrite(pVal, sizeof(char), len, pCtx->pFp);
+    ASSERT(count == len, GFMRV_FILE_WRITE_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 

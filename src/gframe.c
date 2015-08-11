@@ -10,6 +10,7 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmInput.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
@@ -75,6 +76,8 @@ struct stGFMCtx {
     gfmEvent *pEvent;
     /** Input context */
     gfmInput *pInput;
+    /** The logger */
+    gfmLog *pLog;
     /** Whether a quit event was received */
     gfmRV doQuit;
     /** The GIF exporter */
@@ -175,8 +178,6 @@ gfmRV gfm_init(gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_getLength(&(pCtx->binPathLen), pCtx->pBinPath);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // TODO check if it gets the directory or if the executable name is appended
 #endif
     
     // Init the current backend
@@ -185,6 +186,10 @@ gfmRV gfm_init(gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     // Set the backend as initialized
     pCtx->isBackendInit = 1;
+    
+    // Initialize the logger
+    rv = gfmLog_getNew(&(pCtx->pLog));
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the event's context
     rv = gfmEvent_getNew(&(pCtx->pEvent));
@@ -209,7 +214,7 @@ gfmRV gfm_init(gfmCtx *pCtx) {
 __ret:
     // Clean up the context, on error
     if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
-        free(pCtx);
+        gfm_clean(pCtx);
     }
     
     return rv;
@@ -247,7 +252,7 @@ __ret:
 
 
 /**
- * Set the game's title and organization
+ * Set the game's title and organization; Also enable logging
  * 
  * @param  pCtx     The game's context
  * @param  pOrg     Organization's name (used by log and save file)
@@ -290,6 +295,16 @@ gfmRV gfm_setTitle(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName,
     rv = gfmPath_getLocalPath(&(pCtx->pSaveFilename), pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_getLength(&(pCtx->saveFilenameLen), pCtx->pSaveFilename);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+#if defined(DEBUG) || defined(FORCE_FPS)
+    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
+#else
+    rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
+#endif
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe library...");
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
@@ -2364,6 +2379,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     }
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
+    gfmLog_free(&(pCtx->pLog));
     
     rv = GFMRV_OK;
 __ret:
