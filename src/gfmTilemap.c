@@ -19,6 +19,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmTilemap.h>
@@ -562,6 +563,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
         int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen) {
     char *pTypeStr;
     gfmFile *pFp;
+    gfmLog *pLog;
     gfmRV rv;
     int typeStrLen;
     
@@ -571,19 +573,27 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     typeStrLen = 0;
     
     // Sanitize arguments
-    ASSERT(pTMap, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
-    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pDictNames, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pDictTypes, GFMRV_ARGUMENTS_BAD);
-    ASSERT(dictLen > 0, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pTMap, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pDictNames, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pDictTypes, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(dictLen > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Parsing tilemap \"%*s\"",
+            filenameLen, pFilename);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Open an asset file
     rv = gfmFile_getNew(&pFp);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_openAsset(pFp, pCtx, pFilename, filenameLen, 1/*isText*/);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     
     // Reset all tile types
     gfmGenArr_reset(pTMap->pTTypes);
@@ -592,23 +602,26 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     while (1) {
         // Check if the current token is an "area"
         rv = gfmTilemap_parseString(pFp, "area", sizeof("area") - 1);
-        ASSERT_NR(rv == GFMRV_TRUE || rv == GFMRV_FALSE);
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Got an 'area' token but "
+                    "can't handle it, yet");
+            ASSERT_NR(rv == GFMRV_OK);
             // TODO Implement this (NOTE: It must be done after recalculate)
             continue;
         }
         // Check if the current token is a "tile type" ("type")
         rv = gfmTilemap_parseString(pFp, "type", sizeof("type") - 1);
-        ASSERT_NR(rv == GFMRV_TRUE || rv == GFMRV_FALSE);
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             int i, tile;
             
             // Read the current type
             rv = gfmTilemap_getString(&pTypeStr, &typeStrLen, pFp);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             // Read the type's tile
             rv = gfmTilemap_parseInt(&tile, pFp);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             // Get its index from the dictionary
             i = 0;
@@ -618,35 +631,38 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
                 }
                 i++;
             }
-            ASSERT(i < dictLen, GFMRV_TILEMAP_PARSING_ERROR);
+            ASSERT_LOG(i < dictLen, GFMRV_TILEMAP_PARSING_ERROR, pLog);
             // Add it to the list
             rv = gfmTilemap_addTileType(pTMap, tile, pDictTypes[i]);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             continue;
         }
         // Check if the current token is a "tilemap" ("map")
         rv = gfmTilemap_parseString(pFp, "anim", sizeof("anim") - 1);
-        ASSERT_NR(rv == GFMRV_TRUE || rv == GFMRV_FALSE);
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Got an 'anim' token but "
+                    "can't handle it, yet");
+            ASSERT_NR(rv == GFMRV_OK);
             // TODO Implement this
             continue;
         }
         // Check if the current token is a "tilemap" ("map")
         rv = gfmTilemap_parseString(pFp, "map", sizeof("map") - 1);
-        ASSERT_NR(rv == GFMRV_TRUE || rv == GFMRV_FALSE);
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             int height, i, width;
             
             // Get the tilemap's dimensions
             rv = gfmTilemap_parseInt(&width, pFp);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             rv = gfmTilemap_parseInt(&height, pFp);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             // Set the tilemap dimensions
             rv = gfmTilemap_setDimensions(pTMap, width, height);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             // Read and set it the actual data
             i = 0;
@@ -655,7 +671,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
                 
                 // Get the tile
                 rv = gfmTilemap_parseInt(&tile, pFp);
-                ASSERT_NR(rv == GFMRV_OK);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
                 
                 pTMap->pData[i] = tile;
                 
@@ -665,14 +681,17 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             // Should break here!
             break;
         }
-        ASSERT(0, GFMRV_READ_ERROR);
+        ASSERT_LOG(0, GFMRV_READ_ERROR, pLog);
     }
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Tilemap parsed!");
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Recache the animations and areas
     rv = gfmTilemap_recacheAnimations(pTMap);
-    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILEANIM);
+    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILEANIM, rv, pLog);
     rv = gfmTilemap_recalculateAreas(pTMap);
-    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE);
+    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE, rv, pLog);
     
     rv = GFMRV_OK;
 __ret:
