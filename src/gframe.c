@@ -225,6 +225,9 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
 #endif
     ASSERT_NR(rv == GFMRV_OK);
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "");
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "---------------------------------"
+            "-----------------------------------------------");
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe initialized!");
     ASSERT_NR(rv == GFMRV_OK);
     
@@ -1089,7 +1092,7 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     gfmRV rv;
     gfmTexture *pTex;
-    int incRate;
+    int incRate, height, width;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1099,6 +1102,10 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(filenameLen, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading texture \"%*s\"",
+            filenameLen, pFilename);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Try to get a new texture
     incRate = 1;
@@ -1113,6 +1120,16 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     *pIndex = gfmGenArr_getUsed(pCtx->pTextures);
     // Push the texture into the array
     gfmGenArr_push(pCtx->pTextures);
+    
+    // Get the texture's dimensions
+    rv = gfmTexture_getDimensions(&width, &height, pTex);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
+            "h=%i) at index %i!", filenameLen, pFilename, width, height,
+            *pIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     
     rv = GFMRV_OK;
 __ret:
@@ -1230,6 +1247,10 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
     // Initialize so it can ben cleaned on error
     pSset = 0;
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Creating %ix%i spriteset for "
+            "texture %i", tileWidth, tileHeight, index);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // Try to get a new spriteset
     incRate = 1;
     // This macro already ASSERT errors
@@ -1304,10 +1325,18 @@ gfmRV gfm_loadAudio(int *pHandle, gfmCtx *pCtx, char *pFilename, int filenameLen
     ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading audio \"%*s\"...",
+            filenameLen, pFilename);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // Try to load the audio
     rv = gfmAudio_loadAudio(pHandle, pCtx->pAudio, pCtx, pFilename,
             filenameLen);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Audio \"%*s\" loaded as handle "
+            "%i!", filenameLen, pFilename, *pHandle);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -2556,6 +2585,10 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    if (pCtx->pLog) {
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Finalizing GFraMe...");
+    }
+    
     // Clean every allocated 'object'
     gfmString_free(&(pCtx->pGameOrg));
     gfmString_free(&(pCtx->pGameTitle));
@@ -2583,6 +2616,15 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     }
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
+    
+    if (pCtx->pLog) {
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "-----------------------------"
+                "---------------------------------------------------");
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "");
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    
     gfmLog_free(&(pCtx->pLog));
     
     rv = GFMRV_OK;

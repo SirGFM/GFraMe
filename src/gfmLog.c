@@ -249,7 +249,7 @@ __ret:
 gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
     gfmLogParser parser;
     gfmRV rv;
-    int strIni, i, len;
+    int i, len, strIni, strLen;
 	va_list args;
     
     // Sanitize arguments
@@ -270,6 +270,7 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
     
     // Log what was sent
     strIni = -1;
+    strLen = 0;
     i = 0;
     parser = gfmLogParser_waiting;
     len = strlen(pFmt);
@@ -297,6 +298,10 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
             case gfmLogParser_getType: {
                 // TODO Get formatting options
                 switch (c) {
+                    case '*': {
+                        // Retrieve the string's max size from the variadic args
+                        strLen = va_arg(args, int);
+                    } break;
                     case 'c': {
                         // TODO Retrieve a character from the variadic args
                         // TODO Print it to the log
@@ -319,21 +324,32 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
                     } break;
                     case 's': {
                         char *pStr;
-                        int strLen;
+                        int localStrLen;
                         
                         // Retrieve a string from the variadic args
                         pStr = va_arg(args, char*);
                         // Get its length
-                        strLen = strlen(pStr);
+                        if (strLen > 0) {
+                            localStrLen = 1;
+                            while (localStrLen < strLen &&
+                                    pStr[localStrLen] != '\0') {
+                                localStrLen++;
+                            }
+                        }
+                        else {
+                            localStrLen = strlen(pStr);
+                        }
                         // Print it to the log
-                        rv = gfmLog_logString(pCtx, pStr, strLen);
+                        rv = gfmLog_logString(pCtx, pStr, localStrLen);
                         ASSERT(rv == GFMRV_OK, rv);
                     } break;
                     // TODO Parse other types
                     default: ASSERT(0, GFMRV_LOG_UNKNOWN_TOKEN);
                 }
                 // Go back to the previous state
-                parser = gfmLogParser_waiting;
+                if (c != '*') {
+                    parser = gfmLogParser_waiting;
+                }
             } break;
             default: ASSERT(0, GFMRV_LOG_UNKNOWN_TOKEN);
         }
