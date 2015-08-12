@@ -7,6 +7,7 @@
 #define __GFMAUDIO_WAVE_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/core/gfmFile_bkend.h>
 
 /**
@@ -30,8 +31,8 @@ gfmRV gfmAudio_isWave(gfmFile *pFp);
  *                        GFMRV_FUNCTION_FAILED, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
  *                        GFMRV_ALLOC_FAILED
  */
-gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
-        int bitsPerSample, int numChannels);
+gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, gfmLog *pLog,
+        int freq, int bitsPerSample, int numChannels);
 
 #endif /* __GFMAUDIO_WAVE_H__ */
 

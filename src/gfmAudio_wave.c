@@ -5,6 +5,7 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe_int/gfmAudio_wave.h>
 #include <GFraMe/core/gfmFile_bkend.h>
 
@@ -374,8 +375,8 @@ __ret:
  *                        GFMRV_FUNCTION_FAILED, GFMRV_AUDIO_FILE_NOT_SUPPORTED,
  *                        GFMRV_ALLOC_FAILED
  */
-gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
-        int bitsPerSample, int numChannels) {
+gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, gfmLog *pLog,
+        int freq, int bitsPerSample, int numChannels) {
     char *pBuf, *pDst;
     gfmRV rv;
     int bufLen, dstLen, irv, size;
@@ -388,21 +389,24 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
     pDst = 0;
     
     // Sanitize arguments
-    ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
-    ASSERT(ppBuf, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppBuf), GFMRV_ARGUMENTS_BAD);
-    ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
-    ASSERT(freq > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(bitsPerSample == 8 || bitsPerSample == 16, GFMRV_ARGUMENTS_BAD);
-    ASSERT(numChannels > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pFp, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(ppBuf, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(!(*ppBuf), GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pLen, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(freq > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(bitsPerSample == 8 || bitsPerSample == 16, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(numChannels > 0, GFMRV_ARGUMENTS_BAD, pLog);
     
     // Rewind the file
     rv = gfmFile_rewind(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     
     // Read the master chunk and retrieve its size
     rv = gfmAudio_readMasterChunk(&size, pFp);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "File size: %i bytes", size);
+    ASSERT(rv == GFMRV_OK, rv);
     
     // Clear the format, before it's read
     memset(&format, 0x0, sizeof(waveFormat));
@@ -413,56 +417,80 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
         
         // Read the next chunk
         rv = gfmAudio_readRIFFChunkHeader(&chunk, pFp);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
         // The chunk header is 8 bytes long, so...
         size -= 8;
         
         // Check which chunk was read...
         if (strcmp(chunk.pId, "fmt ") == 0) {
+            
+            rv = gfmLog_log(pLog, gfmLog_info, "Got a 'fmt ' chunk");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // Read the file format
             rv = gfmAudio_readWaveFormat(&format, pFp, chunk.size);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio sample rate: %i",
+                    format.sampleRate);
+            ASSERT(rv == GFMRV_OK, rv);
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio bits per sample: %i",
+                    format.bitsPerSample);
+            ASSERT(rv == GFMRV_OK, rv);
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio number of channels: %i",
+                    format.numChannels);
+            ASSERT(rv == GFMRV_OK, rv);
             
             // Check that the format is valid
             // Check that the sample rate is valid (and easy to work with)
-            ASSERT(format.sampleRate == 11025 || format.sampleRate == 22050 ||
+            ASSERT_LOG(format.sampleRate == 11025 || format.sampleRate == 22050 ||
                     format.sampleRate == 44100 || format.sampleRate == 88200,
-                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             // The file must have at least the same sample rate as the audio
             // device (so audios are only downsampled, and no noise is added)
-            ASSERT(format.sampleRate >= freq, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            ASSERT_LOG(format.sampleRate >= freq, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             // This is quite easy to convert, so both are supported
-            ASSERT(format.bitsPerSample == 8 || format.bitsPerSample == 16,
-                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            ASSERT_LOG(format.bitsPerSample == 8 || format.bitsPerSample == 16,
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             // I'll be lazy an only support those for now...
-            ASSERT(format.numChannels == 1 || format.numChannels == 2,
-                    GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            ASSERT_LOG(format.numChannels == 1 || format.numChannels == 2,
+                    GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             
             // Calculate the downsample rate
             format.downsampleRate = format.sampleRate / freq;
+            
+            rv = gfmLog_log(pLog, gfmLog_info, "Downsample rate: %i",
+                    format.downsampleRate);
+            ASSERT(rv == GFMRV_OK, rv);
         }
         else if (strcmp(chunk.pId, "LIST") == 0) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Got a 'LIST' chunk");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // This type of chunk may be ignored
             rv = gfmFile_seek(pFp, chunk.size);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
         }
         else if (strcmp(chunk.pId, "data") == 0) {
             int i, j, len;
             
+            rv = gfmLog_log(pLog, gfmLog_info, "Got a 'data' chunk");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // Check that the format was already gotten
-            ASSERT(format.sampleRate != 0, GFMRV_READ_ERROR);
+            ASSERT_LOG(format.sampleRate != 0, GFMRV_READ_ERROR, pLog);
             
             // Check that the input buffer is big enough to hold the data
             if (bufLen < chunk.size) {
                 // Enpand it as necessary
                 pBuf = (char*)realloc(pBuf, sizeof(char)*chunk.size);
-                ASSERT(pBuf, GFMRV_ALLOC_FAILED);
+                ASSERT_LOG(pBuf, GFMRV_ALLOC_FAILED, pLog);
             }
             
             // Read the bytes
             rv = gfmFile_readBytes(pBuf, &irv, pFp, chunk.size);
-            ASSERT_NR(rv == GFMRV_OK);
-            ASSERT(irv == chunk.size, GFMRV_READ_ERROR);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            ASSERT_LOG(irv == chunk.size, GFMRV_READ_ERROR, pLog);
             
             // Calculate how many more bytes are required on the destination
             // Get how many samples were read from the source
@@ -476,7 +504,7 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
             
             // Expand the destination buffer
             pDst = (char*)realloc(pDst, sizeof(char) * len);
-            ASSERT(pDst, GFMRV_ALLOC_FAILED);
+            ASSERT_LOG(pDst, GFMRV_ALLOC_FAILED, pLog);
             
             // Convert it to the desired format
             i = 0;
@@ -486,11 +514,11 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
                 
                 // Downsample the wave to the desired sample rate
                 rv = gfmAudio_downsampleWave(pSamples, pBuf + i, &format);
-                ASSERT_NR(rv == GFMRV_OK);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
                 // Convert it to the desired 'bit rate'
                 rv = gfmAudio_convertWaveBits(pDstSamples, pSamples, &format,
                         bitsPerSample);
-                ASSERT_NR(rv == GFMRV_OK);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
                 
                 // Output it to the buffer
                 pDst[j] = pDstSamples[0] & 0xff;
@@ -517,7 +545,7 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, int freq,
         else {
             if (size > 8) {
                 // Got an invalid chunk at the middle of the file
-                ASSERT(0, GFMRV_READ_ERROR);
+                ASSERT_LOG(0, GFMRV_READ_ERROR, pLog);
             }
             else {
                 // It was after the last chunk, so...

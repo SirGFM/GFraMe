@@ -19,6 +19,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/gframe.h>
 #include <GFraMe/core/gfmAudio_bkend.h>
@@ -711,6 +712,7 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     char *pBuf;
     gfmAudio *pAudio;
     gfmFile *pFp;
+    gfmLog *pLog;
     gfmRV rv;
     int didParse;
     int bufLen;
@@ -721,26 +723,36 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     didParse = 0;
     
     // Sanitize arguments
-    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pAud, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
-    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pHandle, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pAud, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pLog);
     
     // Read an asset file
     rv = gfmFile_getNew(&pFp);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_openAsset(pFp, pCtx, pFilename, filenameLen, 0/*isText*/);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Getting audio type...");
+    ASSERT(rv == GFMRV_OK, rv);
     
     // Try to parse the file as WAVE
     if (didParse == 0) {
         rv = gfmAudio_isWave(pFp);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded as a WAVE");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // Load the wave from the file
-            rv = gfmAudio_loadWave(&pBuf, &bufLen, pFp, pAud->spec.freq,
+            rv = gfmAudio_loadWave(&pBuf, &bufLen, pFp, pLog, pAud->spec.freq,
                     pAud->bitsPerSample, pAud->numChannels);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             didParse = 1;
         }
     }
@@ -748,8 +760,11 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isMml(pFp);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded in MML");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // TODO Add support for MML
-            ASSERT(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            ASSERT_LOG(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             didParse = 1;
         }
     }
@@ -757,13 +772,16 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isVorbis(pFp);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded in vorbis");
+            ASSERT(rv == GFMRV_OK, rv);
+            
             // TODO Add support for MML
-            ASSERT(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+            ASSERT_LOG(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             didParse = 1;
         }
     }
     // Check that the file was parsed
-    ASSERT(didParse == 1, GFMRV_AUDIO_FILE_NOT_SUPPORTED);
+    ASSERT_LOG(didParse == 1, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
     
     // Retrieve a valid audio struct
     gfmGenArr_getNextRef(gfmAudio, pAud->pAudioPool, 1, pAudio,
@@ -778,6 +796,9 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     
     // Retrieve the audio's handle
     *pHandle = gfmGenArr_getUsed(pAud->pAudioPool) - 1;
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Audio successfully decoded into handle %i", *pHandle);
+    ASSERT(rv == GFMRV_OK, rv);
     
     rv = GFMRV_OK;
 __ret:
