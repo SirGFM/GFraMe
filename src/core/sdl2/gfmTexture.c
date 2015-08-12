@@ -4,6 +4,7 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmUtils.h>
 #include <GFraMe/gframe.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
@@ -97,33 +98,44 @@ __ret:
  */
 gfmRV gfmTexture_init(gfmTexture *pTex, gfmCtx *pCtx, int width, int height) {
     gfmBackbuffer *pBbuf;
+    gfmLog *pLog;
     gfmRV rv;
     SDL_Renderer *pRenderer;
     
     // Sanitize arguments
-    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pLog);
     // Check that the texture wasn't already initialized
-    ASSERT(!pTex->pTexture, GFMRV_TEXTURE_ALREADY_INITIALIZED);
+    ASSERT_LOG(!pTex->pTexture, GFMRV_TEXTURE_ALREADY_INITIALIZED, pLog);
     // Check the dimensions
-    ASSERT(gfmUtils_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH);
-    ASSERT(gfmUtils_isPow2(height) == GFMRV_TRUE,
-            GFMRV_TEXTURE_INVALID_HEIGHT);
+    ASSERT_LOG(gfmUtils_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH, pLog);
+    ASSERT_LOG(gfmUtils_isPow2(height) == GFMRV_TRUE,
+            GFMRV_TEXTURE_INVALID_HEIGHT, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Initializing %ix%i texture...", width, height);
+    ASSERT(rv == GFMRV_OK, rv);
     
     // Get the renderer
     rv = gfm_getBackbuffer(&pBbuf, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmBackbuffer_getContext((void**)&pRenderer, pBbuf);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     // Create the texture
     pTex->pTexture = SDL_CreateTexture(pRenderer, SDL_PIXELFORMAT_ABGR8888,
             SDL_TEXTUREACCESS_STATIC, width, height);
-    ASSERT(pTex->pTexture, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(pTex->pTexture, GFMRV_INTERNAL_ERROR, pLog);
     
     pTex->width = width;
     pTex->height = height;
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Texture initialized!");
+    ASSERT(rv == GFMRV_OK, rv);
     
     rv = GFMRV_OK;
 __ret:
@@ -185,6 +197,7 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     char *pData, pBuffer[4];
     gfmFile *pFile;
+    gfmLog *pLog;
     gfmRV rv;
     //int bytesInRow, height, i, irv, dataOffset, rowOffset, width;
     int bytesInRow, i, irv, rowOffset;
@@ -195,64 +208,71 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     pFile = 0;
     
     // Sanitize arguments
-    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
-    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pLog);
     
     // Check the file extension (the dump and lazy way)
-    ASSERT(pFilename[filenameLen - 4] == '.', GFMRV_TEXTURE_NOT_BITMAP);
-    ASSERT(pFilename[filenameLen - 3] == 'b', GFMRV_TEXTURE_NOT_BITMAP);
-    ASSERT(pFilename[filenameLen - 2] == 'm', GFMRV_TEXTURE_NOT_BITMAP);
-    ASSERT(pFilename[filenameLen - 1] == 'p', GFMRV_TEXTURE_NOT_BITMAP);
+    ASSERT_LOG(pFilename[filenameLen - 4] == '.', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+    ASSERT_LOG(pFilename[filenameLen - 3] == 'b', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+    ASSERT_LOG(pFilename[filenameLen - 2] == 'm', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+    ASSERT_LOG(pFilename[filenameLen - 1] == 'p', GFMRV_TEXTURE_NOT_BITMAP, pLog);
     
     // Open the asset file
     rv = gfmFile_getNew(&pFile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     
     // Get the offset to the image's "data section"
     rv = gfmFile_rewind(pFile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_seek(pFile, BMP_OFFSET_POS);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_NR(rv == GFMRV_OK);
-    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
     
     dataOffset = READ_UINT(pBuffer);
     
     // Get the image's dimensions
     rv = gfmFile_rewind(pFile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_seek(pFile, BMP_HEIGHT_POS);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_NR(rv == GFMRV_OK);
-    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
     
     height = READ_UINT(pBuffer);
     
     rv = gfmFile_rewind(pFile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_seek(pFile, BMP_WIDTH_POS);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_NR(rv == GFMRV_OK);
-    ASSERT(irv == 4, GFMRV_READ_ERROR);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
     
     width = READ_UINT(pBuffer);
     
+    rv = gfmLog_log(pLog, gfmLog_info, "Loading %ix%i image...", width, height);
+    ASSERT(rv == GFMRV_OK, rv);
+    
     // Check if the image fit on the current texture
     if (pTex->pTexture) {
-        ASSERT(pTex->width == width, GFMRV_TEXTURE_INVALID_WIDTH);
-        ASSERT(pTex->height == height, GFMRV_TEXTURE_INVALID_HEIGHT);
+        ASSERT_LOG(pTex->width == width, GFMRV_TEXTURE_INVALID_WIDTH, pLog);
+        ASSERT_LOG(pTex->height == height, GFMRV_TEXTURE_INVALID_HEIGHT, pLog);
     }
     
     // Alloc the data array
     pData = (char*)malloc(width*height*sizeof(char)*4);
-    ASSERT(pData, GFMRV_ALLOC_FAILED);
+    ASSERT_LOG(pData, GFMRV_ALLOC_FAILED, pLog);
     
     // Calculate how many bytes there are in a row of pixels
     bytesInRow = width * 3;
@@ -261,9 +281,9 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     
     // Buffer the data (in the desired format)
     rv = gfmFile_rewind(pFile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     rv = gfmFile_seek(pFile, dataOffset);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     // Data is written starting by the last line
     i = width * (height - 1);
     // Start "alpha" with 0 (since the image is in RGB-24)
@@ -275,7 +295,7 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
         
         // Read until the EOF
         rv = gfmFile_readBytes(pBuffer, &n, pFile, 3/*numBytes*/);
-        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
+        ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED, rv, pLog);
         if (rv == GFMRV_FILE_EOF_REACHED) {
             break;
         }
@@ -311,7 +331,7 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
             // Go to the next line on the file
             if (rowOffset != 0) {
                 rv = gfmFile_seek(pFile, rowOffset);
-                ASSERT_NR(rv == GFMRV_OK);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             }
         }
     }
@@ -319,15 +339,15 @@ gfmRV gfmTexture_load(gfmTexture *pTex, gfmCtx *pCtx, char *pFilename,
     // Initialize the texture 
     if (!pTex->pTexture) {
         rv = gfmTexture_init(pTex, pCtx, width, height);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     }
     
     // Load data into texture
     irv = SDL_UpdateTexture(pTex->pTexture, NULL, (const void*)pData,
             width*SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_ARGB8888));
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
     irv = SDL_SetTextureBlendMode(pTex->pTexture, SDL_BLENDMODE_BLEND);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
     
     rv = GFMRV_OK;
 __ret:

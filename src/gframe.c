@@ -2055,6 +2055,30 @@ __ret:
 }
 
 /**
+ * Get the logger instance, so we can log elsewhere
+ * 
+ * @param  ppLog The logger
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED
+ */
+gfmRV gfm_getLogger(gfmLog **ppLog, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(ppLog, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    
+    *ppLog = pCtx->pLog;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Signal the counter that an update happened; On the release version, this
  * function does nothing but returns GFMRV_OK
  * 
@@ -2586,7 +2610,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     if (pCtx->pLog) {
-        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Finalizing GFraMe...");
+        gfmLog_log(pCtx->pLog, gfmLog_info, "Finalizing GFraMe...");
     }
     
     // Clean every allocated 'object'
@@ -2618,11 +2642,10 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmAudio_free(&(pCtx->pAudio));
     
     if (pCtx->pLog) {
-        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");
-        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "-----------------------------"
+        gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");
+        gfmLog_log(pCtx->pLog, gfmLog_info, "-----------------------------"
                 "---------------------------------------------------");
-        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "");
-        ASSERT_NR(rv == GFMRV_OK);
+        gfmLog_log(pCtx->pLog, gfmLog_info, "");
     }
     
     gfmLog_free(&(pCtx->pLog));

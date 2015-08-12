@@ -17,6 +17,7 @@ typedef struct stGFMCtx gfmCtx;
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmInput.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmSprite.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
@@ -685,6 +686,15 @@ gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx);
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_getInput(gfmInput **ppInput, gfmCtx *pCtx);
+
+/**
+ * Get the logger instance, so we can log elsewhere
+ * 
+ * @param  ppLog The logger
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED
+ */
+gfmRV gfm_getLogger(gfmLog **ppLog, gfmCtx *pCtx);
 
 /**
  * Takes a snapshot as soon as the frame finishes rendering and saves it as a
