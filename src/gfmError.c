@@ -12,6 +12,8 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Operation OK", /* GFMRV_OK */
     "true", /* GFMRV_TRUE */
     "false", /* GFMRV_FALSE */
+    "Library not initialized", /* GFMRV_NOT_INITIALIZED */
+    "Library already initialized", /* GFMRV_ALREADY_INITIALIZED */
     "Arguments bad", /* GFMRV_ARGUMENTS_BAD */
     "Alloc failed", /* GFMRV_ALLOC_FAILED */
     "Internal error", /* GFMRV_INTERNAL_ERROR */
