@@ -25,6 +25,8 @@
     if (!(stmt)) { \
       gfmLog_log(ctx, gfmLog_error, "Assert failed with code %i (\"%s\")", \
         err, gfmError_dict[err]); \
+      rv = (err); \
+      goto __ret; \
     } \
   } while (0)
 

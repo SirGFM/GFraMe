@@ -260,11 +260,11 @@ gfmRV gfm_getBinaryPath(gfmString **ppStr, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppStr, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Remove anything that was concatenated
     rv = gfmString_setLength(pCtx->pBinPath, pCtx->binPathLen);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Return the string
     *ppStr = pCtx->pBinPath;
 #endif
@@ -348,12 +348,12 @@ gfmRV gfm_getTitle(char **ppOrg, char **ppTitle, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppOrg, GFMRV_ARGUMENTS_BAD);
-    ASSERT(ppTitle, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppOrg, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(ppTitle, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Check that the string were set
-    ASSERT(pCtx->pGameOrg, GFMRV_TITLE_NOT_SET);
-    ASSERT(pCtx->pGameTitle, GFMRV_TITLE_NOT_SET);
+    ASSERT_LOG(pCtx->pGameOrg, GFMRV_TITLE_NOT_SET, pCtx->pLog);
+    ASSERT_LOG(pCtx->pGameTitle, GFMRV_TITLE_NOT_SET, pCtx->pLog);
     
     // Retrieve the strings
     rv = gfmString_getString(ppOrg, pCtx->pGameOrg);
@@ -406,7 +406,7 @@ gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pCount, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCount, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Alloc the window
     if (!(pCtx->pWindow)) {
@@ -443,9 +443,9 @@ gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pRefRate, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pRefRate, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Get the desired resolution
     rv = gfmWindow_getResolution(pWidth, pHeight, pRefRate, pCtx->pWindow,
@@ -482,19 +482,21 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     
     // Check that the window hasn't been initialized
-    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
-            GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT_LOG(!(pCtx->pWindow) ||
+            gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
+            GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
     // Check that the backbuffer hasn't been initialized
-    ASSERT(!pCtx->pBackbuffer, GFMRV_BACKBUFFER_ALREADY_INITIALIZED);
+    ASSERT_LOG(!pCtx->pBackbuffer, GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
+            pCtx->pLog);
     // Basic check for the resolution (it'll be later re-done, on window_init)
-    ASSERT(wndWidth > 0, GFMRV_INVALID_WIDTH);
-    ASSERT(wndHeight > 0, GFMRV_INVALID_HEIGHT);
+    ASSERT_LOG(wndWidth > 0, GFMRV_INVALID_WIDTH, pCtx->pLog);
+    ASSERT_LOG(wndHeight > 0, GFMRV_INVALID_HEIGHT, pCtx->pLog);
     
     // Try to read the game's title
     pOrg = 0;
     pTitle = 0;
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window to %ix%i "
             "(backbuffer: %ix%i)", wndWidth, wndHeight, bufWidth, bufHeight);
@@ -553,16 +555,17 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(resIndex >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(resIndex >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the window hasn't been initialized
-    ASSERT(!(pCtx->pWindow) || gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
-            GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT_LOG(!(pCtx->pWindow) ||
+            gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
+            GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
     
     // Try to read the game's title
     pOrg = 0;
     pTitle = 0;
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window in "
             "fullscreen mode (backbuffer: %ix%i)", bufWidth, bufHeight);
@@ -649,7 +652,7 @@ gfmRV gfm_setRepeat(gfmCtx *pCtx, int handle, int pos) {
     // Sanitize the other arguments on the actual call
     
     rv = gfmAudio_setRepeat(pCtx->pAudio, handle, pos);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -677,7 +680,7 @@ gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
     // Sanitize the other arguments on the actual call
     
     rv = gfmAudio_playAudio(ppHnd, pCtx->pAudio, handle, volume);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -707,20 +710,20 @@ gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(fps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     if (!pCtx->pTimer) {
         // Create a new timer, if necessary
         rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Initialize the timer
         rv = gfmTimer_init(pCtx->pTimer, fps);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
         // Only modify the timer
         rv = gfmTimer_setFPS(pCtx->pTimer, fps);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     rv = GFMRV_OK;
@@ -749,20 +752,20 @@ gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(fps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     if (!pCtx->pTimer) {
         // Create a new timer, if necessary
         rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Initialize the timer
         rv = gfmTimer_initRaw(pCtx->pTimer, fps);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
         // Only modify the timer
         rv = gfmTimer_setFPSRaw(pCtx->pTimer, fps);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     rv = GFMRV_OK;
@@ -827,7 +830,7 @@ gfmRV gfm_getEventCtx(gfmEvent **ppEvent, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppEvent, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppEvent, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // The event context is initialize with the game (no extra assert needed)
     
     // Return the event context
@@ -854,9 +857,9 @@ gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppBbuf, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppBbuf, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the renderer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     *ppBbuf = pCtx->pBackbuffer;
     rv = GFMRV_OK;
@@ -881,14 +884,14 @@ gfmRV gfm_getBackbufferDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the renderer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the dimenensions
     rv = gfmBackbuffer_getDimensions(pWidth, pHeight, pCtx->pBackbuffer);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -914,17 +917,17 @@ gfmRV gfm_setDimensions(gfmCtx *pCtx, int width, int height) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Cache the backbuffer's output dimensions
     rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, width, height);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Set the window's dimentions
     rv = gfmWindow_setDimensions(pCtx->pWindow, width, height);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -948,17 +951,17 @@ gfmRV gfm_setFullscreen(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
     
     // Try to make it fullscreen
     rv = gfmWindow_setFullScreen(pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Cache the backbuffer's output dimensions
     rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -982,18 +985,18 @@ gfmRV gfm_setWindowed(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
     
     // Try to make it fullscreen
     rv = gfmWindow_setWindowed(pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Cache the backbuffer's output dimensions
     rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1019,18 +1022,18 @@ gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the window has already been initialized
-    ASSERT(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
+            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
     
     // Set the window's resolution
     rv = gfmWindow_setResolution(pCtx->pWindow, resIndex);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Cache the backbuffer's output dimensions
     rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1056,11 +1059,11 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Set the bg color
     rv = gfmBackbuffer_setBackground(pCtx->pBackbuffer, color);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1093,9 +1096,9 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pIndex, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
-    ASSERT(filenameLen, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(filenameLen, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Try to get a new texture
     incRate = 1;
@@ -1104,7 +1107,7 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     
     // Load the texture
     rv = gfmTexture_load(pTex, pCtx, pFilename, filenameLen, colorKey);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Get the texture's index
     *pIndex = gfmGenArr_getUsed(pCtx->pTextures);
@@ -1132,10 +1135,10 @@ gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppTex, GFMRV_ARGUMENTS_BAD);
-    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppTex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the texture exists
-    ASSERT(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    ASSERT_LOG(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
     
     // Return the texture
     *ppTex = gfmGenArr_getObject(pCtx->pTextures, index);
@@ -1169,7 +1172,7 @@ gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Initialize so it can ben cleaned on error
     pSset = 0;
@@ -1182,7 +1185,7 @@ gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
     
     // Initialize it
     rv = gfmSpriteset_init(pSset, pTex, tileWidth, tileHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Push the spriteset into the array
     gfmGenArr_push(pCtx->pSpritesets);
@@ -1222,7 +1225,7 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Initialize so it can ben cleaned on error
     pSset = 0;
@@ -1234,7 +1237,7 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
             gfmSpriteset_getNew);
     // Initialize it
     rv = gfmSpriteset_initCached(pSset, pCtx, index, tileWidth, tileHeight);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Push the spriteset into the array
     gfmGenArr_push(pCtx->pSpritesets);
@@ -1266,9 +1269,9 @@ gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the texture exists
-    ASSERT(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    ASSERT_LOG(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
     
     // Cache the default texture
     pCtx->defaultTexture = index;
@@ -1297,14 +1300,14 @@ gfmRV gfm_loadAudio(int *pHandle, gfmCtx *pCtx, char *pFilename, int filenameLen
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
-    ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pHandle, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Try to load the audio
     rv = gfmAudio_loadAudio(pHandle, pCtx->pAudio, pCtx, pFilename,
             filenameLen);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1326,9 +1329,9 @@ gfmRV gfm_getCamera(gfmCamera **ppCam, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppCam, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppCam, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the camera was initialized
-    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the camera
     *ppCam = pCtx->pCamera;
@@ -1354,14 +1357,14 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pX, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pY, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the camera was initialized
-    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the position
     rv = gfmCamera_getPosition(pX, pY, pCtx->pCamera);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1384,14 +1387,14 @@ gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the camera was initialized
-    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the dimensions
     rv = gfmCamera_getDimensions(pWidth, pHeight, pCtx->pCamera);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1414,9 +1417,9 @@ gfmRV gfm_isSpriteInsideCamera(gfmCtx *pCtx, gfmSprite *pSpr) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pSpr, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pSpr, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the camera was initialized
-    ASSERT(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
     
     // Check if it's inside
     rv = gfmCamera_isSpriteInside(pCtx->pCamera, pSpr);
@@ -1441,17 +1444,17 @@ gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ups > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(dps > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ups > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(dps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Alloc the objects, if necessary
     if (!pCtx->pUpdateAcc) {
         rv = gfmAccumulator_getNew(&(pCtx->pUpdateAcc));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     if (!pCtx->pDrawAcc) {
         rv = gfmAccumulator_getNew(&(pCtx->pDrawAcc));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     // Set max Frames to avoid crash (and force slow down) on laggy parts
@@ -1460,11 +1463,11 @@ gfmRV gfm_setStateFrameRate(gfmCtx *pCtx, int ups, int dps) {
         maxFrames = 1;
     // Initialize both accumulators
     rv = gfmAccumulator_setFPS(pCtx->pUpdateAcc, ups, maxFrames);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Accumulating various draw frames make no sense, so force maxFrames to 1
     maxFrames = 1;
     gfmAccumulator_setFPS(pCtx->pDrawAcc, dps, maxFrames);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1493,15 +1496,15 @@ gfmRV gfm_getStateFrameRate(int *pUps, int *pDps, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pUps, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pDps, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pUps, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pDps, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that it was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     rv = gfmAccumulator_getFPS(pUps, pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmAccumulator_getFPS(pDps, pCtx->pDrawAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1522,17 +1525,20 @@ gfmRV gfm_isUpdating(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check if there are any updates left
-    ASSERT(pCtx->updateFrames > 0, GFMRV_FALSE);
+    if (pCtx->updateFrames <= 0) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     
     // Remove a frame
     pCtx->updateFrames--;
     
     // Handle any events that happened since the start of the frame
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Update every input
     rv = gfmInput_update(pCtx->pInput);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_TRUE;
 __ret:
@@ -1553,7 +1559,10 @@ gfmRV gfm_isDrawing(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check if there are any updates left
-    ASSERT(pCtx->drawFrames > 0, GFMRV_FALSE);
+    if (pCtx->drawFrames <= 0) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     
     // Remove a frame
     pCtx->drawFrames--;
@@ -1582,13 +1591,13 @@ gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pElapsed, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the accumulator was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
     rv = gfmAccumulator_getDelay(pElapsed, pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1615,13 +1624,13 @@ gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pElapsed, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the accumulator was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
     rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     *pElapsed = (float)delay / 1000.0f;
     
@@ -1650,13 +1659,13 @@ gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pElapsed, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pElapsed, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the accumulator was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
     rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     *pElapsed = (double)delay / 1000.0;
     
@@ -1680,16 +1689,16 @@ gfmRV gfm_updateAccumulators(gfmCtx *pCtx, int ms) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ms > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ms > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the accumulators was initialized
-    ASSERT(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED);
-    ASSERT(pCtx->pDrawAcc, GFMRV_ACC_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
+    ASSERT_LOG(pCtx->pDrawAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Update the accumulators
     rv = gfmAccumulator_update(pCtx->pUpdateAcc, ms);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmAccumulator_update(pCtx->pDrawAcc, ms);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1712,16 +1721,16 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     
     // Wait for the first event and process everything
     rv = gfmEvent_waitEvent(pCtx->pEvent);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Update the frames to be updated
     rv = gfmAccumulator_getFrames(&(pCtx->updateFrames), pCtx->pUpdateAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Update the frames to be drawn
     rv = gfmAccumulator_getFrames(&(pCtx->drawFrames), pCtx->pDrawAcc);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1748,12 +1757,12 @@ gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
-    ASSERT(firstTile >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(firstTile >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Initialize the FPS counter
     rv = gfmFPSCounter_init(pCtx->pCounter, pSset, firstTile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Enable displaying the FPS
     pCtx->showFPS = 1;
@@ -1778,7 +1787,7 @@ gfmRV gfm_showFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
 #if defined(DEBUG) || defined(FORCE_FPS)
     // Check that it was initialized, on debug mode
-    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
     pCtx->showFPS = 1;
 #endif
@@ -1803,7 +1812,7 @@ gfmRV gfm_hideFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
 #if defined(DEBUG) || defined(FORCE_FPS)
     // Check that it was initialized, on debug mode
-    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
     pCtx->showFPS = 0;
 #endif
@@ -1831,10 +1840,10 @@ gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that it was initialized
-    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     
     rv = gfmFPSCounter_updateBegin(pCtx->pCounter);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1857,13 +1866,13 @@ gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pHandle, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pHandle, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the input system was initialized
-    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     // Add a new virtual key to the input
     rv = gfmInput_addVirtualKey(pHandle, pCtx->pInput);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1888,11 +1897,11 @@ gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Everything else will be checked inside
     // Check that the input system was initialized
-    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     // Bind the new input
     rv = gfmInput_bind(pCtx->pInput, handle, key);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1913,10 +1922,10 @@ gfmRV gfm_resetInput(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the input system was initialized
-    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     rv = gfmInput_reset(pCtx->pInput);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1942,11 +1951,11 @@ gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Everything else will be checked inside
     // Check that the input system was initialized
-    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the key state
     rv = gfmInput_getKeyState(pState, pNum, pCtx->pInput, handle);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -1970,20 +1979,20 @@ gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pIface, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pIface, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the input system was initialized
-    ASSERT(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     // Try to retrieve the last 'key' pressed
     rv = gfmInput_getLastPressed(pIface, pCtx->pInput);
     if (rv == GFMRV_OPERATION_NOT_ACTIVE) {
         // If the operation hadn't been initialized, initialize it
         rv =  gfmInput_requestLastPressed(pCtx->pInput);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Force the function to be run at last another time
         rv = GFMRV_WAITING;
     }
-    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_WAITING);
+    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_WAITING, rv, pCtx->pLog);
     
     // Return with either GFMRV_OK or GFMRV_WAITING (whichever was return by
     // the function
@@ -2006,7 +2015,7 @@ gfmRV gfm_getInput(gfmInput **ppInput, gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(ppInput, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(ppInput, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Retrieve the context
     *ppInput = pCtx->pInput;
@@ -2034,10 +2043,10 @@ gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that it was initialized
-    ASSERT(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     
     rv = gfmFPSCounter_updateEnd(pCtx->pCounter);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2072,35 +2081,35 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pFilepath, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pFilepath, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the operation is available
-    ASSERT(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED);
+    ASSERT_LOG(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED, pCtx->pLog);
     // Check that the operation isn't active
-    ASSERT(!pCtx->takeSnapshot, GFMRV_OPERATION_ACTIVE);
+    ASSERT_LOG(!pCtx->takeSnapshot, GFMRV_OPERATION_ACTIVE, pCtx->pLog);
     
     // Create the GIF exporter, if needed)
     if (!pCtx->pGif) {
         rv = gfmGif_getNew(&(pCtx->pGif));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     // Get the backbuffer's dimensions
     rv = gfmBackbuffer_getDimensions(&width, &height, pCtx->pBackbuffer);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     // Initialize the gif exporter to the current backbuffer
     rv = gfmGif_init(pCtx->pGif, pCtx, width, height);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Alloc as many bytes as required (or fail if not possible/supported)
     newLen = pCtx->ssDataLen;
     rv = gfmBackbuffer_getBackbufferData(0, (int*)&newLen, pCtx->pBackbuffer);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Expand the buffer, as necessary
     if (newLen > pCtx->ssDataLen) {
         pCtx->pSsData = (unsigned char*)realloc(pCtx->pSsData,
                 newLen * sizeof(unsigned char));
-        ASSERT(pCtx->pSsData, GFMRV_ALLOC_FAILED);
+        ASSERT_LOG(pCtx->pSsData, GFMRV_ALLOC_FAILED, pCtx->pLog);
         
         // Must store the new buffer len
         pCtx->ssDataLen = newLen;
@@ -2109,7 +2118,7 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
     // Create the path string, if necessary
     if (!pCtx->pSsPath) {
         rv = gfmString_getNew(&(pCtx->pSsPath));
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     // store the path
@@ -2119,16 +2128,16 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
         
         // Retrieve the local path from the save file path
         rv = gfmString_getString(&pLocalPath, pCtx->pSaveFilename);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         
         doCopy = 1;
         rv = gfmString_init(pCtx->pSsPath, pLocalPath, pCtx->saveFilenameLen,
                 doCopy);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         
         // Append the file's path
         rv = gfmString_concat(pCtx->pSsPath, pFilepath, len);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
         int doCopy;
@@ -2136,7 +2145,7 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
         // Create the string with the path
         doCopy = 1;
         rv = gfmString_init(pCtx->pSsPath, pFilepath, len, doCopy);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     // TODO check if there's an extension and add it
@@ -2198,22 +2207,22 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
 #if defined(DEBUG) || defined(FORCE_FPS)
     // Store when drawing was initialized
     rv = gfmFPSCounter_initDraw(pCtx->pCounter);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 #endif
     
     // If there's a default texture, load it
     if (pCtx->defaultTexture >= 0) {
         rv = gfm_drawLoadCachedTexture(pCtx, pCtx->defaultTexture);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     
     rv = gfmBackbuffer_drawBegin(pCtx->pBackbuffer);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2236,13 +2245,13 @@ gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(iTex >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(iTex >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the texture exists
-    ASSERT(iTex < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX);
+    ASSERT_LOG(iTex < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
     
     // Load the texture
     rv = gfm_drawLoadTexture(pCtx, gfmGenArr_getObject(pCtx->pTextures, iTex));
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2264,13 +2273,13 @@ gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Load it into the backbuffer
     rv = gfmBackbuffer_drawLoadTexture(pCtx->pBackbuffer, pTex);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2307,14 +2316,18 @@ gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
-    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+    // Check that the tile can be rendered
+    if (tile < 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     // Render the tile
     rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2345,13 +2358,13 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the spriteset dimensions
     rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Get 10^(res-1) (to get separate each digit later)
     digits = 1;
@@ -2366,7 +2379,7 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
         tile = '-' - '!' + firstTile;
         // Render it
         rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Update the number and its position
         num *= -1;
         x += tileWidth;
@@ -2380,7 +2393,7 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
         tile = tile + '0' - '!' + firstTile;
         // Render it
         rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Update its position and the digit
         x += tileWidth;
         digits /= 10;
@@ -2425,14 +2438,14 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
     // Get the camera's position
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Convert the position from world-space to screen-space
     x -= camX;
@@ -2441,7 +2454,7 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
     // Draw the rectangle
     rv = gfmBackbuffer_drawRect(pCtx->pBackbuffer, x, y, width, height, red,
             green, blue);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
 __ret:
@@ -2472,18 +2485,18 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Check that the backbuffer was initialized
-    ASSERT(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
 #if defined(DEBUG) || defined(FORCE_FPS)
     // Display the current fps
     if (pCtx->showFPS) {
         rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 #endif
     
     rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // If requested, take the snapshot
     if (pCtx->takeSnapshot) {
@@ -2493,16 +2506,16 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
         len = pCtx->ssDataLen;
         rv = gfmBackbuffer_getBackbufferData(pCtx->pSsData, (int*)&len,
                 pCtx->pBackbuffer);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         
         // Store it in a GIF image
         rv = gfmGif_storeFrame(pCtx->pGif, pCtx->pSsData, len);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         
         if (!pCtx->isAnimation) {
             // If it's a snapshot, simply save the animation
             rv = gfmGif_exportImage(pCtx->pGif, pCtx->pSsPath);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         
             pCtx->takeSnapshot = 0;
         }
@@ -2511,14 +2524,14 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
             
             // Update the animation timer
             rv = gfmAccumulator_getDelay(&delay, pCtx->pDrawAcc);
-            ASSERT_NR(rv == GFMRV_OK);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
             
             pCtx->animationTime -= delay;
             
             // If enough frames were recorded, export it
             if (pCtx->animationTime <= 0) {
                 rv = gfmGif_exportAnimation(pCtx->pGif, pCtx->pSsPath);
-                ASSERT_NR(rv == GFMRV_OK);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
                 
                 pCtx->takeSnapshot = 0;
                 pCtx->isAnimation = 0;
