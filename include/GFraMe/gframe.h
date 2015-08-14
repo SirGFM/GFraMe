@@ -792,14 +792,16 @@ gfmRV gfm_batchBegin(gfmCtx *pCtx);
 /**
  * Renders a tile into the backbuffer
  * 
- * @param  pCtx  The game's context
- * @param  pSSet The spriteset containing the tile
- * @param  x     Horizontal position in screen space
- * @param  y     Vertical position in screen space
- * @param  tile  Tile to be rendered
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @param  pCtx      The game's context
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  tile      Tile to be rendered
+ * @param  isFlipped Whether the tile should be drawn flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile);
+gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile,
+        int isFlipped);
 
 /**
  * Renders a number at the desired position; The spriteset's texture must have

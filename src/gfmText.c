@@ -704,7 +704,7 @@ gfmRV gfmText_draw(gfmText *pText, gfmCtx *pCtx) {
             
             // Render the character
             tile = pStr[i] - '!' + pText->firstTile;
-            rv = gfm_drawTile(pCtx, pText->pSset, x, y, tile);
+            rv = gfm_drawTile(pCtx, pText->pSset, x, y, tile, 0/*isFlipped*/);
             ASSERT_NR(rv == GFMRV_OK);
         }
         // Update the next character's position

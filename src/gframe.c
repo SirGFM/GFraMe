@@ -2353,15 +2353,17 @@ gfmRV gfm_batchBegin(gfmCtx *pCtx) {
 /**
  * Renders a tile into the backbuffer
  * 
- * @param  pCtx  The game's context
- * @param  pSSet The spriteset containing the tile
- * @param  x     Horizontal position in screen space
- * @param  y     Vertical position in screen space
- * @param  tile  Tile to be rendered
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ * @param  pCtx      The game's context
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  tile      Tile to be rendered
+ * @param  isFlipped Whether the tile should be drawn flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED,
  */
-gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile) {
+gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile,
+        int isFlipped) {
     gfmRV rv;
     
     // Sanitize arguments
@@ -2379,7 +2381,8 @@ gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile) {
     }
     
     // Render the tile
-    rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+    rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
+            isFlipped);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
@@ -2431,7 +2434,8 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
         // Get the tile position on the texture
         tile = '-' - '!' + firstTile;
         // Render it
-        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
+                0/*flipped*/);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Update the number and its position
         num *= -1;
@@ -2445,7 +2449,8 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
         // Get its position on the texture
         tile = tile + '0' - '!' + firstTile;
         // Render it
-        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile);
+        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
+                0/*flipped*/);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         // Update its position and the digit
         x += tileWidth;

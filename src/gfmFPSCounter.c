@@ -244,7 +244,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     
     // Draw an 'U'
     tile = 'U' - '!' + pCounter->firstTile;
-    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile, 0/*flipped*/);
     ASSERT_NR(rv == GFMRV_OK);
     x += 2 * tileWidth;
     
@@ -262,7 +262,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     x += res * tileWidth;
     tile = '/' - '!' + pCounter->firstTile;
-    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile, 0/*flipped*/);
     ASSERT_NR(rv == GFMRV_OK);
     x += tileWidth;
     rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, ups, res,
@@ -283,7 +283,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     
     // Draw a 'D'
     tile = 'D' - '!' + pCounter->firstTile;
-    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile, 0/*flipped*/);
     ASSERT_NR(rv == GFMRV_OK);
     x += 2 * tileWidth;
     
@@ -301,7 +301,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     x += res * tileWidth;
     tile = '/' - '!' + pCounter->firstTile;
-    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile);
+    rv = gfm_drawTile(pCtx, pCounter->pSset, x, y, tile, 0/*flipped*/);
     ASSERT_NR(rv == GFMRV_OK);
     x += tileWidth;
     rv = gfm_drawNumber(pCtx, pCounter->pSset, x, y, dps, res,

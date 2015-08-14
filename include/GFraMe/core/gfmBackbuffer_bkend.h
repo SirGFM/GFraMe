@@ -136,16 +136,17 @@ gfmRV gfmBackbuffer_drawBegin(gfmBackbuffer *pCtx);
 /**
  * Renders a tile
  * 
- * @param  pCtx  The backbuffer
- * @param  pSSet The spriteset containing the tile
- * @param  x     Horizontal position in screen space
- * @param  y     Vertical position in screen space
- * @param  tile  Tile to be rendered
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ * @param  pCtx      The backbuffer
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  tile      Tile to be rendered
+ * @param  isFlipped Whether the tile should be drawn flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED,
  */
 gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
-        int y, int tile);
+        int y, int tile, int isFlipped);
 
 /**
  * Renders a rectangle (only its vertices);

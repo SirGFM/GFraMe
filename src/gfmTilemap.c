@@ -1650,7 +1650,7 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
         tile = pTMap->pData[(tileX + i) + (tileY + j) * pTMap->widthInTiles];
         // Render the tile to the screen (ignore errors)
         gfm_drawTile(pCtx, pTMap->pSset, screenX + i * tileWidth,
-                screenY + j * tileHeight, tile);
+                screenY + j * tileHeight, tile, 0/*isFlipped*/);
         
         i++;
         if (i >= horTiles) {

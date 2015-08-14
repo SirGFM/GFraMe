@@ -45,13 +45,13 @@ int main(int arg, char *argv[]) {
     // Draw something
     rv = gfm_drawBegin(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_drawTile(pCtx, pSset, 0/*x*/, 0/*y*/, 0/*tile*/);
+    rv = gfm_drawTile(pCtx, pSset, 0/*x*/, 0/*y*/, 0/*tile*/, 0/*isFlipped*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_drawTile(pCtx, pSset, 16/*x*/, 0/*y*/, 1/*tile*/);
+    rv = gfm_drawTile(pCtx, pSset, 16/*x*/, 0/*y*/, 1/*tile*/, 0/*isFlipped*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_drawTile(pCtx, pSset, 0/*x*/, 16/*y*/, 2/*tile*/);
+    rv = gfm_drawTile(pCtx, pSset, 0/*x*/, 16/*y*/, 2/*tile*/, 0/*isFlipped*/);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_drawTile(pCtx, pSset, 16/*x*/, 16/*y*/, 3/*tile*/);
+    rv = gfm_drawTile(pCtx, pSset, 16/*x*/, 16/*y*/, 3/*tile*/, 0/*isFlipped*/);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_drawEnd(pCtx);
     ASSERT_NR(rv == GFMRV_OK);

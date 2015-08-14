@@ -1382,11 +1382,24 @@ gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Calculate the sprite's actual position
-    x = x + pSpr->offsetX - camX;
+    if (pSpr->isFlipped) {
+        int th, tw, width;
+        
+        // Get the tile's dimension (so we can flip it)
+        rv = gfmSpriteset_getDimension(&tw, &th, pSpr->pSset);
+        ASSERT_NR(rv == GFMRV_OK);
+        rv = gfmObject_getWidth(&width, pSpr->pObject);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        x = x + (-tw + width - pSpr->offsetX) - camX;
+    }
+    else {
+        x = x + pSpr->offsetX - camX;
+    }
     y = y + pSpr->offsetY - camY;
     
     // Render the tile to the screen
-    rv = gfm_drawTile(pCtx, pSpr->pSset, x, y, pSpr->frame);
+    rv = gfm_drawTile(pCtx, pSpr->pSset, x, y, pSpr->frame, pSpr->isFlipped);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;

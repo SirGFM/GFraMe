@@ -407,17 +407,18 @@ __ret:
 /**
  * Renders a tile
  * 
- * @param  pCtx  The backbuffer
- * @param  pSSet The spriteset containing the tile
- * @param  x     Horizontal position in screen space
- * @param  y     Vertical position in screen space
- * @param  tile  Tile to be rendered
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *               GFMRV_BACKBUFFER_NOT_INITIALIZED,
- *               GFMRV_BACKBUFFER_NO_TEXTURE_LOADED
+ * @param  pCtx      The backbuffer
+ * @param  pSSet     The spriteset containing the tile
+ * @param  x         Horizontal position in screen space
+ * @param  y         Vertical position in screen space
+ * @param  tile      Tile to be rendered
+ * @param  isFlipped Whether the tile should be drawn flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED,
+ *                   GFMRV_BACKBUFFER_NO_TEXTURE_LOADED
  */
 gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
-        int y, int tile) {
+        int y, int tile, int isFlipped) {
     gfmRV rv;
     int irv, tileX, tileY, tileWidth, tileHeight;
     SDL_Rect src;
@@ -452,7 +453,13 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
     dst.h = tileHeight;
     
     // Render the tile
-    irv = SDL_RenderCopy(pCtx->pRenderer, pCtx->pCachedTexture, &src, &dst);
+    if (isFlipped) {
+        irv = SDL_RenderCopyEx(pCtx->pRenderer, pCtx->pCachedTexture, &src,
+                &dst, 0.0/*angle*/, 0/*center*/, SDL_FLIP_HORIZONTAL);
+    }
+    else {
+        irv = SDL_RenderCopy(pCtx->pRenderer, pCtx->pCachedTexture, &src, &dst);
+    }
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
