@@ -649,6 +649,24 @@ gfmRV gfmSprite_setFrame(gfmSprite *pCtx, int frame);
 gfmRV gfmSprite_getFrame(int *pFrame, gfmSprite *pCtx);
 
 /**
+ * Set the direction the sprite is facing (either forward or backward)
+ * 
+ * @param  pCtx      The sprite
+ * @param  isFlipped Whether it's flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setDirection(gfmSprite *pCtx, int isFlipped);
+
+/**
+ * Get the direction the sprite is facing (either forward or backward)
+ * 
+ * @param  pFlipped Whether it's flipped
+ * @param  pCtx     The sprite
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getDirection(int *pFlipped, gfmSprite *pCtx);
+
+/**
  * Render the sprite on the screen (if it's inside it)
  * 
  * @param  pSpr The sprite

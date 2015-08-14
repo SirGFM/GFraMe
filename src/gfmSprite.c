@@ -142,6 +142,10 @@ gfmRV gfmSprite_init(gfmSprite *pCtx, int x, int y, int width, int height,
     pCtx->offsetX = offX;
     pCtx->offsetY = offY;
     
+    // Reset its direction
+    rv = gfmSprite_setDirection(pCtx, 0);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     // Reset the previous animations
     gfmGenArr_callAllRV(pCtx->pAnimations, gfmAnimation_clean);
     gfmGenArr_reset(pCtx->pAnimations);
@@ -1346,6 +1350,51 @@ gfmRV gfmSprite_getFrame(int *pFrame, gfmSprite *pCtx) {
     
     // Get the current frame
     *pFrame = pCtx->frame;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the direction the sprite is facing (either forward or backward)
+ * 
+ * @param  pCtx      The sprite
+ * @param  isFlipped Whether it's flipped
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setDirection(gfmSprite *pCtx, int isFlipped) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    pCtx->isFlipped = isFlipped;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the direction the sprite is facing (either forward or backward)
+ * 
+ * @param  pFlipped Whether it's flipped
+ * @param  pCtx     The sprite
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITE_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_getDirection(int *pFlipped, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFlipped, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pObject, GFMRV_SPRITE_NOT_INITIALIZED);
+    
+    *pFlipped = pCtx->isFlipped;
     
     rv = GFMRV_OK;
 __ret:
