@@ -230,6 +230,7 @@ gfmRV gfmFile_close(gfmFile *pCtx) {
     // Check that the file is actually open
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
     
+    fflush(pCtx->pFp);
     fclose(pCtx->pFp);
     pCtx->pFp = 0;
     

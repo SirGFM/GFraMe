@@ -71,12 +71,14 @@ gfmRV gfmAudio_free(gfmAudioCtx **ppCtx);
 /**
  * Initialize the audio subsystem
  * 
- * @param  pCtx    The audio context
+ * @param  pAudio  The audio context
+ * @param  pCtx    The game's context
  * @param  setting The desired audio settings
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                 GFMRV_AUDIO_ALREADY_INITIALIZED, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings);
+gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pAudio, gfmCtx *pCtx,
+        gfmAudioQuality settings);
 
 /**
  * Clear all alloc'ed memory and closed the subsystem

@@ -212,7 +212,7 @@ static gfmRV gfmLog_logTime(gfmLog *pCtx) {
 	//char *_ctime;
     gfmRV rv;
     //int len;
-    struct tm _tm, *_pTm;
+    struct tm *_pTm;
 	time_t _time, ret;
     
     // Sanitize arguments
@@ -223,41 +223,31 @@ static gfmRV gfmLog_logTime(gfmLog *pCtx) {
 	// Get current time
 	ret = time(&_time);
     ASSERT(ret != ((time_t) -1), GFMRV_INTERNAL_ERROR);
-    _pTm = localtime_r(&_time, &_tm);
+    _pTm = localtime(&_time);
     ASSERT(_pTm != 0, GFMRV_INTERNAL_ERROR);
-	//_ctime = ctime(&_time);
-    //ASSERT(_ctime, GFMRV_INTERNAL_ERROR);
-    // Remove the trailing newline and '\0'
-    //len = strlen(_ctime);
-    //_ctime[len - 1] = ' ';
-    
-    // Log it to the file
-    //rv = gfmLog_logString(pCtx, _ctime, len);
-    //ASSERT(rv == GFMRV_OK, rv);
-    
     
     // Log the time
-    rv = gfmLog_logInt(pCtx, _tm.tm_year + 1900);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_year + 1900);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, "/", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _tm.tm_mon);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_mon);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, "/", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _tm.tm_mday);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_mday);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, " ", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _tm.tm_hour);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_hour);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, ":", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _tm.tm_min);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_min);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, ":", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _tm.tm_sec);
+    rv = gfmLog_logInt(pCtx, _pTm->tm_sec);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, " ", 1);
     ASSERT(rv == GFMRV_OK, rv);

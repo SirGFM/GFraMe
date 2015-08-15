@@ -512,32 +512,40 @@ __ret:
 /**
  * Initialize the audio subsystem
  * 
- * @param  pCtx    The audio context
+ * @param  pAudio  The audio context
+ * @param  pCtx    The game's context
  * @param  setting The desired audio settings
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                 GFMRV_AUDIO_ALREADY_INITIALIZED, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings) {
+gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pAudio, gfmCtx *pCtx,
+        gfmAudioQuality settings) {
+    gfmLog *pLog;
     gfmRV rv;
     int irv;
     SDL_AudioSpec wanted;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pAudio, GFMRV_ARGUMENTS_BAD, pLog);
     // Check that it still wasn't initialized
-    ASSERT(!pCtx->init, GFMRV_AUDIO_ALREADY_INITIALIZED);
+    ASSERT_LOG(!pAudio->init, GFMRV_AUDIO_ALREADY_INITIALIZED, pLog);
     
     // Initialize the audio subsystem
     irv = SDL_InitSubSystem(SDL_INIT_AUDIO);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
     // Set the system as initialized
-    pCtx->init |= gfmAudio_SDLSystem;
+    pAudio->init |= gfmAudio_SDLSystem;
     
     // Initialize mutexes
-    pCtx->pMutex = SDL_CreateMutex();
-    ASSERT(pCtx->pMutex, GFMRV_INTERNAL_ERROR);
+    pAudio->pMutex = SDL_CreateMutex();
+    ASSERT_LOG(pAudio->pMutex, GFMRV_INTERNAL_ERROR, pLog);
     // Set the mutex as initialized
-    pCtx->init |= gfmAudio_mutex;
+    pAudio->init |= gfmAudio_mutex;
     
     // Set the desired audio format
     // Samples per second
@@ -567,23 +575,57 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pCtx, gfmAudioQuality settings) {
         wanted.channels = 2;
     }
     
+    rv = gfmLog_log(pLog, gfmLog_info, "Trying to open audio device with format:");
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pLog, gfmLog_info, "    Frequency: %i", wanted.freq);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pLog, gfmLog_info, "    Number of channels: %i", wanted.channels);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pLog, gfmLog_info, "    Bits per sample: 16");
+    ASSERT(rv == GFMRV_OK, rv);
+    
     // Sample format (i.e., signedness, endianess, number of bits per samples)
     wanted.format = AUDIO_S16LSB;
     
     // Callback used to fill the buffer
     wanted.callback = gfmAudio_callback;
     // Send the audio context itself to the callback
-    wanted.userdata = (void*)pCtx;
+    wanted.userdata = (void*)pAudio;
     
     // Open the audio device with the requested format (NOTE: SDL2 already
     // starts the device paused!!)
-    pCtx->dev = SDL_OpenAudioDevice(NULL, 0, &wanted, &(pCtx->spec), 0);
-    ASSERT(pCtx->dev > 0, GFMRV_INTERNAL_ERROR);
+    pAudio->dev = SDL_OpenAudioDevice(NULL, 0, &wanted, &(pAudio->spec), 0);
+    ASSERT_LOG(pAudio->dev > 0, GFMRV_INTERNAL_ERROR, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Retrieved device:");
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pLog, gfmLog_info, "    Frequency: %i", pAudio->spec.freq);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pLog, gfmLog_info, "    Number of channels: %i", pAudio->spec.channels);
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    switch (pAudio->spec.format) {
+        case AUDIO_S8:
+        case AUDIO_U8: {
+            rv = gfmLog_log(pLog, gfmLog_info, "    Bits per sample: 8");
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+        case AUDIO_S16LSB: {
+            rv = gfmLog_log(pLog, gfmLog_info, "    Bits per sample: 16");
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+        default: {
+            rv = gfmLog_log(pLog, gfmLog_info, "    Invalid bits per sample");
+            ASSERT(rv == GFMRV_OK, rv);
+            ASSERT_LOG(pAudio->dev > 0, GFMRV_INTERNAL_ERROR, pLog);
+        }
+    }
+    
     // Set the device as initialized
-    pCtx->init |= gfmAudio_device;
+    pAudio->init |= gfmAudio_device;
     // Hard coded since it's the only supported format, for now
-    pCtx->bitsPerSample = 16;
-    pCtx->numChannels = wanted.channels;
+    pAudio->bitsPerSample = 16;
+    pAudio->numChannels = wanted.channels;
     
     rv = GFMRV_OK;
 __ret:

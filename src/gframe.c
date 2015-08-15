@@ -628,7 +628,7 @@ gfmRV gfm_initAudio(gfmCtx *pCtx, gfmAudioQuality settings) {
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Initialize it
-    rv = gfmAudio_initSubsystem(pCtx->pAudio, settings);
+    rv = gfmAudio_initSubsystem(pCtx->pAudio, pCtx, settings);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
