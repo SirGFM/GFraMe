@@ -51,6 +51,18 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer);
 static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer);
 #endif
 
+/**
+ * Write a object layer to the output file
+ * 
+ * @param  file        The output file
+ * @param  objectLayer The layer to be outputed
+ */
+#ifdef HAS_QSAVEFILE_SUPPORT
+static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer);
+#else
+static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer);
+#endif
+
 /** Constructor... that does nothing */
 GFMExporterPlugin::GFMExporterPlugin()
 {
@@ -107,8 +119,15 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             //                     '  tile_0 tile_1 ... last_tile'
             gfm_writeTilemap(file, tileLayer);
         }
+        else if (layer->layerType() == Layer::ObjectGroupType) {
+            const ObjectGroup *groupLayer;
+            
+            groupLayer = static_cast<const ObjectGroup*>(layer);
+            
+            gfm_writeObjects(file, groupLayer);
+        }
         else {
-            // TODO Add areas
+            // TODO Any other possible layer type?
             continue;
         }
         
@@ -216,6 +235,64 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
     }
 }
 
+#ifdef HAS_QSAVEFILE_SUPPORT
+static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer) {
+#else
+static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer) {
+#endif
+    foreach (const MapObject *pObj, objectLayer->objects()) {
+        if (pObj->shape() != MapObject::Rectangle) {
+            // TODO Add suport for non-rectangulaer shapes?
+            continue;
+        }
+        if (pObj->type().isEmpty()) {
+            // TODO Do something to warn that there's an area without type?
+            continue;
+        }
+        
+        if (pObj->cell().isEmpty() && pObj->properties().isEmpty()) {
+            // Output a area
+            file.write("area ");
+            file.write(pObj->type().toLatin1());
+            file.write(" ");
+            file.write(QByteArray::number(pObj->x()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->y()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->width()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->height()));
+            file.write("\n");
+        }
+        else {
+            QMap<QString, QString>::const_iterator it;
+            
+            // Output an object
+            file.write("obj ");
+            file.write(pObj->type().toLatin1());
+            file.write(" ");
+            file.write(QByteArray::number(pObj->x()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->y()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->width()));
+            file.write(" ");
+            file.write(QByteArray::number(pObj->height()));
+            // Output all of its properties
+            it = pObj->properties().begin();
+            while (it != pObj->properties().end()) {
+                file.write(" [ ");
+                file.write(it.key().toLatin1());
+                file.write(" , ");
+                file.write(it.value().toLatin1());
+                file.write(" ]");
+                
+                it++;
+            }
+            file.write("\n");
+        }
+    }
+}
 
 #if QT_VERSION < 0x050000
 Q_EXPORT_PLUGIN2(Gfm, GFMExporterPlugin)
