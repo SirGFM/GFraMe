@@ -9,6 +9,7 @@
 /** 'Export' the gfmParser struct */
 typedef stGFMParser gfmParser;
 
+/** Parseable 'objects' */
 enum enGFMParserType {
     gfmParserType_none = 0,
     gfmParserType_tileType,
@@ -27,17 +28,126 @@ typedef enum enGFMParserType gfmParserType;
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
 
+/**
+ * Alloc a new parser
+ * 
+ * @param  ppCtx The parser
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
 gfmRV gfmParser_getNew(gfmParser **ppCtx);
+
+/**
+ * Close the file, clean any resources and free the parser
+ * 
+ * @param  ppCtx The parser
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmParser_free(gfmParser **ppCtx);
+
+/**
+ * Initialize a parser and open its file
+ * 
+ * @param  pParser     The parser
+ * @param  pCtx        The game's context
+ * @param  pFilename   File to be parsed (must be on assets folder)
+ * @param  filenameLen Length of the file's path
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                     GFMRV_PARSER_ALREADY_INITIALIZED, ...
+ */
 gfmRV gfmParser_init(gfmParser *pParser, gfmCtx *pCtx, char *pFilename,
         int filenameLen);
+
+/**
+ * Close the file but keep allocated resources, so the parser may be reused
+ * 
+ * @param  pCtx The parser
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmParser_reset(gfmParser *pCtx);
+
+/**
+ * Clean all allocated resources and close any open file
+ * 
+ * @param  pCtx The parser
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
 gfmRV gfmParser_clean(gfmParser *pCtx);
+
+/**
+ * Parse the next object
+ * 
+ * @param  pParser The parser
+ * @param  pCtx    The game's context
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *                 GFMRV_PARSER_FINISHED, GFMRV_ALLOC_FAILED,
+ *                 GFMRV_PARSER_BAD_TOKEN
+ */
 gfmRV gfmParser_parseNext(gfmParser *pParser, gfmCtx *pCtx);
+
+/**
+ * Retrieve the parsed object's type
+ * 
+ * @param  pType The object's type
+ * @param  pCtx  The parser
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *               GFMRV_PARSER_NO_OBJECT
+ */
 gfmRV gfmParser_getType(gfmParserType *pType, gfmParser *pCtx);
+
+/**
+ * Retrieve the parsed object's position
+ * 
+ * @param  pX   The object's horizontal position
+ * @param  pY   The object's vertical position
+ * @param  pCtx The parser
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *              GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
+ */
 gfmRV gfmParser_getPos(int *pX, int *pY, gfmParser *pCtx);
+
+/**
+ * Retrieve the parsed object's dimensions
+ * 
+ * @param  pWidth  The object's width
+ * @param  pHeight The object's height
+ * @param  pCtx    The parser
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *                 GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
+ */
 gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx);
-gfmRV gfmParser_getIntArray(int *pBuffer, gfmParser *pCtx);
+
+/**
+ * Retrieve the parsed object's array of integers (only used for tilemaps)
+ * 
+ * @param  pBuffer The retrieved array (it's volatile, so it must be copied)
+ * @param  pLen    How many integers there are in the array
+ * @param  pCtx    The parser
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *                 GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
+ */
+gfmRV gfmParser_getIntArray(int *pBuffer, int *pLen, gfmParser *pCtx);
+
+/**
+ * Retrieve the parsed object's 
+ * 
+ * @param  pNum How many properties the object has
+ * @param  pCtx The parser
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *              GFMRV_PARSER_NO_OBJECT
+ */
 gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx);
+
+/**
+ * Retrieve the parsed object's 
+ * 
+ * @param  pKey  The property's key (a NULL-terminated string)
+ * @param  pVal  The property's value (a NULL-terminated string)
+ * @param  pCtx  The parser
+ * @param  index The index of the property
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *               GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD,
+ *               GFMRV_INVALID_INDEX
+ */
 gfmRV gfmParser_getProperty(char *pKey, int *pVal, gfmParser *pCtx, int index);
 
 #endif /* __GFMPARSER_H__ */
