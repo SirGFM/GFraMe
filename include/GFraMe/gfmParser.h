@@ -13,7 +13,6 @@ typedef struct stGFMParser gfmParser;
 enum enGFMParserType {
     gfmParserType_none = 0,
     gfmParserType_tileType,
-    gfmParserType_tilemap,
     gfmParserType_area,
     gfmParserType_object,
     gfmParserType_max
@@ -114,17 +113,6 @@ gfmRV gfmParser_getPos(int *pX, int *pY, gfmParser *pCtx);
  *                 GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
  */
 gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx);
-
-/**
- * Retrieve the parsed object's array of integers (only used for tilemaps)
- * 
- * @param  ppBuffer The retrieved array (it's volatile, so it must be copied)
- * @param  pLen     How many integers there are in the array
- * @param  pCtx     The parser
- * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
- *                  GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
- */
-gfmRV gfmParser_getIntArray(int **ppBuffer, int *pLen, gfmParser *pCtx);
 
 /**
  * Retrieve the parsed object's 

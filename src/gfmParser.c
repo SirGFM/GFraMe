@@ -25,10 +25,6 @@ struct stGFMParsedObject {
     int width;
     /** Object's height (when applied) */
     int height;
-    /** Object's array of integer (when applied) */
-    int *piBuf;
-    /** Length of the parsed array (when applied) */
-    int iLen;
     /** Array with all properties key, value pair */
     char **ppProperties;
     /** Number of properties parsed into this object */
@@ -312,39 +308,6 @@ gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx) {
     // Get the attribute
     *pWidth = pCtx->object.width
     *pHeight = pCtx->object.height
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Retrieve the parsed object's array of integers (only used for tilemaps)
- * 
- * @param  ppBuffer The retrieved array (it's volatile, so it must be copied)
- * @param  pLen     How many integers there are in the array
- * @param  pCtx     The parser
- * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
- *                  GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
- */
-gfmRV gfmParser_getIntArray(int **ppBuffer, int *pLen, gfmParser *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
-    ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(ppBuffer, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    ASSERT_LOG(pLen, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that an object was parsed
-    ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
-            pCtx->pLog);
-    
-    // TODO Check if the type has this attribute
-    // Get the attribute
-    *ppBufer = pCtx->object.piBuf;
-    *pLen = pCtx->object.iLen;
     
     rv = GFMRV_OK;
 __ret:
