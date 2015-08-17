@@ -97,12 +97,12 @@ CC = gcc
   ifneq ($(RELEASE), yes)
     CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
   else
-    ifeq ($(OS), Win)
-# Windows must compile with -O0 so the audio doesn't lag
+#    ifeq ($(OS), Win)
+# Fuck compilers! I can't get audio with any optimization... FUCK THAT SHIT!
       CFLAGS := $(CFLAGS) -O0
-    else
-      CFLAGS := $(CFLAGS) -O3
-    endif
+#    else
+#      CFLAGS := $(CFLAGS) -O3
+#    endif
   endif
 # Force fps counter, if requested
   ifeq ($(FPS_COUNTER), yes)
