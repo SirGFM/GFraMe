@@ -97,12 +97,11 @@ CC = gcc
   ifneq ($(RELEASE), yes)
     CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
   else
-#    ifeq ($(OS), Win)
-# Fuck compilers! I can't get audio with any optimization... FUCK THAT SHIT!
+    ifeq ($(OS), Win)
       CFLAGS := $(CFLAGS) -O0
-#    else
-#      CFLAGS := $(CFLAGS) -O3
-#    endif
+    else
+      CFLAGS := $(CFLAGS) -O3
+    endif
   endif
 # Force fps counter, if requested
   ifeq ($(FPS_COUNTER), yes)
@@ -378,6 +377,14 @@ endif
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 #==============================================================================
+
+#==============================================================================
+# Define compilation rule for gfmAudio so it avoids optimizations
+#==============================================================================
+$(OBJDIR)/core/sdl2/gfmAudio.o: src/core/sdl2/gfmAudio.c
+	$(CC) $(CFLAGS) -O0 -o $@ -c $<
+#==============================================================================
+
 
 #==============================================================================
 # Rule for creating every directory
