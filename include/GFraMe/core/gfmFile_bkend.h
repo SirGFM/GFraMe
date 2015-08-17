@@ -114,6 +114,14 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
 gfmRV gfmFile_close(gfmFile *pCtx);
 
 /**
+ * Check if a file is currently open
+ * 
+ * @param  pCtx The 'generic' file
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmFile_isOpen(gfmFile *pCtx);
+
+/**
  * Retrieve the file's size
  * 
  * @param  pSize The file size (in bytes)
@@ -165,6 +173,15 @@ gfmRV gfmFile_pushPos(gfmFile *pCtx);
  *              GFMRV_FILE_STACK_EMPTY, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmFile_popPos(gfmFile *pCtx);
+
+/**
+ * Move the stack a single position back, but doesn't pop it (i.e., doesn't
+ * "rewind" to that position)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_clearLastPosStack(gfmFile *pCtx);
 
 /**
  * Clear the 'position stack'

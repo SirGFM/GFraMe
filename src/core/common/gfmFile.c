@@ -240,6 +240,28 @@ __ret:
 }
 
 /**
+ * Check if a file is currently open
+ * 
+ * @param  pCtx The 'generic' file
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmFile_isOpen(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    if (pCtx->pFp) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
+
+/**
  * Retrieve the file's size
  * 
  * @param  pSize The file size (in bytes)
@@ -370,6 +392,30 @@ gfmRV gfmFile_popPos(gfmFile *pCtx) {
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Pop it from the stack
     pCtx->curStackPos++;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Move the stack a single position back, but doesn't pop it (i.e., doesn't
+ * "rewind" to that position)
+ * 
+ * @param  pCtx The file
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_clearLastPosStack(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    if (pCtx->curStackPos < STACK_SIZE) {
+        pCtx->curStackPos++;
+    }
     
     rv = GFMRV_OK;
 __ret:

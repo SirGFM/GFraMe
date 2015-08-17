@@ -118,13 +118,13 @@ gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx);
 /**
  * Retrieve the parsed object's array of integers (only used for tilemaps)
  * 
- * @param  pBuffer The retrieved array (it's volatile, so it must be copied)
- * @param  pLen    How many integers there are in the array
- * @param  pCtx    The parser
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
- *                 GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
+ * @param  ppBuffer The retrieved array (it's volatile, so it must be copied)
+ * @param  pLen     How many integers there are in the array
+ * @param  pCtx     The parser
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *                  GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD
  */
-gfmRV gfmParser_getIntArray(int *pBuffer, int *pLen, gfmParser *pCtx);
+gfmRV gfmParser_getIntArray(int **ppBuffer, int *pLen, gfmParser *pCtx);
 
 /**
  * Retrieve the parsed object's 
@@ -139,7 +139,7 @@ gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx);
 /**
  * Retrieve the parsed object's 
  * 
- * @param  pKey  The property's key (a NULL-terminated string)
+ * @param  ppKey The property's key (a NULL-terminated string)
  * @param  pVal  The property's value (a NULL-terminated string)
  * @param  pCtx  The parser
  * @param  index The index of the property
@@ -147,7 +147,8 @@ gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx);
  *               GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD,
  *               GFMRV_INVALID_INDEX
  */
-gfmRV gfmParser_getProperty(char *pKey, int *pVal, gfmParser *pCtx, int index);
+gfmRV gfmParser_getProperty(char **ppKey, int *pVal, gfmParser *pCtx,
+        int index);
 
 #endif /* __GFMPARSER_H__ */
 
