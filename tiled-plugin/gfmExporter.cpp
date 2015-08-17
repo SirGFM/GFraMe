@@ -76,7 +76,7 @@ GFMExporterPlugin::GFMExporterPlugin()
  */
 bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 {
-    int foundTilemap;
+    const TileLayer *tileLayer;
     
     // Open the output file
 #ifdef HAS_QSAVEFILE_SUPPORT
@@ -92,7 +92,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
     }
 
     // Write every layer
-    foundTilemap = 0;
+    tileLayer = 0;
     foreach (const Layer *layer, map->layers()) {
         // Check that the layer is visible
         if (!layer->isVisible())
@@ -100,24 +100,15 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         
         // Check that the layer is a tilemap
         if (layer->layerType() == Layer::TileLayerType) {
-            const TileLayer *tileLayer;
-            
             // Check that there's only a single tilemap to be exported
-            if (foundTilemap) {
-                mError = tr("Found more than one visible layers, but the plugin can"
-                        "only handle a single layer at a time");
+            if (tileLayer != 0) {
+                mError = tr("Found more than one visible layers, but the "
+                        "plugin can only handle a single layer at a time");
                 return false;
             }
             
-            // Retrieve the current tilemap
+            // Retrieve the current tilemap (it will be output later)
             tileLayer = static_cast<const TileLayer*>(layer);
-            // Output to the file: 'type <terrain_name> <tile_index>'
-            //                     '...'
-            //                     'map <width_in_tiles> <height_in_tiles>\n'
-            //                     '  tile_0 tile_1 ...\n'
-            //                     '  ...\n'
-            //                     '  tile_0 tile_1 ... last_tile'
-            gfm_writeTilemap(file, tileLayer);
         }
         else if (layer->layerType() == Layer::ObjectGroupType) {
             const ObjectGroup *groupLayer;
@@ -131,6 +122,16 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             continue;
         }
         
+    }
+    // Output any found tilemap at the end of the file
+    if (tileLayer) {
+        // Output to the file: 'type <terrain_name> <tile_index>'
+        //                     '...'
+        //                     'map <width_in_tiles> <height_in_tiles>\n'
+        //                     '  tile_0 tile_1 ...\n'
+        //                     '  ...\n'
+        //                     '  tile_0 tile_1 ... last_tile'
+        gfm_writeTilemap(file, tileLayer);
     }
     
     if (file.error() != QFile::NoError) {
