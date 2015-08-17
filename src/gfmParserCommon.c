@@ -58,7 +58,7 @@ __ret:
  * @param  pFp     The current file
  * @return         GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
  *                 GFMRV_INTERNAL_ERROR, GFMRV_READ_ERROR,
- *                 GFMRV_TILEMAP_PARSING_ERROR, GFMRV_ALLOC_FAILED
+ *                 GFMRV_PARSER_ERROR, GFMRV_ALLOC_FAILED
  */
 gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
     gfmRV rv;
@@ -104,7 +104,7 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
         
         len++;
     }
-    ASSERT(len > 0, GFMRV_TILEMAP_PARSING_ERROR);
+    ASSERT(len > 0, GFMRV_PARSER_ERROR);
     // Set the null terminator
     (*ppStr)[len] = '\0';
     
@@ -192,7 +192,7 @@ __ret:
  * @param  pVal The parsed integer
  * @param  pFp  The current file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *              GFMRV_READ_ERROR, GFMRV_TILEMAP_PARSING_ERROR
+ *              GFMRV_READ_ERROR, GFMRV_PARSER_ERROR
  */
 gfmRV gfmParser_parseInt(int *pVal, gfmFile *pFp) {
     gfmRV rv;
@@ -236,11 +236,11 @@ gfmRV gfmParser_parseInt(int *pVal, gfmFile *pFp) {
             }
         }
         else {
-            ASSERT(0, GFMRV_TILEMAP_PARSING_ERROR);
+            ASSERT(0, GFMRV_PARSER_ERROR);
         }
     }
     // Check that a number was successfully read
-    ASSERT(signal != 0, GFMRV_TILEMAP_PARSING_ERROR);
+    ASSERT(signal != 0, GFMRV_PARSER_ERROR);
     
     // Ignore all blank spaces so we are on the next token
     rv = gfmParser_ignoreBlank(pFp);

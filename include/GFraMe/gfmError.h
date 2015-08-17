@@ -78,7 +78,6 @@ enum enGFMError {
     GFMRV_TILEMAP_NO_TILEANIM,
     GFMRV_TILETYPE_EXTANT,
     GFMRV_TILEANIM_EXTANT,
-    GFMRV_TILEMAP_PARSING_ERROR,
     // Accumulator errors
     GFMRV_ACC_FPS_TOO_HIGH,
     GFMRV_ACC_NOT_INITIALIZED,
@@ -153,6 +152,8 @@ enum enGFMError {
     GFMRV_LOG_ALREADY_INITIALIZED,
     GFMRV_LOG_NOT_INITIALIZED,
     GFMRV_LOG_UNKNOWN_TOKEN,
+    // Parser errors
+    GFMRV_PARSER_ERROR,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

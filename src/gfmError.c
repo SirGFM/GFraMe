@@ -79,7 +79,6 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Tilemap no tileanim", /* GFMRV_TILEMAP_NO_TILEANIM */
     "Tiletype extant", /* GFMRV_TILETYPE_EXTANT */
     "Tileanim extant", /* GFMRV_TILEANIM_EXTANT */
-    "Tilemap parsing error", /* GFMRV_TILEMAP_PARSING_ERROR */
     // Accumulator errors
     "Accumulator FPS too high", /* GFMRV_ACC_FPS_TOO_HIGH */
     "Accumulator not initialized", /* GFMRV_ACC_NOT_INITIALIZED */
@@ -154,6 +153,8 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Log already initialized", /* GFMRV_LOG_ALREADY_INITIALIZED */
     "Log not initialized", /* GFMRV_LOG_NOT_INITIALIZED */
     "Log unknown token", /* GFMRV_LOG_UNKNOWN_TOKEN */
+    // Parser errors
+    "Error while parsing", /* GFMRV_PARSER_ERROR */
     "Max error" /* GFMRV_MAX */
 };
 

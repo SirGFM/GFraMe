@@ -27,6 +27,7 @@
 #include <GFraMe/core/gfmFile_bkend.h>
 #include <GFraMe_int/gfmTileAnimation.h>
 #include <GFraMe_int/gfmTileType.h>
+#include <GFraMe_int/gfmParserCommon.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -282,260 +283,6 @@ __ret:
 }
 
 /**
- * Check if a character if blank
- */
-#define gfmTilemap_isBlank(c) \
-        ((c) == ' ' || (c) == '\n' || (c) == '\r' || (c) == '\t')
-
-/**
- * Advance through all blank characters
- * 
- * @param  pFp The file to be read
- * @return     GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_READ_ERROR
- */
-static gfmRV gfmTilemap_ignoreBlank(gfmFile *pFp) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
-    
-    // Loop through all characters
-    while (1) {
-        char c;
-        
-        // Read the current character
-        rv = gfmFile_readChar(&c, pFp);
-        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
-        if (rv == GFMRV_FILE_EOF_REACHED) {
-            break;
-        }
-        
-        // Stop if it's not a blank char
-        if (!gfmTilemap_isBlank(c)) {
-            // 'Unread' the character
-            rv = gfmFile_unreadChar(pFp);
-            ASSERT_NR(rv == GFMRV_OK);
-            // and stop
-            break;
-        }
-    }
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Try to parse a string from a file; On error, return the file to the previous
- * position
- * 
- * @param  ppStr   The parsed string (it may be pre-allocated, but its size must
- *                 be accurate, in that case)
- * @param  pStrLen The string's length
- * @param  pFp     The current file
- * @return         GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
- *                 GFMRV_INTERNAL_ERROR, GFMRV_READ_ERROR,
- *                 GFMRV_TILEMAP_PARSING_ERROR, GFMRV_ALLOC_FAILED
- */
-static gfmRV gfmTilemap_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
-    gfmRV rv;
-    int isPosSet, len;
-    
-    // Set default values
-    isPosSet = 0;
-    
-    // Sanitize arguments
-    ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pStrLen, GFMRV_ARGUMENTS_BAD);
-    ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
-    // Either there's no string or the length is set
-    ASSERT(!(*ppStr) || *pStrLen > 0, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the current position, to "backtrack" on error
-    rv = gfmFile_pushPos(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    isPosSet = 1;
-    
-    // Read all characters until a blank one
-    len = 0;
-    while (1) {
-        char c;
-        
-        // Read the next character
-        rv = gfmFile_readChar(&c, pFp);
-        ASSERT_NR(rv == GFMRV_OK);
-        // Stop if it's a blank character
-        if (gfmTilemap_isBlank(c)) {
-            break;
-        }
-        // Expand the buffer as necessary
-        if (len >= *pStrLen) {
-            // Realloc the buffer with enough space for more chars and the null
-            *ppStr = (char*)realloc(*ppStr, (*pStrLen) * 2 + 1);
-            ASSERT(*ppStr, GFMRV_ALLOC_FAILED);
-            // Set the new length
-            *pStrLen = *pStrLen * 2 + 1;
-        }
-        // Copy this new character into it
-        (*ppStr)[len] = (char)c;
-        
-        len++;
-    }
-    ASSERT(len > 0, GFMRV_TILEMAP_PARSING_ERROR);
-    // Set the null terminator
-    (*ppStr)[len] = '\0';
-    
-    isPosSet = 0;
-    rv = GFMRV_OK;
-__ret:
-    // If the string wasn't parsed, return to the previous position
-    if (isPosSet) {
-        gfmFile_popPos(pFp);
-    }
-    else {
-        gfmFile_clearPosStack(pFp);
-    }
-    
-    return rv;
-}
-
-/**
- * Try to read a string from a file
- * 
- * @param  pFp     The current file
- * @return         GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
- *                 GFMRV_INTERNAL_ERROR, GFMRV_READ_ERROR
- */
-static gfmRV gfmTilemap_parseString(gfmFile *pFp, char *pStr, int strLen) {
-    char c;
-    gfmRV rv;
-    int i, isPosSet;
-    
-    // Set default values
-    isPosSet = 0;
-    
-    // Sanitize arguments
-    ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
-    ASSERT(strLen > 0, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the current position, to "backtrack" on error
-    rv = gfmFile_pushPos(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    isPosSet = 1;
-    
-    // Loop through all characters on the string
-    i = 0;
-    while (i < strLen) {
-        // Read the next character
-        rv = gfmFile_readChar(&c, pFp);
-        ASSERT_NR(rv == GFMRV_OK);
-        // Check that the string was read
-        ASSERT(pStr[i] == c, GFMRV_FALSE);
-        
-        i++;
-    }
-    // Check that the next character would be blank
-    rv = gfmFile_readChar(&c, pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    ASSERT(gfmTilemap_isBlank(c), GFMRV_FALSE);
-    rv = gfmFile_unreadChar(pFp);
-    
-    // Ignore all blank spaces so we are on the next token
-    rv = gfmTilemap_ignoreBlank(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    isPosSet = 0;
-    rv = GFMRV_TRUE;
-__ret:
-    // If the string wasn't parsed, return to the previous position
-    if (isPosSet) {
-        gfmFile_popPos(pFp);
-    }
-    else {
-        gfmFile_clearPosStack(pFp);
-    }
-    
-    return rv;
-}
-
-/**
- * Try to read a int from a file
- * 
- * @param  pVal The parsed integer
- * @param  pFp  The current file
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *              GFMRV_READ_ERROR, GFMRV_TILEMAP_PARSING_ERROR
- */
-static gfmRV gfmTilemap_parseInt(int *pVal, gfmFile *pFp) {
-    gfmRV rv;
-    int isPosSet, num, signal;
-    
-    // Set default values
-    isPosSet = 0;
-    
-    // Sanitize arguments
-    ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pFp, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the current position, to "backtrack" on error
-    rv = gfmFile_pushPos(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    isPosSet = 1;
-    
-    // Read all characters until a blank space
-    signal = 0;
-    num = 0;
-    while (1) {
-        char c;
-        
-        // Read the next character
-        rv = gfmFile_readChar(&c, pFp);
-        ASSERT_NR(rv == GFMRV_OK);
-        // If it's a blank char, stop parsing
-        if (gfmTilemap_isBlank(c)) {
-            break;
-        }
-        // If the signal isn't set, the character may be '-' to signal negative
-        if (signal == 0 && num == 0 && c == '-') {
-            signal = -1;
-        }
-        else if (c >= '0' && c <= '9') {
-            // Otherwise, check that it's a valid char and accumulate it
-            num = num * 10 + c - '0';
-            // Set the number as positive, if it wasn't set yet
-            if (signal == 0) {
-                signal = 1;
-            }
-        }
-        else {
-            ASSERT(0, GFMRV_TILEMAP_PARSING_ERROR);
-        }
-    }
-    // Check that a number was successfully read
-    ASSERT(signal != 0, GFMRV_TILEMAP_PARSING_ERROR);
-    
-    // Ignore all blank spaces so we are on the next token
-    rv = gfmTilemap_ignoreBlank(pFp);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Set the return value
-    *pVal = num * signal;
-    isPosSet = 0;
-    rv = GFMRV_OK;
-__ret:
-    // If the string wasn't parsed, return to the previous position
-    if (isPosSet) {
-        gfmFile_popPos(pFp);
-    }
-    else {
-        gfmFile_clearPosStack(pFp);
-    }
-    
-    return rv;
-}
-
-/**
  * Loads a tilemap from a file; It must be described as:
  * Tilemap := (<TileType>|<Area>)* <TilemapData>
  * TileType := type_str tile_index '\n'
@@ -601,7 +348,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     // Loop through all characters in the files
     while (1) {
         // Check if the current token is an "area"
-        rv = gfmTilemap_parseString(pFp, "area", sizeof("area") - 1);
+        rv = gfmParser_parseStringStatic(pFp, "area");
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             rv = gfmLog_log(pLog, gfmLog_info, "Got an 'area' token but "
@@ -611,16 +358,16 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             continue;
         }
         // Check if the current token is a "tile type" ("type")
-        rv = gfmTilemap_parseString(pFp, "type", sizeof("type") - 1);
+        rv = gfmParser_parseStringStatic(pFp, "type");
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             int i, tile;
             
             // Read the current type
-            rv = gfmTilemap_getString(&pTypeStr, &typeStrLen, pFp);
+            rv = gfmParser_getString(&pTypeStr, &typeStrLen, pFp);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             // Read the type's tile
-            rv = gfmTilemap_parseInt(&tile, pFp);
+            rv = gfmParser_parseInt(&tile, pFp);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             // Get its index from the dictionary
@@ -631,7 +378,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
                 }
                 i++;
             }
-            ASSERT_LOG(i < dictLen, GFMRV_TILEMAP_PARSING_ERROR, pLog);
+            ASSERT_LOG(i < dictLen, GFMRV_PARSER_ERROR, pLog);
             // Add it to the list
             rv = gfmTilemap_addTileType(pTMap, tile, pDictTypes[i]);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
@@ -639,7 +386,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             continue;
         }
         // Check if the current token is a "tilemap" ("map")
-        rv = gfmTilemap_parseString(pFp, "anim", sizeof("anim") - 1);
+        rv = gfmParser_parseStringStatic(pFp, "anim");
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             rv = gfmLog_log(pLog, gfmLog_info, "Got an 'anim' token but "
@@ -649,15 +396,15 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             continue;
         }
         // Check if the current token is a "tilemap" ("map")
-        rv = gfmTilemap_parseString(pFp, "map", sizeof("map") - 1);
+        rv = gfmParser_parseStringStatic(pFp, "map");
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             int height, i, width;
             
             // Get the tilemap's dimensions
-            rv = gfmTilemap_parseInt(&width, pFp);
+            rv = gfmParser_parseInt(&width, pFp);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-            rv = gfmTilemap_parseInt(&height, pFp);
+            rv = gfmParser_parseInt(&height, pFp);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             
             // Set the tilemap dimensions
@@ -670,7 +417,7 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
                 int tile;
                 
                 // Get the tile
-                rv = gfmTilemap_parseInt(&tile, pFp);
+                rv = gfmParser_parseInt(&tile, pFp);
                 ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
                 
                 pTMap->pData[i] = tile;
