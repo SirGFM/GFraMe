@@ -17,6 +17,8 @@
 struct stGFMParsedObject {
     /** Type of the object */
     gfmParserType type;
+    /** A NULL-terminated string representing the in-game type */
+    char *pType;
     /** Object's horizontal position (when applied) */
     int x;
     /** Object's vertical position (when applied) */
@@ -44,6 +46,10 @@ struct stGFMParser {
     char *pReadBuf;
     /** Total length of the 'pReadBuf' buffer */
     int readBufLen;
+    /** Buffer for the object's type */
+    char *pTypeBuf;
+    /** Total length of the 'pTypeBuf' buffer */
+    int typeBufLen;
     /** Buffer used to stored all properties (keys and values), so they can be
      * easily indexed/pointed to on ppProps */
     char *pPropsBuf;
@@ -60,6 +66,272 @@ struct stGFMParser {
 /* Static functions                                                           */
 /*                                                                            */
 /******************************************************************************/
+
+/**
+ * Retrieve the in-game type from the file and put it into pTypeBuf
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *              GFMRV_INTERNAL_ERROR, ...
+ */
+static gfmRV gfmParser_parseStrType(gfmParser *pCtx) {
+    char *pDest;
+    gfmRV rv;
+    int didPush, len;
+    
+    // Set default values
+    didPush = 0;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+            GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Store the current position
+    rv = gfmFile_pushPos(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 1;
+    
+    // Retrieve a string from the file
+    rv = gfmParser_getString(&(pCtx->pReadBuf), &(pCtx->readBufLen),
+            pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    // Make sure there in enough space to copy it into the type buffer
+    len = strlen(pCtx->pReadBuf);
+    if (pCtx->typeBufLen < len + 1) {
+        pCtx->pTypeBuf = (char*)realloc(pCtx->pTypeBuf, len + 1);
+        ASSERT_LOG(pCtx->pTypeBuf , GFMRV_ALLOC_FAILED, pCtx->pLog);
+        pCtx->typeBufLen = len + 1;
+    }
+    // Copy it into that buffer
+    pDest = memcpy(pCtx->pTypeBuf, pCtx->pReadBuf, len + 1);
+    ASSERT_LOG(pDest == pCtx->pTypeBuf, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    
+    // Clear the previous push
+    rv = gfmFile_clearLastPosStack(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    if (didPush != 0) {
+        // On failure, go back to the previous position
+        gfmFile_popPos(pCtx->pFile);
+    }
+    
+    return rv;
+}
+
+/**
+ * Parses an area; It expects a type string and 4 integers: x, y, width and
+ * height
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmParser_parseArea(gfmParser *pCtx) {
+    gfmRV rv;
+    int didPush, len;
+    
+    // Set default values
+    didPush = 0;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+            GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Store the current position
+    rv = gfmFile_pushPos(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 1;
+    
+    // Set the object as an area
+    pCtx->object.type = gfmParser_area;
+    // Parse its in-game type
+    rv = gfmParser_parseStrType(pCtx);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    pCtx->object.pType = pCtx->pTypeBuf;
+    // Parse its position
+    rv = gfmParser_parseInt(&(pCtx->object.x), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmParser_parseInt(&(pCtx->object.y), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    // Parse its dimensions
+    rv = gfmParser_parseInt(&(pCtx->object.width), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmParser_parseInt(&(pCtx->object.height), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    // Clear the previous push
+    rv = gfmFile_clearLastPosStack(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    if (didPush != 0) {
+        // On failure, go back to the previous position
+        gfmFile_popPos(pCtx->pFile);
+    }
+    
+    return rv;
+}
+
+/**
+ * Parses an area; It expects a type string, 4 integers (x, y, width and
+ * height) and any number of properties, each a pair of key and value, enclosed
+ * by square brackets
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
+    gfmRV rv;
+    int didPush, len;
+    
+    // Set default values
+    didPush = 0;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+            GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Store the current position
+    rv = gfmFile_pushPos(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 1;
+    
+    // Set the object as an area
+    pCtx->object.type = gfmParser_object;
+    // Parse its in-game type
+    rv = gfmParser_parseStrType(pCtx);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    pCtx->object.pType = pCtx->pTypeBuf;
+    // Parse its position
+    rv = gfmParser_parseInt(&(pCtx->object.x), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmParser_parseInt(&(pCtx->object.y), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    // Parse its dimensions
+    rv = gfmParser_parseInt(&(pCtx->object.width), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmParser_parseInt(&(pCtx->object.height), pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    // Parse all of its properties
+    pCtx->propertiesLen = 0;
+    len = 0;
+    while (1) {
+        int doRecache, keyLen, valLen;
+        
+        // Clear the flag that every pointer should be rellocated
+        doRecache = 0;
+        
+        // Check that there's another property
+        rv = gfmParser_parseStringStatic(pCtx->pFile, "[");
+        if (rv != GFMRV_OK) {
+            break;
+        }
+        // Retrieve the key
+        rv = gfmParser_getString(&(pCtx->pReadBuf), &(pCtx->readBufLen),
+                pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        rv = gfmParser_parseStringStatic(pCtx->pFile, ",");
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        // Store the key
+        keyLen = strlen(pCtx->pReadBuf);
+        if (len + keyLen + 1 > pCtx->propsBufLen) {
+            // Expand the buffer as necessary
+            pCtx->pPropsBuf = (char*)realloc(pCtx->pPropsBuf, len + keyLen + 1);
+            ASSERT_LOG(pCtx->pPropsBuf, GFMRV_ALLOC_FAILED, pCtx->pLog);
+            pCtx->propsBufLen = len + keyLen + 1;
+            // Force all pointers to be rellocated
+            doRecache = 1;
+        }
+        memcpy(pCtx->pPropsBuf + len, pCtx->pReadBuf, keyLen + 1);
+        
+        // Retrieve the value
+        rv = gfmParser_getString(&(pCtx->pReadBuf), &(pCtx->readBufLen),
+                pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        rv = gfmParser_parseStringStatic(pCtx->pFile, "]");
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        // Store the key
+        valLen = strlen(pCtx->pReadBuf);
+        if (len + keyLen + 1 + valLen + 1 > pCtx->propsBufLen) {
+            // Expand the buffer as necessary
+            pCtx->pPropsBuf = (char*)realloc(pCtx->pPropsBuf, len + keyLen + 1 +
+                    valLen + 1);
+            ASSERT_LOG(pCtx->pPropsBuf, GFMRV_ALLOC_FAILED, pCtx->pLog);
+            pCtx->propsBufLen = len + keyLen + 1 + valLen + 1;
+            // Force all pointers to be rellocated
+            doRecache = 1;
+        }
+        memcpy(pCtx->pPropsBuf + len + keyLen + 1, pCtx->pReadBuf, valLen + 1);
+        
+        // Append them to the properties array
+        if (pCtx->propsLen < (pCtx->object.propertiesLen + 1) * 2) {
+            // Expand it as necessary
+            pCtx->ppProps = (char**)realloc(pCtx->ppProps, sizeof(char**) *
+                    (pCtx->object.propertiesLen + 1) * 2);
+            ASSERT_LOG(pCtx->ppProps, GFMRV_ALLOC_FAILED, pCtx->pLog);
+        }
+        
+        if (doRecache) {
+            int i, j;
+            
+            // TODO Optimize this!
+            // while (i < propsLen)
+            //   dist = old.ppProps[i+1] - old.ppProps[i];
+            //   new.ppProps[i+1] = new.ppProps[i] + dist
+            
+            // Store the first string
+            pCtx->ppProps[0] = pCtx->pPropsBuf;
+            // Search all strings and store them in ppProps
+            i = 1;
+            j = 1;
+            while (i < len - 2) {
+                if (pCtx->ppProps[i] == '\0') {
+                    pCtx->ppProps[j] = pCtx->pPropsBuf + i + 1;
+                    j++;
+                }
+                i++;
+            }
+        }
+        // Store the new property
+        pCtx->ppProps[pCtx->object.propertiesLen * 2] = pCtx->pPropsBuf + len;
+        pCtx->ppProps[pCtx->object.propertiesLen * 2 + 1] = pCtx->pPropsBuf +
+                len + keyLen + 1;
+        
+        pCtx->object.propertiesLen++;
+        len += keyLen + valLen + 2;
+    }
+    
+    // Clear the previous push
+    rv = gfmFile_clearLastPosStack(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    if (didPush != 0) {
+        // On failure, go back to the previous position
+        gfmFile_popPos(pCtx->pFile);
+    }
+    
+    return rv;
+}
 
 /******************************************************************************/
 /*                                                                            */
@@ -191,7 +463,24 @@ __ret:
  * @param  pCtx The parser
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmParser_clean(gfmParser *pCtx);
+gfmRV gfmParser_clean(gfmParser *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    gfmFile_free(&(pCtx->pFile));
+    if (pCtx->pReadBuf) {
+        free(pCtx->pReadBuf);
+    }
+    if (pCtx->pTypeBuf) {
+        free(pCtx->pTypeBuf);
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Parse the next object
@@ -203,6 +492,11 @@ gfmRV gfmParser_clean(gfmParser *pCtx);
  */
 gfmRV gfmParser_parseNext(gfmParser *pCtx) {
     gfmRV rv;
+    int didParse, didPush;
+    
+    // Set default values
+    didParse = 0;
+    didPush = 0;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -212,10 +506,51 @@ gfmRV gfmParser_parseNext(gfmParser *pCtx) {
     ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
             GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
     
-    // TODO Try to parse its type
+    // Make sure we are at the next token and there's something to parse
+    rv = gfmParser_ignoreBlank(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    // Store the current position
+    rv = gfmFile_pushPos(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 1;
+    
+    // Try to parse an "object"
+    if (didParse == 0) {
+        rv = gfmParser_parseStringStatic(pCtx->pFile, "area");
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pCtx->pLog);
+        if (rv == GFMRV_TRUE) {
+            // Parse the area
+            rv = gfmParser_parseArea(pCtx);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+            didParse = 1;
+        }
+    }
+    if (didParse == 0) {
+        rv = gfmParser_parseStringStatic(pCtx->pFile, "obj");
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pCtx->pLog);
+        if (rv == GFMRV_TRUE) {
+            // Parse the object
+            rv = gfmParser_parseObject(pCtx);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+            didParse = 1;
+        }
+    }
+    // Make sure something was parsed
+    ASSERT_LOG(didParse, GFMRV_PARSER_BAD_TOKEN, pCtx->pLog);
+    
+    // Clear the previous push
+    rv = gfmFile_clearLastPosStack(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    didPush = 0;
     
     rv = GFMRV_OK;
 __ret:
+    if (didPush != 0) {
+        // On failure, go back to the previous position
+        gfmFile_popPos(pCtx->pFile);
+    }
+    
     return rv;
 }
 

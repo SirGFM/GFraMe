@@ -12,7 +12,6 @@ typedef struct stGFMParser gfmParser;
 /** Parseable 'objects' */
 enum enGFMParserType {
     gfmParserType_none = 0,
-    gfmParserType_tileType,
     gfmParserType_area,
     gfmParserType_object,
     gfmParserType_max
