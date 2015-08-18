@@ -35,6 +35,7 @@ CC = gcc
           $(OBJDIR)/gfmInput.o            \
           $(OBJDIR)/gfmLog.o              \
           $(OBJDIR)/gfmObject.o           \
+          $(OBJDIR)/gfmParser.o           \
           $(OBJDIR)/gfmParserCommon.o     \
           $(OBJDIR)/gfmQuadtree.o         \
           $(OBJDIR)/gfmSprite.o           \

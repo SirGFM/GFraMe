@@ -45,6 +45,19 @@ gfmRV gfmParser_free(gfmParser **ppCtx);
 /**
  * Initialize a parser and open its file
  * 
+ * @param  pParser   The parser
+ * @param  pCtx      The game's context
+ * @param  pFilename File to be parsed, in a static buffer (must be on assets
+ *                   folder)
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_PARSER_ALREADY_INITIALIZED, ...
+ */
+#define gfmParser_initStatic(pParser, pCtx, pFilename) \
+        gfmParser_init(pParser, pCtx, pFilename, sizeof(pFilename) - 1)
+
+/**
+ * Initialize a parser and open its file
+ * 
  * @param  pParser     The parser
  * @param  pCtx        The game's context
  * @param  pFilename   File to be parsed (must be on assets folder)
@@ -127,14 +140,14 @@ gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx);
  * Retrieve the parsed object's 
  * 
  * @param  ppKey The property's key (a NULL-terminated string)
- * @param  pVal  The property's value (a NULL-terminated string)
+ * @param  ppVal The property's value (a NULL-terminated string)
  * @param  pCtx  The parser
  * @param  index The index of the property
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
  *               GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD,
  *               GFMRV_INVALID_INDEX
  */
-gfmRV gfmParser_getProperty(char **ppKey, int *pVal, gfmParser *pCtx,
+gfmRV gfmParser_getProperty(char **ppKey, char **ppVal, gfmParser *pCtx,
         int index);
 
 #endif /* __GFMPARSER_H__ */

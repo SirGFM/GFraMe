@@ -154,7 +154,14 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Log not initialized", /* GFMRV_LOG_NOT_INITIALIZED */
     "Log unknown token", /* GFMRV_LOG_UNKNOWN_TOKEN */
     // Parser errors
+    "Parser not initialized", /* GFMRV_PARSER_NOT_INITIALIZED */
+    "Parser already initialized", /* GFMRV_PARSER_ALREADY_INITIALIZED */
     "Error while parsing", /* GFMRV_PARSER_ERROR */
+    "Got a invalid token while parsing", /* GFMRV_PARSER_BAD_TOKEN */
+    "Parser no object parsed", /* GFMRV_PARSER_NO_OBJECT */
+    "Parsed object doesn't have the requested parameter",
+            /* GFMRV_PARSER_INVALID_OBJECT */
+    "Finished parsing the file", /* GFMRV_PARSER_FINISHED */
     "Max error" /* GFMRV_MAX */
 };
 

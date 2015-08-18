@@ -130,6 +130,14 @@ gfmRV gfmFile_isOpen(gfmFile *pCtx);
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
 
 /**
+ * Check if a file reached its end
+ * 
+ * @param  pCtx The 'generic' file
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
+ */
+gfmRV gfmFile_didFinish(gfmFile *pCtx);
+
+/**
  * Rewind a file back to its start
  * 
  * @param  pCtx  The file struct

@@ -87,7 +87,7 @@ static gfmRV gfmParser_parseStrType(gfmParser *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+    ASSERT_LOG(gfmFile_isOpen(pCtx->pFile) == GFMRV_TRUE,
             GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
     
     // Store the current position
@@ -134,7 +134,7 @@ __ret:
  */
 static gfmRV gfmParser_parseArea(gfmParser *pCtx) {
     gfmRV rv;
-    int didPush, len;
+    int didPush;
     
     // Set default values
     didPush = 0;
@@ -144,7 +144,7 @@ static gfmRV gfmParser_parseArea(gfmParser *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+    ASSERT_LOG(gfmFile_isOpen(pCtx->pFile) == GFMRV_TRUE,
             GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
     
     // Store the current position
@@ -153,7 +153,7 @@ static gfmRV gfmParser_parseArea(gfmParser *pCtx) {
     didPush = 1;
     
     // Set the object as an area
-    pCtx->object.type = gfmParser_area;
+    pCtx->object.type = gfmParserType_area;
     // Parse its in-game type
     rv = gfmParser_parseStrType(pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -204,7 +204,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+    ASSERT_LOG(gfmFile_isOpen(pCtx->pFile) == GFMRV_TRUE,
             GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
     
     // Store the current position
@@ -213,7 +213,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
     didPush = 1;
     
     // Set the object as an area
-    pCtx->object.type = gfmParser_object;
+    pCtx->object.type = gfmParserType_object;
     // Parse its in-game type
     rv = gfmParser_parseStrType(pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -230,7 +230,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     // Parse all of its properties
-    pCtx->propertiesLen = 0;
+    pCtx->object.propertiesLen = 0;
     len = 0;
     while (1) {
         int doRecache, keyLen, valLen;
@@ -240,7 +240,8 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
         
         // Check that there's another property
         rv = gfmParser_parseStringStatic(pCtx->pFile, "[");
-        if (rv != GFMRV_OK) {
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pCtx->pLog);
+        if (rv == GFMRV_FALSE) {
             break;
         }
         // Retrieve the key
@@ -248,7 +249,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
                 pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         rv = gfmParser_parseStringStatic(pCtx->pFile, ",");
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        ASSERT_LOG(rv == GFMRV_TRUE, GFMRV_PARSER_BAD_TOKEN, pCtx->pLog);
         // Store the key
         keyLen = strlen(pCtx->pReadBuf);
         if (len + keyLen + 1 > pCtx->propsBufLen) {
@@ -266,7 +267,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
                 pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         rv = gfmParser_parseStringStatic(pCtx->pFile, "]");
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        ASSERT_LOG(rv == GFMRV_TRUE, GFMRV_PARSER_BAD_TOKEN, pCtx->pLog);
         // Store the key
         valLen = strlen(pCtx->pReadBuf);
         if (len + keyLen + 1 + valLen + 1 > pCtx->propsBufLen) {
@@ -288,26 +289,33 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
             ASSERT_LOG(pCtx->ppProps, GFMRV_ALLOC_FAILED, pCtx->pLog);
         }
         
-        if (doRecache) {
-            int i, j;
+        // Recache only if there was something already on the buffer (note that
+        // propertiesLen is the number of key,value pairs, and not the number of
+        // elements)
+        if (doRecache && pCtx->object.propertiesLen > 0) {
+            int i;
+            unsigned int nextDist;
             
-            // TODO Optimize this!
-            // while (i < propsLen)
-            //   dist = old.ppProps[i+1] - old.ppProps[i];
-            //   new.ppProps[i+1] = new.ppProps[i] + dist
+            // Get the distance from the first string to the second
+            nextDist = pCtx->ppProps[1] - pCtx->ppProps[0];
             
             // Store the first string
             pCtx->ppProps[0] = pCtx->pPropsBuf;
-            // Search all strings and store them in ppProps
             i = 1;
-            j = 1;
-            while (i < len - 2) {
-                if (pCtx->ppProps[i] == '\0') {
-                    pCtx->ppProps[j] = pCtx->pPropsBuf + i + 1;
-                    j++;
-                }
+            while (i < (pCtx->object.propertiesLen * 2) - 1) {
+                unsigned int tmp;
+                
+                // Get the distance from the current string to the next
+                tmp = pCtx->ppProps[i + 1] - pCtx->ppProps[i];
+                // Update the current string position, based on the previous
+                pCtx->ppProps[i] = pCtx->ppProps[i-1] + nextDist;
+                // Store the distance for the next iteration
+                nextDist = tmp;
+                
                 i++;
             }
+            // Update the current string position, based on the previous
+            pCtx->ppProps[i] = pCtx->ppProps[i-1] + nextDist;
         }
         // Store the new property
         pCtx->ppProps[pCtx->object.propertiesLen * 2] = pCtx->pPropsBuf + len;
@@ -316,6 +324,14 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
         
         pCtx->object.propertiesLen++;
         len += keyLen + valLen + 2;
+    }
+    
+    // Store the object's 'argv'
+    if (pCtx->object.propertiesLen > 0) {
+        pCtx->object.ppProperties = pCtx->ppProps;
+    }
+    else {
+        pCtx->object.ppProperties = 0;
     }
     
     // Clear the previous push
@@ -448,7 +464,7 @@ gfmRV gfmParser_reset(gfmParser *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // It will return true only if there's a file and its open, so that's safe
-    if (gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE) {
+    if (gfmFile_isOpen(pCtx->pFile) == GFMRV_TRUE) {
         rv = gfmFile_close(pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
@@ -475,6 +491,12 @@ gfmRV gfmParser_clean(gfmParser *pCtx) {
     }
     if (pCtx->pTypeBuf) {
         free(pCtx->pTypeBuf);
+    }
+    if (pCtx->pPropsBuf) {
+        free(pCtx->pPropsBuf);
+    }
+    if (pCtx->ppProps) {
+        free(pCtx->ppProps);
     }
     
     rv = GFMRV_OK;
@@ -503,12 +525,18 @@ gfmRV gfmParser_parseNext(gfmParser *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
     // Continue to sanitize arguments
-    ASSERT_LOG(gfmFile_isOpen(pParser->pFile) == GFMRV_TRUE,
+    ASSERT_LOG(gfmFile_isOpen(pCtx->pFile) == GFMRV_TRUE,
             GFMRV_PARSER_NOT_INITIALIZED, pCtx->pLog);
     
     // Make sure we are at the next token and there's something to parse
     rv = gfmParser_ignoreBlank(pCtx->pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmFile_didFinish(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pCtx->pLog);
+    if (rv == GFMRV_TRUE) {
+        rv = GFMRV_PARSER_FINISHED;
+        goto __ret;
+    }
     
     // Store the current position
     rv = gfmFile_pushPos(pCtx->pFile);
@@ -606,7 +634,10 @@ gfmRV gfmParser_getPos(int *pX, int *pY, gfmParser *pCtx) {
     ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
             pCtx->pLog);
     
-    // TODO Check if the type has this attribute
+    // Check if the type has this attribute
+    ASSERT_LOG(pCtx->object.type == gfmParserType_area ||
+            pCtx->object.type == gfmParserType_object,
+            GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Get the attribute
     *pX = pCtx->object.x;
     *pY = pCtx->object.y;
@@ -639,10 +670,13 @@ gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx) {
     ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
             pCtx->pLog);
     
-    // TODO Check if the type has this attribute
+    // Check if the type has this attribute
+    ASSERT_LOG(pCtx->object.type == gfmParserType_area ||
+            pCtx->object.type == gfmParserType_object,
+            GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Get the attribute
-    *pWidth = pCtx->object.width
-    *pHeight = pCtx->object.height
+    *pWidth = pCtx->object.width;
+    *pHeight = pCtx->object.height;
     
     rv = GFMRV_OK;
 __ret:
@@ -670,9 +704,11 @@ gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx) {
     ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
             pCtx->pLog);
     
-    // TODO Check if the type has this attribute
+    // Check if the type has this attribute
+    ASSERT_LOG(pCtx->object.type == gfmParserType_object,
+            GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Get the attribute
-    *pNum = propertiesLen;
+    *pNum = pCtx->object.propertiesLen;
     
     rv = GFMRV_OK;
 __ret:
@@ -683,14 +719,14 @@ __ret:
  * Retrieve the parsed object's 
  * 
  * @param  ppKey The property's key (a NULL-terminated string)
- * @param  pVal  The property's value (a NULL-terminated string)
+ * @param  ppVal The property's value (a NULL-terminated string)
  * @param  pCtx  The parser
  * @param  index The index of the property
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
  *               GFMRV_PARSER_NO_OBJECT, GFMRV_PARSER_INVALID_FIELD,
  *               GFMRV_INVALID_INDEX
  */
-gfmRV gfmParser_getProperty(char **ppKey, int *pVal, gfmParser *pCtx,
+gfmRV gfmParser_getProperty(char **ppKey, char **pVal, gfmParser *pCtx,
         int index) {
     gfmRV rv;
     
@@ -705,7 +741,9 @@ gfmRV gfmParser_getProperty(char **ppKey, int *pVal, gfmParser *pCtx,
     ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
             pCtx->pLog);
     
-    // TODO Check if the type has this attribute
+    // Check if the type has this attribute
+    ASSERT_LOG(pCtx->object.type == gfmParserType_object,
+            GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Check if the index is valid
     ASSERT_LOG(index > 0 && index < pCtx->object.propertiesLen,
             GFMRV_ARGUMENTS_BAD, pCtx->pLog);

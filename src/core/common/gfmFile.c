@@ -272,6 +272,30 @@ gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
 }
 
 /**
+ * Check if a file reached its end
+ * 
+ * @param  pCtx The 'generic' file
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN, GFMRV_TRUE,
+ *              GFMRV_FALSE
+ */
+gfmRV gfmFile_didFinish(gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    
+    if (feof(pCtx->pFp)) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
+
+/**
  * Rewind a file back to its start
  * 
  * @param  pCtx  The file struct
