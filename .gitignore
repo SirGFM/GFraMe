@@ -34,6 +34,7 @@ example-game/bin/
 *.hex
 
 # Assets
+assets*
 example-game/assets/xcf/
 example-game/assets/promo/
 example-game/assets/icons/*.png

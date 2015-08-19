@@ -98,11 +98,7 @@ CC = gcc
   ifneq ($(RELEASE), yes)
     CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
   else
-    ifeq ($(OS), Win)
-      CFLAGS := $(CFLAGS) -O0
-    else
-      CFLAGS := $(CFLAGS) -O3
-    endif
+    CFLAGS := $(CFLAGS) -O3
   endif
 # Force fps counter, if requested
   ifeq ($(FPS_COUNTER), yes)
