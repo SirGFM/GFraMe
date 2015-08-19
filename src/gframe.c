@@ -200,6 +200,8 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     // Initialize the event's context
     rv = gfmEvent_getNew(&(pCtx->pEvent));
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmEvent_init(pCtx->pEvent, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the fps counter, if debug
 #if defined(DEBUG) || defined(FORCE_FPS)

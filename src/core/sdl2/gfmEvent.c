@@ -8,10 +8,13 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmInput.h>
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_gamecontroller.h>
+#include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_timer.h>
 
 #include <stdlib.h>
@@ -55,13 +58,6 @@ gfmRV gfmEvent_getNew(gfmEvent **ppCtx) {
     // Clean the context
     memset(*ppCtx, 0x0, sizeof(gfmEvent));
     
-    // Initialize the time event (to be pushed)
-    (*ppCtx)->accTimerEvent.type = SDL_USEREVENT;
-    (*ppCtx)->accTimerEvent.user.type = SDL_USEREVENT;
-    (*ppCtx)->accTimerEvent.user.code = GFM_TIME_EVENT;
-    (*ppCtx)->accTimerEvent.user.data1 = NULL;
-    (*ppCtx)->accTimerEvent.user.data2 = NULL;
-    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -80,9 +76,44 @@ gfmRV gfmEvent_free(gfmEvent **ppCtx) {
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
+    gfmEvent_clean(*ppCtx);
     // Free the context
     free(*ppCtx);
     *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize the event context
+ * 
+ * @param  pEvent The event's context
+ * @param  pCtx   The event's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx) {
+    gfmLog *pLog;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pEvent, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    // TODO Initialize joystick
+    // TODO Add any connected joysticks
+    
+    // Initialize the time event (to be pushed)
+    pEvent->accTimerEvent.type = SDL_USEREVENT;
+    pEvent->accTimerEvent.user.type = SDL_USEREVENT;
+    pEvent->accTimerEvent.user.code = GFM_TIME_EVENT;
+    pEvent->accTimerEvent.user.data1 = NULL;
+    pEvent->accTimerEvent.user.data2 = NULL;
     
     rv = GFMRV_OK;
 __ret:
@@ -266,7 +297,7 @@ __ret:
 /**
  * Converts a SDL event to it's gfmIface mapping
  * 
- * @param  pEv The event
+ * @param  sym The key
  * @return     The respective interface
  */
 static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym) {

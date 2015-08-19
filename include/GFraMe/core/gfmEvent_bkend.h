@@ -53,6 +53,15 @@ gfmRV gfmEvent_getNew(gfmEvent **ppCtx);
 gfmRV gfmEvent_free(gfmEvent **ppCtx);
 
 /**
+ * Initialize the event context
+ * 
+ * @param  pEvent The event's context
+ * @param  pCtx   The event's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx);
+
+/**
  * Remove any previously queued event
  * 
  * @param  pCtx The event's context
