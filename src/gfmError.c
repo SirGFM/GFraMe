@@ -77,6 +77,7 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Tilemap not initialized", /* GFMRV_TILEMAP_NOT_INITIALIZED */
     "Tilemap no tiletype", /* GFMRV_TILEMAP_NO_TILETYPE */
     "Tilemap no tileanim", /* GFMRV_TILEMAP_NO_TILEANIM */
+    "Didn't parse any tilemap", /* GFMRV_TILEMAP_NO_TILEMAP_PARSED */
     "Tiletype extant", /* GFMRV_TILETYPE_EXTANT */
     "Tileanim extant", /* GFMRV_TILEANIM_EXTANT */
     // Accumulator errors

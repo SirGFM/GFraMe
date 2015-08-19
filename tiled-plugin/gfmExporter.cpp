@@ -91,7 +91,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         return false;
     }
 
-    // Write every layer
+    // First iteration, check that there's at most a single tilemap and store it
     tileLayer = 0;
     foreach (const Layer *layer, map->layers()) {
         // Check that the layer is visible
@@ -101,7 +101,8 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         // Check that the layer is a tilemap
         if (layer->layerType() == Layer::TileLayerType) {
             // Check that there's only a single tilemap to be exported
-            if (tileLayer != 0) {
+            if (tileLayer != 0 &&
+                        tileLayer != (static_cast<const TileLayer*>(layer))) {
                 mError = tr("Found more than one visible layers, but the "
                         "plugin can only handle a single layer at a time");
                 return false;
@@ -111,11 +112,8 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             tileLayer = static_cast<const TileLayer*>(layer);
         }
         else if (layer->layerType() == Layer::ObjectGroupType) {
-            const ObjectGroup *groupLayer;
-            
-            groupLayer = static_cast<const ObjectGroup*>(layer);
-            
-            gfm_writeObjects(file, groupLayer);
+            // Do nothing on this iteration, as it must appear after the tilemap
+            continue;
         }
         else {
             // TODO Any other possible layer type?
@@ -123,7 +121,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         }
         
     }
-    // Output any found tilemap at the end of the file
+    // Output any found tilemap at the begining of the file
     if (tileLayer) {
         // Output to the file: 'type <terrain_name> <tile_index>'
         //                     '...'
@@ -132,6 +130,30 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
         //                     '  ...\n'
         //                     '  tile_0 tile_1 ... last_tile'
         gfm_writeTilemap(file, tileLayer);
+    }
+    
+    // Second iteration, now objects and areas are exported
+    foreach (const Layer *layer, map->layers()) {
+        // Check that the layer is visible
+        if (!layer->isVisible())
+            continue;
+        
+        // Check that the layer is a tilemap
+        if (layer->layerType() == Layer::TileLayerType) {
+            // It was checked that there's at most one tilemap, so ignore this
+            continue;
+        }
+        else if (layer->layerType() == Layer::ObjectGroupType) {
+            const ObjectGroup *groupLayer;
+            
+            // Actually export the object layer
+            groupLayer = static_cast<const ObjectGroup*>(layer);
+            gfm_writeObjects(file, groupLayer);
+        }
+        else {
+            // TODO Any other possible layer type?
+            continue;
+        }
     }
     
     if (file.error() != QFile::NoError) {

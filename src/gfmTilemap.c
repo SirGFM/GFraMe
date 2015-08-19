@@ -312,12 +312,13 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     gfmFile *pFp;
     gfmLog *pLog;
     gfmRV rv;
-    int typeStrLen;
+    int typeStrLen, didParseTilemap;
     
     // Set default values
     pFp = 0;
     pTypeStr = 0;
     typeStrLen = 0;
+    didParseTilemap = 0;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -347,14 +348,50 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
     
     // Loop through all characters in the files
     while (1) {
+        // If we finished reading, stop
+        rv = gfmFile_didFinish(pFp);
+        ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
+        if (rv == GFMRV_TRUE) {
+            break;
+        }
+        
         // Check if the current token is an "area"
         rv = gfmParser_parseStringStatic(pFp, "area");
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
+            int i, height, width, x, y;
             rv = gfmLog_log(pLog, gfmLog_info, "Got an 'area' token but "
                     "can't handle it, yet");
             ASSERT_NR(rv == GFMRV_OK);
-            // TODO Implement this (NOTE: It must be done after recalculate)
+            
+            // Read the current type
+            rv = gfmParser_getString(&pTypeStr, &typeStrLen, pFp);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            // Read the area's position
+            rv = gfmParser_parseInt(&x, pFp);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            rv = gfmParser_parseInt(&y, pFp);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            // Read the area's dimension
+            rv = gfmParser_parseInt(&width, pFp);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            rv = gfmParser_parseInt(&height, pFp);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            
+            // Get its index from the dictionary
+            i = 0;
+            while (i < dictLen) {
+                if (strcmp(pDictNames[i], pTypeStr) == 0) {
+                    break;
+                }
+                i++;
+            }
+            ASSERT_LOG(i < dictLen, GFMRV_PARSER_ERROR, pLog);
+            
+            // Add the area
+            rv = gfmTilemap_addArea(pTMap, x, y, width, height, pDictTypes[i]);
+            ASSERT_NR(rv == GFMRV_OK);
+            
             continue;
         }
         // Check if the current token is a "tile type" ("type")
@@ -425,20 +462,24 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
                 i++;
             }
             
-            // Should break here!
-            break;
+            // Recalculate all areas that belong to the map
+            rv = gfmTilemap_recalculateAreas(pTMap);
+            ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE, rv, pLog);
+            
+            didParseTilemap = 1;
+            continue;
         }
         ASSERT_LOG(0, GFMRV_READ_ERROR, pLog);
     }
+    // Check that a tilemap was parsed
+    ASSERT_LOG(didParseTilemap == 1, GFMRV_TILEMAP_NO_TILEMAP_PARSED, pLog);
     
     rv = gfmLog_log(pLog, gfmLog_info, "Tilemap parsed!");
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Recache the animations and areas
+    // Recache the animations
     rv = gfmTilemap_recacheAnimations(pTMap);
     ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILEANIM, rv, pLog);
-    rv = gfmTilemap_recalculateAreas(pTMap);
-    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE, rv, pLog);
     
     rv = GFMRV_OK;
 __ret:
