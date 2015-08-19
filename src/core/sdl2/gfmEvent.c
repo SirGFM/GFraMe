@@ -188,12 +188,12 @@ static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
         goto __ret;
     }
     
-    rv = gfmLog_log(pLog, gfmLog_info, "(Re)Binding controllers...");
+    rv = gfmLog_log(pLog, gfmLog_debug, "(Re)Binding controllers...");
     ASSERT(rv == GFMRV_OK, rv);
     
     // Get how many controllers there are
     num = SDL_NumJoysticks();
-    rv = gfmLog_log(pLog, gfmLog_info, "  There are %i controllers to be bound"
+    rv = gfmLog_log(pLog, gfmLog_debug, "  There are %i controllers to be bound"
             "...", num);
     ASSERT(rv == GFMRV_OK, rv);
     
@@ -220,7 +220,7 @@ static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
         id = (int)SDL_JoystickInstanceID(j);
         ASSERT_LOG(id >= 0, GFMRV_CONTROLLER_INVALID_ID, pLog);
         
-        rv = gfmLog_log(pLog, gfmLog_info, "  Bound Controller %*s to index %i",
+        rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %*s to index %i",
                 33, pGuidStr, id);
         ASSERT(rv == GFMRV_OK, rv);
         
@@ -230,7 +230,7 @@ static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
         i++;
     }
     
-    rv = gfmLog_log(pLog, gfmLog_info, "Done (Re)Binding controllers!");
+    rv = gfmLog_log(pLog, gfmLog_debug, "Done (Re)Binding controllers!");
     ASSERT(rv == GFMRV_OK, rv);
     
     pCtx->didJustBindControllers = 1;
