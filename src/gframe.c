@@ -197,23 +197,11 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     rv = gfmLog_getNew(&(pCtx->pLog));
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Initialize the event's context
-    rv = gfmEvent_getNew(&(pCtx->pEvent));
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmEvent_init(pCtx->pEvent, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
     // Initialize the fps counter, if debug
 #if defined(DEBUG) || defined(FORCE_FPS)
     rv = gfmFPSCounter_getNew(&(pCtx->pCounter));
     ASSERT_NR(rv == GFMRV_OK);
 #endif
-    
-    // Initialize the input system
-    rv = gfmInput_getNew(&(pCtx->pInput));
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmInput_init(pCtx->pInput);
-    ASSERT_NR(rv == GFMRV_OK);
     
     // Set the game's title
     rv = gfm_setTitle(pCtx, pOrg, orgLen, pName, nameLen);
@@ -228,8 +216,25 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "");
+    ASSERT_NR(rv == GFMRV_OK);
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "---------------------------------"
             "-----------------------------------------------");
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe...");
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the event's context
+    rv = gfmEvent_getNew(&(pCtx->pEvent));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmEvent_init(pCtx->pEvent, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the input system
+    rv = gfmInput_getNew(&(pCtx->pInput));
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmInput_init(pCtx->pInput);
+    ASSERT_NR(rv == GFMRV_OK);
+    
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe initialized!");
     ASSERT_NR(rv == GFMRV_OK);
     

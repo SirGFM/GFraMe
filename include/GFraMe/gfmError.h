@@ -161,6 +161,9 @@ enum enGFMError {
     GFMRV_PARSER_NO_OBJECT,
     GFMRV_PARSER_INVALID_OBJECT,
     GFMRV_PARSER_FINISHED,
+    // Event errors
+    GFMRV_CONTROLLER_FAILED_TO_BIND,
+    GFMRV_CONTROLLER_INVALID_ID,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

@@ -156,6 +156,15 @@ gfmRV gfmFile_rewind(gfmFile *pCtx);
 gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes);
 
 /**
+ * Flush the file
+ * 
+ * @param  pCtx The file struct
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_flush(gfmFile *pCtx);
+
+/**
  * Get how many 'nodes' left there are on the stack
  * 
  * @param  pNum The number of 'nodes' left

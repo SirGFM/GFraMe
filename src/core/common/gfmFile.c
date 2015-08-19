@@ -343,6 +343,31 @@ __ret:
 }
 
 /**
+ * Flush the file
+ * 
+ * @param  pCtx The file struct
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *              GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmFile_flush(gfmFile *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguents
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's an open file
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+    // TODO Check that it was open for writing
+    
+    irv = fflush(pCtx->pFp);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get how many 'nodes' left there are on the stack
  * 
  * @param  pNum The number of 'nodes' left

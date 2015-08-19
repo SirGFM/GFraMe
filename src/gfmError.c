@@ -163,6 +163,9 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Parsed object doesn't have the requested parameter",
             /* GFMRV_PARSER_INVALID_OBJECT */
     "Finished parsing the file", /* GFMRV_PARSER_FINISHED */
+    // Event errors
+    "Failed to bind controller", /* GFMRV_CONTROLLER_FAILED_TO_BIND */
+    "Controller with invalid ID found", /* GFMRV_CONTROLLER_INVALID_ID */
     "Max error" /* GFMRV_MAX */
 };
 

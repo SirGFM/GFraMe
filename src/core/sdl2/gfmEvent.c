@@ -12,6 +12,7 @@
 #include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
+#include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <SDL2/SDL_joystick.h>
@@ -26,276 +27,22 @@ struct stGFMEvent {
     unsigned int accLastTime;
     /** Event that will be pushed on every timer callback */
     SDL_Event accTimerEvent;
+    /** Whether we just bound controllers and are getting a repetition */
+    int didJustBindControllers;
 };
 
 /** Size of gfmEvent */
 const int sizeofGFMEvent = (int)sizeof(gfmEvent);
 
+/******************************************************************************/
+/*                                                                            */
+/* Static functions                                                           */
+/*                                                                            */
+/******************************************************************************/
+
+
 /**
  * Converts a SDL keycode to it's gfmIface mapping
- * 
- * @param  sym The key
- * @return     The respective interface
- */
-static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym);
-
-/**
- * Alloc a new event context
- * 
- * @param  ppCtx The event's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
- */
-gfmRV gfmEvent_getNew(gfmEvent **ppCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
-    
-    // Alloc the context
-    *ppCtx = (gfmEvent*)malloc(sizeof(gfmEvent));
-    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
-    // Clean the context
-    memset(*ppCtx, 0x0, sizeof(gfmEvent));
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Free a previously allocated event
- * 
- * @param  ppCtx The event's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmEvent_free(gfmEvent **ppCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
-    
-    gfmEvent_clean(*ppCtx);
-    // Free the context
-    free(*ppCtx);
-    *ppCtx = 0;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Initialize the event context
- * 
- * @param  pEvent The event's context
- * @param  pCtx   The event's context
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
- */
-gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx) {
-    gfmLog *pLog;
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Retrieve the logger
-    rv = gfm_getLogger(&pLog, pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
-    // Continue to sanitize arguments
-    ASSERT_LOG(pEvent, GFMRV_ARGUMENTS_BAD, pLog);
-    
-    // TODO Initialize joystick
-    // TODO Add any connected joysticks
-    
-    // Initialize the time event (to be pushed)
-    pEvent->accTimerEvent.type = SDL_USEREVENT;
-    pEvent->accTimerEvent.user.type = SDL_USEREVENT;
-    pEvent->accTimerEvent.user.code = GFM_TIME_EVENT;
-    pEvent->accTimerEvent.user.data1 = NULL;
-    pEvent->accTimerEvent.user.data2 = NULL;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Remove any previously queued event
- * 
- * @param  pCtx The event's context
- */
-gfmRV gfmEvent_clean(gfmEvent *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Set the last time to now
-    pCtx->accLastTime = SDL_GetTicks();
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Wait (i.e., block) until an event is available; The event should be stored
- * for later processing on gfmEvent_processQueued
- * 
- * @param  pCtx The event's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
- */
-gfmRV gfmEvent_waitEvent(gfmEvent *pCtx) {
-    gfmRV rv;
-    int irv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    irv = SDL_WaitEvent(0);
-    ASSERT(irv == 1, GFMRV_INTERNAL_ERROR);
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Process all queued events; This function MUSTN'T block
- * 
- * @param  pEv  The event's context
- * @param  pCtx The game's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
- */
-gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
-    gfmInput *pInput;
-    gfmRV rv;
-    SDL_Event ev;
-    
-    // Sanitize arguments
-    ASSERT(pEv, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the input context
-    rv = gfm_getInput(&pInput, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Poll every event
-    while (SDL_PollEvent(&ev)) {
-        switch (ev.type) {
-            case SDL_USEREVENT: {
-                // User event is only used to update the timer
-                switch (ev.user.code) {
-                    case GFM_TIME_EVENT: {
-                        unsigned int curTime, dt;
-                        
-                        // Update the event's timer
-                        curTime = SDL_GetTicks();
-                        dt = curTime - pEv->accLastTime;
-                        pEv->accLastTime = curTime;
-                        
-                        // Update the timer on the game's context
-                        if (dt > 0) {
-                            rv = gfm_updateAccumulators(pCtx, dt);
-                            ASSERT_NR(rv == GFMRV_OK);
-                        }
-                    } break;
-                    default: {}
-                }
-            } break;
-			case SDL_MOUSEMOTION: {
-                gfmBackbuffer *pBbuf;
-                int x, y;
-                
-                // Get the position in the screen
-                x = ev.motion.x;
-                y = ev.motion.y;
-                // Convert it to 'game space'
-                rv = gfm_getBackbuffer(&pBbuf, pCtx);
-                ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                // Set the mouse position
-                rv = gfmInput_setPointerPosition(pInput, x, y);
-                ASSERT_NR(rv == GFMRV_OK);
-            } break;
-			case SDL_MOUSEBUTTONDOWN: {
-                // Set mouse button as pressed
-                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
-                        gfmInput_justPressed, ev.button.timestamp);
-                ASSERT_NR(rv == GFMRV_OK);
-            } break;
-			case SDL_MOUSEBUTTONUP: {
-                // Set mouse button as released
-                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
-                        gfmInput_justReleased, ev.button.timestamp);
-                ASSERT_NR(rv == GFMRV_OK);
-            } break;
-			case SDL_KEYDOWN: {
-                gfmInputIface key;
-                
-                // Map SDL to gfmIface
-                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
-                // Set key as pressed
-                rv = gfmInput_setKeyState(pInput, key, gfmInput_justPressed,
-                        ev.key.timestamp);
-                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
-            } break;
-			case SDL_KEYUP: {
-                gfmInputIface key;
-                
-                // Map SDL to gfmIface
-                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
-                // Set key as released
-                rv = gfmInput_setKeyState(pInput, key, gfmInput_justReleased,
-                        ev.key.timestamp);
-                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
-            } break;
-            case SDL_CONTROLLERDEVICEADDED:
-            case SDL_CONTROLLERDEVICEREMOVED:
-            case SDL_CONTROLLERDEVICEREMAPPED:
-            case SDL_CONTROLLERAXISMOTION:
-            case SDL_CONTROLLERBUTTONDOWN:
-            case SDL_CONTROLLERBUTTONUP: {
-                // TODO Set controller status
-            } break;
-            case SDL_QUIT: {
-                // Signal to the main context that it should quit
-                gfm_setQuitFlag(pCtx);
-            } break;
-            default: {}
-        }
-    }
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Push a time event; Should be called by gfmTimer
- * 
- * @param  pCtx The event's context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
- */
-gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Push the event
-    SDL_PushEvent(&(pCtx->accTimerEvent));
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Converts a SDL event to it's gfmIface mapping
  * 
  * @param  sym The key
  * @return     The respective interface
@@ -425,5 +172,361 @@ static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym) {
         case SDLK_RALT: return gfmKey_ralt;
         default: return gfmIface_none;
     }
+}
+
+static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
+    gfmRV rv;
+    int i, num;
+    
+    // Sanitize arguments
+    ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    // Don't rebind if we just did it
+    if (pCtx->didJustBindControllers != 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "(Re)Binding controllers...");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    // Get how many controllers there are
+    num = SDL_NumJoysticks();
+    rv = gfmLog_log(pLog, gfmLog_info, "  There are %i controllers to be bound"
+            "...", num);
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    // Try to bind the controllers
+    i = 0;
+    while (i < num) {
+        SDL_GameController *c;
+        SDL_Joystick *j;
+        SDL_JoystickGUID guid;
+        char pGuidStr[33];
+        int id;
+        
+        // Try to open the controller
+        c = SDL_GameControllerOpen(i);
+        // TODO If this fails, check if there's a mapping for the device's GUID,
+        // load it and then try again
+        ASSERT_LOG(c, GFMRV_CONTROLLER_FAILED_TO_BIND, pLog);
+        // Get its guid (so we can log)
+        guid = SDL_JoystickGetDeviceGUID(i);
+        SDL_JoystickGetGUIDString(guid, pGuidStr, 33);
+        // Get its ID (so we now its order)
+        j = SDL_GameControllerGetJoystick(c);
+        ASSERT_LOG(j, GFMRV_INTERNAL_ERROR, pLog);
+        id = (int)SDL_JoystickInstanceID(j);
+        ASSERT_LOG(id >= 0, GFMRV_CONTROLLER_INVALID_ID, pLog);
+        
+        rv = gfmLog_log(pLog, gfmLog_info, "  Bound Controller %*s to index %i",
+                33, pGuidStr, id);
+        ASSERT(rv == GFMRV_OK, rv);
+        
+        // Close the controller, since we still doesn't support it
+        SDL_GameControllerClose(c);
+        
+        i++;
+    }
+    
+    rv = gfmLog_log(pLog, gfmLog_info, "Done (Re)Binding controllers!");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    pCtx->didJustBindControllers = 1;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+static gfmRV gfmEvent_unbindControllers(gfmEvent *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/******************************************************************************/
+/*                                                                            */
+/* Public functions                                                           */
+/*                                                                            */
+/******************************************************************************/
+
+
+/**
+ * Alloc a new event context
+ * 
+ * @param  ppCtx The event's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+gfmRV gfmEvent_getNew(gfmEvent **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    
+    // Alloc the context
+    *ppCtx = (gfmEvent*)malloc(sizeof(gfmEvent));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    // Clean the context
+    memset(*ppCtx, 0x0, sizeof(gfmEvent));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Free a previously allocated event
+ * 
+ * @param  ppCtx The event's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmEvent_free(gfmEvent **ppCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+    
+    gfmEvent_clean(*ppCtx);
+    // Free the context
+    free(*ppCtx);
+    *ppCtx = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize the event context
+ * 
+ * @param  pEvent The event's context
+ * @param  pCtx   The event's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx) {
+    gfmLog *pLog;
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Retrieve the logger
+    rv = gfm_getLogger(&pLog, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pEvent, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    // Initialize joystick
+    irv = SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
+    
+    // Bind any connected joysticks
+    rv = gfmEvent_rebindControllers(pEvent, pLog);
+    // TODO Enable this ASSERT
+    //ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    
+    // Initialize the time event (to be pushed)
+    pEvent->accTimerEvent.type = SDL_USEREVENT;
+    pEvent->accTimerEvent.user.type = SDL_USEREVENT;
+    pEvent->accTimerEvent.user.code = GFM_TIME_EVENT;
+    pEvent->accTimerEvent.user.data1 = NULL;
+    pEvent->accTimerEvent.user.data2 = NULL;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Remove any previously queued event
+ * 
+ * @param  pCtx The event's context
+ */
+gfmRV gfmEvent_clean(gfmEvent *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Unbind any bound controllers
+    gfmEvent_unbindControllers(pCtx);
+    // Set the last time to now
+    pCtx->accLastTime = SDL_GetTicks();
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Wait (i.e., block) until an event is available; The event should be stored
+ * for later processing on gfmEvent_processQueued
+ * 
+ * @param  pCtx The event's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_waitEvent(gfmEvent *pCtx) {
+    gfmRV rv;
+    int irv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    irv = SDL_WaitEvent(0);
+    ASSERT(irv == 1, GFMRV_INTERNAL_ERROR);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Process all queued events; This function MUSTN'T block
+ * 
+ * @param  pEv  The event's context
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
+    gfmInput *pInput;
+    gfmRV rv;
+    SDL_Event ev;
+    
+    // Sanitize arguments
+    ASSERT(pEv, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the input context
+    rv = gfm_getInput(&pInput, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Poll every event
+    while (SDL_PollEvent(&ev)) {
+        switch (ev.type) {
+            case SDL_USEREVENT: {
+                // User event is only used to update the timer
+                switch (ev.user.code) {
+                    case GFM_TIME_EVENT: {
+                        unsigned int curTime, dt;
+                        
+                        // Update the event's timer
+                        curTime = SDL_GetTicks();
+                        dt = curTime - pEv->accLastTime;
+                        pEv->accLastTime = curTime;
+                        
+                        // Update the timer on the game's context
+                        if (dt > 0) {
+                            rv = gfm_updateAccumulators(pCtx, dt);
+                            ASSERT_NR(rv == GFMRV_OK);
+                        }
+                    } break;
+                    default: {}
+                }
+            } break;
+			case SDL_MOUSEMOTION: {
+                gfmBackbuffer *pBbuf;
+                int x, y;
+                
+                // Get the position in the screen
+                x = ev.motion.x;
+                y = ev.motion.y;
+                // Convert it to 'game space'
+                rv = gfm_getBackbuffer(&pBbuf, pCtx);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                // Set the mouse position
+                rv = gfmInput_setPointerPosition(pInput, x, y);
+                ASSERT_NR(rv == GFMRV_OK);
+            } break;
+			case SDL_MOUSEBUTTONDOWN: {
+                // Set mouse button as pressed
+                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
+                        gfmInput_justPressed, ev.button.timestamp);
+                ASSERT_NR(rv == GFMRV_OK);
+            } break;
+			case SDL_MOUSEBUTTONUP: {
+                // Set mouse button as released
+                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
+                        gfmInput_justReleased, ev.button.timestamp);
+                ASSERT_NR(rv == GFMRV_OK);
+            } break;
+			case SDL_KEYDOWN: {
+                gfmInputIface key;
+                
+                // Map SDL to gfmIface
+                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
+                // Set key as pressed
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justPressed,
+                        ev.key.timestamp);
+                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
+            } break;
+			case SDL_KEYUP: {
+                gfmInputIface key;
+                
+                // Map SDL to gfmIface
+                key = st_gfmEvent_convertSDLKey2GFM(ev.key.keysym.sym);
+                // Set key as released
+                rv = gfmInput_setKeyState(pInput, key, gfmInput_justReleased,
+                        ev.key.timestamp);
+                ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
+            } break;
+            case SDL_JOYDEVICEADDED:
+            case SDL_JOYDEVICEREMOVED:
+            case SDL_CONTROLLERDEVICEADDED:
+            case SDL_CONTROLLERDEVICEREMOVED:
+            case SDL_CONTROLLERDEVICEREMAPPED: {
+                gfmLog *pLog;
+                
+                // On linux, since SDL_CONTROLLERDEVICEREMOVED isn't generated,
+                // but SDL_JOYDEVICEREMOVED is, both are used to enter this case
+                
+                // Rebind all controllers to add/remove one
+                rv = gfm_getLogger(&pLog, pCtx);
+                ASSERT(rv == GFMRV_OK, rv);
+                rv = gfmEvent_rebindControllers(pEv, pLog);
+                // TODO Enable this ASSERT
+                //ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+                
+            } break;
+            case SDL_CONTROLLERAXISMOTION:
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP: {
+                // TODO Set controller status
+            } break;
+            case SDL_QUIT: {
+                // Signal to the main context that it should quit
+                gfm_setQuitFlag(pCtx);
+            } break;
+            default: {}
+        }
+    }
+    
+    pEv->didJustBindControllers = 0;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Push a time event; Should be called by gfmTimer
+ * 
+ * @param  pCtx The event's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmEvent_pushTimeEvent(gfmEvent *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Push the event
+    SDL_PushEvent(&(pCtx->accTimerEvent));
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 

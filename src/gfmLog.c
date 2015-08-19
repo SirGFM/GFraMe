@@ -382,6 +382,9 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
         ASSERT(rv == GFMRV_OK, rv);
     }
     
+    rv = gfmFile_flush(pCtx->pFile);
+    ASSERT(rv == GFMRV_OK, rv);
+    
 	va_end(args);
     
     rv = GFMRV_OK;
