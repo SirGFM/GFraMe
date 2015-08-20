@@ -68,7 +68,7 @@ struct stGFMAudioCtx {
     /** Whether the subsystem is playing or was paused */
     int isPlaying;
     /** Mutext to lock access to the context's resources */
-    SDL_mutex *pMutex;
+    SDL_sem *pSem;
     /** ID of the opened audio device */
     SDL_AudioDeviceID dev;
     /** Specs of the opened audio device */
@@ -304,8 +304,8 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     memset(pStream, 0x0, len);
     
     // Lock the mutex
-    //irv = SDL_TryLockMutex(pCtx->pMutex);
-    irv = SDL_LockMutex(pCtx->pMutex);
+    //irv = SDL_TryLockMutex(pCtx->pSem);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     isLocked = 1;
     
@@ -354,7 +354,7 @@ __ret:
     pCtx->callbackRV = rv;
     if (isLocked) {
         // Unlock the mutex
-        SDL_UnlockMutex(pCtx->pMutex);
+        SDL_SemPost(pCtx->pSem);
     }
 }
 
@@ -542,8 +542,8 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pAudio, gfmCtx *pCtx,
     pAudio->init |= gfmAudio_SDLSystem;
     
     // Initialize mutexes
-    pAudio->pMutex = SDL_CreateMutex();
-    ASSERT_LOG(pAudio->pMutex, GFMRV_INTERNAL_ERROR, pLog);
+    pAudio->pSem = SDL_CreateSemaphore(1);
+    ASSERT_LOG(pAudio->pSem, GFMRV_INTERNAL_ERROR, pLog);
     // Set the mutex as initialized
     pAudio->init |= gfmAudio_mutex;
     
@@ -656,7 +656,7 @@ gfmRV gfmAudio_closeSubSystem(gfmAudioCtx *pCtx) {
     }
     // Destroy the mutex
     if (pCtx->init & gfmAudio_mutex) {
-        SDL_DestroyMutex(pCtx->pMutex);
+        SDL_DestroySemaphore(pCtx->pSem);
     }
     
     // Free the generic arrays
@@ -686,7 +686,7 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
     ASSERT(!(pCtx->isPlaying), GFMRV_OK);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Only unpause if there's anything to play
     if (pCtx->pAudioHndPlaying) {
@@ -695,7 +695,7 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
         pCtx->isPlaying = 1;
     }
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
@@ -721,14 +721,14 @@ gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx) {
     ASSERT(pCtx->isPlaying, GFMRV_OK);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Pause the sub-system
     SDL_PauseAudioDevice(pCtx->dev, 1);
     // Set the audio as paused
     pCtx->isPlaying = 0;
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
@@ -922,7 +922,7 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     pAudio = gfmGenArr_getObject(pCtx->pAudioPool, handle);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     isLocked = 1;
     
@@ -953,7 +953,7 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     
     // Unlock the mutex
     isLocked = 0;
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     // Unpause the device
     rv = gfmAudio_resumeSubsystem(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
@@ -962,7 +962,7 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
 __ret:
     if (isLocked) {
         // Unlock the mutex
-        SDL_UnlockMutex(pCtx->pMutex);
+        SDL_SemPost(pCtx->pSem);
     }
     return rv;
 }
@@ -986,7 +986,7 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Instead of actually removing it, put it at the buffer's end, so it will
     // be removed next time the callback is called
@@ -994,7 +994,7 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
     // "Clean" the returned pointer
     *ppHnd = 0;
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
@@ -1019,11 +1019,11 @@ gfmRV gfmAudio_pauseAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pHnd->isPlaying = 0;
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
@@ -1048,11 +1048,11 @@ gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pHnd->isPlaying = 1;
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
@@ -1081,11 +1081,11 @@ gfmRV gfmAudio_setHandleVolume(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd,
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     
     // Lock the mutex
-    irv = SDL_LockMutex(pCtx->pMutex);
+    irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pHnd->volume = volume;
     // Unlock the mutex
-    SDL_UnlockMutex(pCtx->pMutex);
+    SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
 __ret:
