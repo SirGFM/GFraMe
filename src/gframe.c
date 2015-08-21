@@ -48,10 +48,13 @@ struct stGFMCtx {
     /** Buffer for storing a save file's filename */
     gfmString *pSaveFilename;
     /** Length until the end of the save file's directory (i.e., position to
-      append stuff) */
+     * append stuff) */
     int saveFilenameLen;
     /** Whether the backend was initialized */
     int isBackendInit;
+    /** Flag to easily disable the audio; must be set after initialized the
+     * lib */
+    int isAudioEnabled;
     /** Audio sub-system context */
     gfmAudioCtx *pAudio;
     /** The game's backbuffer */
@@ -239,6 +242,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set the game as running
+    pCtx->isAudioEnabled = 1;
     pCtx->doQuit = GFMRV_FALSE;
     pCtx->defaultTexture = -1;
     rv = GFMRV_OK;
@@ -612,6 +616,31 @@ __ret:
 }
 
 /**
+ * Disable the audio subsystem; Any further call to any audio function will be
+ * ignored
+ * NOTE: It must be called before gfm_initAudio!
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED,
+ *              GFMRV_AUDIO_ALREADY_INITIALIZED
+ */
+gfmRV gfm_disableAudio(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pAudio == 0, GFMRV_AUDIO_ALREADY_INITIALIZED, pCtx->pLog);
+    
+    pCtx->isAudioEnabled = 0;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Initialize the audio sub-system; This function must be called before loading
  * any song
  * 
@@ -626,6 +655,11 @@ gfmRV gfm_initAudio(gfmCtx *pCtx, gfmAudioQuality settings) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Check that audio is enabled
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing audio subsystem...");
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -661,6 +695,12 @@ gfmRV gfm_setRepeat(gfmCtx *pCtx, int handle, int pos) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Sanitize the other arguments on the actual call
     
+    // Check that audio is enabled
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    
     rv = gfmAudio_setRepeat(pCtx->pAudio, handle, pos);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
@@ -688,6 +728,12 @@ gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     // Sanitize the other arguments on the actual call
+    
+    // Check that audio is enabled
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     rv = gfmAudio_playAudio(ppHnd, pCtx->pAudio, handle, volume);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -1331,6 +1377,11 @@ gfmRV gfm_loadAudio(int *pHandle, gfmCtx *pCtx, char *pFilename, int filenameLen
     ASSERT_LOG(pHandle, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    // Check that audio is enabled
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading audio \"%*s\"...",
             filenameLen, pFilename);
