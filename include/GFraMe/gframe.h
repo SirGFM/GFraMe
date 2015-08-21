@@ -189,6 +189,17 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int resIndex, int isUserResizable);
 
 /**
+ * Disable the audio subsystem; Any further call to any audio function will be
+ * ignored
+ * NOTE: It must be called before gfm_initAudio!
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED,
+ *              GFMRV_AUDIO_ALREADY_INITIALIZED
+ */
+gfmRV gfm_disableAudio(gfmCtx *pCtx);
+
+/**
  * Initialize the audio sub-system; This function must be called before loading
  * any song
  * 

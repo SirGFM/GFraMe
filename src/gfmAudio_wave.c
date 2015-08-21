@@ -485,6 +485,7 @@ gfmRV gfmAudio_loadWave(char **ppBuf, int *pLen, gfmFile *pFp, gfmLog *pLog,
                 // Enpand it as necessary
                 pBuf = (char*)realloc(pBuf, sizeof(char)*chunk.size);
                 ASSERT_LOG(pBuf, GFMRV_ALLOC_FAILED, pLog);
+                bufLen = chunk.size;
             }
             
             // Read the bytes
