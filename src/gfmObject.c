@@ -1305,6 +1305,59 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
+    // Get 'this' object's center
+    rv = gfmObject_getCenter(&sx, &sy, pSelf);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get 'the other' object's center
+    rv = gfmObject_getCenter(&ox, &oy, pOther);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get 'this' object's center on last frame
+    rv = gfmObject_getLastCenter(&lsx, &lsy, pSelf);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get 'the other' object's center on last frame
+    rv = gfmObject_getLastCenter(&lox, &loy, pOther);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Get both max distances for an overlap to happen
+    maxWidth = pSelf->halfWidth + pOther->halfWidth;
+    maxHeight = pSelf->halfHeight + pOther->halfHeight;
+    
+    // Check if a horizontal overlap happened
+    delta = sx - ox;
+    ASSERT(delta <= maxWidth && delta >= -maxWidth, GFMRV_FALSE);
+    
+    // Check if a vertical overlap happened
+    delta = sy - oy;
+    ASSERT(delta <= maxHeight && delta >= -maxHeight, GFMRV_FALSE);
+    
+    rv = GFMRV_TRUE;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if two objects just started overlaping
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
+    gfmRV rv;
+    int delta, lox, loy, lsx, lsy, maxWidth, maxHeight, ox, oy, sx, sy;
+    
+    // Sanitize arguments
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    // Check that the object was initialized
+    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    
     // Clear the instantaneous flag
     pSelf->instantHit = 0;
     pOther->instantHit = 0;
@@ -1408,7 +1461,7 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(!pSelf->isFixed || !pOther->isFixed, GFMRV_OBJECTS_CANT_COLLIDE);
     
     // Overlap both objects
-    rv = gfmObject_isOverlaping(pSelf, pOther);
+    rv = gfmObject_justOverlaped(pSelf, pOther);
     ASSERT_NR(rv == GFMRV_TRUE);
     
     // If they overlapped horizontally, separate'em
