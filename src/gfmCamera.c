@@ -199,7 +199,7 @@ gfmRV gfmCamera_setDeadzone(gfmCamera *pCtx, int x, int y, int width, int height
     ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
     // Check that the dimensions are valid
     ASSERT(x + width <= pCtx->viewWidth, GFMRV_CAMERA_INVALID_WIDTH);
-    ASSERT(x + height <= pCtx->viewHeight, GFMRV_CAMERA_INVALID_HEIGHT);
+    ASSERT(y + height <= pCtx->viewHeight, GFMRV_CAMERA_INVALID_HEIGHT);
     
     // Set the deadzone
     pCtx->deadWidth = width / 2;
