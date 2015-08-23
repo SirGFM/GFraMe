@@ -127,6 +127,17 @@ gfmRV gfmParser_getPos(int *pX, int *pY, gfmParser *pCtx);
 gfmRV gfmParser_getDimensions(int *pWidth, int *pHeight, gfmParser *pCtx);
 
 /**
+ * Retrieve the string representing the object's in-game type (instead of the
+ * 'parser type')
+ * 
+ * @param  pType The object's type
+ * @param  pCtx  The paser
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *               GFMRV_PARSER_NO_OBJECT
+ */
+gfmRV gfmParser_getIngameType(char **ppType, gfmParser *pCtx);
+
+/**
  * Retrieve the parsed object's 
  * 
  * @param  pNum How many properties the object has

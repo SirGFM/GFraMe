@@ -684,6 +684,36 @@ __ret:
 }
 
 /**
+ * Retrieve the string representing the object's in-game type (instead of the
+ * 'parser type')
+ * 
+ * @param  pType The object's type
+ * @param  pCtx  The paser
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_PARSER_NOT_INITIALIZED,
+ *               GFMRV_PARSER_NO_OBJECT
+ */
+gfmRV gfmParser_getIngameType(char **ppType, gfmParser *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that it was initialized
+    ASSERT(pCtx->pFile, GFMRV_PARSER_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(ppType, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    // Check that an object was parsed
+    ASSERT_LOG(pCtx->object.type != gfmParserType_none, GFMRV_PARSER_NO_OBJECT,
+            pCtx->pLog);
+    
+    // Get the attribute
+    *ppType = pCtx->object.pType;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Retrieve the parsed object's 
  * 
  * @param  pNum How many properties the object has
@@ -745,8 +775,8 @@ gfmRV gfmParser_getProperty(char **ppKey, char **pVal, gfmParser *pCtx,
     ASSERT_LOG(pCtx->object.type == gfmParserType_object,
             GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Check if the index is valid
-    ASSERT_LOG(index > 0 && index < pCtx->object.propertiesLen,
-            GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(index < pCtx->object.propertiesLen, GFMRV_ARGUMENTS_BAD,
+            pCtx->pLog);
     // Get the attribute
     *ppKey = pCtx->object.ppProperties[index * 2];
     *pVal = pCtx->object.ppProperties[index * 2 + 1];
