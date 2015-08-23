@@ -145,6 +145,13 @@ gfmRV gfmParser_parseString(gfmFile *pFp, char *pStr, int strLen) {
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
     ASSERT(strLen > 0, GFMRV_ARGUMENTS_BAD);
     
+    rv = gfmFile_didFinish(pFp);
+    ASSERT(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv);
+    if (rv == GFMRV_TRUE) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
+    
     // Get the current position, to "backtrack" on error
     rv = gfmFile_pushPos(pFp);
     ASSERT_NR(rv == GFMRV_OK);

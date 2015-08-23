@@ -287,6 +287,8 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
             pCtx->ppProps = (char**)realloc(pCtx->ppProps, sizeof(char**) *
                     (pCtx->object.propertiesLen + 1) * 2);
             ASSERT_LOG(pCtx->ppProps, GFMRV_ALLOC_FAILED, pCtx->pLog);
+            
+            pCtx->propsLen = (pCtx->object.propertiesLen + 1) * 2;
         }
         
         // Recache only if there was something already on the buffer (note that

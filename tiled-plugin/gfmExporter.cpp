@@ -276,31 +276,22 @@ static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer) {
         if (pObj->cell().isEmpty() && pObj->properties().isEmpty()) {
             // Output a area
             file.write("area ");
-            file.write(pObj->type().toLatin1());
-            file.write(" ");
-            file.write(QByteArray::number(pObj->x()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->y()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->width()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->height()));
-            file.write("\n");
         }
         else {
+            file.write("obj ");
+        }
+        file.write(pObj->type().toLatin1());
+        file.write(" ");
+        file.write(QByteArray::number((int)pObj->x()));
+        file.write(" ");
+        file.write(QByteArray::number((int)pObj->y()));
+        file.write(" ");
+        file.write(QByteArray::number((int)pObj->width()));
+        file.write(" ");
+        file.write(QByteArray::number((int)pObj->height()));
+        if (!pObj->cell().isEmpty() || pObj->properties().isEmpty()) {
             QMap<QString, QString>::const_iterator it;
             
-            // Output an object
-            file.write("obj ");
-            file.write(pObj->type().toLatin1());
-            file.write(" ");
-            file.write(QByteArray::number(pObj->x()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->y()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->width()));
-            file.write(" ");
-            file.write(QByteArray::number(pObj->height()));
             // Output all of its properties
             it = pObj->properties().begin();
             while (it != pObj->properties().end()) {
@@ -312,8 +303,8 @@ static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer) {
                 
                 it++;
             }
-            file.write("\n");
         }
+        file.write("\n");
     }
 }
 
