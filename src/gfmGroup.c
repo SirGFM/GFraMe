@@ -368,6 +368,7 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     // Store this last retrieved sprite so it can be modified later
     pCtx->pLast = pTmp->pSelf;
     
+    *ppSpr = pTmp->pSelf;
     rv = GFMRV_OK;
 __ret:
     return rv;
