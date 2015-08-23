@@ -269,7 +269,6 @@ gfmRV gfmCamera_centerAtPoint(gfmCamera *pCtx, int x, int y) {
     // Check that it's in-bounds (horizontal axis)
     if (pCtx->x < 0) {
         pCtx->x = 0;
-        pCtx->x = pCtx->worldWidth - pCtx->viewWidth;
         rv = GFMRV_CAMERA_DIDNT_MOVE;
     }
     else if (pCtx->x + pCtx->viewWidth > pCtx->worldWidth) {
