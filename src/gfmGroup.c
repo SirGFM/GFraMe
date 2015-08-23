@@ -333,7 +333,7 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
             // If the list was empty, initialize it
             newLen = 1;
         }
-        else if (curLen * 2 > pCtx->maxLen) {
+        else if (pCtx->maxLen > 0 && curLen * 2 > pCtx->maxLen) {
             // If at the limit, add as many sprites as possible
             newLen = pCtx->maxLen - curLen;
         }
