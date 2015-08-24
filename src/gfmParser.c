@@ -119,7 +119,7 @@ static gfmRV gfmParser_parseStrType(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        gfmFile_popPos(pCtx->pFile);
+        rv = gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;
@@ -178,7 +178,7 @@ static gfmRV gfmParser_parseArea(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        gfmFile_popPos(pCtx->pFile);
+        rv = gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;
@@ -345,7 +345,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        gfmFile_popPos(pCtx->pFile);
+        rv = gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;
@@ -442,7 +442,7 @@ gfmRV gfmParser_init(gfmParser *pParser, gfmCtx *pCtx, char *pFilename,
         rv = gfmFile_getNew(&(pParser->pFile));
         ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     }
-    rv = gfmFile_openAsset(pParser->pFile, pCtx, pFilename, filenameLen, 1/*isText*/);
+    rv = gfmFile_openAsset(pParser->pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     
     // Store the logger
@@ -578,7 +578,7 @@ gfmRV gfmParser_parseNext(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        gfmFile_popPos(pCtx->pFile);
+        rv = gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;
