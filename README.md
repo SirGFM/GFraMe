@@ -52,3 +52,15 @@ and the header files on /usr/include/GFraMe.
 
 On Windows, it will install everything under C:\GFraMe. The libraries will
 be installed on C:\GFraMe\lib and the headers on C:\GFraMe\include\GFraMe.
+
+# Compiling with emscript
+
+In order to compiler with emscript (and use this to build javascript games), one
+should prepare its environment before hand.
+
+On Linux, this may be as simples as downloading and installing the emscript SDK
+and then running
+
+```
+$ source <EMSDK_DIR>/emsdk_set_env.sh
+```

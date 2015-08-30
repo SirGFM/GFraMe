@@ -1,5 +1,7 @@
 
-CC = gcc
+ifneq ($(CC), emcc)
+  CC = gcc
+endif
 .SUFFIXES=.c .o
 
 #==============================================================================
@@ -33,7 +35,6 @@ CC = gcc
           $(OBJDIR)/gfmGroupHelpers.o     \
           $(OBJDIR)/gfmKeyNode.o          \
           $(OBJDIR)/gfmInput.o            \
-          $(OBJDIR)/gfmLog.o              \
           $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmParser.o           \
           $(OBJDIR)/gfmParserCommon.o     \
@@ -48,6 +49,12 @@ CC = gcc
           $(OBJDIR)/gfmTrie.o             \
           $(OBJDIR)/gfmUtils.o            \
           $(OBJDIR)/gfmVirtualKey.o       
+# Add log only if it wasn't removed
+  ifeq ($(NOLOG), yes)
+    OBJS += $(OBJDIR)/gfmNoLog.o
+  else
+    OBJS += $(OBJDIR)/gfmLog.o
+  endif
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
@@ -110,6 +117,14 @@ CC = gcc
   else
     CFLAGS := $(CFLAGS) -fPIC
   endif
+# Remove log D=
+  ifeq ($(NOLOG), yes)
+    CFLAGS := $(CFLAGS) -DGFM_NO_LOG
+  endif
+# Set the current compiler
+  ifeq ($(CC), emcc)
+    CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
+  endif
 # Add OpenGL flags
  # ifeq ($(USE_OPENGL), yes)
  #   CFLAGS := $(CFLAGS) -DGFRAME_OPENGL
@@ -146,9 +161,14 @@ CC = gcc
 #==============================================================================
  VPATH := src:tst
  TESTDIR := tst
- OBJDIR := obj/$(OS)
+ ifeq ($(CC), emcc)
+   OBJDIR := obj/emscript
+   BINDIR := bin/emscript
+ else
+   OBJDIR := obj/$(OS)
+   BINDIR := bin/$(OS)
+ endif
  WDATADIR := $(OBJDIR)/wavtodata
- BINDIR := bin/$(OS)
  ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
       LIBPATH := /d/windows/mingw/lib
@@ -223,6 +243,21 @@ release: MAKEDIRS
 	make DEBUG=yes static
 	make DEBUG=yes shared
 	date
+#==============================================================================
+
+#==============================================================================
+# Rule for building a object file for emscript
+#==============================================================================
+emscript:
+	# Ugly solution: call make with the correct params
+	make RELEASE=yes EXPORT_GIF=no CC=emcc NOLOG=yes bin/emscript/$(TARGET).bc
+#==============================================================================
+
+#==============================================================================
+# Stupid rule for cleaning emscript build... gotta fix this at some point
+#==============================================================================
+emscript_clean:
+	make CC=emcc clean
 #==============================================================================
 
 #==============================================================================
@@ -376,12 +411,18 @@ $(OBJDIR)/%.o: %.c
 #==============================================================================
 
 #==============================================================================
+# Build a emscript (LLVM) binary, to be used when compiling for HTML5
+#==============================================================================
+$(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
+	$(CC) -o $@ $(CFLAGS) -O2 $(OBJS)
+#==============================================================================
+
+#==============================================================================
 # Define compilation rule for gfmAudio so it avoids optimizations
 #==============================================================================
 $(OBJDIR)/core/sdl2/gfmAudio.o: src/core/sdl2/gfmAudio.c
 	$(CC) $(CFLAGS) -O0 -o $@ -c $<
 #==============================================================================
-
 
 #==============================================================================
 # Rule for creating every directory

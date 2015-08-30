@@ -18,7 +18,7 @@
 #include <string.h>
 
 /* Includes for checking a file size on non-Windows */
-#if !defined(__WIN32) && !defined(__WIN32__)
+#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
 #  include <sys/types.h>
 #  include <sys/stat.h>
 #  include <unistd.h>

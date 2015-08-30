@@ -63,6 +63,13 @@ gfmRV gfmLog_init(gfmLog *pLog, gfmCtx *pCtx, gfmLogLevel level);
  */
 gfmRV gfmLog_clean(gfmLog *pCtx);
 
+#  ifdef GFM_NO_LOG
+/**
+ * Ignores log implementations... >__<
+ * (simply returns OK)
+ */
+#    define gfmLog_log(pCtx, level, pFmt, ...) GFMRV_OK
+#  else /* GFM_NO_LOG */
 /**
  * Log a message; The current time, file, function and line number will be
  * printed
@@ -86,6 +93,8 @@ gfmRV gfmLog_clean(gfmLog *pCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, 
  */
 gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...);
+
+#  endif /* GFM_NO_LOG */
 
 #endif /* __GFMLOG_H__ */
 
