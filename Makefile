@@ -77,6 +77,9 @@ endif
   ifeq ($(OS), MINGW32_NT-6.1)
     OS := Win
   endif
+  ifeq ($(CC), emcc)
+    OS := emscript
+  endif
 #==============================================================================
 
 #==============================================================================
@@ -122,7 +125,7 @@ endif
     CFLAGS := $(CFLAGS) -DGFM_NO_LOG
   endif
 # Set the current compiler
-  ifeq ($(CC), emcc)
+  ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
   endif
 # Add OpenGL flags
@@ -161,13 +164,8 @@ endif
 #==============================================================================
  VPATH := src:tst
  TESTDIR := tst
- ifeq ($(CC), emcc)
-   OBJDIR := obj/emscript
-   BINDIR := bin/emscript
- else
-   OBJDIR := obj/$(OS)
-   BINDIR := bin/$(OS)
- endif
+ OBJDIR := obj/$(OS)
+ BINDIR := bin/$(OS)
  WDATADIR := $(OBJDIR)/wavtodata
  ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
