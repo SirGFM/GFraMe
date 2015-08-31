@@ -35,6 +35,7 @@ endif
           $(OBJDIR)/gfmGroupHelpers.o     \
           $(OBJDIR)/gfmKeyNode.o          \
           $(OBJDIR)/gfmInput.o            \
+          $(OBJDIR)/gfmLog.o              \
           $(OBJDIR)/gfmObject.o           \
           $(OBJDIR)/gfmParser.o           \
           $(OBJDIR)/gfmParserCommon.o     \
@@ -49,12 +50,6 @@ endif
           $(OBJDIR)/gfmTrie.o             \
           $(OBJDIR)/gfmUtils.o            \
           $(OBJDIR)/gfmVirtualKey.o       
-# Add log only if it wasn't removed
-  ifeq ($(NOLOG), yes)
-    OBJS += $(OBJDIR)/gfmNoLog.o
-  else
-    OBJS += $(OBJDIR)/gfmLog.o
-  endif
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
@@ -100,7 +95,7 @@ endif
 # Add architecture flag
   ARCH := $(shell uname -m)
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -m32
+    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32
   else
     ifeq ($(ARCH), x86_64)
       CFLAGS := $(CFLAGS) -m64
@@ -127,10 +122,6 @@ endif
     CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include"
   else
     CFLAGS := $(CFLAGS) -fPIC
-  endif
-# Remove log D=
-  ifeq ($(NOLOG), yes)
-    CFLAGS := $(CFLAGS) -DGFM_NO_LOG
   endif
 # Set the current compiler
   ifeq ($(OS), emscript)
@@ -256,7 +247,7 @@ release: MAKEDIRS
 #==============================================================================
 emscript:
 	# Ugly solution: call make with the correct params
-	make RELEASE=yes EXPORT_GIF=no CC=emcc NOLOG=yes bin/emscript/$(TARGET).bc
+	make RELEASE=yes EXPORT_GIF=no CC=emcc bin/emscript/$(TARGET).bc
 #==============================================================================
 
 #==============================================================================

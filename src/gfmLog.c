@@ -7,7 +7,11 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmLog.h>
-#include <GFraMe/core/gfmFile_bkend.h>
+#ifdef EMCC
+#  include <stdio.h>
+#else 
+#  include <GFraMe/core/gfmFile_bkend.h>
+#endif
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -16,8 +20,10 @@
 
 /** The gfmLog struct */
 struct stGFMLog {
+#ifndef EMCC
     /** The current log file */
     gfmFile *pFile;
+#endif
     /** The minimum level for logging */
     gfmLogLevel minLevel;
 };
@@ -96,6 +102,7 @@ gfmRV gfmLog_init(gfmLog *pLog, gfmCtx *pCtx, gfmLogLevel level) {
     // Check that the log level is valid
     ASSERT(level > gfmLog_none, GFMRV_LOG_INVALID_LEVEL);
     ASSERT(level < gfmLog_max, GFMRV_LOG_INVALID_LEVEL);
+#ifndef EMCC
     // Check that the log stil wasn't initialized
     ASSERT(pLog->pFile == 0, GFMRV_LOG_ALREADY_INITIALIZED);
     
@@ -104,6 +111,7 @@ gfmRV gfmLog_init(gfmLog *pLog, gfmCtx *pCtx, gfmLogLevel level) {
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmFile_openLocal(pLog->pFile, pCtx, "game.log", 8/*nameLen*/, "a");
     ASSERT(rv == GFMRV_OK, rv);
+#endif
     
     // Set the minimum log level
     pLog->minLevel = level;
@@ -125,7 +133,9 @@ gfmRV gfmLog_clean(gfmLog *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+#ifndef EMCC
     gfmFile_free(&(pCtx->pFile));
+#endif
     
     rv = GFMRV_OK;
 __ret:
@@ -145,11 +155,17 @@ static gfmRV gfmLog_logString(gfmLog *pCtx, char *pStr, int len) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the logger was initialized
+#ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
+#endif
     
     // Write the bytes to the file
+#ifdef EMCC
+    printf("%.*s", len, pStr);
+#else
     rv = gfmFile_writeBytes(pCtx->pFile, pStr, len);
     ASSERT(rv == GFMRV_OK, rv);
+#endif
     
     rv = GFMRV_OK;
 __ret:
@@ -171,7 +187,9 @@ static gfmRV gfmLog_logInt(gfmLog *pCtx, int val) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the logger was initialized
+#ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
+#endif
     
     // Terminate the string
     pBuf[11] = '\0';
@@ -218,7 +236,9 @@ static gfmRV gfmLog_logTime(gfmLog *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the logger was initialized
+#ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
+#endif
     
 	// Get current time
 	ret = time(&_time);
@@ -275,7 +295,9 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the logger was initialized
+#ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
+#endif
     // Check that the message can be logged
     if (level < pCtx->minLevel) {
         rv = GFMRV_OK;
@@ -382,7 +404,9 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
         ASSERT(rv == GFMRV_OK, rv);
     }
     
+#ifndef EMCC
     rv = gfmFile_flush(pCtx->pFile);
+#endif
     ASSERT(rv == GFMRV_OK, rv);
     
 	va_end(args);
