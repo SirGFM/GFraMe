@@ -487,9 +487,15 @@ gfmRV gfmInput_getLastPressed(gfmInputIface *pIface, gfmInput *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pIface, GFMRV_ARGUMENTS_BAD);
     // Check that the operation was initialized
-    ASSERT(pCtx->waitingInput, GFMRV_OPERATION_NOT_ACTIVE);
+    if (!(pCtx->waitingInput)) {
+        rv = GFMRV_OPERATION_NOT_ACTIVE;
+        goto __ret;
+    }
     // Check that a key was pressed
-    ASSERT(pCtx->lastIface != gfmIface_none, GFMRV_WAITING);
+    if (pCtx->lastIface == gfmIface_none) {
+        rv = GFMRV_WAITING;
+        goto __ret;
+    }
     
     // Deactivate the operation
     pCtx->waitingInput = 0;

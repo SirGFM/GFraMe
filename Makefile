@@ -257,7 +257,7 @@ emscript:
 # Stupid rule for cleaning emscript build... gotta fix this at some point
 #==============================================================================
 emscript_clean:
-	make CC=emcc clean
+	make CC=emcc BACKEND=emscript clean
 #==============================================================================
 
 #==============================================================================

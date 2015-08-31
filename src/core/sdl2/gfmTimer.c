@@ -282,25 +282,23 @@ static Uint32 gfmTimer_callback(Uint32 interval, void *param) {
 }
 
 /**
- * Issue a new frame; Shouldn't usually be used...
+ * Issue a new frame; Should only be used on singled threaded environments
  *
  * @param  pCtx The timer
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED,
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED
  */
 gfmRV gfmTimer_issue(gfmTimer *pCtx) {
-    gfmRV rv;
-    int interval;
-    
-    // Sanitize the arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->timer, GFMRV_TIMER_NOT_INITIALIZED);
-    
-    // Add it to the event queue (so the main thread can see it)
-    gfmEvent_pushTimeEvent(pCtx->pEvent);
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
+}
+
+/**
+ * Wait for a new frame; Should only be used on singled threaded environments
+ *
+ * @param  pCtx The timer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED
+ */
+gfmRV gfmTimer_wait(gfmTimer *pCtx) {
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
 
 /**

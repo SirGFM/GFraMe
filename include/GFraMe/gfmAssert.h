@@ -14,7 +14,12 @@
 
 #if defined(__EMSCRIPTEN__) || defined(EMSCRIPTEN) || defined(EMCC)
 #  include <emscripten.h>
-#  define GOTO(rv, label) emscripten_force_exit(rv)
+#  define GOTO(rv, label) \
+    do { \
+      printf("[%s - %s (%d)] - Something broke here!\n", __FILE__, \
+          __FUNCTION__, __LINE__); \
+      goto label; /*emscripten_force_exit(rv);*/ \
+    } while (0)
 #else
 #  define GOTO(rv, label) goto label
 #endif

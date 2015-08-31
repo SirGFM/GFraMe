@@ -2661,6 +2661,40 @@ __ret:
 }
 
 /**
+ * Issue a new frame; Should only be used on singled threaded environments
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_issueFrame(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->pTimer, GFMRV_TIMER_NOT_INITIALIZED);
+    
+    rv = gfmTimer_issue(pCtx->pTimer);
+__ret:
+    return rv;
+}
+
+/**
+ * Wait for a new frame; Should only be used on singled threaded environments
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_waitFrame(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->pTimer, GFMRV_TIMER_NOT_INITIALIZED);
+    
+    rv = gfmTimer_wait(pCtx->pTimer);
+__ret:
+    return rv;
+}
+
+/**
  * Clean up a context
  * 
  * @param  pCtx The context

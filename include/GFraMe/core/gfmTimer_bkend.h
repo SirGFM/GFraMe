@@ -106,12 +106,20 @@ gfmRV gfmTimer_setFPS(gfmTimer *pCtx, int fps);
 gfmRV gfmTimer_setFPSRaw(gfmTimer *pCtx, int fps);
 
 /**
- * Issue a new frame; Shouldn't usually be used...
+ * Issue a new frame; Should only be used on singled threaded environments
  *
  * @param  pCtx The timer
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED,
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED
  */
 gfmRV gfmTimer_issue(gfmTimer *pCtx);
+
+/**
+ * Wait for a new frame; Should only be used on singled threaded environments
+ *
+ * @param  pCtx The timer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED
+ */
+gfmRV gfmTimer_wait(gfmTimer *pCtx);
 
 /**
  * Get the current time, in milliseconds, since the game started;

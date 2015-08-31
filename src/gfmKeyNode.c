@@ -165,10 +165,13 @@ gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key) {
             break;
         }
     }
-    // Assert that something was found (i.e., that stopped at the node)
-    ASSERT(pRoot, GFMRV_FALSE);
     
-    rv = GFMRV_TRUE;
+    if (pRoot) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
 __ret:
     return rv;
 }
@@ -200,11 +203,15 @@ gfmRV gfmKeyNode_getVirtualKey(gfmVirtualKey **ppVKey, gfmKeyNode *pRoot,
             break;
         }
     }
-    ASSERT(pRoot, GFMRV_INPUT_NOT_BOUND);
     
     // Set the return values
-    *ppVKey = pRoot->pVKey;
-    rv = GFMRV_OK;
+    if (pRoot) {
+        *ppVKey = pRoot->pVKey;
+        rv = GFMRV_OK;
+    }
+    else {
+        rv = GFMRV_INPUT_NOT_BOUND;
+    }
 __ret:
     return rv;
 }

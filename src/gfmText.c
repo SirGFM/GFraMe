@@ -575,7 +575,10 @@ gfmRV gfmText_update(gfmText *pText, gfmCtx *pCtx) {
     // Check that there is a non-finished animation
     rv = gfmText_didFinish(pText);
     // If the animation is finished, exit succesfully
-    ASSERT(rv == GFMRV_FALSE, GFMRV_OK);
+    if (rv == GFMRV_TRUE) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     // Get time elapsed from the previous frames
     rv = gfm_getElapsedTime(&ms, pCtx);
     ASSERT_NR(rv == GFMRV_OK);

@@ -875,6 +875,22 @@ gfmRV gfm_batchEnd(gfmCtx *pCtx);
 gfmRV gfm_drawEnd(gfmCtx *pCtx);
 
 /**
+ * Issue a new frame; Should only be used on singled threaded environments
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_issueFrame(gfmCtx *pCtx);
+
+/**
+ * Wait for a new frame; Should only be used on singled threaded environments
+ * 
+ * @param  pCtx  The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfm_waitFrame(gfmCtx *pCtx);
+
+/**
  * Clean up a context
  * 
  * @param  pCtx The context
