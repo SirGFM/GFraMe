@@ -516,7 +516,11 @@ gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
     
     // Read a char
     pCtx->lastChar = fgetc(pCtx->pFp);
-    ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED);
+    if (pCtx->lastChar == EOF) {
+        rv = GFMRV_FILE_EOF_REACHED;
+        goto __ret;
+    }
+    //ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED);
     
     *pVal = (char)pCtx->lastChar;
     rv = GFMRV_OK;

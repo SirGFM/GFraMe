@@ -169,8 +169,12 @@ gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pAnim->pData, GFMRV_ANIMATION_NOT_INITIALIZED);
     // Check that the animation hasn't finished
-    ASSERT(pAnim->doLoop || pAnim->loopCount == 0,
-            GFMRV_ANIMATION_ALREADY_FINISHED);
+    if (!pAnim->doLoop && pAnim->loopCount > 0) {
+        rv = GFMRV_ANIMATION_ALREADY_FINISHED;
+        goto __ret;
+    }
+    //ASSERT(pAnim->doLoop || pAnim->loopCount == 0,
+    //        GFMRV_ANIMATION_ALREADY_FINISHED);
     
     // Get the elapsed time from the previous frame
     rv = gfm_getElapsedTime(&ms, pCtx);

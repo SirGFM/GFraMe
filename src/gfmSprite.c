@@ -1421,7 +1421,11 @@ gfmRV gfmSprite_draw(gfmSprite *pSpr, gfmCtx *pCtx) {
     // Check if the sprite is inside the camera
     rv = gfm_isSpriteInsideCamera(pCtx, pSpr);
     //ASSERT_NR(rv == GFMRV_TRUE);
-    ASSERT(rv == GFMRV_TRUE, GFMRV_OK);
+    if (rv != GFMRV_TRUE) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    //ASSERT(rv == GFMRV_TRUE, GFMRV_OK);
     
     // Get camera's dimension
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);
@@ -1566,7 +1570,11 @@ gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index) {
     pAnim = gfmGenArr_getObject(pCtx->pAnimations, index);
     
     // Don't re-play the animation
-    ASSERT(pAnim != pCtx->pCurAnim, GFMRV_OK);
+    if (pAnim == pCtx->pCurAnim) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    //ASSERT(pAnim != pCtx->pCurAnim, GFMRV_OK);
     
     // Reset it
     rv = gfmAnimation_reset(pAnim);

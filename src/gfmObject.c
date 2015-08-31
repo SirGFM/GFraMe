@@ -1324,11 +1324,17 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     
     // Check if a horizontal overlap happened
     delta = sx - ox;
-    ASSERT(delta <= maxWidth && delta >= -maxWidth, GFMRV_FALSE);
+    if (delta > maxWidth || delta < -maxWidth) {
+        return GFMRV_FALSE;
+    }
+    //ASSERT(delta <= maxWidth && delta >= -maxWidth, GFMRV_FALSE);
     
     // Check if a vertical overlap happened
     delta = sy - oy;
-    ASSERT(delta <= maxHeight && delta >= -maxHeight, GFMRV_FALSE);
+    if (delta > maxHeight || delta < -maxHeight) {
+        return GFMRV_FALSE;
+    }
+    //ASSERT(delta <= maxHeight && delta >= -maxHeight, GFMRV_FALSE);
     
     rv = GFMRV_TRUE;
 __ret:
@@ -1424,8 +1430,13 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     }
     
     // Check that they collided in any directions
-    ASSERT((pSelf->instantHit & gfmCollision_ver) ||
-            (pSelf->instantHit & gfmCollision_hor), GFMRV_FALSE);
+    if ((pSelf->instantHit & gfmCollision_ver) == 0 &&
+            (pSelf->instantHit & gfmCollision_hor) == 0) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
+    //ASSERT((pSelf->instantHit & gfmCollision_ver) ||
+    //        (pSelf->instantHit & gfmCollision_hor), GFMRV_FALSE);
     
     // Set overlap position definitivelly 
     pSelf->hit |= pSelf->instantHit;
@@ -1462,17 +1473,20 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     
     // Overlap both objects
     rv = gfmObject_justOverlaped(pSelf, pOther);
-    ASSERT_NR(rv == GFMRV_TRUE);
+    ASSERT(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv);
+    if (rv == GFMRV_FALSE) {
+        goto __ret;
+    }
     
     // If they overlapped horizontally, separate'em
     if (pSelf->instantHit & gfmCollision_hor) {
         rv = gfmObject_separateHorizontal(pSelf, pOther);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT(rv == GFMRV_OK, rv);
     }
     // If they overlapped vertically, separate'em
     if (pSelf->instantHit & gfmCollision_ver) {
         rv = gfmObject_separateVertical(pSelf, pOther);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT(rv == GFMRV_OK, rv);
     }
     
     rv = GFMRV_TRUE;

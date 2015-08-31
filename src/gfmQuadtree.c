@@ -442,14 +442,21 @@ static gfmRV gfmQuadtree_overlap(gfmQuadtree *pCtx, gfmObject *pObj) {
         dist = -dist;
     }
     maxDist = hWidth + pCtx->halfWidth;
-    ASSERT(dist <= maxDist, GFMRV_FALSE);
+    if (dist > maxDist) {
+        return GFMRV_FALSE;
+    }
+    //ASSERT(dist <= maxDist, GFMRV_FALSE);
+    
     // Check vertically...
     dist = cY - pCtx->centerY;
     if (dist < 0) {
         dist = -dist;
     }
     maxDist = hHeight + pCtx->halfHeight;
-    ASSERT(dist <= maxDist, GFMRV_FALSE);
+    if (dist > maxDist) {
+        return GFMRV_FALSE;
+    }
+    //ASSERT(dist <= maxDist, GFMRV_FALSE);
     
     rv = GFMRV_TRUE;
 __ret:
@@ -705,7 +712,11 @@ gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
     // Check if this node overlaps the root
     rv = gfmQuadtree_overlap(pCtx->pSelf, pObj);
-    ASSERT(rv == GFMRV_TRUE, GFMRV_QUADTREE_DONE);
+    if (rv != GFMRV_TRUE) {
+        rv = GFMRV_QUADTREE_DONE;
+        goto __ret;
+    }
+    //ASSERT(rv == GFMRV_TRUE, GFMRV_QUADTREE_DONE);
     
     // Store the object to be added
     pCtx->pObject = pObj;
@@ -976,7 +987,10 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
             
             // -- Exit point --
             // If they did overlap, return with that status
-            ASSERT(rv != GFMRV_TRUE, GFMRV_QUADTREE_OVERLAPED);
+            if (rv == GFMRV_TRUE) {
+                return GFMRV_QUADTREE_OVERLAPED;
+            }
+            //ASSERT(rv != GFMRV_TRUE, GFMRV_QUADTREE_OVERLAPED);
         }
         else {
             // Pop the current node

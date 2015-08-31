@@ -164,7 +164,11 @@ gfmRV gfmParser_parseString(gfmFile *pFp, char *pStr, int strLen) {
         rv = gfmFile_readChar(&c, pFp);
         ASSERT_NR(rv == GFMRV_OK);
         // Check that the string was read
-        ASSERT(pStr[i] == c, GFMRV_FALSE);
+        if (pStr[i] != c) {
+            rv = GFMRV_FALSE;
+            goto __ret;
+        }
+        //ASSERT(pStr[i] == c, GFMRV_FALSE);
         
         i++;
     }

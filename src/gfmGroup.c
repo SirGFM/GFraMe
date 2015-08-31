@@ -1072,7 +1072,11 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
     ASSERT(pGroup, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Assert there's anything to draw, at all
-    ASSERT(pGroup->pVisible, GFMRV_OK);
+    if (!(pGroup->pVisible)) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    //ASSERT(pGroup->pVisible, GFMRV_OK);
     
     // Get the first node on the visible list
     pNode = pGroup->pVisible;
