@@ -409,12 +409,20 @@ gfmRV gfmCamera_isSpriteInside(gfmCamera *pCtx, gfmSprite *pSpr) {
     y += offY;
     
     // Check that it's inside the camera
-    ASSERT(x <= pCtx->x + pCtx->viewWidth, GFMRV_FALSE);
-    ASSERT(x + tileWidth >= pCtx->x, GFMRV_FALSE);
-    ASSERT(y <= pCtx->y + pCtx->viewHeight, GFMRV_FALSE);
-    ASSERT(y + tileHeight >= pCtx->y, GFMRV_FALSE);
-    
-    rv = GFMRV_TRUE;
+    if ((x <= pCtx->x + pCtx->viewWidth) &&
+            (x + tileWidth >= pCtx->x) &&
+            (y <= pCtx->y + pCtx->viewHeight) &&
+            (y + tileHeight >= pCtx->y)) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+    //ASSERT(x <= pCtx->x + pCtx->viewWidth, GFMRV_FALSE);
+    //ASSERT(x + tileWidth >= pCtx->x, GFMRV_FALSE);
+    //ASSERT(y <= pCtx->y + pCtx->viewHeight, GFMRV_FALSE);
+    //ASSERT(y + tileHeight >= pCtx->y, GFMRV_FALSE);
+    //rv = GFMRV_TRUE;
 __ret:
     return rv;
 }
