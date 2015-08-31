@@ -12,6 +12,13 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmLog.h>
 
+#if defined(__EMSCRIPTEN__) || defined(EMSCRIPTEN) || defined(EMCC)
+#  include <emscripten.h>
+#  define GOTO(label) emscripten_force_exit(-1)
+#else
+#  define GOTO(label) goto label
+#endif
+
 /**
  * Check if a statement is true and jump to an error handling part of the code
  * if not; Also, log if the assert failed
@@ -26,7 +33,7 @@
       gfmLog_log(ctx, gfmLog_error, "Assert failed with code %i (\"%s\")", \
         err, gfmError_dict[err]); \
       rv = (err); \
-      goto __ret; \
+      GOTO(__ret); \
     } \
   } while (0)
 
@@ -41,7 +48,7 @@
   do { \
     if (!(stmt)) { \
       rv = err; \
-      goto __ret; \
+      GOTO(__ret); \
     } \
   } while (0)
 
@@ -54,7 +61,7 @@
 #define ASSERT_NR(stmt) \
   do { \
     if (!(stmt)) { \
-      goto __ret; \
+      GOTO(__ret); \
     } \
   } while (0)
 
@@ -70,7 +77,7 @@
   do { \
     if (!(stmt)) { \
       rv = err; \
-      goto label; \
+      GOTO(label); \
     } \
   } while (0)
 
@@ -84,7 +91,7 @@
 #define CASSERT_NR(stmt, label) \
   do { \
     if (!(stmt)) { \
-      goto label; \
+      GOTO(label); \
     } \
   } while (0)
 

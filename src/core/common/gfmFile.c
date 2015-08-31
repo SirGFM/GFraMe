@@ -113,7 +113,7 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     // Check that the file isn't opened
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
     
-#ifndef EMCC
+#ifdef EMCC
     rv = gfmString_setLength(pStr, 0/*len*/);
     ASSERT(rv == GFMRV_OK, rv);
 #endif
