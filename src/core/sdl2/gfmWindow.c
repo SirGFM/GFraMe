@@ -266,8 +266,10 @@ gfmRV gfmWindow_init(gfmWindow *pCtx, int width, int height, char *pName,
     // Check that both width and height are valid
     rv = gfmWindow_queryResolutions(&count, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
+#ifndef EMCC
     ASSERT(width <= pCtx->devWidth, GFMRV_INVALID_WIDTH);
     ASSERT(height <= pCtx->devHeight, GFMRV_INVALID_HEIGHT);
+#endif
     
     // Set wheter resizing of the window is enabled
     if (isUserResizable)
