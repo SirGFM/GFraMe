@@ -99,16 +99,24 @@ endif
   CFLAGS := -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
 # Add architecture flag
   ARCH := $(shell uname -m)
-  ifeq ($(ARCH), x86_64)
-    CFLAGS := $(CFLAGS) -m64
-  else
+  ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -m32
+  else
+    ifeq ($(ARCH), x86_64)
+      CFLAGS := $(CFLAGS) -m64
+    else
+      CFLAGS := $(CFLAGS) -m32
+    endif
   endif
 # Add debug flags
-  ifneq ($(RELEASE), yes)
-    CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
+  ifeq ($(OS), emscript)
+    CFLAGS := $(CFLAGS) -O2
   else
-    CFLAGS := $(CFLAGS) -O3
+    ifneq ($(RELEASE), yes)
+      CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
+    else
+      CFLAGS := $(CFLAGS) -O3
+    endif
   endif
 # Force fps counter, if requested
   ifeq ($(FPS_COUNTER), yes)
@@ -412,7 +420,7 @@ $(OBJDIR)/%.o: %.c
 # Build a emscript (LLVM) binary, to be used when compiling for HTML5
 #==============================================================================
 $(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
-	$(CC) -o $@ $(CFLAGS) -O2 $(OBJS)
+	$(CC) -o $@ $(CFLAGS) $(OBJS)
 #==============================================================================
 
 #==============================================================================

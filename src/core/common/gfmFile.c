@@ -113,6 +113,11 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     // Check that the file isn't opened
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
     
+#ifndef EMCC
+    rv = gfmString_setLength(pStr, 0/*len*/);
+    ASSERT(rv == GFMRV_OK, rv);
+#endif
+    
     // Append the filename to its path
     rv = gfmString_concat(pStr, pFilename, filenameLen);
     ASSERT_NR(rv == GFMRV_OK);

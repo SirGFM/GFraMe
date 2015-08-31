@@ -344,7 +344,7 @@ gfmRV gfmString_setLength(gfmString *pStr, int len) {
     
     // Sanitize arguments
     ASSERT(pStr, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len >= 0, GFMRV_ARGUMENTS_BAD);
     // Check that the string was initialized
     ASSERT(pStr->self, GFMRV_STRING_NOT_INITIALIZED);
     
