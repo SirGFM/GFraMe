@@ -1,5 +1,5 @@
 /**
- * @file src/core/sdl2/gframe_timer.c
+ * @file src/core/emscript-sdl2/gframe_timer.c
  * 
  * Timer module. Should signal whenever a new frame is to be issued.
  * This is a SDL2 implementation.
@@ -20,17 +20,10 @@ struct stGFMTimer {
     int fps;
     /** How long (in milliseconds) between each "timer interrupt" */
     int interval;
-    /** The SDL2 timer handle */
-    SDL_TimerID timer;
 };
 
 /** 'Exportable' size of gfmTimer */
 const int sizeofGFMTimer = sizeof(struct stGFMTimer);
-
-/**
- * Callback to be called by SDL each time a time event is issued.
- */
-static Uint32 gfmTimer_callback(Uint32 interval, void *param);
 
 /**
  * Get how long each frame must take for the timer function;
@@ -98,11 +91,6 @@ gfmRV gfmTimer_free(gfmTimer **ppCtx) {
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
-    // Stop the timer, if it's running
-    if ((*ppCtx)->timer) {
-        gfmTimer_stop(*ppCtx);
-    }
-    
     // Dealloc the resources
     free(*ppCtx);
     *ppCtx = 0;
@@ -127,15 +115,10 @@ gfmRV gfmTimer_init(gfmTimer *pCtx, int fps) {
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that the timer wasn't already initialized
-    ASSERT(!(pCtx->timer), GFMRV_TIMER_ALREADY_INITIALIZED);
     // Check that the FPS is valid
     pCtx->fps = fps;
     pCtx->interval = gfmTimer_getMs(pCtx->fps);
     ASSERT(pCtx->interval > 0, GFMRV_FPS_TOO_HIGH);
-    // Try to create the timer
-    pCtx->timer = SDL_AddTimer(pCtx->interval, gfmTimer_callback, pCtx);
-    ASSERT(pCtx->timer, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
 __ret:
@@ -162,15 +145,10 @@ gfmRV gfmTimer_initRaw(gfmTimer *pCtx, int fps) {
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that the timer wasn't already initialized
-    ASSERT(!(pCtx->timer), GFMRV_TIMER_ALREADY_INITIALIZED);
     // Check that the FPS is valid
     pCtx->fps = fps;
     pCtx->interval = gfmTimer_getMsRaw(pCtx->fps);
     ASSERT(pCtx->interval > 0, GFMRV_FPS_TOO_HIGH);
-    // Try to create the timer
-    pCtx->timer = SDL_AddTimer(pCtx->interval, gfmTimer_callback, pCtx);
-    ASSERT(pCtx->timer, GFMRV_INTERNAL_ERROR);
     
     rv = GFMRV_OK;
 __ret:
@@ -192,16 +170,10 @@ __ret:
  */
 gfmRV gfmTimer_stop(gfmTimer *pCtx) {
     gfmRV rv;
-    SDL_bool ret;
     
     // Sanitize the argments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->timer, GFMRV_TIMER_NOT_INITIALIZED);
-    // Try to remove the timer
-    ret = SDL_RemoveTimer(pCtx->timer);
-    ASSERT(ret == SDL_TRUE, GFMRV_FAILED_TO_STOP_TIMER);
     // Clean up the context
-    pCtx->timer = 0;
     pCtx->interval = 0;
     pCtx->fps = 0;
     
@@ -225,7 +197,6 @@ gfmRV gfmTimer_setFPS(gfmTimer *pCtx, int fps) {
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->timer, GFMRV_TIMER_NOT_INITIALIZED);
     // Check if it's a valid FPS
     interval = gfmTimer_getMs(fps);
     ASSERT(interval > 0, GFMRV_FPS_TOO_HIGH);
@@ -252,7 +223,6 @@ gfmRV gfmTimer_setFPSRaw(gfmTimer *pCtx, int fps) {
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->timer, GFMRV_TIMER_NOT_INITIALIZED);
     // Check if it's a valid FPS
     interval = gfmTimer_getMsRaw(fps);
     ASSERT(interval > 0, GFMRV_FPS_TOO_HIGH);
@@ -267,21 +237,6 @@ __ret:
 
 
 /**
- * Callback to be called by SDL each time a time event is issued
- * 
- * @param  interval Delay from the previous callback
- * @param  param    gfmTimer structure (to retrieve the next interval)
- * @return          Delay to the next callback
- */
-static Uint32 gfmTimer_callback(Uint32 interval, void *param) {
-    // Add it to the event queue (so the main thread can see it)
-    gfmEvent_pushTimeEvent(((gfmTimer*)param)->pEvent);
-    
-    // Return how long till the next callback (usually, the same amount)
-    return ((gfmTimer*)param)->interval;
-}
-
-/**
  * Issue a new frame; Shouldn't usually be used...
  *
  * @param  pCtx The timer
@@ -293,10 +248,12 @@ gfmRV gfmTimer_issue(gfmTimer *pCtx) {
     
     // Sanitize the arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->timer, GFMRV_TIMER_NOT_INITIALIZED);
     
     // Add it to the event queue (so the main thread can see it)
     gfmEvent_pushTimeEvent(pCtx->pEvent);
+    
+    // Delay for a frame
+    SDL_Delay(pCtx->interval);
     
     rv = GFMRV_OK;
 __ret:

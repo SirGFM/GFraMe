@@ -106,6 +106,14 @@ gfmRV gfmTimer_setFPS(gfmTimer *pCtx, int fps);
 gfmRV gfmTimer_setFPSRaw(gfmTimer *pCtx, int fps);
 
 /**
+ * Issue a new frame; Shouldn't usually be used...
+ *
+ * @param  pCtx The timer
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TIMER_NOT_INITIALIZED,
+ */
+gfmRV gfmTimer_issue(gfmTimer *pCtx);
+
+/**
  * Get the current time, in milliseconds, since the game started;
  * 
  * This function must be implemented for gfmFPSCounter to work!

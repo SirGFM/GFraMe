@@ -1,5 +1,5 @@
 
-ifneq ($(CC), emcc)
+ifndef ($(CC))
   CC = gcc
 endif
 .SUFFIXES=.c .o
@@ -53,6 +53,9 @@ endif
 # Add objects based on the current backend
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
+  endif
+  ifeq ($(BACKEND), emscript)
+    include src/core/emscript-sdl2/Makefile
   endif
 # Use the stdio file interface on desktops
   OBJS += $(OBJDIR)/core/common/gfmFile.o
@@ -247,7 +250,7 @@ release: MAKEDIRS
 #==============================================================================
 emscript:
 	# Ugly solution: call make with the correct params
-	make RELEASE=yes EXPORT_GIF=no CC=emcc bin/emscript/$(TARGET).bc
+	make RELEASE=yes EXPORT_GIF=no CC=emcc BACKEND=emscript bin/emscript/$(TARGET).bc
 #==============================================================================
 
 #==============================================================================
@@ -444,6 +447,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/core/common
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
+	mkdir -p $(OBJDIR)/core/emscript-sdl2
 	mkdir -p $(BINDIR)
 	mkdir -p $(BINDIR)/tst
 #==============================================================================
@@ -461,6 +465,7 @@ mostlyclean: clean
 	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/sdl2
+	rmdir $(OBJDIR)/core/emscript-sdl2
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
 	rmdir $(OBJDIR)

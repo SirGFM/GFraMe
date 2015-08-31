@@ -1,5 +1,5 @@
 /**
- * @file src/core/sdl2/gfmPath.c
+ * @file src/core/emscript-sdl2/gfmPath.c
  * 
  * Module for retrieving default paths
  */
@@ -32,11 +32,8 @@
  */
 gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     char *pPath;
-#if !defined(__ANDROID__)
-    char *pOrg, *pTitle;
-#endif
     gfmRV rv;
-    int doCopy, pathLen;
+    int doCopy;
     
     // Initialize variable that may be cleaned
     pPath = 0;
@@ -50,40 +47,16 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     rv = gfmString_getNew(ppStr);
     ASSERT_NR(rv == GFMRV_OK);
     
-#if defined(__ANDROID__) && __ANDROID__
-    // Get the local path
-    pPath = SDL_AndroidGetExternalStoragePath();
-#else
-    pOrg = 0;
-    pTitle = 0;
-    // Get the organization and title
-    rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Get the local path
-    pPath = SDL_GetPrefPath(pOrg, pTitle);
-#endif
-    ASSERT(pPath, GFMRV_INTERNAL_ERROR);
-    
-    // Get the local path's len
-    pathLen = 0;
-    while (pPath[pathLen] != '\0')
-        pathLen++;
-    
     // Store the path
     doCopy = 1;
-    rv = gfmString_init(*ppStr, pPath, pathLen, doCopy);
-#if defined(__ANDROID__) && __ANDROID__
-    // Clean the path, as it's a const pointer
-    pPath = 0;
-#endif
+    rv = gfmString_init(*ppStr, "dummy", 4, doCopy);
     // Check for errors
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_setLength(*ppStr, 0/*len*/);
     ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
-    if (pPath)
-        SDL_free(pPath);
     if (rv != GFMRV_ARGUMENTS_BAD && rv != GFMRV_OK)
         gfmString_free(ppStr);
     

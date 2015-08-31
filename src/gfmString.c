@@ -159,7 +159,10 @@ gfmRV gfmString_setMinimumLength(gfmString *pStr, int len) {
     // Check that the string was alloc
     ASSERT(pStr->mustDealloc, GFMRV_STRING_WASNT_COPIED);
     // Check that the string must be expanded
-    ASSERT(pStr->bufLen < len, GFMRV_OK);
+    if (pStr->bufLen >= len) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     // Extend the string as necessary
     if (pStr->self && pStr->bufLen < len)
