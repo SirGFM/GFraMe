@@ -237,7 +237,7 @@ gfmRV gfmAnimation_reset(gfmAnimation *pCtx) {
     pCtx->index = 0;
     pCtx->loopCount = 0;
     pCtx->justChangedFrame = 0;
-    pCtx->justLooped = 0;
+    pCtx->justLooped = GFMRV_FALSE;
     
     rv = GFMRV_OK;
 __ret:

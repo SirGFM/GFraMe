@@ -283,6 +283,8 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     gfmAudioHandle *pTmp, *pPrev;
     gfmRV rv;
     
+    pCtx = 0;
+    
     // Sanitize arguments
     ASSERT(pArg, GFMRV_ARGUMENTS_BAD);
     ASSERT(pStream, GFMRV_ARGUMENTS_BAD);
@@ -337,7 +339,9 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     rv = GFMRV_OK;
 __ret:
     // Set the return value on the context
-    pCtx->callbackRV = rv;
+    if (pCtx) {
+        pCtx->callbackRV = rv;
+    }
 }
 
 /**
@@ -654,7 +658,11 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was paused
-    ASSERT(!(pCtx->isPlaying), GFMRV_OK);
+    if (pCtx->isPlaying) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    //ASSERT(!(pCtx->isPlaying), GFMRV_OK);
     
     // Only unpause if there's anything to play
     if (pCtx->pAudioHndPlaying) {
