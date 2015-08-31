@@ -14,9 +14,9 @@
 
 #if defined(__EMSCRIPTEN__) || defined(EMSCRIPTEN) || defined(EMCC)
 #  include <emscripten.h>
-#  define GOTO(label) emscripten_force_exit(-1)
+#  define GOTO(rv, label) emscripten_force_exit(rv)
 #else
-#  define GOTO(label) goto label
+#  define GOTO(rv, label) goto label
 #endif
 
 /**
@@ -33,7 +33,7 @@
       gfmLog_log(ctx, gfmLog_error, "Assert failed with code %i (\"%s\")", \
         err, gfmError_dict[err]); \
       rv = (err); \
-      GOTO(__ret); \
+      GOTO(rv, __ret); \
     } \
   } while (0)
 
@@ -48,7 +48,7 @@
   do { \
     if (!(stmt)) { \
       rv = err; \
-      GOTO(__ret); \
+      GOTO(rv, __ret); \
     } \
   } while (0)
 
@@ -61,7 +61,7 @@
 #define ASSERT_NR(stmt) \
   do { \
     if (!(stmt)) { \
-      GOTO(__ret); \
+      GOTO(-1, __ret); \
     } \
   } while (0)
 
@@ -77,7 +77,7 @@
   do { \
     if (!(stmt)) { \
       rv = err; \
-      GOTO(label); \
+      GOTO(rv, label); \
     } \
   } while (0)
 
@@ -91,7 +91,7 @@
 #define CASSERT_NR(stmt, label) \
   do { \
     if (!(stmt)) { \
-      GOTO(label); \
+      GOTO(-1, label); \
     } \
   } while (0)
 
