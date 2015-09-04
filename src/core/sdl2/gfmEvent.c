@@ -46,6 +46,32 @@ const int sizeofGFMEvent = (int)sizeof(gfmEvent);
 /*                                                                            */
 /******************************************************************************/
 
+/**
+ * Converts a SDL button to it's gfmIface mapping
+ * 
+ * @param  button The SDL2 button
+ * @return        The respective interface
+ */
+static gfmInputIface st_gfmEvent_convertSDLButton2GFM(Uint8 button) {
+    switch (button) {
+        case SDL_CONTROLLER_BUTTON_A: return gfmController_a; break;
+        case SDL_CONTROLLER_BUTTON_B: return gfmController_b; break;
+        case SDL_CONTROLLER_BUTTON_X: return gfmController_x; break;
+        case SDL_CONTROLLER_BUTTON_Y: return gfmController_y; break;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return gfmController_l1; break;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return gfmController_r1; break;
+        case SDL_CONTROLLER_BUTTON_LEFTSTICK: return gfmController_l3; break;
+        case SDL_CONTROLLER_BUTTON_RIGHTSTICK: return gfmController_r3; break;
+        case SDL_CONTROLLER_BUTTON_DPAD_UP: return gfmController_up; break;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return gfmController_down; break;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return gfmController_left; break;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return gfmController_right; break;
+        case SDL_CONTROLLER_BUTTON_BACK: return gfmController_select; break;
+        case SDL_CONTROLLER_BUTTON_GUIDE: return gfmController_home; break;
+        case SDL_CONTROLLER_BUTTON_START: return gfmController_start; break;
+        default: return gfmIface_none;
+    }
+}
 
 /**
  * Converts a SDL keycode to it's gfmIface mapping
@@ -720,9 +746,63 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
             case SDL_CONTROLLERAXISMOTION: {
                 // TODO Set controller status
             } break;
-            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONDOWN: {
+                gfmInputIface button;
+                gfmLog *pLog;
+                int port, id;
+                
+                // Remove this controller
+                rv = gfm_getLogger(&pLog, pCtx);
+                ASSERT(rv == GFMRV_OK, rv);
+                
+                // Retrieve the controller's id
+                id = ev.cbutton.which;
+                // Find it's index (i.e., its port number)
+                port = 0;
+                while (port < pEv->numControllers) {
+                    if (pEv->pGamepadIDs[port] == id) {
+                        break;
+                    }
+                    port++;
+                }
+                ASSERT_LOG(port < pEv->numControllers,
+                        GFMRV_CONTROLLER_INVALID_ID, pLog);
+                
+                // Map SDL to gfmIface
+                button = st_gfmEvent_convertSDLButton2GFM(ev.cbutton.button);
+                // Set button as released
+                rv = gfmInput_setButtonState(pInput, button, port,
+                        gfmInput_justPressed, ev.key.timestamp);
+                ASSERT_NR(rv == GFMRV_OK || button == gfmIface_none);
+            } break;
             case SDL_CONTROLLERBUTTONUP: {
-                // TODO Set controller status
+                gfmInputIface button;
+                gfmLog *pLog;
+                int port, id;
+                
+                // Remove this controller
+                rv = gfm_getLogger(&pLog, pCtx);
+                ASSERT(rv == GFMRV_OK, rv);
+                
+                // Retrieve the controller's id
+                id = ev.cbutton.which;
+                // Find it's index (i.e., its port number)
+                port = 0;
+                while (port < pEv->numControllers) {
+                    if (pEv->pGamepadIDs[port] == id) {
+                        break;
+                    }
+                    port++;
+                }
+                ASSERT_LOG(port < pEv->numControllers,
+                        GFMRV_CONTROLLER_INVALID_ID, pLog);
+                
+                // Map SDL to gfmIface
+                button = st_gfmEvent_convertSDLButton2GFM(ev.cbutton.button);
+                // Set button as released
+                rv = gfmInput_setButtonState(pInput, button, port,
+                        gfmInput_justReleased, ev.key.timestamp);
+                ASSERT_NR(rv == GFMRV_OK || button == gfmIface_none);
             } break;
             case SDL_QUIT: {
                 // Signal to the main context that it should quit

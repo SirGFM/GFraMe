@@ -2081,6 +2081,45 @@ __ret:
 }
 
 /**
+ * Get the port of the last pressed button; If the last input didn't come from
+ * a gamepad, the port will be -1
+ * NOTE: This function must be called before getLastPressed!!!
+ * 
+ * @param  pPort The port
+ * @param  pCtx   The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *               GFMRV_WAITING
+ */
+gfmRV gfm_getLastPort(int *pPort, gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pPort, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    // Check that the input system was initialized
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Try to retrieve the last 'key' pressed
+    rv = gfmInput_getLastPort(pPort, pCtx->pInput);
+    if (rv == GFMRV_OPERATION_NOT_ACTIVE) {
+        // If the operation hadn't been initialized, initialize it
+        rv =  gfmInput_requestLastPressed(pCtx->pInput);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        // Force the function to be run at last another time
+        rv = GFMRV_WAITING;
+    }
+    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_WAITING, rv, pCtx->pLog);
+    
+    // Return with either GFMRV_OK or GFMRV_WAITING (whichever was return by
+    // the function
+__ret:
+    return rv;
+}
+
+/**
  * Get the last key/button/whatever pressed; This function doesn't block but,
  * unless it's ready, it will return GFMRV_WAITING; The 'key' pressed is only
  * valid when the function return GFMRV_OK

@@ -692,6 +692,18 @@ gfmRV gfm_getKeyState(gfmInputState *pState, int *pNum, gfmCtx *pCtx,
         int handle);
 
 /**
+ * Get the port of the last pressed button; If the last input didn't come from
+ * a gamepad, the port will be -1
+ * NOTE: This function must be called before getLastPressed!!!
+ * 
+ * @param  pPort The port
+ * @param  pCtx   The game's context
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *               GFMRV_WAITING
+ */
+gfmRV gfm_getLastPort(int *pPort, gfmCtx *pCtx);
+
+/**
  * Get the last key/button/whatever pressed; This function doesn't block but,
  * unless it's ready, it will return GFMRV_WAITING; The 'key' pressed is only
  * valid when the function return GFMRV_OK

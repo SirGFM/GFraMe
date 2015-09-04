@@ -531,7 +531,7 @@ gfmRV gfmInput_setButtonState(gfmInput *pCtx, gfmInputIface button, int port,
     // Satinize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(button > gfmIface_none, GFMRV_ARGUMENTS_BAD);
-    ASSERT(button < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    //ASSERT(button < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
     // If there're no keys, return
     ASSERT(pCtx->pTree, GFMRV_OK);
@@ -637,6 +637,41 @@ gfmRV gfmInput_getLastPressed(gfmInputIface *pIface, gfmInput *pCtx) {
     pCtx->waitingInput = 0;
     // Set the return
     *pIface = pCtx->lastIface;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the port of the last pressed button; If the last input didn't come from
+ * a gamepad, the port will be -1
+ * NOTE: This function must be called before getLastPressed!!!
+ * 
+ * @param pPort The port
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *                GFMRV_WAITING
+ */
+gfmRV gfmInput_getLastPort(int *pPort, gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pPort, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    if (!(pCtx->waitingInput)) {
+        rv = GFMRV_OPERATION_NOT_ACTIVE;
+        goto __ret;
+    }
+    // Check that a key was pressed
+    if (pCtx->lastIface == gfmIface_none) {
+        rv = GFMRV_WAITING;
+        goto __ret;
+    }
+    
+    // Set the return
+    *pPort = pCtx->lastPort;
     
     rv = GFMRV_OK;
 __ret:
