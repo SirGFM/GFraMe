@@ -72,7 +72,7 @@ gfmRV gfmKeyNode_init(gfmKeyNode *pCtx, gfmInputIface key, gfmVirtualKey *pVKey)
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pVKey, GFMRV_ARGUMENTS_BAD);
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
-    ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    //ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     
     // Initialize the node
     pCtx->key = key;
@@ -151,7 +151,7 @@ gfmRV gfmKeyNode_isBound(gfmKeyNode *pRoot, gfmInputIface key) {
     
     // Sanitize arguments
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
-    ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    //ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // If the root is NULL, the tree is empty (and the key unbound)
     
     // Search the key through the tree
