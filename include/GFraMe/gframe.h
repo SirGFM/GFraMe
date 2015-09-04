@@ -648,15 +648,28 @@ gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx);
 gfmRV gfm_addVirtualKey(int *pHandle, gfmCtx *pCtx);
 
 /**
- * Bind a key/button to an action
+ * Bind a key to an action
  * 
  * @param  pCtx   The game's context
  * @param  handle The action's handle
- * @param  key    The key/button
+ * @param  key    The key
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
  *                GFMRV_INPUT_ALREADY_BOUND
  */
 gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key);
+
+/**
+ * Bind a gamepad's button to an action
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param  button The button
+ * @param  port   Port (i.e., index) of the gamepad
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfm_bindGamepadInput(gfmCtx *pCtx, int handle, gfmInputIface button,
+        int port);
 
 /**
  * Reset all bindings from the input

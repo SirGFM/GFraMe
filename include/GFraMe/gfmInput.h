@@ -37,6 +37,7 @@ typedef enum enGFMInputState gfmInputState;
     controller button is multiplied by its ID */
 enum enGFMInputIface {
     gfmIface_none = 0,
+    /** Keyboard keys */
     gfmKey_q,
     gfmKey_w,
     gfmKey_e,
@@ -117,7 +118,9 @@ enum enGFMInputIface {
     gfmKey_end,
     gfmKey_pageUp,
     gfmKey_pageDown,
+    /** Mouse button */
     gfmPointer_button,
+    /** Gamepad buttons */
     gfmController_left,
     gfmController_right,
     gfmController_up,
@@ -132,9 +135,20 @@ enum enGFMInputIface {
     gfmController_r1,
     gfmController_r2,
     gfmController_r3,
+    gfmController_laxis_left,
+    gfmController_laxis_right,
+    gfmController_laxis_up,
+    gfmController_laxis_down,
+    gfmController_raxis_left,
+    gfmController_raxis_right,
+    gfmController_raxis_up,
+    gfmController_raxis_down,
     gfmController_start,
     gfmController_select,
     gfmController_home,
+    /** Controller's axis */
+    gfmController_leftAnalog,
+    gfmController_rightAnalog,
     gfmIface_max
 };
 typedef enum enGFMInputIface gfmInputIface;
@@ -217,15 +231,30 @@ gfmRV gfmInput_reset(gfmInput *pCtx);
 gfmRV gfmInput_addVirtualKey(int *pHandle, gfmInput *pCtx);
 
 /**
- * Bind a key/button to an action
+ * Bind a keyboard's key to an action
  * 
  * @param  pCtx   The context
  * @param  handle The action's handle
- * @param  key    The key/button
+ * @param  key    The key
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
  *                GFMRV_INPUT_ALREADY_BOUND
  */
-gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key);
+gfmRV gfmInput_bindKey(gfmInput *pCtx, int handle, gfmInputIface key);
+
+/**
+ * Bind a gamepad button to an action
+ * 
+ * @param  pCtx   The context
+ * @param  handle The action's handle
+ * @param  button The button
+ * @param  port   Index of the gamepad to trigger this action; If there's no
+ *                gamepad with the requested index, this will simply never
+ *                triggers (this can be related to a console's port numbers);
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfmInput_bindButton(gfmInput *pCtx, int handle, gfmInputIface button,
+        int port);
 
 /**
  * Set the pointer's position (used internally)
@@ -248,7 +277,20 @@ gfmRV gfmInput_setPointerPosition(gfmInput *pCtx, int x, int y);
 gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
 
 /**
- * Swtch a key/button's state
+ * Get the current state of a gamepad's analog stick (i.e., poll the value)
+ * 
+ * @param  pX     The horizontal axis
+ * @param  pY     The vertical axis
+ * @param  pCtx   The input context
+ * @param  port   The gamepad's port
+ * @param  analog Which of the analog sticks to check
+ * @return        GFMRV_OK, ...
+ */
+gfmRV gfmInput_getGamepadAnalog(double *pX, double *pY, gfmInput *pCtx, int port,
+        gfmInputIface analog);
+
+/**
+ * Swtch a key's state
  * 
  * @param  pCtx  The input context
  * @param  key   The key/button
@@ -258,6 +300,20 @@ gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
  *               GFMRV_INPUT_INVALID_STATE
  */
 gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
+        gfmInputState state, unsigned int time);
+
+/**
+ * Swtch a gamepad button's state
+ * 
+ * @param  pCtx   The input context
+ * @param  button The key/button
+ * @param  port   The controller port
+ * @param  state  The virtual key's new state
+ * @param  time   Time, in milliseconds, when the event happened
+ * @param         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
+ *                GFMRV_INPUT_INVALID_STATE
+ */
+gfmRV gfmInput_setButtonState(gfmInput *pCtx, gfmInputIface button, int port,
         gfmInputState state, unsigned int time);
 
 /**
@@ -291,194 +347,6 @@ gfmRV gfmInput_getLastPressed(gfmInputIface *pIface, gfmInput *pCtx);
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmInput_requestLastPressed(gfmInput *pCtx);
-
-#if 0
-
-/**
- * Add a new action to the context; Since this is expected to be more of a
- * static context (i.e., from the start of the game you know every possible
- * action that should be checked for), there's no way to remove actions after
- * they are added!
- * 
- * The handles are sequentily assigned, starting at 0
- * 
- * @param  pHandle Handle to the action
- * @param  pCtx    The context
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
- */
-gfmRV gfmInput_addAction(int *pHandle, gfmInput *pCtx);
-
-/**
- * Removes all active bindings from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
- */
-gfmRV gfmInput_cleanAction(gfmInput *pCtx, int handle);
-
-/**
- * Checks an action's current status
- * 
- * @param  pStatus The action's status
- * @param  pCtx    The context
- * @param  handle  The action's handle
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
- */
-gfmRV gfmInput_getAction(gfmInputStatus *pStatus, gfmInput *pCtx, int handle);
-
-/**
- * Unbind a keyboard key from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindKey(gfmInput *pCtx, int handle, gfmInputKey key);
-
-/**
- * Bind a keyboard key to an action, if it's pressed a few consecutive times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiKey(gfmInput *pCtx, int handle, gfmInputKey key,
-        int num);
-
-/**
- * Unbind a keyboard key from an action that requires consecutives presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiKey(gfmInput *pCtx, int handle, gfmInputKey key,
-        int num);
-
-/**
- * Bind a mouse click/touch to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindPointer(gfmInput *pCtx, int handle);
-
-/**
- * Unbind a mouse click/touch from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindPointer(gfmInput *pCtx, int handle);
-
-/**
- * Bind a mouse click/touch to an action, if it's pressed a few consecutive
- * times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiPointer(gfmInput *pCtx, int handle, int num);
-
-/**
- * Unbind a mouse click/touch from an action that requires consecutives presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiPointer(gfmInput *pCtx, int handle, int num);
-
-/**
- * Get how many controllers are available
- * 
- * @param  pNum The number of controllers
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_getNumControllers(int *pNum, gfmInput *pCtx);
-
-/**
- * Updates the list of available cotrollers (used internally only)
- * 
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_updateControllers(gfmInput *pCtx);
-
-/**
- * Bind a controller's button to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindController(gfmInput *pCtx, int handle, gfmInputController bt,
-        int index);
-/**
- * Unbind a controller's button from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index);
-
-/**
- * Bind a controller's button to an action, if it's pressed a few consecutive
- * times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index, int num);
-/**
- * Unbind a controller's button from an action that requires consecutives
- * presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index, int num);
-
-#endif /* 0 */
 
 #endif /* __GFMINPUT_H__ */
 

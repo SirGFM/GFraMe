@@ -1967,11 +1967,11 @@ __ret:
 }
 
 /**
- * Bind a key/button to an action
+ * Bind a key to an action
  * 
  * @param  pCtx   The game's context
  * @param  handle The action's handle
- * @param  key    The key/button
+ * @param  key    The key
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
  *                GFMRV_INPUT_ALREADY_BOUND
  */
@@ -1987,7 +1987,38 @@ gfmRV gfm_bindInput(gfmCtx *pCtx, int handle, gfmInputIface key) {
     ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
     
     // Bind the new input
-    rv = gfmInput_bind(pCtx->pInput, handle, key);
+    rv = gfmInput_bindKey(pCtx->pInput, handle, key);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Bind a gamepad's button to an action
+ * 
+ * @param  pCtx   The game's context
+ * @param  handle The action's handle
+ * @param  button The button
+ * @param  port   Port (i.e., index) of the gamepad
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfm_bindGamepadInput(gfmCtx *pCtx, int handle, gfmInputIface button,
+        int port) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Everything else will be checked inside
+    // Check that the input system was initialized
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Bind the new input
+    rv = gfmInput_bindButton(pCtx->pInput, handle, button, port);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
