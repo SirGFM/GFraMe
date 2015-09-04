@@ -21,14 +21,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+SDL_GameController *c;
+
 /** The gfmEvent structure */
 struct stGFMEvent {
     /** The last time accumulated */
     unsigned int accLastTime;
     /** Event that will be pushed on every timer callback */
     SDL_Event accTimerEvent;
-    /** Whether we just bound controllers and are getting a repetition */
-    int didJustBindControllers;
+    /** Array of connected and open controllers */
+    SDL_GameController **pGamepads;
+    /** Array with the controllers' ids */
+    int *pGamepadIDs;
+    /** Controller's array length */
+    int numControllers;
 };
 
 /** Size of gfmEvent */
@@ -174,7 +180,13 @@ static gfmInputIface st_gfmEvent_convertSDLKey2GFM(SDL_Keycode sym) {
     }
 }
 
-static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
+/**
+ * Bind all currently connected controllers
+ * 
+ * @param  pCtx The event context
+ * @param  pLog The logging context
+ */
+static gfmRV gfmEvent_bindAllControllers(gfmEvent *pCtx, gfmLog *pLog) {
     gfmRV rv;
     int i, num;
     
@@ -182,13 +194,7 @@ static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
     ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
     ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
     
-    // Don't rebind if we just did it
-    if (pCtx->didJustBindControllers != 0) {
-        rv = GFMRV_OK;
-        goto __ret;
-    }
-    
-    rv = gfmLog_log(pLog, gfmLog_debug, "(Re)Binding controllers...");
+    rv = gfmLog_log(pLog, gfmLog_debug, "Binding all controllers...");
     ASSERT(rv == GFMRV_OK, rv);
     
     // Get how many controllers there are
@@ -197,50 +203,251 @@ static gfmRV gfmEvent_rebindControllers(gfmEvent *pCtx, gfmLog *pLog) {
             "...", num);
     ASSERT(rv == GFMRV_OK, rv);
     
-    // Try to bind the controllers
+    rv = gfmLog_log(pLog, gfmLog_debug, "  Expanding controllers array to %i",
+            num);
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    // Expand the game controllers' buffer
+    pCtx->pGamepads = (SDL_GameController**)realloc(pCtx->pGamepads,
+            num * sizeof(SDL_GameController**));
+    ASSERT_LOG(pCtx->pGamepads, GFMRV_ALLOC_FAILED, pLog);
+    pCtx->pGamepadIDs = (int*)realloc(pCtx->pGamepadIDs, num * sizeof(int));
+    ASSERT_LOG(pCtx->pGamepadIDs, GFMRV_ALLOC_FAILED, pLog);
+    // Clear the expanded part of the array
+    memset(&(pCtx->pGamepads[pCtx->numControllers]), 0x00,
+            sizeof(SDL_GameController**) * (num - pCtx->numControllers));
+    memset(&(pCtx->pGamepadIDs[pCtx->numControllers]), 0xFF,
+            sizeof(int) * (num - pCtx->numControllers));
+    
+    // Store the new length
+    pCtx->numControllers = num;
+    
+    // Try to bind all new controllers
     i = 0;
     while (i < num) {
-        SDL_GameController *c;
-        SDL_Joystick *j;
-        SDL_JoystickGUID guid;
-        char pGuidStr[33];
+        SDL_GameController *pC;
+        SDL_Joystick *pJ;
+        //SDL_JoystickGUID guid;
+        //char pGuidStr[33];
         int id;
         
         // Try to open the controller
-        c = SDL_GameControllerOpen(i);
+        pC = SDL_GameControllerOpen(i);
         // TODO If this fails, check if there's a mapping for the device's GUID,
         // load it and then try again
-        ASSERT_LOG(c, GFMRV_CONTROLLER_FAILED_TO_BIND, pLog);
+        ASSERT_LOG(pC, GFMRV_CONTROLLER_FAILED_TO_BIND, pLog);
+        
         // Get its guid (so we can log)
-        guid = SDL_JoystickGetDeviceGUID(i);
-        SDL_JoystickGetGUIDString(guid, pGuidStr, 33);
+        //guid = SDL_JoystickGetDeviceGUID(i);
+        //SDL_JoystickGetGUIDString(guid, pGuidStr, 33);
+        
         // Get its ID (so we now its order)
-        j = SDL_GameControllerGetJoystick(c);
-        ASSERT_LOG(j, GFMRV_INTERNAL_ERROR, pLog);
-        id = (int)SDL_JoystickInstanceID(j);
+        pJ = SDL_GameControllerGetJoystick(pC);
+        ASSERT_LOG(pJ, GFMRV_INTERNAL_ERROR, pLog);
+        id = (int)SDL_JoystickInstanceID(pJ);
         ASSERT_LOG(id >= 0, GFMRV_CONTROLLER_INVALID_ID, pLog);
         
-        rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %*s to index %i",
-                33, pGuidStr, id);
+        rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %i to index %i",
+                id, i);
         ASSERT(rv == GFMRV_OK, rv);
+        //rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %*s to index %i",
+        //        33, pGuidStr, id);
+        //ASSERT(rv == GFMRV_OK, rv);
         
-        // Close the controller, since we still doesn't support it
-        SDL_GameControllerClose(c);
+        // Store it and its id
+        pCtx->pGamepads[i] = pC;
+        pCtx->pGamepadIDs[i] = id;
         
         i++;
     }
     
-    rv = gfmLog_log(pLog, gfmLog_debug, "Done (Re)Binding controllers!");
+    rv = gfmLog_log(pLog, gfmLog_debug, "Done binding controllers!");
     ASSERT(rv == GFMRV_OK, rv);
     
-    pCtx->didJustBindControllers = 1;
     rv = GFMRV_OK;
 __ret:
     return rv;
 }
 
-static gfmRV gfmEvent_unbindControllers(gfmEvent *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+/**
+ * Unbind all currently opened/bound controllers
+ * 
+ * @param  pCtx The event context
+ */
+static gfmRV gfmEvent_unbindAllControllers(gfmEvent *pCtx) {
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Remove all controllers
+    i = 0;
+    while (i < pCtx->numControllers) {
+        SDL_GameController *pC;
+        
+        // If a controller, if any, on the current index
+        pC = pCtx->pGamepads[i];
+        if (pC) {
+            // Yay! It doesn't return anything!
+            SDL_GameControllerClose(pC);
+            pCtx->pGamepads[i] = 0;
+            pCtx->pGamepadIDs[i] = -1;
+        }
+        i++;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Bind a new controller
+ * 
+ * @param  pCtx  The event context
+ * @param  index SDL index where the controller can be accessed
+ * @param  pLog  The logging context
+ */
+static gfmRV gfmEvent_bindController(gfmEvent *pCtx, int index, gfmLog *pLog) {
+    gfmRV rv;
+    int i, num;
+    
+    // Sanitize arguments
+    ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_debug, "Binding controllers...");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    // Get how many controllers there are
+    num = SDL_NumJoysticks();
+    rv = gfmLog_log(pLog, gfmLog_debug, "  There are %i controllers connected",
+            num);
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    if (pCtx->numControllers < num) {
+        rv = gfmLog_log(pLog, gfmLog_debug, "  Expanding controllers array from"
+                " %i to %i", pCtx->numControllers, num);
+        ASSERT(rv == GFMRV_OK, rv);
+        
+        // Expand the game controllers' buffer
+        pCtx->pGamepads = (SDL_GameController**)realloc(pCtx->pGamepads,
+                num * sizeof(SDL_GameController**));
+        ASSERT_LOG(pCtx->pGamepads, GFMRV_ALLOC_FAILED, pLog);
+        pCtx->pGamepadIDs = (int*)realloc(pCtx->pGamepadIDs, num * sizeof(int));
+        ASSERT_LOG(pCtx->pGamepadIDs, GFMRV_ALLOC_FAILED, pLog);
+        // Clear the expanded part of the array
+        memset(&(pCtx->pGamepads[pCtx->numControllers]), 0x00,
+                sizeof(SDL_GameController**) * (num - pCtx->numControllers));
+        memset(&(pCtx->pGamepadIDs[pCtx->numControllers]), 0xFF,
+                sizeof(int) * (num - pCtx->numControllers));
+        
+        // Store the new length
+        pCtx->numControllers = num;
+    }
+    
+    // Try to bind the new controllers
+    i = 0;
+    while (i < num) {
+        SDL_GameController *pC;
+        
+        // Find an empty slot
+        pC = pCtx->pGamepads[i];
+        if (pC == 0) {
+            //char pGuidStr[33];
+            int id;
+            SDL_Joystick *pJ;
+            
+            // Try to open the controller
+            pC = SDL_GameControllerOpen(index);
+            // TODO If this fails, check if there's a mapping for the device's GUID,
+            // load it and then try again
+            ASSERT_LOG(pC, GFMRV_CONTROLLER_FAILED_TO_BIND, pLog);
+            
+            // Get its guid (so we can log)
+            //guid = SDL_JoystickGetDeviceGUID(index);
+            //SDL_JoystickGetGUIDString(guid, pGuidStr, 33);
+            
+            // Get its ID (so we can detect when its disconected)
+            pJ = SDL_GameControllerGetJoystick(pC);
+            ASSERT_LOG(pJ, GFMRV_INTERNAL_ERROR, pLog);
+            id = (int)SDL_JoystickInstanceID(pJ);
+            ASSERT_LOG(id >= 0, GFMRV_CONTROLLER_INVALID_ID, pLog);
+            
+            rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %i at index"
+                    " %i", id, i);
+            ASSERT(rv == GFMRV_OK, rv);
+            //rv = gfmLog_log(pLog, gfmLog_debug, "  Bound Controller %*s to index %i",
+            //        33, pGuidStr, id);
+            //ASSERT(rv == GFMRV_OK, rv);
+            
+            // Store the controller and its id
+            pCtx->pGamepads[i] = pC;
+            pCtx->pGamepadIDs[i] = id;
+            
+            break;
+        }
+        
+        i++;
+    }
+        
+    rv = gfmLog_log(pLog, gfmLog_debug, "Done binding controllers!");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Unbind a previously opened/bound controller
+ * 
+ * @param  pCtx The event context
+ * @param  id   The gamepad id
+ * @param  pLog The logging context
+ */
+static gfmRV gfmEvent_unbindController(gfmEvent *pCtx, int id, gfmLog *pLog) {
+    gfmRV rv;
+    int i;
+    
+    // Sanitize arguments
+    ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    rv = gfmLog_log(pLog, gfmLog_debug, "Unbinding controller...");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    // Remove any disconnected controllers
+    i = 0;
+    while (i < pCtx->numControllers) {
+        // Check if its the controller we are looking for
+        if (pCtx->pGamepadIDs[i] == id) {
+            SDL_GameController *pC;
+            // And remove it!
+            pC = pCtx->pGamepads[i];
+            if (pC) {
+                rv = gfmLog_log(pLog, gfmLog_debug, "  Removing controller with"
+                        " ID %i from index %i", id, i);
+                ASSERT(rv == GFMRV_OK, rv);
+                
+                // Yay! It doesn't return anything!
+                SDL_GameControllerClose(pC);
+                pCtx->pGamepads[i] = 0;
+                pCtx->pGamepadIDs[i] = -1;
+            }
+            
+            break;
+        }
+        i++;
+    }
+    
+    rv = gfmLog_log(pLog, gfmLog_debug, "Done unbinding controller!");
+    ASSERT(rv == GFMRV_OK, rv);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /******************************************************************************/
@@ -322,9 +529,8 @@ gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx) {
     ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
     
     // Bind any connected joysticks
-    rv = gfmEvent_rebindControllers(pEvent, pLog);
-    // TODO Enable this ASSERT
-    //ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmEvent_bindAllControllers(pEvent, pLog);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
     
     // Initialize the time event (to be pushed)
     pEvent->accTimerEvent.type = SDL_USEREVENT;
@@ -349,10 +555,18 @@ gfmRV gfmEvent_clean(gfmEvent *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // Unbind any bound controllers
-    gfmEvent_unbindControllers(pCtx);
     // Set the last time to now
     pCtx->accLastTime = SDL_GetTicks();
+    
+    // Unbind any bound controllers
+    gfmEvent_unbindAllControllers(pCtx);
+    // Free its buffers
+    if (pCtx->pGamepads) {
+        free(pCtx->pGamepads);
+    }
+    if (pCtx->pGamepadIDs) {
+        free(pCtx->pGamepadIDs);
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -473,25 +687,39 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                         ev.key.timestamp);
                 ASSERT_NR(rv == GFMRV_OK || key == gfmIface_none);
             } break;
-            case SDL_JOYDEVICEADDED:
-            case SDL_JOYDEVICEREMOVED:
-            case SDL_CONTROLLERDEVICEADDED:
-            case SDL_CONTROLLERDEVICEREMOVED:
-            case SDL_CONTROLLERDEVICEREMAPPED: {
+            case SDL_CONTROLLERDEVICEADDED: {
                 gfmLog *pLog;
+                int index;
                 
-                // On linux, since SDL_CONTROLLERDEVICEREMOVED isn't generated,
-                // but SDL_JOYDEVICEREMOVED is, both are used to enter this case
+                // Get the controller's index
+                index = ev.cdevice.which;
                 
-                // Rebind all controllers to add/remove one
+                // Bind it to a port
                 rv = gfm_getLogger(&pLog, pCtx);
                 ASSERT(rv == GFMRV_OK, rv);
-                rv = gfmEvent_rebindControllers(pEv, pLog);
-                // TODO Enable this ASSERT
-                //ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-                
+                rv = gfmEvent_bindController(pEv, index, pLog);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             } break;
-            case SDL_CONTROLLERAXISMOTION:
+            case SDL_JOYDEVICEREMOVED: {
+                gfmLog *pLog;
+                int id;
+                
+                // On linux, since SDL_CONTROLLERDEVICEREMOVED isn't generated,
+                // but SDL_JOYDEVICEREMOVED is, only the later is used to enter
+                // this case
+                
+                // Get the controller's id
+                id = ev.jdevice.which;
+                
+                // Remove this controller
+                rv = gfm_getLogger(&pLog, pCtx);
+                ASSERT(rv == GFMRV_OK, rv);
+                rv = gfmEvent_unbindController(pEv, id, pLog);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            } break;
+            case SDL_CONTROLLERAXISMOTION: {
+                // TODO Set controller status
+            } break;
             case SDL_CONTROLLERBUTTONDOWN:
             case SDL_CONTROLLERBUTTONUP: {
                 // TODO Set controller status
@@ -504,7 +732,6 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
         }
     }
     
-    pEv->didJustBindControllers = 0;
     rv = GFMRV_OK;
 __ret:
     return rv;
