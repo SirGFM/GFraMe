@@ -40,7 +40,7 @@ dev libraries, but that would be no fun... :)
 
 ## Compiling and installing
 
-With all dependencies installing,  open a terminal and simply run:
+With all dependencies installed,  open a terminal and simply run:
 
 ```
 $ make
