@@ -456,6 +456,90 @@ gfmRV gfmInput_getGamepadAnalog(double *pX, double *pY, gfmInput *pCtx, int port
 }
 
 /**
+ * Set the current value of a single axis from an analog stick
+ * 
+ * @param  pCtx       The input context
+ * @param  port       The gamepad's port
+ * @param  analogAxis The axis (and analog) being set
+ * @param  val        The axis' new value
+ * @param  time       Time, in milliseconds, when the event happened
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
+        gfmInputIface analogAxis, double val, unsigned int time) {
+    gfmRV rv;
+    gfmInputIface posBt, negBt;
+    gfmInputState posSt, negSt;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analogAxis >= gfmController_leftTrigger, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analogAxis <= gfmController_rightAnalogY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
+    // If there're no keys, return
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    // TODO Assert the state?
+    
+    // Retrieve the axis' button
+    switch (analogAxis) {
+        case gfmController_leftAnalogX: {
+            posBt = gfmController_laxis_right;
+            negBt = gfmController_laxis_left;
+        } break;
+        case gfmController_leftAnalogY: {
+            posBt = gfmController_laxis_down;
+            negBt = gfmController_laxis_up;
+        } break;
+        case gfmController_rightAnalogX: {
+            posBt = gfmController_raxis_right;
+            negBt = gfmController_raxis_left;
+        } break;
+        case gfmController_rightAnalogY: {
+            posBt = gfmController_raxis_down;
+            negBt = gfmController_raxis_up;
+        } break;
+        case gfmController_leftTrigger: {
+            posBt = gfmController_l2;
+            negBt = gfmIface_none;
+        } break;
+        case gfmController_rightTrigger: {
+            posBt = gfmController_r2;
+            negBt = gfmIface_none;
+        } break;
+        default: {}
+    }
+    
+    // TODO Store this deadzone elsewhere
+    // TODO Store the previous value somewhere and use it to detect borders
+    // Set each direction's state
+    if (val > 0.3f) {
+        posSt = gfmInput_justPressed;
+        negSt = gfmInput_justReleased;
+    }
+    else if (val < -0.3f) {
+        posSt = gfmInput_justReleased;
+        negSt = gfmInput_justPressed;
+    }
+    else {
+        posSt = gfmInput_justReleased;
+        negSt = gfmInput_justReleased;
+    }
+    
+    // Set both direction's values
+    rv = gfmInput_setButtonState(pCtx, posBt, port, posSt, time);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Ignore the return on the negative direction
+    gfmInput_setButtonState(pCtx, negBt, port, negSt, time);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Swtch a key's state
  * 
  * @param  pCtx  The input context
@@ -475,7 +559,10 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
     ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // If there're no keys, return
-    ASSERT(pCtx->pTree, GFMRV_OK);
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     // TODO Assert the state?
     
     // Try to retrieve the bound virtual key
@@ -534,7 +621,10 @@ gfmRV gfmInput_setButtonState(gfmInput *pCtx, gfmInputIface button, int port,
     //ASSERT(button < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
     // If there're no keys, return
-    ASSERT(pCtx->pTree, GFMRV_OK);
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     // TODO Assert the state?
     
     // 'Convert' the button, given the controller port

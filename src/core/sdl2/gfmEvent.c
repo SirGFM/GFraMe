@@ -744,7 +744,52 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             } break;
             case SDL_CONTROLLERAXISMOTION: {
-                // TODO Set controller status
+                float val;
+                gfmInputIface axis;
+                gfmLog *pLog;
+                int port, id;
+                
+                // Remove this controller
+                rv = gfm_getLogger(&pLog, pCtx);
+                ASSERT(rv == GFMRV_OK, rv);
+                
+                // Retrieve the controller's id
+                id = ev.caxis.which;
+                // Find it's index (i.e., its port number)
+                port = 0;
+                while (port < pEv->numControllers) {
+                    if (pEv->pGamepadIDs[port] == id) {
+                        break;
+                    }
+                    port++;
+                }
+                ASSERT_LOG(port < pEv->numControllers,
+                        GFMRV_CONTROLLER_INVALID_ID, pLog);
+                
+                // Convert the value to the interval [-1, 1]; That '0x7fff'
+                // constant comes from the fact that ev.caxis.value is a 16-bits
+                // signed integer
+                val = ev.caxis.value / (float)0x7fff;
+                
+                // Properly set the axis on the gfmInput interface
+                switch(ev.caxis.axis) {
+                    case SDL_CONTROLLER_AXIS_LEFTX:
+                            axis = gfmController_leftAnalogX; break;
+                    case SDL_CONTROLLER_AXIS_LEFTY:
+                            axis = gfmController_leftAnalogY; break;
+                    case SDL_CONTROLLER_AXIS_RIGHTX:
+                            axis = gfmController_rightAnalogX; break;
+                    case SDL_CONTROLLER_AXIS_RIGHTY:
+                            axis = gfmController_rightAnalogY; break;
+                    case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                            axis = gfmController_leftTrigger; break;
+                    case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                            axis = gfmController_rightTrigger; break;
+                    default: axis = gfmIface_none;
+                }
+                rv = gfmInput_setGamepadAxis(pInput, port, axis, val,
+                        ev.key.timestamp);
+                ASSERT_NR(rv == GFMRV_OK);
             } break;
             case SDL_CONTROLLERBUTTONDOWN: {
                 gfmInputIface button;

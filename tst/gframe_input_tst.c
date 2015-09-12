@@ -228,14 +228,18 @@ int main(int arg, char *argv[]) {
                     
                     if (port == -1) {
                         rv = gfm_bindInput(pCtx, handle, iface);
-                        ASSERT_NR(rv == GFMRV_OK);
+                        ASSERT_NR(rv == GFMRV_OK ||
+                                rv == GFMRV_INPUT_ALREADY_BOUND);
                     }
                     else {
                         rv = gfm_bindGamepadInput(pCtx, handle, iface, port);
-                        ASSERT_NR(rv == GFMRV_OK);
+                        ASSERT_NR(rv == GFMRV_OK ||
+                                 rv == GFMRV_INPUT_ALREADY_BOUND);
                     }
                     
-                    keysSet++;
+                    if (rv == GFMRV_OK) {
+                        keysSet++;
+                    }
                 }
             }
             else {

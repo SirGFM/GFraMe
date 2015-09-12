@@ -146,9 +146,15 @@ enum enGFMInputIface {
     gfmController_start,
     gfmController_select,
     gfmController_home,
-    /** Controller's axis */
+    /** Controller's axis - NOTE: These are never triggered! */
     gfmController_leftAnalog,
     gfmController_rightAnalog,
+    gfmController_leftTrigger,
+    gfmController_rightTrigger,
+    gfmController_leftAnalogX,
+    gfmController_leftAnalogY,
+    gfmController_rightAnalogX,
+    gfmController_rightAnalogY,
     gfmIface_max
 };
 typedef enum enGFMInputIface gfmInputIface;
@@ -288,6 +294,19 @@ gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
  */
 gfmRV gfmInput_getGamepadAnalog(double *pX, double *pY, gfmInput *pCtx, int port,
         gfmInputIface analog);
+
+/**
+ * Set the current value of a single axis from an analog stick
+ * 
+ * @param  pCtx       The input context
+ * @param  port       The gamepad's port
+ * @param  analogAxis The axis (and analog) being set
+ * @param  val        The axis' new value
+ * @param  time       Time, in milliseconds, when the event happened
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
+        gfmInputIface analogAxis, double val, unsigned int time);
 
 /**
  * Swtch a key's state
