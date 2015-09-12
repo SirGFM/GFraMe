@@ -211,6 +211,15 @@ gfmRV gfmInput_clean(gfmInput *pCtx);
 gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms);
 
 /**
+ * Set the minimum value to detected a trigger/axis press
+ * 
+ * @param  pCtx The context
+ * @param  val  The value to detect an axis as pressed
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_setAxisTrigger(gfmInput *pCtx, float val);
+
+/**
  * Updates every input, correctly marking 'em  as just pressed or whatever
  * 
  * @param  pCtx The context

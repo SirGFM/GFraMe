@@ -48,6 +48,8 @@ struct enGFMInput {
     int pointerY;
     /** How long a between 'presses' in a multi-press (in ms) */
     unsigned int multiDelay;
+    /** Minimum value to detect an axis as pressed */
+    float axisTriggerVal;
     /** Whether this context is expecting a key press */
     int waitingInput;
     /** Last 'iface' pressed */
@@ -119,6 +121,8 @@ gfmRV gfmInput_init(gfmInput *pCtx) {
     ms = 300;
     rv = gfmInput_setMultiDelay(pCtx, ms);
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmInput_setAxisTrigger(pCtx, 0.3f);
+    ASSERT_NR(rv == GFMRV_OK);
     // Pre-allocate the virtual key array
     gfmGenArr_setMinSize(gfmVirtualKey, pCtx->pVKeys, 14, gfmVirtualKey_getNew);
     // Pre-allocate some nodes
@@ -173,6 +177,26 @@ gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     pCtx->multiDelay = ms;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the minimum value to detected a trigger/axis press
+ * 
+ * @param  pCtx The context
+ * @param  val  The value to detect an axis as pressed
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_setAxisTrigger(gfmInput *pCtx, float val) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    pCtx->axisTriggerVal = val;
     
     rv = GFMRV_OK;
 __ret:
@@ -512,14 +536,12 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
         default: {}
     }
     
-    // TODO Store this deadzone elsewhere
-    // TODO Store the previous value somewhere and use it to detect borders
     // Set each direction's state
-    if (val > 0.3f) {
+    if (val > pCtx->axisTriggerVal) {
         posSt = gfmInput_justPressed;
         negSt = gfmInput_justReleased;
     }
-    else if (val < -0.3f) {
+    else if (val < -pCtx->axisTriggerVal) {
         posSt = gfmInput_justReleased;
         negSt = gfmInput_justPressed;
     }
