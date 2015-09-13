@@ -532,8 +532,7 @@ gfmRV gfmBackbuffer_drawEnd(gfmBackbuffer *pCtx, gfmWindow *pWnd) {
     // Set the screen as rendering target
     SDL_SetRenderTarget(pCtx->pRenderer, 0);
     // Clear the screen
-    SDL_SetRenderDrawColor(pCtx->pRenderer, pCtx->bgRed, pCtx->bgGreen,
-            pCtx->bgBlue, pCtx->bgAlpha);
+    SDL_SetRenderDrawColor(pCtx->pRenderer, 0/*r*/, 0/*g*/, 0/*b*/, 0/*a*/);
     SDL_RenderClear(pCtx->pRenderer);
     // Render the backbuffer to the screen
     SDL_RenderCopy(pCtx->pRenderer, pCtx->pBackbuffer, 0/*srcRect*/,

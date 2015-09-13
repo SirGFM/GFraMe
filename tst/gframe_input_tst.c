@@ -182,6 +182,7 @@ int main(int arg, char *argv[]) {
             // Retrieve every key state (or set keys, if not yet set)
             if (keysSet < 4) {
                 gfmInputIface iface;
+                int port;
                 
                 kleft = gfmInput_released;
                 kright = gfmInput_released;
@@ -189,6 +190,8 @@ int main(int arg, char *argv[]) {
                 kdown = gfmInput_released;
                 
                 // Get the last pressed key
+                rv = gfm_getLastPort(&port, pCtx);
+                ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_WAITING);
                 rv = gfm_getLastPressed(&iface, pCtx);
                 ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_WAITING);
                 
@@ -223,10 +226,20 @@ int main(int arg, char *argv[]) {
                         default: handle = 0;
                     }
                     
-                    rv = gfm_bindInput(pCtx, handle, iface);
-                    ASSERT_NR(rv == GFMRV_OK);
+                    if (port == -1) {
+                        rv = gfm_bindInput(pCtx, handle, iface);
+                        ASSERT_NR(rv == GFMRV_OK ||
+                                rv == GFMRV_INPUT_ALREADY_BOUND);
+                    }
+                    else {
+                        rv = gfm_bindGamepadInput(pCtx, handle, iface, port);
+                        ASSERT_NR(rv == GFMRV_OK ||
+                                 rv == GFMRV_INPUT_ALREADY_BOUND);
+                    }
                     
-                    keysSet++;
+                    if (rv == GFMRV_OK) {
+                        keysSet++;
+                    }
                 }
             }
             else {

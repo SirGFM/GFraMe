@@ -34,8 +34,19 @@ gfmGenArr_define(gfmVirtualKey);
 /** Creates the nodes array type */
 gfmGenArr_define(gfmKeyNode);
 
+/** All axis of a gamepad */
+struct stGFMGamepadAxis {
+    float leftX;
+    float leftY;
+    float rightX;
+    float rightY;
+    float leftTrigger;
+    float rightTrigger;
+};
+typedef struct stGFMGamepadAxis gfmGamepadAxis;
+
 /** Input context */
-struct enGFMInput {
+struct stGFMInput {
     /** Expandable array of virtual keys */
     gfmGenArr_var(gfmVirtualKey, pVKeys);
     /** Expandable array with all keys that form the tree of bound keys */
@@ -48,10 +59,17 @@ struct enGFMInput {
     int pointerY;
     /** How long a between 'presses' in a multi-press (in ms) */
     unsigned int multiDelay;
+    /** Minimum value to detect an axis as pressed */
+    float axisTriggerVal;
     /** Whether this context is expecting a key press */
     int waitingInput;
     /** Last 'iface' pressed */
     gfmInputIface lastIface;
+    /** Port of the last controller that pressed a button or -1 */
+    int lastPort;
+    /** Value of all axis, ordered by port */
+    gfmGamepadAxis *pAxis;
+    int pAxisLen;
 };
 
 /**
@@ -117,6 +135,8 @@ gfmRV gfmInput_init(gfmInput *pCtx) {
     ms = 300;
     rv = gfmInput_setMultiDelay(pCtx, ms);
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmInput_setAxisTrigger(pCtx, 0.3f);
+    ASSERT_NR(rv == GFMRV_OK);
     // Pre-allocate the virtual key array
     gfmGenArr_setMinSize(gfmVirtualKey, pCtx->pVKeys, 14, gfmVirtualKey_getNew);
     // Pre-allocate some nodes
@@ -148,6 +168,12 @@ gfmRV gfmInput_clean(gfmInput *pCtx) {
     gfmGenArr_clean(pCtx->pVKeys, gfmVirtualKey_free);
     gfmGenArr_clean(pCtx->pKeys, gfmKeyNode_free);
     pCtx->pTree = 0;
+    // Free all the axis values
+    if (pCtx->pAxis) {
+        free(pCtx->pAxis);
+        pCtx->pAxis = 0;
+    }
+    pCtx->pAxisLen = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -171,6 +197,26 @@ gfmRV gfmInput_setMultiDelay(gfmInput *pCtx, unsigned int ms) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     pCtx->multiDelay = ms;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the minimum value to detected a trigger/axis press
+ * 
+ * @param  pCtx The context
+ * @param  val  The value to detect an axis as pressed
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_setAxisTrigger(gfmInput *pCtx, float val) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    pCtx->axisTriggerVal = val;
     
     rv = GFMRV_OK;
 __ret:
@@ -288,15 +334,15 @@ __ret:
 }
 
 /**
- * Bind a key/button to an action
+ * Bind a keyboard's key to an action
  * 
  * @param  pCtx   The context
  * @param  handle The action's handle
- * @param  key    The key/button
+ * @param  key    The key
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
  *                GFMRV_INPUT_ALREADY_BOUND
  */
-gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key) {
+gfmRV gfmInput_bindKey(gfmInput *pCtx, int handle, gfmInputIface key) {
     gfmKeyNode *pNode;
     gfmRV rv;
     gfmVirtualKey *pVKey;
@@ -321,6 +367,62 @@ gfmRV gfmInput_bind(gfmInput *pCtx, int handle, gfmInputIface key) {
             gfmKeyNode_getNew);
     // Initialize it
     rv = gfmKeyNode_init(pNode, key, pVKey);
+    ASSERT_NR(rv == GFMRV_OK);
+    // And insert it into the tree
+    rv = gfmKeyNode_insert(pNode, &(pCtx->pTree));
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // 'Push' it into the array
+    gfmGenArr_push(pCtx->pKeys);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Bind a gamepad button to an action
+ * 
+ * @param  pCtx   The context
+ * @param  handle The action's handle
+ * @param  button The button
+ * @param  port   Index of the gamepad to trigger this action; If there's no
+ *                gamepad with the requested index, this will simply never
+ *                triggers (this can be related to a console's port numbers);
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
+ *                GFMRV_INPUT_ALREADY_BOUND
+ */
+gfmRV gfmInput_bindButton(gfmInput *pCtx, int handle, gfmInputIface button,
+        int port) {
+    gfmKeyNode *pNode;
+    gfmRV rv;
+    gfmVirtualKey *pVKey;
+    gfmInputIface realButton;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(button > gfmIface_none, GFMRV_ARGUMENTS_BAD);
+    ASSERT(button < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that the handle is valid
+    ASSERT(handle < gfmGenArr_getUsed(pCtx->pVKeys),
+            GFMRV_INPUT_INVALID_HANDLE);
+    
+    // 'Convert' the button, given the controller port
+    realButton = button + (gfmController_home - gfmController_left) * port;
+    
+    // Check that the button is still unbound
+    rv = gfmKeyNode_isBound(pCtx->pTree, realButton);
+    ASSERT(rv == GFMRV_FALSE, GFMRV_INPUT_ALREADY_BOUND);
+    
+    // Retrieve the handle's virtual key
+    pVKey = gfmGenArr_getObject(pCtx->pVKeys, handle);
+    
+    // Get a new node
+    gfmGenArr_getNextRef(gfmKeyNode, pCtx->pKeys, 1, pNode,
+            gfmKeyNode_getNew);
+    // Initialize it
+    rv = gfmKeyNode_init(pNode, realButton, pVKey);
     ASSERT_NR(rv == GFMRV_OK);
     // And insert it into the tree
     rv = gfmKeyNode_insert(pNode, &(pCtx->pTree));
@@ -383,7 +485,161 @@ __ret:
 }
 
 /**
- * Swtch a key/button's state
+ * Get the current state of a gamepad's analog stick (i.e., poll the value)
+ * 
+ * @param  pX     The horizontal axis
+ * @param  pY     The vertical axis
+ * @param  pCtx   The input context
+ * @param  port   The gamepad's port
+ * @param  analog Which of the analog sticks to check
+ * @return        GFMRV_OK, ...
+ */
+gfmRV gfmInput_getGamepadAnalog(float *pX, float *pY, gfmInput *pCtx, int port,
+        gfmInputIface analog) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analog >= gfmController_leftAnalog, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analog <= gfmController_rightTrigger, GFMRV_ARGUMENTS_BAD);
+    
+    // Check if there's a connected controller on that port
+    if (port >= pCtx->pAxisLen) {
+        *pX = 0.0f;
+        *pY = 0.0f;
+    }
+    else {
+        // Retrieve the value from the requested axis
+        switch (analog) {
+            case gfmController_leftAnalog: {
+                *pX = pCtx->pAxis[port].leftX;
+                *pY = pCtx->pAxis[port].leftY;
+            } break;
+            case gfmController_rightAnalog: {
+                *pX = pCtx->pAxis[port].rightX;
+                *pY = pCtx->pAxis[port].rightY;
+            } break;
+            case gfmController_leftTrigger: {
+                *pX = pCtx->pAxis[port].leftTrigger;
+                *pY = pCtx->pAxis[port].leftTrigger;
+            } break;
+            case gfmController_rightTrigger: {
+                *pX = pCtx->pAxis[port].rightTrigger;
+                *pY = pCtx->pAxis[port].rightTrigger;
+            } break;
+            default: {}
+        }
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the current value of a single axis from an analog stick
+ * 
+ * @param  pCtx       The input context
+ * @param  port       The gamepad's port
+ * @param  analogAxis The axis (and analog) being set
+ * @param  val        The axis' new value
+ * @param  time       Time, in milliseconds, when the event happened
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
+        gfmInputIface analogAxis, double val, unsigned int time) {
+    gfmRV rv;
+    gfmInputIface posBt, negBt;
+    gfmInputState posSt, negSt;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analogAxis >= gfmController_leftTrigger, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analogAxis <= gfmController_rightAnalogY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that the axis buffer is big enough to store this port's values
+    if (pCtx->pAxisLen <= port) {
+        pCtx->pAxis = (gfmGamepadAxis*)realloc(pCtx->pAxis,
+                sizeof(gfmGamepadAxis) * (port + 1));
+        ASSERT(pCtx->pAxis, GFMRV_ALLOC_FAILED);
+        
+        memset(&(pCtx->pAxis[port]), 0x0, sizeof(gfmGamepadAxis) *
+                (port + 1 - pCtx->pAxisLen));
+        
+        pCtx->pAxisLen = port + 1;
+    }
+    
+    // Retrieve the axis' button and store its value
+    switch (analogAxis) {
+        case gfmController_leftAnalogX: {
+            posBt = gfmController_laxis_right;
+            negBt = gfmController_laxis_left;
+            pCtx->pAxis[port].leftX = val;
+        } break;
+        case gfmController_leftAnalogY: {
+            posBt = gfmController_laxis_down;
+            negBt = gfmController_laxis_up;
+            pCtx->pAxis[port].leftY = val;
+        } break;
+        case gfmController_rightAnalogX: {
+            posBt = gfmController_raxis_right;
+            negBt = gfmController_raxis_left;
+            pCtx->pAxis[port].rightX = val;
+        } break;
+        case gfmController_rightAnalogY: {
+            posBt = gfmController_raxis_down;
+            negBt = gfmController_raxis_up;
+            pCtx->pAxis[port].rightY = val;
+        } break;
+        case gfmController_leftTrigger: {
+            posBt = gfmController_l2;
+            negBt = gfmIface_none;
+            pCtx->pAxis[port].leftTrigger = val;
+        } break;
+        case gfmController_rightTrigger: {
+            posBt = gfmController_r2;
+            negBt = gfmIface_none;
+            pCtx->pAxis[port].rightTrigger = val;
+        } break;
+        default: {}
+    }
+    
+    // If the key isn't bound, exit (since the value was already stored)
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    
+    // Set each direction's state
+    if (val > pCtx->axisTriggerVal) {
+        posSt = gfmInput_justPressed;
+        negSt = gfmInput_justReleased;
+    }
+    else if (val < -pCtx->axisTriggerVal) {
+        posSt = gfmInput_justReleased;
+        negSt = gfmInput_justPressed;
+    }
+    else {
+        posSt = gfmInput_justReleased;
+        negSt = gfmInput_justReleased;
+    }
+    
+    // Set both direction's values
+    rv = gfmInput_setButtonState(pCtx, posBt, port, posSt, time);
+    ASSERT(rv == GFMRV_OK, rv);
+    // Ignore the return on the negative direction
+    gfmInput_setButtonState(pCtx, negBt, port, negSt, time);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Swtch a key's state
  * 
  * @param  pCtx  The input context
  * @param  key   The key/button
@@ -402,7 +658,10 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     ASSERT(key > gfmIface_none, GFMRV_ARGUMENTS_BAD);
     ASSERT(key < gfmIface_max, GFMRV_ARGUMENTS_BAD);
     // If there're no keys, return
-    ASSERT(pCtx->pTree, GFMRV_OK);
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     // TODO Assert the state?
     
     // Try to retrieve the bound virtual key
@@ -430,6 +689,72 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     // Store the last pressed key, if the operation is active
     if (pCtx->waitingInput && (state & gfmInput_pressed)) {
         pCtx->lastIface = key;
+        pCtx->lastPort = -1;
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Swtch a gamepad button's state
+ * 
+ * @param  pCtx   The input context
+ * @param  button The key/button
+ * @param  port   The controller port
+ * @param  state  The virtual key's new state
+ * @param  time   Time, in milliseconds, when the event happened
+ * @param         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_KEY_NOT_BOUND,
+ *                GFMRV_INPUT_INVALID_STATE
+ */
+gfmRV gfmInput_setButtonState(gfmInput *pCtx, gfmInputIface button, int port,
+        gfmInputState state, unsigned int time) {
+    gfmRV rv;
+    gfmVirtualKey *pVKey;
+    gfmInputIface realButton;
+    
+    // Satinize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(button > gfmIface_none, GFMRV_ARGUMENTS_BAD);
+    //ASSERT(button < gfmIface_max, GFMRV_ARGUMENTS_BAD);
+    ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
+    // If there're no keys, return
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+    // TODO Assert the state?
+    
+    // 'Convert' the button, given the controller port
+    realButton = button + (gfmController_home - gfmController_left) * port;
+    
+    // Try to retrieve the bound virtual key
+    rv = gfmKeyNode_getVirtualKey(&pVKey, pCtx->pTree, realButton);
+    ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
+    
+    // If the input is bound and this isn't a repeated press
+    if (rv == GFMRV_OK && ((pVKey->state & state) & gfmInput_stateMask) == 0) {
+        // Set the next state on byte 1
+        pVKey->state |= state << 8;
+        
+        // Check for multi-press
+        if ((state & gfmInput_pressed) == gfmInput_pressed) {
+            if (time - pVKey->lastPress <= pCtx->multiDelay) {
+                pVKey->num++;
+            }
+            else {
+                pVKey->num = 1;
+            }
+            // Update the time
+            pVKey->lastPress = time;
+        }
+    }
+    
+    // Store the last pressed key, if the operation is active
+    if (pCtx->waitingInput && (state & gfmInput_pressed)) {
+        pCtx->lastIface = button;
+        pCtx->lastPort = port;
     }
     
     rv = GFMRV_OK;
@@ -508,6 +833,41 @@ __ret:
 }
 
 /**
+ * Get the port of the last pressed button; If the last input didn't come from
+ * a gamepad, the port will be -1
+ * NOTE: This function must be called before getLastPressed!!!
+ * 
+ * @param pPort The port
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OPERATION_NOT_ACTIVE,
+ *                GFMRV_WAITING
+ */
+gfmRV gfmInput_getLastPort(int *pPort, gfmInput *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pPort, GFMRV_ARGUMENTS_BAD);
+    // Check that the operation was initialized
+    if (!(pCtx->waitingInput)) {
+        rv = GFMRV_OPERATION_NOT_ACTIVE;
+        goto __ret;
+    }
+    // Check that a key was pressed
+    if (pCtx->lastIface == gfmIface_none) {
+        rv = GFMRV_WAITING;
+        goto __ret;
+    }
+    
+    // Set the return
+    *pPort = pCtx->lastPort;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Request that the next key pressed be store
  * 
  * @param  pCtx   The input context
@@ -527,229 +887,4 @@ gfmRV gfmInput_requestLastPressed(gfmInput *pCtx) {
 __ret:
     return rv;
 }
-
-#if 0
-
-/**
- * Add a new action to the context; Since this is expected to be more of a
- * static context (i.e., from the start of the game you know every possible
- * action that should be checked for), there's no way to remove actions after
- * they are added!
- * 
- * The handles are sequentily assigned, starting at 0
- * 
- * @param  pHandle Handle to the action
- * @param  pCtx    The context
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
- */
-gfmRV gfmInput_addAction(int *pHandle, gfmInput *pCtx);
-
-/**
- * Removes all active bindings from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
- */
-gfmRV gfmInput_cleanAction(gfmInput *pCtx, int handle);
-
-/**
- * Checks an action's current status
- * 
- * @param  pStatus The action's status
- * @param  pCtx    The context
- * @param  handle  The action's handle
- * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE
- */
-gfmRV gfmInput_getAction(gfmInputStatus *pStatus, gfmInput *pCtx, int handle);
-
-/**
- * Bind a keyboard key to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindKey(gfmInput *pCtx, int handle, gfmInputKey key);
-
-/**
- * Unbind a keyboard key from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindKey(gfmInput *pCtx, int handle, gfmInputKey key);
-
-/**
- * Bind a keyboard key to an action, if it's pressed a few consecutive times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiKey(gfmInput *pCtx, int handle, gfmInputKey key,
-        int num);
-
-/**
- * Unbind a keyboard key from an action that requires consecutives presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  key    The keyboard key
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiKey(gfmInput *pCtx, int handle, gfmInputKey key,
-        int num);
-
-/**
- * Bind a mouse click/touch to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindPointer(gfmInput *pCtx, int handle);
-
-/**
- * Unbind a mouse click/touch from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindPointer(gfmInput *pCtx, int handle);
-
-/**
- * Bind a mouse click/touch to an action, if it's pressed a few consecutive
- * times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiPointer(gfmInput *pCtx, int handle, int num);
-
-/**
- * Unbind a mouse click/touch from an action that requires consecutives presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiPointer(gfmInput *pCtx, int handle, int num);
-
-gfmRV gfmInput_setPointerState(gfmInput *pCtx, gfmInputState state, unsigned int time) {
-    gfmRV rv;
-    unsigned int delay;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(state == gfmInput_justReleased || state == gfmInput_justPressed,
-            GFMRV_ARGUMENTS_BAD);
-    
-    // Check if a multi-press is happening
-    delay = time - pCtx->pointer.lastTime;
-    if (state == gfmInput_justPressed && delay < pCtx->multiDelay) {
-        pCtx->pointer.num++;
-    }
-    else if (state == gfmInput_justPressed) {
-        // Otherwise, set it back to 1
-        pCtx->pointer.num = 1;
-    }
-    // Set the pointer state
-    pCtx->pointer.state = state;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Get how many controllers are available
- * 
- * @param  pNum The number of controllers
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_getNumControllers(int *pNum, gfmInput *pCtx);
-
-/**
- * Updates the list of available cotrollers (used internally only)
- * 
- * @param  pCtx The context
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmInput_updateControllers(gfmInput *pCtx);
-
-/**
- * Bind a controller's button to an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindController(gfmInput *pCtx, int handle, gfmInputController bt,
-        int index);
-/**
- * Unbind a controller's button from an action
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index);
-
-/**
- * Bind a controller's button to an action, if it's pressed a few consecutive
- * times
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_ALREADY_BOUND
- */
-gfmRV gfmInput_bindMultiController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index, int num);
-/**
- * Unbind a controller's button from an action that requires consecutives
- * presses
- * 
- * @param  pCtx   The context
- * @param  handle The action's handle
- * @param  bt     The controller's button
- * @param  index  Which controller should be used
- * @param  num    Number of consecutive presses to activate the action
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INPUT_INVALID_HANDLE,
- *                GFMRV_INPUT_NOT_BOUND
- */
-gfmRV gfmInput_unbindMultiController(gfmInput *pCtx, int handle,
-        gfmInputController bt, int index, int num);
-
-#endif /* 0 */
 
