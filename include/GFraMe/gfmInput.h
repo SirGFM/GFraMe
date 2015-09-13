@@ -19,7 +19,7 @@
 #ifndef __GFMINPUT_STRUCT__
 #define __GFMINPUT_STRUCT__
 
-typedef struct enGFMInput gfmInput;
+typedef struct stGFMInput gfmInput;
 
 enum enGFMInputState {
     gfmInput_released     = 0x01,
@@ -301,7 +301,7 @@ gfmRV gfmInput_getPointerPosition(int *pX, int *pY, gfmInput *pCtx);
  * @param  analog Which of the analog sticks to check
  * @return        GFMRV_OK, ...
  */
-gfmRV gfmInput_getGamepadAnalog(double *pX, double *pY, gfmInput *pCtx, int port,
+gfmRV gfmInput_getGamepadAnalog(float *pX, float *pY, gfmInput *pCtx, int port,
         gfmInputIface analog);
 
 /**

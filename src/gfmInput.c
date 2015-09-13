@@ -34,8 +34,19 @@ gfmGenArr_define(gfmVirtualKey);
 /** Creates the nodes array type */
 gfmGenArr_define(gfmKeyNode);
 
+/** All axis of a gamepad */
+struct stGFMGamepadAxis {
+    float leftX;
+    float leftY;
+    float rightX;
+    float rightY;
+    float leftTrigger;
+    float rightTrigger;
+};
+typedef struct stGFMGamepadAxis gfmGamepadAxis;
+
 /** Input context */
-struct enGFMInput {
+struct stGFMInput {
     /** Expandable array of virtual keys */
     gfmGenArr_var(gfmVirtualKey, pVKeys);
     /** Expandable array with all keys that form the tree of bound keys */
@@ -56,6 +67,9 @@ struct enGFMInput {
     gfmInputIface lastIface;
     /** Port of the last controller that pressed a button or -1 */
     int lastPort;
+    /** Value of all axis, ordered by port */
+    gfmGamepadAxis *pAxis;
+    int pAxisLen;
 };
 
 /**
@@ -154,6 +168,12 @@ gfmRV gfmInput_clean(gfmInput *pCtx) {
     gfmGenArr_clean(pCtx->pVKeys, gfmVirtualKey_free);
     gfmGenArr_clean(pCtx->pKeys, gfmKeyNode_free);
     pCtx->pTree = 0;
+    // Free all the axis values
+    if (pCtx->pAxis) {
+        free(pCtx->pAxis);
+        pCtx->pAxis = 0;
+    }
+    pCtx->pAxisLen = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -474,9 +494,48 @@ __ret:
  * @param  analog Which of the analog sticks to check
  * @return        GFMRV_OK, ...
  */
-gfmRV gfmInput_getGamepadAnalog(double *pX, double *pY, gfmInput *pCtx, int port,
+gfmRV gfmInput_getGamepadAnalog(float *pX, float *pY, gfmInput *pCtx, int port,
         gfmInputIface analog) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analog >= gfmController_leftAnalog, GFMRV_ARGUMENTS_BAD);
+    ASSERT(analog <= gfmController_rightTrigger, GFMRV_ARGUMENTS_BAD);
+    
+    // Check if there's a connected controller on that port
+    if (port < pCtx->pAxisLen) {
+        *pX = 0.0f;
+        *pY = 0.0f;
+    }
+    else {
+        // Retrieve the value from the requested axis
+        switch (analog) {
+            case gfmController_leftAnalog: {
+                *pX = pCtx->pAxis[port].leftX;
+                *pY = pCtx->pAxis[port].leftY;
+            } break;
+            case gfmController_rightAnalog: {
+                *pX = pCtx->pAxis[port].rightX;
+                *pY = pCtx->pAxis[port].rightY;
+            } break;
+            case gfmController_leftTrigger: {
+                *pX = pCtx->pAxis[port].leftTrigger;
+                *pY = pCtx->pAxis[port].leftTrigger;
+            } break;
+            case gfmController_rightTrigger: {
+                *pX = pCtx->pAxis[port].rightTrigger;
+                *pY = pCtx->pAxis[port].rightTrigger;
+            } break;
+            default: {}
+        }
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -507,31 +566,49 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
     }
     // TODO Assert the state?
     
-    // Retrieve the axis' button
+    // Check that the axis buffer is big enough to store this port's values
+    if (pCtx->pAxisLen <= port) {
+        pCtx->pAxis = (gfmGamepadAxis*)realloc(pCtx->pAxis,
+                sizeof(gfmGamepadAxis) * (port + 1));
+        ASSERT(pCtx->pAxis, GFMRV_ALLOC_FAILED);
+        
+        memset(&(pCtx->pAxis[port]), 0x0, sizeof(gfmGamepadAxis) *
+                (port + 1 - pCtx->pAxisLen));
+        
+        pCtx->pAxisLen = port + 1;
+    }
+    
+    // Retrieve the axis' button and store its value
     switch (analogAxis) {
         case gfmController_leftAnalogX: {
             posBt = gfmController_laxis_right;
             negBt = gfmController_laxis_left;
+            pCtx->pAxis[port].leftX = val;
         } break;
         case gfmController_leftAnalogY: {
             posBt = gfmController_laxis_down;
             negBt = gfmController_laxis_up;
+            pCtx->pAxis[port].leftY = val;
         } break;
         case gfmController_rightAnalogX: {
             posBt = gfmController_raxis_right;
             negBt = gfmController_raxis_left;
+            pCtx->pAxis[port].rightX = val;
         } break;
         case gfmController_rightAnalogY: {
             posBt = gfmController_raxis_down;
             negBt = gfmController_raxis_up;
+            pCtx->pAxis[port].rightY = val;
         } break;
         case gfmController_leftTrigger: {
             posBt = gfmController_l2;
             negBt = gfmIface_none;
+            pCtx->pAxis[port].leftTrigger = val;
         } break;
         case gfmController_rightTrigger: {
             posBt = gfmController_r2;
             negBt = gfmIface_none;
+            pCtx->pAxis[port].rightTrigger = val;
         } break;
         default: {}
     }
