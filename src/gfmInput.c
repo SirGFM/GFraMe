@@ -559,12 +559,6 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
     ASSERT(analogAxis >= gfmController_leftTrigger, GFMRV_ARGUMENTS_BAD);
     ASSERT(analogAxis <= gfmController_rightAnalogY, GFMRV_ARGUMENTS_BAD);
     ASSERT(port >= 0, GFMRV_ARGUMENTS_BAD);
-    // If there're no keys, return
-    if (pCtx->pTree == 0) {
-        rv = GFMRV_OK;
-        goto __ret;
-    }
-    // TODO Assert the state?
     
     // Check that the axis buffer is big enough to store this port's values
     if (pCtx->pAxisLen <= port) {
@@ -611,6 +605,12 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
             pCtx->pAxis[port].rightTrigger = val;
         } break;
         default: {}
+    }
+    
+    // If the key isn't bound, exit (since the value was already stored)
+    if (pCtx->pTree == 0) {
+        rv = GFMRV_OK;
+        goto __ret;
     }
     
     // Set each direction's state
