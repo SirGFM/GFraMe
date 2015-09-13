@@ -506,7 +506,7 @@ gfmRV gfmInput_getGamepadAnalog(float *pX, float *pY, gfmInput *pCtx, int port,
     ASSERT(analog <= gfmController_rightTrigger, GFMRV_ARGUMENTS_BAD);
     
     // Check if there's a connected controller on that port
-    if (port < pCtx->pAxisLen) {
+    if (port >= pCtx->pAxisLen) {
         *pX = 0.0f;
         *pY = 0.0f;
     }
