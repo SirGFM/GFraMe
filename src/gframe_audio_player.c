@@ -6,11 +6,18 @@
 #include <GFraMe/GFraMe_error.h>
 #include <GFraMe/GFraMe_log.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_thread.h>
+
 #include <SDL2/SDL_events.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef USE_SEMAPHORE
+#  include <SDL2/SDL_thread.h>
+  static SDL_sem *sem_cur;
+  static SDL_sem *sem_rec;
+  static SDL_sem *sem_bgm;
+#endif
 
 struct stGFraMe_audio_ll {
 	struct stGFraMe_audio_ll *next;
@@ -20,10 +27,8 @@ struct stGFraMe_audio_ll {
 };
 typedef struct stGFraMe_audio_ll GFraMe_audio_ll;
 
+
 static int did_audio_init = 0;
-static SDL_sem *sem_cur;
-static SDL_sem *sem_rec;
-static SDL_sem *sem_bgm;
 static SDL_AudioDeviceID dev = 0;
 static SDL_AudioSpec spec;
 int count;
@@ -50,7 +55,8 @@ GFraMe_ret GFraMe_audio_player_init() {
 	wanted.freq = 44100;
 	wanted.format = AUDIO_S16LSB;
 	wanted.channels = 2;
-	wanted.samples = 1024;
+	//wanted.samples = 1024;
+	wanted.samples = 2048;
 	wanted.callback = GFraMe_audio_player_callback;
 	wanted.userdata = 0;
 	
@@ -77,7 +83,8 @@ GFraMe_ret GFraMe_audio_player_init() {
 	bgm.audio = NULL;
 	count = 0;
 	
-	sem_cur = SDL_CreateSemaphore(1);
+#ifdef USE_SEMAPHORE
+    sem_cur = SDL_CreateSemaphore(1);
 	GFraMe_SDLassertRV(sem_cur != NULL, "Failed to create semaphore",
 					 rv = GFraMe_ret_failed, _ret);
 	sem_rec = SDL_CreateSemaphore(1);
@@ -86,6 +93,7 @@ GFraMe_ret GFraMe_audio_player_init() {
 	sem_bgm = SDL_CreateSemaphore(1);
 	GFraMe_SDLassertRV(sem_bgm != NULL, "Failed to create semaphore",
 					 rv = GFraMe_ret_failed, _ret);
+#endif
 _ret:
 	return rv;
 }
@@ -93,9 +101,11 @@ _ret:
 void GFraMe_audio_player_clear() {
 	if (dev != 0)
 		SDL_CloseAudioDevice(dev);
-	SDL_DestroySemaphore(sem_cur);
+#ifdef USE_SEMAPHORE
+    SDL_DestroySemaphore(sem_cur);
 	SDL_DestroySemaphore(sem_rec);
 	SDL_DestroySemaphore(sem_bgm);
+#endif
 	GFraMe_new_log("Closing audio...");
 	GFraMe_new_log("");
 	dev = 0;
@@ -121,7 +131,9 @@ SDL_AudioSpec* GFraMe_audio_player_get_spec() {
 
 void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 	if (aud != bgm.audio) {
-		SDL_SemWait(sem_bgm);
+#ifdef USE_SEMAPHORE
+        SDL_SemWait(sem_bgm);
+#endif
 		if (aud && !bgm.audio) {
 			GFraMe_audio_player_play();
 			count++;
@@ -130,7 +142,9 @@ void GFraMe_audio_player_play_bgm(GFraMe_audio *aud, double volume) {
 			count--;
 		bgm.audio = aud;
 		bgm.pos = 0;
-		SDL_SemPost(sem_bgm);
+#ifdef USE_SEMAPHORE
+        SDL_SemPost(sem_bgm);
+#endif
 	}
 	bgm.volume = volume;
 }
@@ -143,11 +157,15 @@ void GFraMe_audio_player_push(GFraMe_audio *aud, double volume) {
 	int start_audio = 0;
 	GFraMe_audio_ll *node;
 	node = GFraMe_audio_player_get_new_audio_ll(aud, volume);
-	SDL_SemWait(sem_cur);
+#ifdef USE_SEMAPHORE
+    SDL_SemWait(sem_cur);
+#endif
 	node->next = cur;
 	start_audio = !cur && !bgm.audio;
 	cur = node;
-	SDL_SemPost(sem_cur);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_cur);
+#endif
 	count++;
 	if (start_audio)
 		GFraMe_audio_player_play();
@@ -161,29 +179,41 @@ static GFraMe_audio_ll* GFraMe_audio_player_remove(GFraMe_audio_ll *prev,
 		ret = prev->next;
 	}
 	else {
-		SDL_SemWait(sem_cur);
+#ifdef USE_SEMAPHORE
+        SDL_SemWait(sem_cur);
+#endif
 		cur = node->next;
 		ret = cur;
-		SDL_SemPost(sem_cur);
+#ifdef USE_SEMAPHORE
+        SDL_SemPost(sem_cur);
+#endif
 	}
-	SDL_SemWait(sem_rec);
+#ifdef USE_SEMAPHORE
+    SDL_SemWait(sem_rec);
+#endif
 	node->next = recycle;
 	recycle = node;
-	SDL_SemPost(sem_rec);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_rec);
+#endif
 	return ret;
 }
 
 static GFraMe_audio_ll* GFraMe_audio_player_get_new_audio_ll(GFraMe_audio *aud,
 															 double volume) {
 	GFraMe_audio_ll *node;
-	SDL_SemWait(sem_rec);
+#ifdef USE_SEMAPHORE
+    SDL_SemWait(sem_rec);
+#endif
 	if (!recycle)
 		node = (GFraMe_audio_ll*)malloc(sizeof(GFraMe_audio_ll));
 	else {
 		node = recycle;
 		recycle = recycle->next;
 	}
-	SDL_SemPost(sem_rec);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_rec);
+#endif
 	node->audio = aud;
 	node->pos = 0;
 	node->volume = volume;
@@ -193,9 +223,13 @@ static GFraMe_audio_ll* GFraMe_audio_player_get_new_audio_ll(GFraMe_audio *aud,
 static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 	GFraMe_audio_ll *node;
 	GFraMe_audio_ll *prev = NULL;
-	SDL_SemPost(sem_cur);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_cur);
+#endif
 	node = cur;
-	SDL_SemPost(sem_cur);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_cur);
+#endif
 	memset(stream, 0x0, len);
 	while (node) {
 		int remove;
@@ -210,14 +244,18 @@ static void GFraMe_audio_player_callback(void *arg, Uint8 *stream, int len) {
 			node = node->next;
 		}
 	}
-	SDL_SemWait(sem_bgm);
+#ifdef USE_SEMAPHORE
+    SDL_SemWait(sem_bgm);
+#endif
 	if (bgm.audio) {
 		if (GFraMe_audio_player_mix(&bgm, stream, len)) {
             bgm.audio = 0;
             count--;
         }
 	}
-	SDL_SemPost(sem_bgm);
+#ifdef USE_SEMAPHORE
+    SDL_SemPost(sem_bgm);
+#endif
 	if (!cur && !bgm.audio)
 		GFraMe_audio_player_pause();
 }

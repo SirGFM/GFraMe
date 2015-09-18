@@ -24,6 +24,7 @@ FILE *logfile = NULL;
  * @param	append	Whether should append to or overwrite the old log
  */
 void GFraMe_log_init(int append) {
+#if 0
 	int len = GFraMe_log_max_filename;
 	char *tmp;
 	time_t _time;
@@ -63,9 +64,11 @@ void GFraMe_log_init(int append) {
 	"  Started to run at: %s\n"
 "----------------------------------------------------------------------------\n\n",
 	GFraMe_title, GFraMe_version, _ctime);
+#endif /* 0 */
 }
 
 void GFraMe_log_close() {
+#if 0
 	FILE *fp;
 	time_t _time;
 	char *_ctime;
@@ -91,9 +94,11 @@ void GFraMe_log_close() {
 		fclose(logfile);
 		logfile = NULL;
 	}
+#endif /* 0 */
 }
 
 void GFraMe_log_private(char * fmt, ...) {
+#if 0
 	va_list args;
 	va_start(args, fmt);
 	if (GFraMe_log_to_file && logfile)
@@ -101,5 +106,6 @@ void GFraMe_log_private(char * fmt, ...) {
 	else
 		vfprintf(stdout, fmt, args);
 	va_end(args);
+#endif /* 0 */
 }
 

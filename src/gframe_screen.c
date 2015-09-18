@@ -541,8 +541,7 @@ void GFraMe_finish_render() {
 	// Detach the texture (attach it to the window)
 	SDL_SetRenderTarget(GFraMe_renderer, NULL);
 	// Set clear color
-	SDL_SetRenderDrawColor(GFraMe_renderer, GFraMe_bg_r, GFraMe_bg_g,
-						   GFraMe_bg_b, GFraMe_bg_a);
+	SDL_SetRenderDrawColor(GFraMe_renderer, 0x0, 0x0, 0x0, 0xff);
 	// Clear the bg
 	SDL_RenderClear(GFraMe_renderer);
 	// Render the backbuffer
