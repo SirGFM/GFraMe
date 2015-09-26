@@ -1537,7 +1537,7 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         
         if (pMovable->instantHit & gfmCollision_left) {
             // pMovable collided to the left, place it at static's right
-            newX = pStatic->dx + 2 * pStatic->halfWidth;
+            newX = pStatic->dx + 2 * pStatic->halfWidth + 1;
         }
         else if (pMovable->instantHit & gfmCollision_right) {
             // pMovable collided to the right, place it at static's left
