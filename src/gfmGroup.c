@@ -241,7 +241,12 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
                 pCtx->defHeight, pCtx->pDefSset, pCtx->defOffX, pCtx->defOffY,
                 0/*child*/, gfmType_none);
         ASSERT_NR(rv == GFMRV_OK);
-        
+        // Load the animation data
+        if (pCtx->pDefAnimData) {
+            rv = gfmSprite_addAnimations(pNode->pSelf, pCtx->pDefAnimData,
+                    pCtx->defAnimLen);
+        ASSERT_NR(rv == GFMRV_OK);
+        }
         
         if (i < newLen - 1) {
             // Get the next node, if any
