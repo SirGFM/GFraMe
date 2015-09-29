@@ -1550,6 +1550,25 @@ __ret:
 }
 
 /**
+ * Resets the currently playing animation
+ * 
+ * @param  pCtx  The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_reset(pCtx->pCurAnim);
+__ret:
+    return rv;
+}
+
+/**
  * Resets and plays an animation
  * 
  * @param  pCtx  The sprite

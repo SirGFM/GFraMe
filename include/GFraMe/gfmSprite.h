@@ -723,6 +723,14 @@ gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);
         gfmSprite_addAnimations(pCtx, pData, sizeof(pData) / sizeof(int))
 
 /**
+ * Resets the currently playing animation
+ * 
+ * @param  pCtx  The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx);
+
+/**
  * Resets and plays an animation
  * 
  * @param  pCtx  The sprite

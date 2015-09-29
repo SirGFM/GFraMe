@@ -1541,7 +1541,7 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         }
         else if (pMovable->instantHit & gfmCollision_right) {
             // pMovable collided to the right, place it at static's left
-            newX = pStatic->dx - 2 * pMovable->halfWidth;
+            newX = pStatic->dx - 2 * pMovable->halfWidth - 1;
         }
         else {
             // Never gonna happen, but avoids warning (stupid compiler!)
