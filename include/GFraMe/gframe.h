@@ -790,6 +790,16 @@ gfmRV gfm_recordGif(gfmCtx *pCtx, int ms, char *pFilepath, int len,
         int useLocalPath);
 
 /**
+ * Whether a previous 'gfm_recordGif' has finished; Must be called before
+ * recording another gif
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *              GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_didExportGif(gfmCtx *pCtx);
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context

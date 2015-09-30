@@ -2375,6 +2375,33 @@ __ret:
 }
 
 /**
+ * Whether a previous 'gfm_recordGif' has finished; Must be called before
+ * recording another gif
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_GIF_OPERATION_NOT_ACTIVE,
+ *              GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_didExportGif(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Check that the operation is available
+    ASSERT_LOG(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED, pCtx->pLog);
+    
+    if (pCtx->pGif == 0) {
+        rv = GFMRV_TRUE;
+        goto __ret;
+    }
+    rv = gfmGif_didExport(pCtx->pGif);
+__ret:
+    return rv;
+}
+
+/**
  * Initialize a rendering operation
  * 
  * @param  pCtx  The game's context
