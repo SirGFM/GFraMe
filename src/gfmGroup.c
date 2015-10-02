@@ -74,8 +74,10 @@ struct stGFMGroup {
     gfmSprite *pLast;
     /** Whether should die on leaving the screen */
     int dieOnLeave;
-    /** For how long the sprites should live */
+    /** For how long the sprites should live; -1 disables this */
     int ttl;
+    /** Default type; assigned to every sprite *ON ALLOCATION* */
+    int defType;
     /** Default spriteset; assigned to every sprite *ON ALLOCATION* */
     gfmSpriteset *pDefSset;
     /** Default animation; assigned to every sprite *ON ALLOCATION* */
@@ -118,6 +120,9 @@ gfmRV gfmGroup_getNew(gfmGroup **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     // Initialize it
     memset(*ppCtx, 0x00, sizeof(gfmGroup));
+    
+    // Set the default time to live (since it's not 0)
+    (*ppCtx)->ttl = -1000;
     
     rv = GFMRV_OK;
 __ret:
@@ -232,6 +237,7 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
         gfmGenArr_getNextRef(gfmGroupNode, pCtx->pNodes, 1/*inc*/, pNode,
                 gfmGroupNode_getNew);
         gfmGenArr_push(pCtx->pNodes);
+        
         // Alloc its sprite (and set it for auto dealloc'ing)
         pNode->autoFree = 1;
         rv = gfmSprite_getNew(&(pNode->pSelf));
@@ -239,7 +245,7 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
         // Initialize the sprite
         rv = gfmSprite_init(pNode->pSelf, 0/*x*/, 0/*y*/, pCtx->defWidth,
                 pCtx->defHeight, pCtx->pDefSset, pCtx->defOffX, pCtx->defOffY,
-                0/*child*/, gfmType_none);
+                pNode/*child*/, pCtx->defType);
         ASSERT_NR(rv == GFMRV_OK);
         // Load the animation data
         if (pCtx->pDefAnimData) {
@@ -356,7 +362,8 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     pCtx->pInactive = pCtx->pInactive->pNext;
     
     // Reset the node's timer
-    pTmp->timeAlive = 0;
+    //pTmp->timeAlive = 0;
+    pTmp->timeAlive = pCtx->ttl;
     
     // Set the sprite's default values
     rv = gfmSprite_resetObject(pTmp->pSelf);
@@ -374,6 +381,28 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     pCtx->pLast = pTmp->pSelf;
     
     *ppSpr = pTmp->pSelf;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the default type on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  type The type
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefType(gfmGroup *pCtx, int type) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(type >= 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the default spriteset
+    pCtx->defType = type;
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -529,7 +558,7 @@ __ret:
  * Set for how long every recycled sprite should live
  * 
  * @param  pCtx The group
- * @param  ttl  Time to live (0 for infinite)
+ * @param  ttl  Time to live (-1 for infinite)
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl) {
@@ -538,6 +567,10 @@ gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    // Small fix for 'infinite magic number'
+    if (ttl == -1) {
+        ttl = -1000;
+    }
     // Set the default "time to live"
     pCtx->ttl = ttl;
     
@@ -735,7 +768,9 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         ASSERT_NR(rv == GFMRV_OK);
         
         // Update the node's timer
-        pTmp->timeAlive += elapsed;
+        if (pTmp->timeAlive > 0) {
+            pTmp->timeAlive -= elapsed;
+        }
         
         // Check if the sprite is inside the camera
         rv = gfmCamera_isSpriteInside(pCam, pTmp->pSelf);
@@ -746,7 +781,7 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         pNext = pTmp->pNext;
         
         // Check if the sprite should be "killed"
-        if ((pGroup->ttl != 0 && pTmp->timeAlive > pGroup->ttl)
+        if ((pTmp->timeAlive != -1000 && pTmp->timeAlive <= 0)
                 || (pGroup->dieOnLeave && !isInside)) {
             // Remove the node
             if (pPrev) {
@@ -911,7 +946,7 @@ static gfmRV gfmGroup_addNewest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
     
     while (1) {
         // Make the first visited node have the lowest timeAlive
-        if (pTreeNode->pSelf->timeAlive <= pRoot->pSelf->timeAlive) {
+        if (pTreeNode->pSelf->timeAlive > pRoot->pSelf->timeAlive) {
             if (pRoot->pLeft) {
                 // If not a leaf, move to the next node
                 pRoot = pRoot->pLeft;
@@ -956,7 +991,7 @@ static gfmRV gfmGroup_addOldest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
     
     while (1) {
         // Make the first visited node have the highest timeAlive
-        if (pTreeNode->pSelf->timeAlive > pRoot->pSelf->timeAlive) {
+        if (pTreeNode->pSelf->timeAlive <= pRoot->pSelf->timeAlive) {
             if (pRoot->pLeft) {
                 // If not a leaf, move to the next node
                 pRoot = pRoot->pLeft;

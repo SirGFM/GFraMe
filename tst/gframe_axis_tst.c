@@ -16,6 +16,7 @@
 #define WNDW     160
 #define WNDH     120
 
+
 int main(int arg, char *argv[]) {
     gfmCtx *pCtx;
     gfmGroup *pGrp;
@@ -24,11 +25,13 @@ int main(int arg, char *argv[]) {
     gfmSpriteset *pSset4, *pSset8;
     int iTex;
     int space;
+    int ttl;
     
     // Initialize every variable
     pCtx = 0;
     pGrp = 0;
     pPlayer = 0;
+    ttl = 2000;
     
     // Try to get a new context
     rv = gfm_getNew(&pCtx);
@@ -86,7 +89,7 @@ int main(int arg, char *argv[]) {
     rv = gfmGroup_preCache(pGrp, 0/*initLen*/, 8192/*maxLen*/);
     ASSERT_NR(rv == GFMRV_OK);
     // Those can be set after caching everything, since they are global
-    rv = gfmGroup_setDeathOnTime(pGrp, 2000/*ttl*/);
+    rv = gfmGroup_setDeathOnTime(pGrp, ttl);
     ASSERT_NR(rv == GFMRV_OK);
     // And those are set when the sprite is recycled, so...
     rv = gfmGroup_setDefVelocity(pGrp, 0/*vx*/, -175/*vy*/);
@@ -153,6 +156,15 @@ int main(int arg, char *argv[]) {
             // Recycle a few sprites
             i = 0;
             while (i < 7) {
+                // Update each particle time to live
+                rv = gfmGroup_setDeathOnTime(pGrp, ttl);
+                ASSERT_NR(rv == GFMRV_OK);
+                ttl -= 250;
+                // Reset the timer if it underflows
+                if (ttl <= 0) {
+                    ttl = 2000;
+                }
+                
                 rv = gfmGroup_recycle(&pSpr, pGrp);
                 ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_GROUP_MAX_SPRITES);
                 if (rv == GFMRV_OK) {

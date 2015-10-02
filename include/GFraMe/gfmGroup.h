@@ -37,6 +37,8 @@
 
 /** 'Exports' the gfmGroup structure */
 typedef struct stGFMGroup gfmGroup;
+/** 'Exports' the gfmGroupNode structure */
+typedef struct stGFMGroupNode gfmGroupNode;
 /** 'Exports' the gfmDrawOrder enumeration */
 typedef enum enGFMDrawOrder gfmDrawOrder;
 
@@ -136,6 +138,15 @@ gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree);
  *               GFMRV_GROUP_MAX_SPRITES
  */
 gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx);
+
+/**
+ * Set the default type on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  type The type
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefType(gfmGroup *pCtx, int type);
 
 /**
  * Set the default spriteset on every recycled sprite
