@@ -806,6 +806,29 @@ __ret:
 }
 
 /**
+ * Check whether a node is alive (checks based on the time!!)
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Check if the node is still alive
+    if (pCtx->timeAlive != gfmGroup_forceKill) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
+
+/**
  * Force a node to be removed on the next update
  * 
  * @param  pCtx The node
@@ -887,6 +910,8 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         isAlive = (!pGroup->dieOnLeave || isInside) &&
                 (pTmp->timeAlive == gfmGroup_keepAlive || pTmp->timeAlive > 0);
         if (!isAlive) {
+            // 'Kill' the node
+            pTmp->timeAlive = gfmGroup_forceKill;
             // Remove the node
             if (pPrev) {
                 // Simply bypass the 'dead' node

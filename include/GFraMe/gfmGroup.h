@@ -331,6 +331,14 @@ gfmRV gfmGroup_getCollideableList(gfmGroupNode **ppList, gfmGroup *pCtx);
 gfmRV gfmGroup_getNextSprite(gfmSprite **ppSpr, gfmGroupNode **ppList);
 
 /**
+ * Check whether a node is alive
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx);
+
+/**
  * Force a node to be removed on the next update
  * 
  * @param  pCtx The node

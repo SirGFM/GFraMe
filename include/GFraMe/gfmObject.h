@@ -403,8 +403,8 @@ gfmRV gfmObject_getVerticalDrag(double *pDy, gfmObject *pCtx);
  * 
  * @param  ppChild The object's "sub-class"
  * @param  pType   The object's type
- * @param  pCtx The object
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  pCtx    The object
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx);
 
