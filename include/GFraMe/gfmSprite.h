@@ -740,6 +740,15 @@ gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx);
 gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index);
 
 /**
+ * Get the index of the currently playing animation
+ * 
+ * @param  pIndex Index of the animation
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_getAnimationIndex(int *pIndex, gfmSprite *pCtx);
+
+/**
  * Returns whether the animation have already looped
  * 
  * @param  pCtx The sprite
