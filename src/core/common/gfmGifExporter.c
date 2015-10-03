@@ -1156,21 +1156,23 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
         ASSERT_NR(rv == GFMRV_OK);
         
         // Check if the number of bits-per-code should be expanded
-        if (pCtx->lzwNextCode > (1 << pCtx->lzwCurSize) - 1) {
+        if ((pCtx->lzwNextCode + 2 > (1 << pCtx->lzwCurSize) - 1) &&
+                pCtx->lzwCurSize == 12) {
+            // Reset the dictionary
+            rv = _gfmGif_resetDict(pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+            // Write LZW clean code
+            rv = gfmGif_writeBitwiseWord(pCtx, 1 << pCtx->lzwMinSize);
+            ASSERT_NR(rv == GFMRV_OK);
+            
+            // Reset the LZW
+            pCtx->lzwCurSize = pCtx->lzwMinSize + 1;
+            pCtx->lzwNextCode = (1 << pCtx->lzwMinSize) + 1;
+        }
+        else if (pCtx->lzwNextCode > (1 << pCtx->lzwCurSize) - 1) {
             pCtx->lzwCurSize++;
-            // LZW code size can't be greater than 12 bits
-            if (pCtx->lzwCurSize > 12) {
-                // Reset the dictionary
-                rv = _gfmGif_resetDict(pCtx);
-                ASSERT_NR(rv == GFMRV_OK);
-                // Write LZW clean code
-                rv = gfmGif_writeBitwiseWord(pCtx, 1 << pCtx->lzwMinSize);
-                ASSERT_NR(rv == GFMRV_OK);
-                
-                // Reset the LZW
-                pCtx->lzwCurSize = pCtx->lzwMinSize + 1;
-                pCtx->lzwNextCode = (1 << pCtx->lzwMinSize) + 2;
-            }
+            // LZW code size can't be greater than 12 bits (it shouldn't happen)
+            ASSERT(pCtx->lzwCurSize <= 12, GFMRV_GIF_FAILED_TO_COMPRESS);
         }
         pCtx->lzwNextCode++;
     }
