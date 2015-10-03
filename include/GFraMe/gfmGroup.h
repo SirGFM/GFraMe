@@ -41,6 +41,8 @@ typedef struct stGFMGroup gfmGroup;
 typedef struct stGFMGroupNode gfmGroupNode;
 /** 'Exports' the gfmDrawOrder enumeration */
 typedef enum enGFMDrawOrder gfmDrawOrder;
+/** 'Exports' the gfmGroupCollision enumeration */
+typedef enum enGFMGroupCollision gfmGroupCollision;
 
 #endif /* __GFMGROUP_STRUCT__ */
 
@@ -58,7 +60,7 @@ extern const int sizeofGFMGroup;
 /** The gfmDrawOrder enumeration */
 enum enGFMDrawOrder {
     /**  Draw every object in the order they were added */
-    gfmDrawOrder_linear            = 0,
+    gfmDrawOrder_linear = 0,
     /** Draw the objects at the top of the screen first */
     gfmDrawOrder_topFirst,
     /** Draw the objects at the bottom of the screen first */
@@ -69,6 +71,20 @@ enum enGFMDrawOrder {
     gfmDrawOrder_oldestFirst,
     /** Number of possibles draw orders */
     gfmDrawOrder_max
+};
+
+/** The gfmGroupCollision enumeration */
+enum enGFMGroupCollision {
+    /** Collide only the visible objects */
+    gfmCollisionQuality_visibleOnly = 0,
+    /** Collide every second visible objects (may cause weird stuff) */
+    gfmCollisionQuality_everySecond,
+    /** Collide every third visible objects (may cause even weirder stuff) */
+    gfmCollisionQuality_everyThird,
+    /** Please, don't! */
+    gfmColiisionQuality_collideEverything,
+    /** Number of possibles collision qualities */
+    gfmCollisionQuality_max
 };
 
 /**
@@ -284,6 +300,23 @@ gfmRV gfmGroup_setAcceleration(gfmGroup *pCtx, int ax, int ay);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
  */
 gfmRV gfmGroup_setDrawOrder(gfmGroup *pCtx, gfmDrawOrder order);
+
+/**
+ * Set the collision mode
+ * 
+ * @param  pCtx The group
+ * @param  col  The new collision quality
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setCollisionQuality(gfmGroup *pCtx, gfmGroupCollision col);
+
+/**
+ * Force a node to be removed on the next update
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx);
 
 /**
  * Iterate through every sprite and update'em

@@ -70,11 +70,14 @@ struct stGFMGroup {
     gfmGroupNode *pVisible;
     /** Position where insertions are made, to keep the visible list order */
     gfmGroupNode *pLastVisible;
+    /** Collision quality when using quadtrees */
+    gfmGroupCollision collisionQuality;
     /** Points to the last retrieved sprite */
     gfmSprite *pLast;
     /** Whether should die on leaving the screen */
     int dieOnLeave;
-    /** For how long the sprites should live; -1 disables this */
+    /** For how long the sprites should live; 'gfmGroup_keepAlive' disables
+        this */
     int ttl;
     /** Default type; assigned to every sprite *ON ALLOCATION* */
     int defType;
@@ -122,7 +125,7 @@ gfmRV gfmGroup_getNew(gfmGroup **ppCtx) {
     memset(*ppCtx, 0x00, sizeof(gfmGroup));
     
     // Set the default time to live (since it's not 0)
-    (*ppCtx)->ttl = -1000;
+    (*ppCtx)->ttl = gfmGroup_keepAlive;
     
     rv = GFMRV_OK;
 __ret:
@@ -362,7 +365,6 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     pCtx->pInactive = pCtx->pInactive->pNext;
     
     // Reset the node's timer
-    //pTmp->timeAlive = 0;
     pTmp->timeAlive = pCtx->ttl;
     
     // Set the sprite's default values
@@ -569,7 +571,7 @@ gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl) {
     
     // Small fix for 'infinite magic number'
     if (ttl == -1) {
-        ttl = -1000;
+        ttl = gfmGroup_keepAlive;
     }
     // Set the default "time to live"
     pCtx->ttl = ttl;
@@ -726,6 +728,49 @@ __ret:
 }
 
 /**
+ * Set the collision mode
+ * 
+ * @param  pCtx The group
+ * @param  col  The new collision quality
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setCollisionQuality(gfmGroup *pCtx, gfmGroupCollision col) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(col >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it's a valid value
+    ASSERT(col < gfmCollisionQuality_max, GFMRV_GROUP_INVALID_TYPE);
+    
+    pCtx->collisionQuality = col;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Force a node to be removed on the next update
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Force the node to be removed
+    pCtx->timeAlive = gfmGroup_forceKill;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Iterate through every sprite and update'em
  * 
  * @param  pGrp The group
@@ -781,7 +826,7 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         pNext = pTmp->pNext;
         
         // Check if the sprite should be "killed"
-        if ((pTmp->timeAlive != -1000 && pTmp->timeAlive <= 0)
+        if ((pTmp->timeAlive != gfmGroup_keepAlive && pTmp->timeAlive <= 0)
                 || (pGroup->dieOnLeave && !isInside)) {
             // Remove the node
             if (pPrev) {

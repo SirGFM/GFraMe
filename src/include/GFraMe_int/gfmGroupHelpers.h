@@ -8,6 +8,11 @@
 /** 'Exports' the gfmDrawTree structure */
 typedef struct stGFMDrawTree gfmDrawTree;
 
+enum {
+    gfmGroup_keepAlive = -4321,
+    gfmGroup_forceKill = -4322
+};
+
 /** The gfmGroupNode structure */
 struct stGFMGroupNode {
     /** Next pointer on the list */
@@ -16,7 +21,8 @@ struct stGFMGroupNode {
     struct stGFMGroupNode *pNextVisible;
     /* Actualy pointer to the object */
     gfmSprite *pSelf;
-    /** For how long this node has been on the alive list */
+    /** For how long this node may keep living; If set to gfmGroup_keepAlive,
+        the node won't be removed ever */
     int timeAlive;
     /** Whether this reference should be automatically freed or not */
     int autoFree;
