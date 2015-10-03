@@ -70,10 +70,14 @@ struct stGFMGroup {
     gfmGroupNode *pVisible;
     /** Position where insertions are made, to keep the visible list order */
     gfmGroupNode *pLastVisible;
+    /** List of currently collideable nodes */
+    gfmGroupNode *pCollideable;
     /** Collision quality when using quadtrees */
     gfmGroupCollision collisionQuality;
     /** Points to the last retrieved sprite */
     gfmSprite *pLast;
+    /** How many sprites have been skipped */
+    int skippedCollision;
     /** Whether should die on leaving the screen */
     int dieOnLeave;
     /** For how long the sprites should live; 'gfmGroup_keepAlive' disables
@@ -793,6 +797,9 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     // Reset the list of visible sprites
     pGroup->pVisible = 0;
     pGroup->pLastVisible = 0;
+    // Reset the list of collideable sprites
+    pGroup->pCollideable = 0;
+    pGroup->skippedCollision = 0;
     // Retrieve the current camera
     rv = gfm_getCamera(&pCam, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
@@ -806,7 +813,7 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     pTmp = pGroup->pActive;
     while (pTmp) {
         gfmGroupNode *pNext;
-        int isInside;
+        int isInside, isAlive;
         
         // Update the sprite
         rv = gfmSprite_update(pTmp->pSelf, pCtx);
@@ -826,8 +833,9 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         pNext = pTmp->pNext;
         
         // Check if the sprite should be "killed"
-        if ((pTmp->timeAlive != gfmGroup_keepAlive && pTmp->timeAlive <= 0)
-                || (pGroup->dieOnLeave && !isInside)) {
+        isAlive = (!pGroup->dieOnLeave || isInside) &&
+                (pTmp->timeAlive == gfmGroup_keepAlive || pTmp->timeAlive > 0);
+        if (!isAlive) {
             // Remove the node
             if (pPrev) {
                 // Simply bypass the 'dead' node
@@ -850,6 +858,38 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
             // Set the first visible object
             if (!pGroup->pVisible)
                 pGroup->pVisible = pTmp;
+        }
+        
+        // Add it to the collideable list
+        switch (pGroup->collisionQuality) {
+            /*
+             * If you are heading this, I'm sorry... but I couldn't waste the
+             * chance to write this *-*
+             */
+            case gfmCollisionQuality_everyThird: 
+                if (pGroup->skippedCollision < 2) {
+                    pGroup->skippedCollision++;
+                    break;
+                }
+            case gfmCollisionQuality_everySecond: 
+                if (pGroup->skippedCollision < 1) {
+                    pGroup->skippedCollision++;
+                    break;
+                }
+            case gfmCollisionQuality_visibleOnly:
+                if (!isInside) {
+                    break;
+                }
+            case gfmCollisionQuality_collideEverything:
+                if (!isAlive) {
+                    break;
+                }
+                // If we got here, it's something that is collideable
+                pGroup->skippedCollision = 0;
+                // So, update the list
+                pTmp->pNextCollideable = pGroup->pCollideable;
+                pGroup->pCollideable = pTmp;
+            default: {}
         }
         
         // If the current node wasn't removed, make it the previous one

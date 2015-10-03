@@ -19,6 +19,8 @@ struct stGFMGroupNode {
     struct stGFMGroupNode *pNext;
     /** Next visible node on the list */
     struct stGFMGroupNode *pNextVisible;
+    /** Next collideable node on the list */
+    struct stGFMGroupNode *pNextCollideable;
     /* Actualy pointer to the object */
     gfmSprite *pSelf;
     /** For how long this node may keep living; If set to gfmGroup_keepAlive,

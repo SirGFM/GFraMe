@@ -75,14 +75,16 @@ enum enGFMDrawOrder {
 
 /** The gfmGroupCollision enumeration */
 enum enGFMGroupCollision {
+    /** Don't collide at all */
+    gfmCollisionQuality_none = 0,
     /** Collide only the visible objects */
-    gfmCollisionQuality_visibleOnly = 0,
+    gfmCollisionQuality_visibleOnly,
     /** Collide every second visible objects (may cause weird stuff) */
     gfmCollisionQuality_everySecond,
     /** Collide every third visible objects (may cause even weirder stuff) */
     gfmCollisionQuality_everyThird,
     /** Please, don't! */
-    gfmColiisionQuality_collideEverything,
+    gfmCollisionQuality_collideEverything,
     /** Number of possibles collision qualities */
     gfmCollisionQuality_max
 };

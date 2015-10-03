@@ -99,6 +99,10 @@ int main(int arg, char *argv[]) {
     // Set the draw order (FUN!!!)
     rv = gfmGroup_setDrawOrder(pGrp, gfmDrawOrder_oldestFirst);
     ASSERT_NR(rv == GFMRV_OK);
+    // Uncommenting enable the collision list
+    //rv = gfmGroup_setCollisionQuality(pGrp,
+    //        gfmCollisionQuality_collideEverything);
+    //ASSERT_NR(rv == GFMRV_OK);
     
     // Set the main loop framerate
     rv = gfm_setStateFrameRate(pCtx, FPS, FPS);
