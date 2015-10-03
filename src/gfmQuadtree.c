@@ -133,6 +133,8 @@ struct stGFMQuadtreeRoot {
     gfmGenArr_var(gfmQuadtree, pQTPool);
     /** Pool of quadtree LL nodes */
     gfmGenArr_var(gfmQuadtreeLL, pQTLLPool);
+    /** List of collideables objects from a group */
+    gfmGroupNode *pGroupList;
     /** The actual root node of the quadtree */
     gfmQuadtree *pSelf;
     /** List of available LL nodes */
@@ -643,6 +645,7 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     // Remove context object's
     pCtx->pObject = 0;
     pCtx->pOther = 0;
+    pCtx->pGroupList = 0;
     
     // Check that the stack is big enough
     if (pCtx->stack.len < maxDepth * gfmQT_max) {
@@ -690,7 +693,32 @@ __ret:
  *              GFMRV_QUADTREE_OVERLAPED, GFMRV_QUADTREE_DONE
  */
 gfmRV gfmQuadtree_collideGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pGrp, GFMRV_ARGUMENTS_BAD);
+    // Check if initialized
+    ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
+    
+    // Get the list of collideable objects
+    rv = gfmGroup_getCollideableList(&(pCtx->pGroupList), pGrp);
+    ASSERT(rv == GFMRV_OK || rv == GFMRV_GROUP_LIST_EMPTY, rv);
+    
+    // Start the collision
+    if (rv == GFMRV_OK) {
+        // Clear the call stack
+        pCtx->stack.pushPos = 0;
+        // Clear any previous overlap
+        pCtx->pOther = 0;
+        
+        rv = gfmQuadtree_continue(pCtx);
+    }
+    else {
+        rv = GFMRV_QUADTREE_DONE;
+    }
+__ret:
+    return rv;
 }
 
 /**
@@ -780,6 +808,7 @@ gfmRV gfmQuadtree_collideTilemap(gfmQuadtreeRoot *pCtx, gfmTilemap *pTMap) {
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
  */
 gfmRV gfmQuadtree_populateGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp) {
+    // TODO Simply iterate through every object and add it
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
@@ -967,7 +996,8 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the operation is active
-    ASSERT(pCtx->pObject, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
+    ASSERT(pCtx->pGroupList || pCtx->pObject,
+            GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
     
     // Continue adding the object
     while (pCtx->stack.pushPos > 0 || pCtx->pColliding) {
@@ -1037,6 +1067,25 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
                     ASSERT_NR(rv == GFMRV_OK);
                 }
             }
+        }
+    }
+    
+    // Check if there's another object from a group
+    if (pCtx->pGroupList) {
+        gfmSprite *pSpr;
+        
+        while (pCtx->pGroupList) {
+            // Retrieve the next sprite...
+            rv = gfmGroup_getNextSprite(&pSpr, &(pCtx->pGroupList));
+            ASSERT(rv == GFMRV_OK, rv);
+            
+            // Collide it!
+            rv = gfmQuadtree_collideSprite(pCtx, pSpr);
+            if (rv != GFMRV_QUADTREE_DONE) {
+                // If this sprite didn't finish, return its status
+                return rv;
+            }
+            // If this sprite didn't collide, go to the next
         }
     }
     

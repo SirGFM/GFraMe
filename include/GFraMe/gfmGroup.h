@@ -313,6 +313,24 @@ gfmRV gfmGroup_setDrawOrder(gfmGroup *pCtx, gfmDrawOrder order);
 gfmRV gfmGroup_setCollisionQuality(gfmGroup *pCtx, gfmGroupCollision col);
 
 /**
+ * Get the list of collideable objects
+ * 
+ * @param  ppList The list of nodes
+ * @param  pCtx   The group
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_LIST_EMPTY
+ */
+gfmRV gfmGroup_getCollideableList(gfmGroupNode **ppList, gfmGroup *pCtx);
+
+/**
+ * Get the next collideable sprite
+ * 
+ * @param  ppSpr  The retrieved sprite
+ * @param  ppList The list of nodes (passed as ref. to be updated)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNextSprite(gfmSprite **ppSpr, gfmGroupNode **ppList);
+
+/**
  * Force a node to be removed on the next update
  * 
  * @param  pCtx The node
