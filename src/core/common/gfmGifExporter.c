@@ -111,6 +111,14 @@ struct stGFMGifExporter {
 static int _gfmGif_threadHandler(void *pCtx);
 
 /**
+ * Reset the dictionary (so we can keep exporting the current frame)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _gfmGif_resetDict(gfmGifExporter *pCtx);
+
+/**
  * Check whether exporting GIF is supported
  * 
  * @return GFMRV_TRUE, GFMRV_FALSE
@@ -881,7 +889,6 @@ __ret:
  */
 gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
     gfmRV rv;
-    gfmTrie *pCurNode;
     int i;
     unsigned char pBuf[10];
     
@@ -930,35 +937,9 @@ gfmRV gfmGif_writeImageDescriptor(gfmGifExporter *pCtx) {
         i++;
     }
     
-    // Get the dictionary's root
-    gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
-            pCtx->pDict, gfmTrie_getNew);
-    gfmGenArr_push(pCtx->pTries);
-    // Initialize it
-    i = 0;
-    rv = gfmTrie_init(pCtx->pDict, i, i);
+    // Reset the dictionary
+    rv = _gfmGif_resetDict(pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    // Get the root
-    pCurNode = pCtx->pDict;
-    
-    // Initialize the dictionary
-    i = 1;
-    while (i < pCtx->totalColorCount) {
-        gfmTrie *pNextNode;
-        
-        // Get a new node
-        gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
-                pNextNode, gfmTrie_getNew);
-        gfmGenArr_push(pCtx->pTries);
-        
-        // Insert it as a sibling
-        rv = gfmTrie_insertSibling(pCurNode, pNextNode, i, i);
-        ASSERT_NR(rv == GFMRV_OK);
-        
-        // Go to the next node
-        pCurNode = pNextNode;
-        i++;
-    }
     
     rv = GFMRV_OK;
 __ret:
@@ -1178,11 +1159,22 @@ gfmRV gfmGif_writeLZWData(gfmGifExporter *pCtx) {
         if (pCtx->lzwNextCode > (1 << pCtx->lzwCurSize) - 1) {
             pCtx->lzwCurSize++;
             // LZW code size can't be greater than 12 bits
-            ASSERT(pCtx->lzwCurSize <= 12, GFMRV_GIF_FAILED_TO_COMPRESS);
+            if (pCtx->lzwCurSize > 12) {
+                // Reset the dictionary
+                rv = _gfmGif_resetDict(pCtx);
+                ASSERT_NR(rv == GFMRV_OK);
+                // Write LZW clean code
+                rv = gfmGif_writeBitwiseWord(pCtx, 1 << pCtx->lzwMinSize);
+                ASSERT_NR(rv == GFMRV_OK);
+                
+                // Reset the LZW
+                pCtx->lzwCurSize = pCtx->lzwMinSize + 1;
+                pCtx->lzwNextCode = (1 << pCtx->lzwMinSize) + 2;
+            }
         }
         pCtx->lzwNextCode++;
     }
-    // Write LZW end code (LZW clean code + 1)
+    // Write LZW end code (LZW clear code + 1)
     rv = gfmGif_writeBitwiseWord(pCtx, (1 << pCtx->lzwMinSize) + 1);
     ASSERT_NR(rv == GFMRV_OK);
     
@@ -1312,6 +1304,56 @@ gfmRV gfmGif_writeTrailer(gfmGifExporter *pCtx) {
     // Write the trailer
     c = 0x3b;
     fwrite(&c, 1, 1, pCtx->pOut);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Reset the dictionary (so we can keep exporting the current frame)
+ * 
+ * @param  pCtx The GIF exporter
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _gfmGif_resetDict(gfmGifExporter *pCtx) {
+    gfmRV rv;
+    gfmTrie *pCurNode;
+    int i;
+    
+    // Reset the dictionary to a clean state
+    gfmGenArr_reset(pCtx->pTries);
+    pCtx->pDict = 0;
+    
+    // Get the dictionary's root
+    gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
+            pCtx->pDict, gfmTrie_getNew);
+    gfmGenArr_push(pCtx->pTries);
+    // Initialize it
+    i = 0;
+    rv = gfmTrie_init(pCtx->pDict, i, i);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Get the root
+    pCurNode = pCtx->pDict;
+    
+    // Initialize the dictionary
+    i = 1;
+    while (i < pCtx->totalColorCount) {
+        gfmTrie *pNextNode;
+        
+        // Get a new node
+        gfmGenArr_getNextRef(gfmTrie, pCtx->pTries, pCtx->totalColorCount,
+                pNextNode, gfmTrie_getNew);
+        gfmGenArr_push(pCtx->pTries);
+        
+        // Insert it as a sibling
+        rv = gfmTrie_insertSibling(pCurNode, pNextNode, i, i);
+        ASSERT_NR(rv == GFMRV_OK);
+        
+        // Go to the next node
+        pCurNode = pNextNode;
+        i++;
+    }
     
     rv = GFMRV_OK;
 __ret:
