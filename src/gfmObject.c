@@ -1271,11 +1271,16 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y) {
     
     // Check that it's horizontally inside the object
     delta = cx - x;
-    ASSERT(delta <= pCtx->halfWidth && delta >= -pCtx->halfWidth, GFMRV_FALSE);
+    if (delta > pCtx->halfWidth  || delta < -pCtx->halfWidth) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     // Check that it's vertically inside the object
     delta = cy - y;
-    ASSERT(delta <= pCtx->halfHeight && delta >= -pCtx->halfHeight,
-            GFMRV_FALSE);
+    if (delta > pCtx->halfHeight  || delta < -pCtx->halfHeight) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     
     rv = GFMRV_TRUE;
 __ret:
