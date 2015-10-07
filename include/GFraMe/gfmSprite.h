@@ -723,6 +723,14 @@ gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);
         gfmSprite_addAnimations(pCtx, pData, sizeof(pData) / sizeof(int))
 
 /**
+ * Resets the currently playing animation
+ * 
+ * @param  pCtx  The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx);
+
+/**
  * Resets and plays an animation
  * 
  * @param  pCtx  The sprite
@@ -730,6 +738,15 @@ gfmRV gfmSprite_addAnimations(gfmSprite *pCtx, int *pData, int dataLen);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index);
+
+/**
+ * Get the index of the currently playing animation
+ * 
+ * @param  pIndex Index of the animation
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_getAnimationIndex(int *pIndex, gfmSprite *pCtx);
 
 /**
  * Returns whether the animation have already looped

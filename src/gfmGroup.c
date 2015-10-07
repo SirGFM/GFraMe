@@ -70,12 +70,21 @@ struct stGFMGroup {
     gfmGroupNode *pVisible;
     /** Position where insertions are made, to keep the visible list order */
     gfmGroupNode *pLastVisible;
+    /** List of currently collideable nodes */
+    gfmGroupNode *pCollideable;
+    /** Collision quality when using quadtrees */
+    gfmGroupCollision collisionQuality;
     /** Points to the last retrieved sprite */
     gfmSprite *pLast;
+    /** How many sprites have been skipped */
+    int skippedCollision;
     /** Whether should die on leaving the screen */
     int dieOnLeave;
-    /** For how long the sprites should live */
+    /** For how long the sprites should live; 'gfmGroup_keepAlive' disables
+        this */
     int ttl;
+    /** Default type; assigned to every sprite *ON ALLOCATION* */
+    int defType;
     /** Default spriteset; assigned to every sprite *ON ALLOCATION* */
     gfmSpriteset *pDefSset;
     /** Default animation; assigned to every sprite *ON ALLOCATION* */
@@ -118,6 +127,9 @@ gfmRV gfmGroup_getNew(gfmGroup **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     // Initialize it
     memset(*ppCtx, 0x00, sizeof(gfmGroup));
+    
+    // Set the default time to live (since it's not 0)
+    (*ppCtx)->ttl = gfmGroup_keepAlive;
     
     rv = GFMRV_OK;
 __ret:
@@ -232,6 +244,7 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
         gfmGenArr_getNextRef(gfmGroupNode, pCtx->pNodes, 1/*inc*/, pNode,
                 gfmGroupNode_getNew);
         gfmGenArr_push(pCtx->pNodes);
+        
         // Alloc its sprite (and set it for auto dealloc'ing)
         pNode->autoFree = 1;
         rv = gfmSprite_getNew(&(pNode->pSelf));
@@ -239,9 +252,14 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
         // Initialize the sprite
         rv = gfmSprite_init(pNode->pSelf, 0/*x*/, 0/*y*/, pCtx->defWidth,
                 pCtx->defHeight, pCtx->pDefSset, pCtx->defOffX, pCtx->defOffY,
-                0/*child*/, gfmType_none);
+                pNode/*child*/, pCtx->defType);
         ASSERT_NR(rv == GFMRV_OK);
-        
+        // Load the animation data
+        if (pCtx->pDefAnimData) {
+            rv = gfmSprite_addAnimations(pNode->pSelf, pCtx->pDefAnimData,
+                    pCtx->defAnimLen);
+        ASSERT_NR(rv == GFMRV_OK);
+        }
         
         if (i < newLen - 1) {
             // Get the next node, if any
@@ -351,7 +369,7 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     pCtx->pInactive = pCtx->pInactive->pNext;
     
     // Reset the node's timer
-    pTmp->timeAlive = 0;
+    pTmp->timeAlive = pCtx->ttl;
     
     // Set the sprite's default values
     rv = gfmSprite_resetObject(pTmp->pSelf);
@@ -369,6 +387,28 @@ gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx) {
     pCtx->pLast = pTmp->pSelf;
     
     *ppSpr = pTmp->pSelf;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the default type on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  type The type
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefType(gfmGroup *pCtx, int type) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(type >= 0, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the default spriteset
+    pCtx->defType = type;
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -524,7 +564,7 @@ __ret:
  * Set for how long every recycled sprite should live
  * 
  * @param  pCtx The group
- * @param  ttl  Time to live (0 for infinite)
+ * @param  ttl  Time to live (-1 for infinite)
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl) {
@@ -533,6 +573,10 @@ gfmRV gfmGroup_setDeathOnTime(gfmGroup *pCtx, int ttl) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
+    // Small fix for 'infinite magic number'
+    if (ttl == -1) {
+        ttl = gfmGroup_keepAlive;
+    }
     // Set the default "time to live"
     pCtx->ttl = ttl;
     
@@ -688,6 +732,123 @@ __ret:
 }
 
 /**
+ * Set the collision mode
+ * 
+ * @param  pCtx The group
+ * @param  col  The new collision quality
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setCollisionQuality(gfmGroup *pCtx, gfmGroupCollision col) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(col >= 0, GFMRV_ARGUMENTS_BAD);
+    // Check that it's a valid value
+    ASSERT(col < gfmCollisionQuality_max, GFMRV_GROUP_INVALID_TYPE);
+    
+    pCtx->collisionQuality = col;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the list of collideable objects
+ * 
+ * @param  ppList The list of nodes
+ * @param  pCtx   The group
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_LIST_EMPTY
+ */
+gfmRV gfmGroup_getCollideableList(gfmGroupNode **ppList, gfmGroup *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize the arguments
+    ASSERT(ppList, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the list isn't empty
+    if (pCtx->pCollideable == 0) {
+        rv = GFMRV_GROUP_LIST_EMPTY;
+        goto __ret;
+    }
+    
+    // Retrieve the list
+    *ppList = pCtx->pCollideable;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the next collideable sprite
+ * 
+ * @param  ppSpr  The retrieved sprite
+ * @param  ppList The list of nodes (passed as ref. to be updated)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNextSprite(gfmSprite **ppSpr, gfmGroupNode **ppList) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(ppSpr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppList, GFMRV_ARGUMENTS_BAD);
+    
+    // Retrieve the current node's sprite
+    *ppSpr = (*ppList)->pSelf;
+    // Update the list
+    *ppList = (*ppList)->pNextCollideable;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check whether a node is alive (checks based on the time!!)
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Check if the node is still alive
+    if (pCtx->timeAlive != gfmGroup_forceKill) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
+
+/**
+ * Force a node to be removed on the next update
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Force the node to be removed
+    pCtx->timeAlive = gfmGroup_forceKill;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Iterate through every sprite and update'em
  * 
  * @param  pGrp The group
@@ -710,6 +871,9 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     // Reset the list of visible sprites
     pGroup->pVisible = 0;
     pGroup->pLastVisible = 0;
+    // Reset the list of collideable sprites
+    pGroup->pCollideable = 0;
+    pGroup->skippedCollision = 0;
     // Retrieve the current camera
     rv = gfm_getCamera(&pCam, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
@@ -723,14 +887,16 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     pTmp = pGroup->pActive;
     while (pTmp) {
         gfmGroupNode *pNext;
-        int isInside;
+        int isInside, isAlive;
         
         // Update the sprite
         rv = gfmSprite_update(pTmp->pSelf, pCtx);
         ASSERT_NR(rv == GFMRV_OK);
         
         // Update the node's timer
-        pTmp->timeAlive += elapsed;
+        if (pTmp->timeAlive > 0) {
+            pTmp->timeAlive -= elapsed;
+        }
         
         // Check if the sprite is inside the camera
         rv = gfmCamera_isSpriteInside(pCam, pTmp->pSelf);
@@ -741,8 +907,11 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         pNext = pTmp->pNext;
         
         // Check if the sprite should be "killed"
-        if ((pGroup->ttl != 0 && pTmp->timeAlive > pGroup->ttl)
-                || (pGroup->dieOnLeave && !isInside)) {
+        isAlive = (!pGroup->dieOnLeave || isInside) &&
+                (pTmp->timeAlive == gfmGroup_keepAlive || pTmp->timeAlive > 0);
+        if (!isAlive) {
+            // 'Kill' the node
+            pTmp->timeAlive = gfmGroup_forceKill;
             // Remove the node
             if (pPrev) {
                 // Simply bypass the 'dead' node
@@ -765,6 +934,38 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
             // Set the first visible object
             if (!pGroup->pVisible)
                 pGroup->pVisible = pTmp;
+        }
+        
+        // Add it to the collideable list
+        switch (pGroup->collisionQuality) {
+            /*
+             * If you are heading this, I'm sorry... but I couldn't waste the
+             * chance to write this *-*
+             */
+            case gfmCollisionQuality_everyThird: 
+                if (pGroup->skippedCollision < 2) {
+                    pGroup->skippedCollision++;
+                    break;
+                }
+            case gfmCollisionQuality_everySecond: 
+                if (pGroup->skippedCollision < 1) {
+                    pGroup->skippedCollision++;
+                    break;
+                }
+            case gfmCollisionQuality_visibleOnly:
+                if (!isInside) {
+                    break;
+                }
+            case gfmCollisionQuality_collideEverything:
+                if (!isAlive) {
+                    break;
+                }
+                // If we got here, it's something that is collideable
+                pGroup->skippedCollision = 0;
+                // So, update the list
+                pTmp->pNextCollideable = pGroup->pCollideable;
+                pGroup->pCollideable = pTmp;
+            default: {}
         }
         
         // If the current node wasn't removed, make it the previous one
@@ -906,7 +1107,7 @@ static gfmRV gfmGroup_addNewest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
     
     while (1) {
         // Make the first visited node have the lowest timeAlive
-        if (pTreeNode->pSelf->timeAlive <= pRoot->pSelf->timeAlive) {
+        if (pTreeNode->pSelf->timeAlive > pRoot->pSelf->timeAlive) {
             if (pRoot->pLeft) {
                 // If not a leaf, move to the next node
                 pRoot = pRoot->pLeft;
@@ -951,7 +1152,7 @@ static gfmRV gfmGroup_addOldest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
     
     while (1) {
         // Make the first visited node have the highest timeAlive
-        if (pTreeNode->pSelf->timeAlive > pRoot->pSelf->timeAlive) {
+        if (pTreeNode->pSelf->timeAlive <= pRoot->pSelf->timeAlive) {
             if (pRoot->pLeft) {
                 // If not a leaf, move to the next node
                 pRoot = pRoot->pLeft;

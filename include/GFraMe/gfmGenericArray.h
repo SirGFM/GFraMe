@@ -21,8 +21,8 @@
 #define gfmGenArr_define(TYPE) \
     typedef struct { \
         TYPE **arr; \
-        int len; \
-        int used; \
+        unsigned int len; \
+        unsigned int used; \
     } TYPE##_genericArray \
 
 /**

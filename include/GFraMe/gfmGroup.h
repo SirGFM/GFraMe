@@ -37,8 +37,12 @@
 
 /** 'Exports' the gfmGroup structure */
 typedef struct stGFMGroup gfmGroup;
+/** 'Exports' the gfmGroupNode structure */
+typedef struct stGFMGroupNode gfmGroupNode;
 /** 'Exports' the gfmDrawOrder enumeration */
 typedef enum enGFMDrawOrder gfmDrawOrder;
+/** 'Exports' the gfmGroupCollision enumeration */
+typedef enum enGFMGroupCollision gfmGroupCollision;
 
 #endif /* __GFMGROUP_STRUCT__ */
 
@@ -56,7 +60,7 @@ extern const int sizeofGFMGroup;
 /** The gfmDrawOrder enumeration */
 enum enGFMDrawOrder {
     /**  Draw every object in the order they were added */
-    gfmDrawOrder_linear            = 0,
+    gfmDrawOrder_linear = 0,
     /** Draw the objects at the top of the screen first */
     gfmDrawOrder_topFirst,
     /** Draw the objects at the bottom of the screen first */
@@ -67,6 +71,22 @@ enum enGFMDrawOrder {
     gfmDrawOrder_oldestFirst,
     /** Number of possibles draw orders */
     gfmDrawOrder_max
+};
+
+/** The gfmGroupCollision enumeration */
+enum enGFMGroupCollision {
+    /** Don't collide at all */
+    gfmCollisionQuality_none = 0,
+    /** Collide only the visible objects */
+    gfmCollisionQuality_visibleOnly,
+    /** Collide every second visible objects (may cause weird stuff) */
+    gfmCollisionQuality_everySecond,
+    /** Collide every third visible objects (may cause even weirder stuff) */
+    gfmCollisionQuality_everyThird,
+    /** Please, don't! */
+    gfmCollisionQuality_collideEverything,
+    /** Number of possibles collision qualities */
+    gfmCollisionQuality_max
 };
 
 /**
@@ -136,6 +156,15 @@ gfmRV gfmGroup_insert(gfmGroup *pCtx, gfmSprite *pSpr, int autoFree);
  *               GFMRV_GROUP_MAX_SPRITES
  */
 gfmRV gfmGroup_recycle(gfmSprite **ppSpr, gfmGroup *pCtx);
+
+/**
+ * Set the default type on every recycled sprite
+ * 
+ * @param  pCtx The group
+ * @param  type The type
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+gfmRV gfmGroup_setDefType(gfmGroup *pCtx, int type);
 
 /**
  * Set the default spriteset on every recycled sprite
@@ -273,6 +302,49 @@ gfmRV gfmGroup_setAcceleration(gfmGroup *pCtx, int ax, int ay);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
  */
 gfmRV gfmGroup_setDrawOrder(gfmGroup *pCtx, gfmDrawOrder order);
+
+/**
+ * Set the collision mode
+ * 
+ * @param  pCtx The group
+ * @param  col  The new collision quality
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_INVALID_TYPE
+ */
+gfmRV gfmGroup_setCollisionQuality(gfmGroup *pCtx, gfmGroupCollision col);
+
+/**
+ * Get the list of collideable objects
+ * 
+ * @param  ppList The list of nodes
+ * @param  pCtx   The group
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_LIST_EMPTY
+ */
+gfmRV gfmGroup_getCollideableList(gfmGroupNode **ppList, gfmGroup *pCtx);
+
+/**
+ * Get the next collideable sprite
+ * 
+ * @param  ppSpr  The retrieved sprite
+ * @param  ppList The list of nodes (passed as ref. to be updated)
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNextSprite(gfmSprite **ppSpr, gfmGroupNode **ppList);
+
+/**
+ * Check whether a node is alive
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx);
+
+/**
+ * Force a node to be removed on the next update
+ * 
+ * @param  pCtx The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx);
 
 /**
  * Iterate through every sprite and update'em

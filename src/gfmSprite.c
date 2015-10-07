@@ -42,6 +42,8 @@ struct stGFMSprite {
     gfmGenArr_var(gfmAnimation, pAnimations);
     /** The playing animation, if any */
     gfmAnimation *pCurAnim;
+    /** Index of the currently playing animation */
+    int curAnimIndex;
 };
 
 /** Size of gfmSprite */
@@ -1550,6 +1552,25 @@ __ret:
 }
 
 /**
+ * Resets the currently playing animation
+ * 
+ * @param  pCtx  The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    rv = gfmAnimation_reset(pCtx->pCurAnim);
+__ret:
+    return rv;
+}
+
+/**
  * Resets and plays an animation
  * 
  * @param  pCtx  The sprite
@@ -1581,9 +1602,33 @@ gfmRV gfmSprite_playAnimation(gfmSprite *pCtx, int index) {
     ASSERT_NR(rv == GFMRV_OK);
     // And play it
     pCtx->pCurAnim = pAnim;
+    pCtx->curAnimIndex = index;
     // Frame must be updated (otherwise, it'll only be on the next frame change)
     rv = gfmAnimation_getFrame(&(pCtx->frame), pCtx->pCurAnim);
     ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the index of the currently playing animation
+ * 
+ * @param  pIndex Index of the animation
+ * @param  pCtx   The sprite
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NO_ANIMATION_PLAYING
+ */
+gfmRV gfmSprite_getAnimationIndex(int *pIndex, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that there's a animation playing
+    ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
+    
+    // Retrieve the index
+    *pIndex = pCtx->curAnimIndex;
     
     rv = GFMRV_OK;
 __ret:

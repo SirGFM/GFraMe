@@ -298,17 +298,19 @@ gfmRV gfmCamera_screenToWorld(int *pX, int *pY, gfmCamera *pCtx) {
     ASSERT(pY, GFMRV_ARGUMENTS_BAD);
     // Check that the camera was initialized
     ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
-    // Check that it's within bounds
-    ASSERT(*pX >= 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pX <= pCtx->viewWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pY >= 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(*pY <= pCtx->viewHeight, GFMRV_ARGUMENTS_BAD);
     
     // Adjust the position
     *pX += pCtx->x;
     *pY += pCtx->y;
     
-    rv = GFMRV_OK;
+    // Check that it's within bounds
+    if (*pX >= 0 && *pX <= pCtx->viewWidth && *pY >= 0 &&
+            *pY <= pCtx->viewHeight) {
+        rv = GFMRV_OK;
+    }
+    else {
+        rv = GFMRV_CAMERA_POINTER_OUT_OF_SCREEN;
+    }
 __ret:
     return rv;
 }

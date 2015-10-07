@@ -791,7 +791,10 @@ gfmRV gfmTilemap_recacheAnimations(gfmTilemap *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
     // Check that there's at least one animation to be parsed
-    ASSERT(gfmGenArr_getUsed(pCtx->pTAnimInfos) > 0, GFMRV_TILEMAP_NO_TILEANIM);
+    if (gfmGenArr_getUsed(pCtx->pTAnimInfos) <= 0) {
+        rv = GFMRV_TILEMAP_NO_TILEANIM;
+        goto __ret;
+    }
     
     // Reset the previous animations
     gfmGenArr_reset(pCtx->pTAnims);
@@ -1007,9 +1010,13 @@ gfmRV gfmTilemap_getTileType(int *pType, gfmTilemap *pCtx, int tile) {
         i++;
     }
     // Check that the type was found
-    ASSERT(i < gfmGenArr_getUsed(pCtx->pTTypes), GFMRV_TILEMAP_NO_TILETYPE);
+    if (i < gfmGenArr_getUsed(pCtx->pTTypes)) {
+        rv = GFMRV_OK;
+    }
+    else {
+        rv = GFMRV_TILEMAP_NO_TILETYPE;
+    }
     
-    rv = GFMRV_OK;
 __ret:
     return rv;
 }
@@ -1051,7 +1058,10 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
         
         // Check if the tiles is inside this object
         rv = gfmObject_isPointInside(pObj, x, y);
-        ASSERT_NR(rv == GFMRV_FALSE);
+        // Exist on not inside, though it's not (necessarily) an error!
+        if (rv != GFMRV_FALSE) {
+            goto __ret;
+        }
         
         i++;
     }
@@ -1309,8 +1319,11 @@ gfmRV gfmTilemap_update(gfmTilemap *pTMap, gfmCtx *pCtx) {
     ASSERT(pTMap, GFMRV_ARGUMENTS_BAD);
     // Check that the tilemap was initialzied
     ASSERT(pTMap->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
-    // If there no animations, do nothing
-    ASSERT(gfmGenArr_getUsed(pTMap->pTAnims) > 0, GFMRV_OK);
+    // If there are no animations, do nothing
+    if (gfmGenArr_getUsed(pTMap->pTAnims) <= 0) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
     
     // Get the elapsed time
     rv = gfm_getElapsedTime(&ms, pCtx);

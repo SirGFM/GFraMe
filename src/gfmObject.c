@@ -1271,11 +1271,16 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y) {
     
     // Check that it's horizontally inside the object
     delta = cx - x;
-    ASSERT(delta <= pCtx->halfWidth && delta >= -pCtx->halfWidth, GFMRV_FALSE);
+    if (delta > pCtx->halfWidth  || delta < -pCtx->halfWidth) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     // Check that it's vertically inside the object
     delta = cy - y;
-    ASSERT(delta <= pCtx->halfHeight && delta >= -pCtx->halfHeight,
-            GFMRV_FALSE);
+    if (delta > pCtx->halfHeight  || delta < -pCtx->halfHeight) {
+        rv = GFMRV_FALSE;
+        goto __ret;
+    }
     
     rv = GFMRV_TRUE;
 __ret:
@@ -1537,11 +1542,11 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         
         if (pMovable->instantHit & gfmCollision_left) {
             // pMovable collided to the left, place it at static's right
-            newX = pStatic->dx + 2 * pStatic->halfWidth;
+            newX = pStatic->dx + 2 * pStatic->halfWidth + 1;
         }
         else if (pMovable->instantHit & gfmCollision_right) {
             // pMovable collided to the right, place it at static's left
-            newX = pStatic->dx - 2 * pMovable->halfWidth;
+            newX = pStatic->dx - 2 * pMovable->halfWidth - 1;
         }
         else {
             // Never gonna happen, but avoids warning (stupid compiler!)

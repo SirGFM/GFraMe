@@ -25,6 +25,8 @@ struct stGFMBackbuffer {
     SDL_Texture *pCachedTexture;
     /** Cached dimensions to help rendering */
     SDL_Rect outRect;
+    /** Whether the frame is batched or each tile is rendered separately */
+    int isBatched;
     /** Backbuffer's width */
     int bbufWidth;
     /** Backbuffer's height */
@@ -423,6 +425,7 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
     int irv, tileX, tileY, tileWidth, tileHeight;
     SDL_Rect src;
     SDL_Rect dst;
+    SDL_Texture *pTex;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -430,10 +433,21 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
     ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
     // Check that the backbuffer was initialized
     ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
-    // Check that there is a texture for rendering
+    
+    // Check that it's either not batched or that a default texture was loaded
+    ASSERT(pCtx->isBatched == 0 || pCtx->pCachedTexture != 0,
+            GFMRV_BACKBUFFER_NO_TEXTURE_LOADED);
+    // Retrieve the texture if necessary
     if (!pCtx->pCachedTexture) {
-        // TODO get texture from sset
-        ASSERT(0, GFMRV_BACKBUFFER_NO_TEXTURE_LOADED);
+        gfmTexture *pGFMTex;
+        
+        rv = gfmSpriteset_getTexture(&pGFMTex, pSset);
+        ASSERT(rv == GFMRV_OK, rv);
+        rv = gfmTexture_getContext((void**)&(pTex), pGFMTex);
+        ASSERT(rv == GFMRV_OK, rv);
+    }
+    else {
+        pTex = pCtx->pCachedTexture;
     }
     
     // Get parameters from spriteset
@@ -454,11 +468,11 @@ gfmRV gfmBackbuffer_drawTile(gfmBackbuffer *pCtx, gfmSpriteset *pSset, int x,
     
     // Render the tile
     if (isFlipped) {
-        irv = SDL_RenderCopyEx(pCtx->pRenderer, pCtx->pCachedTexture, &src,
-                &dst, 0.0/*angle*/, 0/*center*/, SDL_FLIP_HORIZONTAL);
+        irv = SDL_RenderCopyEx(pCtx->pRenderer, pTex, &src, &dst, 0.0/*angle*/,
+                0/*center*/, SDL_FLIP_HORIZONTAL);
     }
     else {
-        irv = SDL_RenderCopy(pCtx->pRenderer, pCtx->pCachedTexture, &src, &dst);
+        irv = SDL_RenderCopy(pCtx->pRenderer, pTex, &src, &dst);
     }
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     

@@ -17,8 +17,6 @@
 struct stGFMSpriteset {
     /** Referencing texture pointer */
     gfmTexture *pTex;
-    /** Referencing cached texture */
-    int iTex;
     /** Texture's width */
     int texWidth;
     /** Texture's height */
@@ -132,6 +130,9 @@ gfmRV gfmSpriteset_init(gfmSpriteset *pCtx, gfmTexture *pTex, int tileWidth,
     pCtx->tileWidth = tileWidth;
     pCtx->tileHeight = tileHeight;
     
+    // Store the texture
+    pCtx->pTex = pTex;
+    
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -228,6 +229,30 @@ gfmRV gfmSpriteset_getPosition(int *pX, int *pY, gfmSpriteset *pCtx, int tile) {
     // Set the return
     *pX = (tile % pCtx->columns) * pCtx->tileWidth;
     *pY = (tile / pCtx->columns) * pCtx->tileHeight;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieve a tile's texture
+ * 
+ * @param  ppTex The retrieved texture
+ * @param  pCtx  The spriteset
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITESET_NOT_INITIALIZED
+ */
+gfmRV gfmSpriteset_getTexture(gfmTexture **ppTex, gfmSpriteset *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppTex, GFMRV_ARGUMENTS_BAD);
+    // Check that the spriteset was already initialized
+    ASSERT(pCtx->tileWidth > 0, GFMRV_SPRITESET_NOT_INITIALIZED);
+    
+    // Retrieve the texture
+    *ppTex = pCtx->pTex;
     
     rv = GFMRV_OK;
 __ret:
