@@ -91,5 +91,14 @@ gfmRV gfmSpriteset_getDimension(int *pWidth, int *pHeight, gfmSpriteset *pCtx);
  */
 gfmRV gfmSpriteset_getPosition(int *pX, int *pY, gfmSpriteset *pCtx, int tile);
 
+/**
+ * Retrieve a tile's texture
+ * 
+ * @param  ppTex The retrieved texture
+ * @param  pCtx  The spriteset
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SPRITESET_NOT_INITIALIZED
+ */
+gfmRV gfmSpriteset_getTexture(gfmTexture **ppTex, gfmSpriteset *pCtx);
+
 #endif /* __GFMSPRITESET_H__ */
 
