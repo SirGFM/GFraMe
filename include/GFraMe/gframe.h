@@ -9,6 +9,16 @@
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
 
+/** 'Exports' the backends enum */
+enum enGFMVideoBackend {
+    GFM_VIDEO_SDL2 = 0,
+    GFM_VIDEO_OPENGL3,
+    GFM_VIDEO_GLES2,
+    GFM_VIDEO_GLES3,
+    GFM_VIDEO_MAX
+};
+typedef enum enGFMVideoBackend gfmVideoBackend;
+
 #endif /* __GFRAME_STRUCT__ */
 
 #ifndef __GFRAME_H_
@@ -50,6 +60,15 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_free(gfmCtx **ppCtx);
+
+/**
+ * Select the video backend to be used; MUST be called before gfm_init
+ * 
+ * @param  pCtx  The allocated context
+ * @param  bkend The backend
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALREADY_INITIALIZED
+ */
+gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend);
 
 /**
  * Initialize and alloc every one of this object's members; Also sets the

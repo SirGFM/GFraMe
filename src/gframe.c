@@ -164,6 +164,47 @@ __ret:
 }
 
 /**
+ * Select the video backend to be used; MUST be called before gfm_init
+ * 
+ * @param  pCtx  The allocated context
+ * @param  bkend The backend
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALREADY_INITIALIZED
+ */
+gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
+    gfmRV rv;
+    
+    // TODO Implement this
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(!pCtx->pLog, GFMRV_ALREADY_INITIALIZED);
+    ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
+    
+    // Check that it was already implemented
+    ASSERT(bkend == GFM_VIDEO_SDL2, GFMRV_FUNCTION_NOT_IMPLEMENTED);
+    
+    // TODO Load the lib
+    switch (bkend) {
+        case GFM_VIDEO_SDL2: {
+        } break;
+        case GFM_VIDEO_OPENGL3: {
+        } break;
+        case GFM_VIDEO_GLES2: {
+        } break;
+        case GFM_VIDEO_GLES3: {
+        } break;
+        default: {}
+    }
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Initialize and alloc every one of this object's members
  * 
  * @param  pCtx    The allocated context
