@@ -129,7 +129,7 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
  * @param  handle The handle of the looped audio
  * @param  pos    Sample to which the song should go back when looping
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
- *                GFMRV_INVALID_BUFFER_LEN
+ *                GFMRV_INVALID_BUFFER_LEN, GFMRV_AUDIO_INVALID_TYPE
  */
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
@@ -185,7 +185,23 @@ gfmRV gfmAudio_resumeAudio(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
 gfmRV gfmAudio_setHandleVolume(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd,
         double volume);
 
+/**
+ * Check whether an audio handle finished played
+ * 
+ * @param  pHnd The instance handle
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmAudio_didHandleFinish(gfmAudioHandle *pHnd);
+
+/**
+ * Whether any track may have multiple tracks; Each track should have its own
+ * loop position and volume
+ * 
+ * @param  pCtx The audio context
+ * @return      GFMRV_TRUE, GFMRV_FALSE
+ */
 gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx);
+
 gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle);
 gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, double volume);
 

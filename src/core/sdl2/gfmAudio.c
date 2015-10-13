@@ -51,6 +51,14 @@ enum enGFMAudioState {
 };
 typedef enum enGFMAudioState gfmAudioState;
 
+/** Enumeration of audio types */
+enum enGFMAudioType {
+    gfmAudio_wave = 0x01000000,
+    gfmAudio_mml  = 0x02000000,
+    gfmAudio_ogg  = 0x04000000
+};
+typedef enum enGFMAudioType gfmAudioType;
+
 /** Audio sub-system context */
 struct stGFMAudioCtx {
     /** List of available audio handles (for recycling) */
@@ -79,8 +87,8 @@ struct stGFMAudioCtx {
     int numChannels;
 };
 
-/** An audio representation */
-struct stGFMAudio {
+/** Data required by a wave audio */
+struct stGFMAudioWave {
     /** Audio samples buffer */
     char *pBuf;
     /** Number of bytes in pBuf */
@@ -90,20 +98,62 @@ struct stGFMAudio {
     /** Position to which should jump to, on repeat */
     int repeatPosition;
 };
+typedef struct stGFMAudioWave gfmAudioWave;
+
+/** Data required by a MML audio */
+struct stGFMAudioMml {
+    /** 'LCD' of all tracks' lengths */
+    int commonLen;
+    /** How many tracks there are on this MML audio */
+    int numTracks;
+    /** All of the tracks */
+    gfmAudioWave *pTracks;
+};
+typedef struct stGFMAudioMml gfmAudioMml;
+
+/** Generic union to easily store both wave and mml */
+union unGFMGenericAudio {
+    gfmAudioWave wave;
+    gfmAudioMml mml;
+};
+typedef union unGFMGenericAudio gfmGenericAudio;
+
+/** An audio representation */
+struct stGFMAudio {
+    /** Type of this audio handle */
+    gfmAudioType type;
+    /** The actual audio data */
+    gfmGenericAudio self;
+};
 
 /** Custom audio handle; Is returned when an audio is played */
 struct stGFMAudioHandle {
+    /** Volume at which this should be played */
+    double volume;
     /** Audio played by this node */
     gfmAudio *pSelf;
     /** Next audio being played/available for recycling */
     gfmAudioHandle *pNext;
-    /** Volume at which this should be played */
-    double volume;
-    /** Position in the current audio */
-    int pos;
-    /** Whether this instance is playing or not */
+    /** Whether this instance is playing or not - only really usefull for
+     *  long/looped songs and environment effects (e.g., rain) */
     int isPlaying;
+    /** Time elapsed in samples */
+    int pos;
 };
+
+/** Data used when mixing audio buffers */
+struct stGFMMixerData {
+    int dstLen;
+    int doRepeat;
+    int endPos;
+    int iniPos;
+    int repeatPosition;
+    int srcLen;
+    int volume;
+    unsigned char *pSrc;
+    unsigned char *pDst;
+};
+typedef struct stGFMMixerData gfmMixerData;
 
 /******************************************************************************/
 /*                                                                            */
@@ -148,50 +198,42 @@ __ret:
 /**
  * Mix a 16-bit audio instance into a mono buffer
  * 
- * @param  pCtx The instance being played
- * @param  pDst The output buffer
- * @param  len  How many bytes should be played
+ * @param  pCtx Struct with all data to mix the buffer
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmAudio_mixMono16(gfmAudioHandle *pCtx, unsigned char *pDst,
-        int len) {
-    unsigned char *pBuf;
+static gfmRV gfmAudio_mixMono16(gfmMixerData *pCtx) {
     gfmRV rv;
-    int i, intVol;
+    int i, len;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len, GFMRV_ARGUMENTS_BAD);
     
-    // Convert the volume to an integer in the range [0, 1024]
-    intVol = (int)(pCtx->volume * 1024);
-    // Retrieve the buffer
-    pBuf = (unsigned char*)pCtx->pSelf->pBuf;
     // Loop through all samples
     i = 0;
+    len = pCtx->dstLen;
+    pCtx->endPos = pCtx->iniPos;
     while (i < len) {
         Sint16 chan;
         
         // Get the data to be put into both channels
-        chan = (pBuf[i + pCtx->pos] & 0x00ff)
-                | ((pBuf[i + pCtx->pos + 1] << 8) & 0xff00);
+        chan = (pCtx->pSrc[i + pCtx->endPos] & 0x00ff)
+                | ((pCtx->pSrc[i + pCtx->endPos + 1] << 8) & 0xff00);
         
         // Modify its volume
-        chan = (Sint16)(((chan * intVol) >> 10) & 0xffff);
+        chan = (Sint16)(((chan * pCtx->volume) >> 10) & 0xffff);
         
         // Add it to the channel
-        pDst[i]   += (Uint8)( chan       & 0xff);
-        pDst[i+1] += (Uint8)((chan >> 8) & 0xff);
+        pCtx->pDst[i]   += (Uint8)( chan       & 0xff);
+        pCtx->pDst[i+1] += (Uint8)((chan >> 8) & 0xff);
 
         i += 2;
         // If the sample is over
-        if (i + pCtx->pos >= pCtx->pSelf->len) {
+        if (i + pCtx->endPos >= pCtx->srcLen) {
             // Loop it
-            if (pCtx->pSelf->doRepeat) {
+            if (pCtx->doRepeat) {
                 len -= i;
                 i = 0;
-                pCtx->pos = pCtx->pSelf->repeatPosition;
+                pCtx->endPos = pCtx->repeatPosition;
             }
             else {
                 // Otherwise, simpl
@@ -200,7 +242,7 @@ static gfmRV gfmAudio_mixMono16(gfmAudioHandle *pCtx, unsigned char *pDst,
         }
     }
     // Update the sample position
-    pCtx->pos += i;
+    pCtx->endPos += i;
     
     rv = GFMRV_OK;
 __ret:
@@ -210,55 +252,49 @@ __ret:
 /**
  * Mix a 16-bit audio instance into a stereo buffer
  * 
- * @param  pCtx The instance being played
- * @param  pDst The output buffer
- * @param  len  How many bytes should be played
+ * @param  pCtx Struct with all data to mix the buffer
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
-        int len) {
-    unsigned char *pBuf;
+//static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
+//        int len) {
+static gfmRV gfmAudio_mixStereo16(gfmMixerData *pCtx) {
     gfmRV rv;
-    int i, intVol;
+    int i, len;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pDst, GFMRV_ARGUMENTS_BAD);
-    ASSERT(len, GFMRV_ARGUMENTS_BAD);
     
-    // Convert the volume to an integer in the range [0, 1024]
-    intVol = (int)(pCtx->volume * 1024);
-    // Retrieve the buffer
-    pBuf = (unsigned char*)pCtx->pSelf->pBuf;
     // Loop through all samples
     i = 0;
+    len = pCtx->dstLen;
+    pCtx->endPos = pCtx->iniPos;
     while (i < len) {
         Sint16 chan1, chan2;
         
         // Get the data to be put into both channels
-        chan1 = (pBuf[i + pCtx->pos] & 0x00ff)
-                | ((pBuf[i + pCtx->pos + 1] << 8) & 0xff00);
-        chan2 = (pBuf[i + pCtx->pos + 2] & 0x00ff)
-                | ((pBuf[i + pCtx->pos + 3] << 8) & 0xff00);
+        chan1 = (pCtx->pSrc[i + pCtx->endPos] & 0x00ff)
+                | ((pCtx->pSrc[i + pCtx->endPos + 1] << 8) & 0xff00);
+        chan2 = (pCtx->pSrc[i + pCtx->endPos + 2] & 0x00ff)
+                | ((pCtx->pSrc[i + pCtx->endPos + 3] << 8) & 0xff00);
         
         // Modify its volume
-        chan1 = (Sint16)(((chan1 * intVol) >> 10) & 0xffff);
-        chan2 = (Sint16)(((chan2 * intVol) >> 10) & 0xffff);
+        chan1 = (Sint16)(((chan1 * pCtx->volume) >> 10) & 0xffff);
+        chan2 = (Sint16)(((chan2 * pCtx->volume) >> 10) & 0xffff);
         
         // Add it to the channel
-        pDst[i]   += (Uint8)( chan1       & 0xff);
-        pDst[i+1] += (Uint8)((chan1 >> 8) & 0xff);
-        pDst[i+2] += (Uint8)( chan2       & 0xff);
-        pDst[i+3] += (Uint8)((chan2 >> 8) & 0xff);
+        pCtx->pDst[i]   += (Uint8)( chan1       & 0xff);
+        pCtx->pDst[i+1] += (Uint8)((chan1 >> 8) & 0xff);
+        pCtx->pDst[i+2] += (Uint8)( chan2       & 0xff);
+        pCtx->pDst[i+3] += (Uint8)((chan2 >> 8) & 0xff);
 
         i += 4;
         // If the sample is over
-        if (i + pCtx->pos >= pCtx->pSelf->len) {
+        if (i + pCtx->endPos >= pCtx->srcLen) {
             // Loop it
-            if (pCtx->pSelf->doRepeat) {
+            if (pCtx->doRepeat) {
                 len -= i;
                 i = 0;
-                pCtx->pos = pCtx->pSelf->repeatPosition;
+                pCtx->endPos = pCtx->repeatPosition;
             }
             else {
                 // Otherwise, simpl
@@ -267,7 +303,7 @@ static gfmRV gfmAudio_mixStereo16(gfmAudioHandle *pCtx, unsigned char *pDst,
         }
     }
     // Update the sample position
-    pCtx->pos += i;
+    pCtx->endPos += i;
     
     rv = GFMRV_OK;
 __ret:
@@ -284,6 +320,7 @@ __ret:
 static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     gfmAudioCtx *pCtx;
     gfmAudioHandle *pTmp, *pPrev;
+    gfmMixerData mixer, *pMixer;
     gfmRV rv;
     int isLocked;
     int irv;
@@ -298,6 +335,10 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     
     // Retrieve the audio context
     pCtx = (gfmAudioCtx*)pArg;
+    // Initialize the mixer data
+    pMixer = &mixer;
+    pMixer->pDst = pStream;
+    pMixer->dstLen = len;
     
     // Clean the output buffer (so there's no noise)
     // This can be made before the lock because it's not critical
@@ -316,25 +357,53 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
         gfmAudioHandle *pNext;
         
         if (pTmp->isPlaying) {
-            if (pCtx->numChannels == 1 && pCtx->bitsPerSample == 8) {
-                // TODO Play the buffer
+            
+            if (pTmp->pSelf->type == gfmAudio_wave) {
+                gfmAudioWave *pWave;
+                int mode;
+                
+                pWave = &(pTmp->pSelf->self.wave);
+                
+                pMixer->doRepeat = pWave->doRepeat;
+                pMixer->iniPos = pTmp->pos;
+                pMixer->repeatPosition = pWave->repeatPosition ;
+                pMixer->srcLen = pWave->len;
+                pMixer->volume = pTmp->volume * 1024;
+                pMixer->pSrc = (unsigned char*)pWave->pBuf;
+                
+                mode = (pCtx->numChannels << 8) | pCtx->bitsPerSample;
+                switch (mode) {
+                    // case ((1 << 8) | 8): { } break;
+                    // case ((2 << 8) | 8): { } break;
+                    case ((1 << 8) | 16): {
+                        // 1 Channel, 16 bits per sample
+                        rv = gfmAudio_mixMono16(pMixer);
+                        ASSERT_NR(rv == GFMRV_OK);
+                    } break;
+                    case ((2 << 8) | 16): {
+                        // 2 Channel, 16 bits per sample
+                        rv = gfmAudio_mixStereo16(pMixer);
+                        ASSERT_NR(rv == GFMRV_OK);
+                    } break;
+                    default: {
+                        pMixer->endPos = 0x7FFFFFFF;
+                    }
+                }
+                
+                // Update the instance position
+                pTmp->pos = pMixer->endPos;
             }
-            else if (pCtx->numChannels == 1 && pCtx->bitsPerSample == 16) {
-                rv = gfmAudio_mixMono16(pTmp, pStream, len);
-                ASSERT_NR(rv == GFMRV_OK);
+            else if (pTmp->pSelf->type == gfmAudio_mml) {
+                // TODO Implement this
             }
-            else if (pCtx->numChannels == 2 && pCtx->bitsPerSample == 8) {
-                // TODO Play the buffer
-            }
-            else if (pCtx->numChannels == 2 && pCtx->bitsPerSample == 16) {
-                rv = gfmAudio_mixStereo16(pTmp, pStream, len);
-                ASSERT_NR(rv == GFMRV_OK);
+            else if (pTmp->pSelf->type == gfmAudio_ogg) {
+                // TODO Implement this
             }
         }
         // Get the next node
         pNext = pTmp->pNext;
         // Remove it from the list if it finished playing
-        if (pTmp->pos >= pTmp->pSelf->len) {
+        if (gfmAudio_didHandleFinish(pTmp) == GFMRV_TRUE) {
             // Remove it and don't modify the previous node
             rv = gfmAudio_removeInstance(pCtx, pTmp, pPrev);
             ASSERT_NR(rv == GFMRV_OK);
@@ -351,10 +420,12 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     rv = GFMRV_OK;
 __ret:
     // Set the return value on the context
-    pCtx->callbackRV = rv;
-    if (isLocked) {
-        // Unlock the mutex
-        SDL_SemPost(pCtx->pSem);
+    if (rv != GFMRV_ARGUMENTS_BAD) {
+        pCtx->callbackRV = rv;
+        if (isLocked) {
+            // Unlock the mutex
+            SDL_SemPost(pCtx->pSem);
+        }
     }
 }
 
@@ -441,10 +512,43 @@ static gfmRV gfmAudio_freeAudio(gfmAudio **ppCtx) {
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
-    // If it has a buffer, free it
-    if ((*ppCtx)->pBuf) {
-        free((*ppCtx)->pBuf);
+    // Release each specific container's data
+    switch ((*ppCtx)->type) {
+        case gfmAudio_wave: {
+            gfmAudioWave *pWave;
+            
+            // Release the wave's buffer, if any
+            pWave = &((*ppCtx)->self.wave);
+            
+            if (pWave->pBuf) {
+                free(pWave->pBuf);
+            }
+        } break;
+        case gfmAudio_mml: {
+            gfmAudioMml *pMml;
+            int i;
+            
+            pMml = &((*ppCtx)->self.mml);
+            
+            if (pMml->pTracks) {
+                // Release each of the mml's track
+                i = 0;
+                while (i < pMml->numTracks) {
+                    if (pMml->pTracks[i].pBuf) {
+                        free(pMml->pTracks[i].pBuf);
+                    }
+                    i++;
+                }
+                // Release the array of tracks
+                free(pMml->pTracks);
+            }
+        } break;
+        case gfmAudio_ogg: {
+            // TODO Implement this
+        } break;
+        default: {}
     }
+    
     // Free its memory
     free(*ppCtx);
     *ppCtx = 0;
@@ -751,17 +855,14 @@ __ret:
  */
 gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
         char *pFilename, int filenameLen) {
-    char *pBuf;
     gfmAudio *pAudio;
     gfmFile *pFp;
     gfmLog *pLog;
     gfmRV rv;
     int didParse;
-    int bufLen;
     
     // Set default values
     pFp = 0;
-    pBuf = 0;
     didParse = 0;
     
     // Sanitize arguments
@@ -774,6 +875,10 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     ASSERT_LOG(pAud, GFMRV_ARGUMENTS_BAD, pLog);
     ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pLog);
     ASSERT_LOG(filenameLen > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    
+    // Retrieve a valid audio struct
+    gfmGenArr_getNextRef(gfmAudio, pAud->pAudioPool, 1, pAudio,
+            gfmAudio_getNewAudio);
     
     // Read an asset file
     rv = gfmFile_getNew(&pFp);
@@ -788,14 +893,27 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isWave(pFp);
         if (rv == GFMRV_TRUE) {
+            char *pBuf;
+            gfmAudioWave *pWave;
+            int bufLen;
+            
             rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded as a WAVE");
             ASSERT(rv == GFMRV_OK, rv);
             
             // Load the wave from the file
+            pBuf = 0;
             rv = gfmAudio_loadWave(&pBuf, &bufLen, pFp, pLog, pAud->spec.freq,
                     pAud->bitsPerSample, pAud->numChannels);
             ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             didParse = 1;
+            
+            pAudio->type = gfmAudio_wave;
+            pWave = &(pAudio->self.wave);
+            // Initialize the wave's data
+            pWave->pBuf = pBuf;
+            pWave->len = bufLen;
+            pWave->doRepeat = 0;
+            pWave->repeatPosition = 0;
         }
     }
     // Try to parse the file as MML
@@ -817,7 +935,7 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
             rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded in vorbis");
             ASSERT(rv == GFMRV_OK, rv);
             
-            // TODO Add support for MML
+            // TODO Add support for OGG Vorbis
             ASSERT_LOG(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
             didParse = 1;
         }
@@ -825,16 +943,8 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     // Check that the file was parsed
     ASSERT_LOG(didParse == 1, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
     
-    // Retrieve a valid audio struct
-    gfmGenArr_getNextRef(gfmAudio, pAud->pAudioPool, 1, pAudio,
-            gfmAudio_getNewAudio);
+    // Push the newly initialized audio
     gfmGenArr_push(pAud->pAudioPool);
-    // Store the loaded buffer
-    pAudio->pBuf = pBuf;
-    pAudio->len = bufLen;
-    // Clean the repeat (shouldn't be necessary, though...)
-    pAudio->doRepeat = 0;
-    pAudio->repeatPosition = 0;
     
     // Retrieve the audio's handle
     *pHandle = gfmGenArr_getUsed(pAud->pAudioPool) - 1;
@@ -857,7 +967,7 @@ __ret:
  * @param  handle The handle of the looped audio
  * @param  pos    Sample to which the song should go back when looping
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
- *                GFMRV_INVALID_BUFFER_LEN
+ *                GFMRV_INVALID_BUFFER_LEN, GFMRV_AUDIO_INVALID_TYPE
  */
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos) {
     gfmAudio *pAudio;
@@ -874,12 +984,27 @@ gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos) {
     
     // Retrieve the audio
     pAudio = gfmGenArr_getObject(pCtx->pAudioPool, handle);
-    // Check that the sample is valid (i.e., within the audio)
-    ASSERT(pos < pAudio->len, GFMRV_INVALID_BUFFER_LEN);
+    // Check that the audio isn't a MML
+    ASSERT(pAudio->type != gfmAudio_mml, GFMRV_AUDIO_INVALID_TYPE);
     
-    // Set the position and loop flag
-    pAudio->doRepeat = 1;
-    pAudio->repeatPosition = pos;
+    switch (pAudio->type) {
+        case gfmAudio_wave: {
+            gfmAudioWave *pWave;
+            
+            pWave = &(pAudio->self.wave);
+            
+            // Check that the sample is valid (i.e., within the audio)
+            ASSERT(pos < pWave->len, GFMRV_INVALID_BUFFER_LEN);
+            
+            // Set the position and loop flag
+            pWave->doRepeat = 1;
+            pWave->repeatPosition = pos;
+        } break;
+        case gfmAudio_ogg: {
+            // TODO Implement this
+        } break;
+        default: { /* Shouldn't happen */ }
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -990,7 +1115,17 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Instead of actually removing it, put it at the buffer's end, so it will
     // be removed next time the callback is called
-    (*ppHnd)->pos = (*ppHnd)->pSelf->len;
+    switch ((*ppHnd)->pSelf->type) {
+        case gfmAudio_wave: {
+            (*ppHnd)->pos = (*ppHnd)->pSelf->self.wave.len;
+        } break;
+        case gfmAudio_mml: {
+            // TODO Implement this
+        } break;
+        case gfmAudio_ogg: {
+            // TODO Implement this
+        } break;
+    }
     // "Clean" the returned pointer
     *ppHnd = 0;
     // Unlock the mutex
@@ -1092,6 +1227,55 @@ __ret:
     return rv;
 }
 
+/**
+ * Check whether an audio handle finished played
+ * 
+ * @param  pHnd The instance handle
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmAudio_didHandleFinish(gfmAudioHandle *pHnd) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pHnd, GFMRV_ARGUMENTS_BAD);
+    
+    switch (pHnd->pSelf->type) {
+        case gfmAudio_wave: {
+            gfmAudioWave *pWave;
+            
+            pWave = &(pHnd->pSelf->self.wave);
+            
+            if (pHnd->pos >= pWave->len) {
+                rv = GFMRV_TRUE;
+            }
+            else {
+                rv = GFMRV_FALSE;
+            }
+        } break;
+        case gfmAudio_mml: {
+            // TODO Implement this
+            rv = GFMRV_FALSE;
+        } break;
+        case gfmAudio_ogg: {
+            // TODO Implement this
+            rv = GFMRV_FALSE;
+        } break;
+        default: {
+            // Shouldn't happen
+            rv = GFMRV_FALSE;
+        }
+    }
+__ret:
+    return rv;
+}
+
+/**
+ * Whether any track may have multiple tracks; Each track should have its own
+ * loop position and volume
+ * 
+ * @param  pCtx The audio context
+ * @return      GFMRV_TRUE, GFMRV_FALSE
+ */
 gfmRV gfmAudio_isTrackSupported(gfmAudioCtx *pCtx) {
     return GFMRV_FALSE;
 }
@@ -1103,5 +1287,4 @@ gfmRV gfmAudio_getNumTracks(int *pNum, gfmAudioCtx *pCtx, int handle) {
 gfmRV gfmAudio_setTrackVolume(gfmAudioCtx *pCtx, int handle, double volume) {
     return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
-
 
