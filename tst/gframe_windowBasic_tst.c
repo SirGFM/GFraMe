@@ -30,21 +30,21 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv != GFMRV_OK);
     
     // Initialize with wrong arguments
-    rv = gfm_initGameWindow(0, 320, 240, 640, 480, 0);
+    rv = gfm_initGameWindow(0, 320, 240, 640, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_ARGUMENTS_BAD);
-    rv = gfm_initGameWindow(pCtx, 320, 240, 0, 480, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 0, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_INVALID_WIDTH);
-    rv = gfm_initGameWindow(pCtx, 320, 240, 10000, 480, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 10000, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_INVALID_WIDTH);
-    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 0, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 0, 0, 0);
     ASSERT_NR(rv == GFMRV_INVALID_HEIGHT);
-    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 10000, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 10000, 0, 0);
     ASSERT_NR(rv == GFMRV_INVALID_HEIGHT);
     // Initialize the window
-    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_OK);
     // Try to reinitialize the window
-    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0);
+    rv = gfm_initGameWindow(pCtx, 320, 240, 640, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_WINDOW_ALREADY_INITIALIZED);
     
     // Set the window's dimensions with wrong arguments

@@ -110,6 +110,7 @@ __ret:
  * @param  pWnd   The window context
  * @param  width  The backbuffer's width
  * @param  height The backbuffer's height
+ * @param  vsync  Whether vsync is enabled or not
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WINDOW_NOT_INITIALIZED,
  *                GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
  *                GFMRV_BACKBUFFER_WIDTH_INVALID,
@@ -117,9 +118,10 @@ __ret:
  *                GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
  */
 gfmRV gfmBackbuffer_init(gfmBackbuffer *pCtx, gfmWindow *pWnd, int width,
-        int height) {
+        int height, int vsync) {
     gfmRV rv;
     int wndWidth, wndHeight;
+    SDL_RendererFlags flags;
     SDL_Window* pSDLWindow;
     
     // Sanitize arguments
@@ -142,9 +144,14 @@ gfmRV gfmBackbuffer_init(gfmBackbuffer *pCtx, gfmWindow *pWnd, int width,
     rv = gfmWindow_getContext((void**)&pSDLWindow, pWnd);
     ASSERT_NR(rv == GFMRV_OK);
     
+    // Select the renderer flags
+    flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+    if (vsync) {
+        flags |= SDL_RENDERER_PRESENTVSYNC;
+    }
+    
     // Initialize both renderer and buffer
-    pCtx->pRenderer = SDL_CreateRenderer(pSDLWindow, -1,
-            SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    pCtx->pRenderer = SDL_CreateRenderer(pSDLWindow, -1, flags);
     ASSERT(pCtx->pRenderer, GFMRV_INTERNAL_ERROR);
     pCtx->pBackbuffer = SDL_CreateTexture(pCtx->pRenderer,
             SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, width, height);

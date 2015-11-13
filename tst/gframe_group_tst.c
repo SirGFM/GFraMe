@@ -35,7 +35,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the window
-    rv = gfm_initGameWindow(pCtx, WNDW, WNDH, 640, 480, 0);
+    rv = gfm_initGameWindow(pCtx, WNDW, WNDH, 640, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load the texture

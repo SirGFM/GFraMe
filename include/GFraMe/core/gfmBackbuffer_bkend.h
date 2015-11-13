@@ -46,6 +46,7 @@ gfmRV gfmBackbuffer_free(gfmBackbuffer **ppCtx);
  * @param  pWnd   The window context
  * @param  width  The backbuffer's width
  * @param  height The backbuffer's height
+ * @param  vsync  Whether vsync is enabled or not
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_WINDOW_NOT_INITIALIZED,
  *                GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
  *                GFMRV_BACKBUFFER_WIDTH_INVALID,
@@ -53,7 +54,7 @@ gfmRV gfmBackbuffer_free(gfmBackbuffer **ppCtx);
  *                GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
  */
 gfmRV gfmBackbuffer_init(gfmBackbuffer *pCtx, gfmWindow *pWnd, int width,
-        int height);
+        int height, int vsync);
 
 /**
  * Clean up a backbuffer

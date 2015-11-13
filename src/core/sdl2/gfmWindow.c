@@ -225,7 +225,7 @@ gfmRV gfmWindow_getResolution(int *pWidth, int *pHeight, int *pRefRate,
     rv = gfmWindow_queryResolutions(&count, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     // Check if its a valid index
-    ASSERT(index > 0 && index < count, GFMRV_INVALID_INDEX);
+    ASSERT(index >= 0 && index < count, GFMRV_INVALID_INDEX);
     
     // Get the resolution
     *pWidth = pCtx->pWidths[index];

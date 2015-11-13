@@ -185,11 +185,12 @@ gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
  * @param  wndWidth        Window's width
  * @param  wndHeight       Window's height
  * @param  isUserResizable Whether the user can resize the window through the OS
+ * @param  useVsync        Whether vsync should be enabled or not
  * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
  *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int wndWidth, int wndHeight, int isUserResizable);
+        int wndWidth, int wndHeight, int isUserResizable, int useVsync);
 
 /**
  * Initialize the game's window (in fullscreen) and backbuffer
@@ -201,11 +202,12 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
  * @param  bufHeight       Backbuffer's height
  * @param  resIndex        Resolution to be used (0 is the default resolution)
  * @param  isUserResizable Whether the user can resize the window through the OS
+ * @param  useVsync        Whether vsync should be enabled or not
  * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
  *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int resIndex, int isUserResizable);
+        int resIndex, int isUserResizable, int useVsync);
 
 /**
  * Disable the audio subsystem; Any further call to any audio function will be
