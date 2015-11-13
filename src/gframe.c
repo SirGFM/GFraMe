@@ -55,6 +55,11 @@ struct stGFMCtx {
     /** Flag to easily disable the audio; must be set after initialized the
      * lib */
     int isAudioEnabled;
+    /** Moment, in milisecond, when the last draw op finished */
+    int lastDrawnTime;
+    /** Time elapsed since the last update (great for fixed 60fps update, when
+     * using vsync) */
+    int lastDrawElapsed;
     /** Audio sub-system context */
     gfmAudioCtx *pAudio;
     /** The game's backbuffer */
@@ -2753,6 +2758,22 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     
     rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    
+    // Store the time taken from the previous draw (and calculate how long it
+    // has taken)
+    if (pCtx->lastDrawnTime == 0) {
+        rv = gfmTimer_getCurTimeMs(&pCtx->lastDrawnTime);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    }
+    else {
+        int curTime;
+        
+        rv = gfmTimer_getCurTimeMs(&curTime);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        
+        pCtx->lastDrawElapsed = curTime - pCtx->lastDrawnTime;
+        pCtx->lastDrawnTime = curTime;
+    }
     
     // If requested, take the snapshot
     if (pCtx->takeSnapshot) {
