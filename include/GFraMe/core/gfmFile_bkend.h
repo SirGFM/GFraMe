@@ -122,6 +122,15 @@ gfmRV gfmFile_close(gfmFile *pCtx);
 gfmRV gfmFile_isOpen(gfmFile *pCtx);
 
 /**
+ * Get the path to the currently opened file
+ * 
+ * @param  [out]ppPath The path to the file (mustn't be dealloc'ed)
+ * @param  [ in]pCtx   The 'generic' file
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPath(char **ppPath, gfmFile *pCtx);
+
+/**
  * Retrieve the file's size
  * 
  * @param  pSize The file size (in bytes)

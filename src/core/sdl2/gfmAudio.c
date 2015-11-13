@@ -35,6 +35,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <c_synth/synth.h>
+#include <c_synth/synth_errors.h>
+
 /** An audio representation */
 typedef struct stGFMAudio gfmAudio;
 
@@ -81,6 +84,8 @@ struct stGFMAudioCtx {
     SDL_AudioDeviceID dev;
     /** Specs of the opened audio device */
     SDL_AudioSpec spec;
+    /** MML synthesizer context */
+    synthCtx *pSynthCtx;
     /** Bits per sample (in an easier var than fetching from the spec) */
     int bitsPerSample;
     /** Number of channels */
@@ -107,7 +112,7 @@ struct stGFMAudioMml {
     /** How many tracks there are on this MML audio */
     int numTracks;
     /** All of the tracks */
-    gfmAudioWave *pTracks;
+    mmlTrack **ppTracks;
 };
 typedef struct stGFMAudioMml gfmAudioMml;
 
@@ -530,17 +535,15 @@ static gfmRV gfmAudio_freeAudio(gfmAudio **ppCtx) {
             
             pMml = &((*ppCtx)->self.mml);
             
-            if (pMml->pTracks) {
+            if (pMml->ppTracks) {
                 // Release each of the mml's track
                 i = 0;
                 while (i < pMml->numTracks) {
-                    if (pMml->pTracks[i].pBuf) {
-                        free(pMml->pTracks[i].pBuf);
-                    }
+                    // TODO Release the track
                     i++;
                 }
                 // Release the array of tracks
-                free(pMml->pTracks);
+                free(pMml->ppTracks);
             }
         } break;
         case gfmAudio_ogg: {
@@ -628,6 +631,7 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pAudio, gfmCtx *pCtx,
     gfmRV rv;
     int irv;
     SDL_AudioSpec wanted;
+    synth_err srv;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -727,6 +731,11 @@ gfmRV gfmAudio_initSubsystem(gfmAudioCtx *pAudio, gfmCtx *pCtx,
     
     // Set the device as initialized
     pAudio->init |= gfmAudio_device;
+    
+    // Initialize the MML synthesizer
+    srv = synth_init(&(pAudio->pSynthCtx), pAudio->spec.freq);
+    ASSERT_LOG(srv == SYNTH_OK, GFMRV_INTERNAL_ERROR, pLog);
+    
     // Hard coded since it's the only supported format, for now
     pAudio->bitsPerSample = 16;
     pAudio->numChannels = wanted.channels;
@@ -766,6 +775,9 @@ gfmRV gfmAudio_closeSubSystem(gfmAudioCtx *pCtx) {
     // Free the generic arrays
     gfmGenArr_clean(pCtx->pAudioPool, gfmAudio_freeAudio);
     gfmGenArr_clean(pCtx->pAudioHndPool, gfmAudio_freeHandle);
+    
+    // Release the MML synthesizer
+    synth_free(&(pCtx->pSynthCtx));
     
     rv = GFMRV_OK;
 __ret:
@@ -920,12 +932,47 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
     if (didParse == 0) {
         rv = gfmAudio_isMml(pFp);
         if (rv == GFMRV_TRUE) {
+            char *pBuf;
+            gfmAudioWave *pWave;
+            int bufLen, loopPos;
+            synthBufMode mode;
+            
+            mode = 0;
+            switch (pAud->spec.format) {
+                case AUDIO_S8:     mode |=  SYNTH_8BITS | SYNTH_SIGNED; break;
+                case AUDIO_U8:     mode |=  SYNTH_8BITS | SYNTH_UNSIGNED; break;
+                case AUDIO_S16LSB: mode |= SYNTH_16BITS | SYNTH_SIGNED; break;
+                case AUDIO_U16LSB: mode |= SYNTH_16BITS | SYNTH_UNSIGNED; break;
+                default: ASSERT_LOG(0, GFMRV_INTERNAL_ERROR, pLog);
+            }
+            switch (pAud->numChannels) {
+                case 1: mode |= SYNTH_1CHAN; break;
+                case 2: mode |= SYNTH_2CHAN; break;
+                default: ASSERT_LOG(0, GFMRV_INTERNAL_ERROR, pLog);
+            }
+            
             rv = gfmLog_log(pLog, gfmLog_info, "Audio is encoded in MML");
             ASSERT(rv == GFMRV_OK, rv);
             
-            // TODO Add support for MML
-            ASSERT_LOG(0, GFMRV_AUDIO_FILE_NOT_SUPPORTED, pLog);
+            // Load the MML as a "single track/buffer" wave
+            rv = gfmAudio_loadMMLAsWave(&pBuf, &bufLen, &loopPos, pFp, pLog,
+                    pAud->pSynthCtx, mode);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
             didParse = 1;
+            
+            pAudio->type = gfmAudio_wave;
+            pWave = &(pAudio->self.wave);
+            // Initialize the wave's data
+            pWave->pBuf = pBuf;
+            pWave->len = bufLen;
+            if (loopPos >= 0) {
+                pWave->doRepeat = 1;
+                pWave->repeatPosition = loopPos;
+            }
+            else {
+                pWave->doRepeat = 0;
+                pWave->repeatPosition = 0;
+            }
         }
     }
     // Try to parse the file as vorbis

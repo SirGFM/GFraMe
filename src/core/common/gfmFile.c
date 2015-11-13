@@ -33,6 +33,8 @@ static char pBuf[4];
 struct stGFMFile {
     /** The currently opened file pointer */
     FILE *pFp;
+    /** Path to the file */
+    gfmString *pPath;
     /** Last read char */
     int lastChar;
     /** Current node to be popped */
@@ -59,6 +61,9 @@ gfmRV gfmFile_getNew(gfmFile **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     // Clean it
     memset(*ppCtx, 0x0, sizeof(gfmFile));
+    // Alloc the path string
+    rv = gfmString_getNew(&((*ppCtx)->pPath));
+    ASSERT(rv == GFMRV_OK, rv);
     
     rv = GFMRV_OK;
 __ret:
@@ -78,6 +83,8 @@ gfmRV gfmFile_free(gfmFile **ppCtx) {
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
+    // Release the path
+    gfmString_free(&((*ppCtx)->pPath));
     // Close the file (in case it's still open)
     gfmFile_close(*ppCtx);
     // Free the memory
@@ -113,16 +120,25 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     // Check that the file isn't opened
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
     
-#ifdef EMCC
-    rv = gfmString_setLength(pStr, 0/*len*/);
+#ifndef EMCC
+    // Retrieve the file's directory
+    rv = gfmString_getString(&pPath, pStr);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    // Initialize the local string with that path
+    rv = gfmString_init(pCtx->pPath, pPath, strlen(pPath), 1/*doCopy*/);
+    ASSERT_NR(rv == GFMRV_OK);
+#else
+    rv = gfmString_setLength(pCtx->pPath, 0/*len*/);
     ASSERT(rv == GFMRV_OK, rv);
 #endif
     
     // Append the filename to its path
-    rv = gfmString_concat(pStr, pFilename, filenameLen);
+    rv = gfmString_concat(pCtx->pPath, pFilename, filenameLen);
     ASSERT_NR(rv == GFMRV_OK);
-    // Retrieve it
-    rv = gfmString_getString(&pPath, pStr);
+    
+    // Retrieve the absolute path
+    rv = gfmString_getString(&pPath, pCtx->pPath);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Open the file
@@ -164,7 +180,7 @@ gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // Retrieve the absolute file path
+    // Retrieve the absolute file path (i.e., copy the 'static' string)
     rv = gfm_getLocalPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
@@ -201,7 +217,7 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    // Retrieve the absolute file path
+    // Retrieve the absolute file path (i.e., copy the 'static' string)
     rv = gfm_getBinaryPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_concatStatic(pStr, "assets/");
@@ -262,6 +278,31 @@ gfmRV gfmFile_isOpen(gfmFile *pCtx) {
     else {
         rv = GFMRV_FALSE;
     }
+__ret:
+    return rv;
+}
+
+/**
+ * Get the path to the currently opened file
+ * 
+ * @param  [out]ppPath The path to the file (mustn't be dealloc'ed)
+ * @param  [ in]pCtx   The 'generic' file
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPath(char **ppPath, gfmFile *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppPath, GFMRV_ARGUMENTS_BAD);
+    // Check that the file is currently open
+    ASSERT(gfmFile_isOpen(pCtx) == GFMRV_TRUE, GFMRV_FILE_NOT_OPEN);
+    
+    // Retrieve the file's path
+    rv = gfmString_getString(ppPath, pCtx->pPath);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }

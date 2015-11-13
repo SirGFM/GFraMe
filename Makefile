@@ -1,8 +1,37 @@
 
-ifndef ($(CC))
-  CC = gcc
-endif
-.SUFFIXES=.c .o
+#==============================================================================
+# Select which compiler to use (either gcc or emcc)
+#==============================================================================
+  ifeq ($(MAKECMDGOALS), emscript)
+    CC := emcc
+    RELEASE := yes
+    EXPORT_GIF := no
+    BACKEND := emscript
+  else
+    ifeq ($(MAKECMDGOALS), emscript_clean)
+      CC := emcc
+      RELEASE := yes
+      EXPORT_GIF := no
+      BACKEND := emscript
+    else
+      ifndef ($(CC))
+        CC := gcc
+      endif
+    endif
+  endif
+#==============================================================================
+
+#==============================================================================
+# Clear the suffixes' default rule, since there's an explicit one
+#==============================================================================
+.SUFFIXES:
+#==============================================================================
+
+#==============================================================================
+# Define all targets that doesn't match its generated file
+#==============================================================================
+.PHONY: emscript fast fast_all release install clean emscript_clean distclean
+#==============================================================================
 
 #==============================================================================
 # Define compilation target
@@ -143,14 +172,18 @@ endif
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
-      LFLAGS := $(LFLAGS) -I"/d/windows/mingw/lib"
+      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
     else
-      LFLAGS := $(LFLAGS) -I"/d/windows/mingw/mingw32/lib"
+      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
     endif
     LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
+  else
+    LFLAGS := $(LFLAGS) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
+# Add the MML synthesizer
+  LFLAGS := $(LFLAGS) -lCSynth
 # Add OpenGL lib
  # ifeq ($(USE_OPENGL), yes)
  #   ifeq ($(OS), Win)
@@ -216,6 +249,16 @@ endif
 #==============================================================================
 
 #==============================================================================
+# Get the number of cores for fun stuff
+#==============================================================================
+  ifeq ($(OS), Win)
+   CORES := 1
+  else
+   CORES := $$(($(shell nproc) * 2))
+  endif
+#==============================================================================
+
+#==============================================================================
 # Define default compilation rule
 #==============================================================================
 all: static tests
@@ -230,34 +273,27 @@ release: MAKEDIRS
 	# Remove all old binaries
 	make clean
 	# Compile everything in release mode
-	make RELEASE=yes static
-	make RELEASE=yes shared
-	make RELEASE=yes optmized
+	make RELEASE=yes fast
 	# Remove all debug info from the binaries
 	strip $(BINDIR)/$(TARGET).a
 	strip $(BINDIR)/$(TARGET).$(MNV)
-	strip $(BINDIR)/$(TARGET)_opt.$(MNV)
 	# Delete all .o to recompile as debug
 	rm -f $(OBJS)
 	# Recompile the lib with debug info
-	make DEBUG=yes static
-	make DEBUG=yes shared
+	make DEBUG=yes fast
 	date
 #==============================================================================
 
 #==============================================================================
 # Rule for building a object file for emscript
 #==============================================================================
-emscript:
-	# Ugly solution: call make with the correct params
-	make RELEASE=yes EXPORT_GIF=no CC=emcc BACKEND=emscript bin/emscript/$(TARGET).bc
+emscript: bin/emscript/$(TARGET).bc
 #==============================================================================
 
 #==============================================================================
-# Stupid rule for cleaning emscript build... gotta fix this at some point
+# Rule for cleaning emscript build... It's required to modify the CC
 #==============================================================================
-emscript_clean:
-	make CC=emcc BACKEND=emscript clean
+emscript_clean: clean
 #==============================================================================
 
 #==============================================================================
@@ -286,7 +322,7 @@ ifeq ($(OS), Win)
 	# Create destiny directories
 	mkdir -p /c/GFraMe/lib/
 	mkdir -p /c/GFraMe/include/GFrame
-	# Copy every shared lib (normal, optmized and debug)
+	# Copy every shared lib (normal and debug)
 	cp -f $(BINDIR)/$(TARGET)*.$(MNV) /c/GFraMe/lib
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
@@ -298,7 +334,7 @@ else
 	# Create destiny directories
 	mkdir -p $(LIBPATH)/GFraMe
 	mkdir -p $(HEADERPATH)/GFraMe
-	# Copy every shared lib (normal, optmized and debug)
+	# Copy every shared lib (normal and debug)
 	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
@@ -323,9 +359,6 @@ ifeq ($(OS), Win)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MJV)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(SO)
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MNV) 
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MJV) 
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(SO) 
 	rm -f /c/GFraMe/lib/$(TARGET).$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(MJV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(SO)
@@ -341,9 +374,6 @@ else
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MNV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MJV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(SO)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MNV) 
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MJV) 
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(SO) 
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MNV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MJV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(SO)
@@ -387,23 +417,6 @@ endif
 #==============================================================================
 
 #==============================================================================
-# Rule for creating an optimized object file (must be tested!)
-#==============================================================================
-ifeq ($(OS), Win)
-  optmized:
-	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
-else
-  optmized:
-	rm -f $(BINDIR)/$(TARGET)_opt.$(MNV) $(BINDIR)/$(TARGET)_opt.$(SO)
-	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
-	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MNV) $(TARGET)_opt.$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MJV) $(TARGET)_opt.$(SO)
-endif
-#==============================================================================
-
-#==============================================================================
 # Rule for compiling any .c in its object
 #==============================================================================
 $(OBJDIR)/%.o: %.c
@@ -438,6 +451,22 @@ $(BINDIR)/%_tst$(BIN_EXT): $(OBJDIR)/%_tst.o
 #==============================================================================
 
 #==============================================================================
+# Build everything as fast as possible (and using as many cores/threads as
+# possible)
+#==============================================================================
+fast:
+	make -j $(CORES) static shared
+#==============================================================================
+
+#==============================================================================
+# Build everything as fast as possible (and using as many cores/threads as
+# possible)
+#==============================================================================
+fast_all:
+	make -j $(CORES) static shared && make -j $(CORES)
+#==============================================================================
+
+#==============================================================================
 # Rule for actually creating every directory
 #==============================================================================
 $(OBJDIR):
@@ -452,7 +481,9 @@ $(OBJDIR):
 	mkdir -p $(BINDIR)/tst
 #==============================================================================
 
-.PHONY: clean mostlyclean
+#==============================================================================
+# Removes all built objects (use emscript_clean to clear the emscript stuff)
+#==============================================================================
 clean:
 	rm -f $(OBJS)
 	rm -f $(TEST_BIN)
@@ -460,8 +491,12 @@ clean:
 	rm -f $(BINDIR)/$(TARGET)*.$(MNV)
 	rm -f $(BINDIR)/$(TARGET)*.$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
+#==============================================================================
 
-mostlyclean: clean
+#==============================================================================
+# Remove all built objects and target directories
+#==============================================================================
+distclean: clean
 	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/sdl2
@@ -471,4 +506,5 @@ mostlyclean: clean
 	rmdir $(OBJDIR)
 	rmdir $(BINDIR)/tst
 	rmdir $(BINDIR)
+#==============================================================================
 
