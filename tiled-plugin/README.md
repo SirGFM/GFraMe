@@ -7,15 +7,17 @@ library
 
 To compile and use this plugin, it's required to have the tiled source code
 downloaded/cloned. It can be downloaded from the following repository:
-https://github.com/bjorn/tiled .
+https://github.com/bjorn/tiled.
 
-This plugin was made for the commit 'cef41290b159ec2fff8c31db4e86e929aef95299',
-it will be eventually tested with the latest version. For now, to use it, after
-cloning the tiled source, run the following command on its base directory:
+This plugin was tested against the commit
+'78c273ceb870fece51473229f865350605992ebc', (the latest version on 2015/11/14).
+
+If This plugin ever gets incompatible with the current tiled version, run the
+following command to roll it back to the last known version to work:
 
 ```
 # Go back to the desired version
-$ git reset --hard cef41290b159ec2fff8c31db4e86e929aef95299
+$ git reset --hard 78c273ceb870fece51473229f865350605992ebc
 # Compile tiled
 $ qmake
 $ make

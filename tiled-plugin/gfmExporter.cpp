@@ -26,15 +26,10 @@
 #include "tile.h"
 #include "tilelayer.h"
 
+#include <QDir>
 #include <QFile>
-
-#if QT_VERSION >= 0x050100
-#define HAS_QSAVEFILE_SUPPORT
-#endif
-
-#ifdef HAS_QSAVEFILE_SUPPORT
+#include <QFileInfo>
 #include <QSaveFile>
-#endif
 
 using namespace Tiled;
 using namespace GFMExporter;
@@ -45,11 +40,7 @@ using namespace GFMExporter;
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-#ifdef HAS_QSAVEFILE_SUPPORT
 static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer);
-#else
-static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer);
-#endif
 
 /**
  * Write a object layer to the output file
@@ -57,11 +48,7 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer);
  * @param  file        The output file
  * @param  objectLayer The layer to be outputed
  */
-#ifdef HAS_QSAVEFILE_SUPPORT
 static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer);
-#else
-static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer);
-#endif
 
 /** Constructor... that does nothing */
 GFMExporterPlugin::GFMExporterPlugin()
@@ -76,99 +63,49 @@ GFMExporterPlugin::GFMExporterPlugin()
  */
 bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 {
-    const TileLayer *tileLayer;
-    
-    // Open the output file
-#ifdef HAS_QSAVEFILE_SUPPORT
-    QSaveFile file(fileName);
-#else
-    QFile file(fileName);
-#endif
-    
-    // Open the file for writing
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        mError = tr("Could not open file for writing.");
-        return false;
-    }
+    // Get file paths for each layer
+    QStringList layerPaths = outputFiles(map, fileName);
 
-    // First iteration, check that there's at most a single tilemap and store it
-    tileLayer = 0;
+    // Traverse all tile layers
+    uint currentLayer = 0u;
     foreach (const Layer *layer, map->layers()) {
-        // Check that the layer is visible
-        if (!layer->isVisible())
+        if ((layer->layerType() != Layer::TileLayerType &&
+                layer->layerType() != Layer::ObjectGroupType) ||
+                !layer->isVisible())
             continue;
-        
-        // Check that the layer is a tilemap
-        if (layer->layerType() == Layer::TileLayerType) {
-            // Check that there's only a single tilemap to be exported
-            if (tileLayer != 0 &&
-                        tileLayer != (static_cast<const TileLayer*>(layer))) {
-                mError = tr("Found more than one visible layers, but the "
-                        "plugin can only handle a single layer at a time");
-                return false;
-            }
-            
-            // Retrieve the current tilemap (it will be output later)
-            tileLayer = static_cast<const TileLayer*>(layer);
+
+        QSaveFile file(layerPaths.at(currentLayer));
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            mError = tr("Could not open file for writing.");
+            return false;
         }
-        else if (layer->layerType() == Layer::ObjectGroupType) {
-            // Do nothing on this iteration, as it must appear after the tilemap
-            continue;
+
+        if (layer->layerType() == Layer::TileLayerType) {
+            const TileLayer *tileLayer = static_cast<const TileLayer*>(layer);
+
+            gfm_writeTilemap(file, tileLayer);
         }
         else {
-            // TODO Any other possible layer type?
-            continue;
-        }
-        
-    }
-    // Output any found tilemap at the begining of the file
-    if (tileLayer) {
-        // Output to the file: 'type <terrain_name> <tile_index>'
-        //                     '...'
-        //                     'map <width_in_tiles> <height_in_tiles>\n'
-        //                     '  tile_0 tile_1 ...\n'
-        //                     '  ...\n'
-        //                     '  tile_0 tile_1 ... last_tile'
-        gfm_writeTilemap(file, tileLayer);
-    }
-    
-    // Second iteration, now objects and areas are exported
-    foreach (const Layer *layer, map->layers()) {
-        // Check that the layer is visible
-        if (!layer->isVisible())
-            continue;
-        
-        // Check that the layer is a tilemap
-        if (layer->layerType() == Layer::TileLayerType) {
-            // It was checked that there's at most one tilemap, so ignore this
-            continue;
-        }
-        else if (layer->layerType() == Layer::ObjectGroupType) {
-            const ObjectGroup *groupLayer;
+            const ObjectGroup *groupLayer =
+                    static_cast<const ObjectGroup*>(layer);
             
-            // Actually export the object layer
-            groupLayer = static_cast<const ObjectGroup*>(layer);
             gfm_writeObjects(file, groupLayer);
         }
-        else {
-            // TODO Any other possible layer type?
-            continue;
+
+        if (file.error() != QFile::NoError) {
+            mError = file.errorString();
+            return false;
         }
-    }
-    
-    if (file.error() != QFile::NoError) {
-        mError = file.errorString();
-        return false;
+
+        if (!file.commit()) {
+            mError = file.errorString();
+            return false;
+        }
+
+        currentLayer++;
     }
 
-#ifdef HAS_QSAVEFILE_SUPPORT
-    if (!file.commit()) {
-        mError = file.errorString();
-        return false;
-    }
-#endif
-
-    file.close();
     return true;
 }
 
@@ -176,6 +113,38 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 QString GFMExporterPlugin::nameFilter() const
 {
     return tr("GFraMe tilemap (*.gfm)");
+}
+
+QStringList GFMExporterPlugin::outputFiles(const Tiled::Map *map, const QString &fileName) const
+{
+    QStringList result;
+
+    // Extract file name without extension and path
+    QFileInfo fileInfo(fileName);
+    const QString base = fileInfo.completeBaseName() + QLatin1String("_");
+    const QString path = fileInfo.path();
+
+    // Loop layers to calculate the path for the exported file
+    foreach (const Layer *layer, map->layers()) {
+        if ((layer->layerType() != Layer::TileLayerType &&
+                layer->layerType() != Layer::ObjectGroupType) ||
+                !layer->isVisible())
+            continue;
+
+        // Get the output file name for this layer
+        const QString layerName = layer->name();
+        const QString layerFileName = base + layerName + QLatin1String(".gfm");
+        const QString layerFilePath = QDir(path).filePath(layerFileName);
+
+        result.append(layerFilePath);
+    }
+
+    // If there was only one tile layer, there's no need to change the name
+    // (also keeps behavior backwards compatible)
+    if (result.size() == 1)
+        result[0] = fileName;
+
+    return result;
 }
 
 /** Return the occurred error */
@@ -190,20 +159,16 @@ QString GFMExporterPlugin::errorString() const
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-#ifdef HAS_QSAVEFILE_SUPPORT
 static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer) {
-#else
-static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
-#endif
-    QSet<Tileset*>::iterator tileset;
-    QSet<Tileset*> tilesets = tileLayer->usedTilesets();
+    QSet<QSharedPointer<Tileset> >::iterator tileset;
+    QSet<QSharedPointer<Tileset> > tilesets = tileLayer->usedTilesets();
 
     // First, export it's terrain data
     // Loop through the tilemap's iterators
     tileset = tilesets.begin();
     while (tileset != tilesets.end()) {
-        QList<Tile*>::iterator tile;
-        QList<Tile*> tiles = (*tileset)->tiles();
+        QMap<int, Tile*>::iterator tile;
+        QMap<int, Tile*> tiles = (*tileset)->tiles();
 
         // Loop through all of it's tiles and print the terrain info
         tile = tiles.begin();
@@ -258,11 +223,7 @@ static void gfm_writeTilemap(QFile &file, const TileLayer *tileLayer) {
     }
 }
 
-#ifdef HAS_QSAVEFILE_SUPPORT
 static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer) {
-#else
-static void gfm_writeObjects(QFile &file, const ObjectGroup *objectLayer) {
-#endif
     foreach (const MapObject *pObj, objectLayer->objects()) {
         if (pObj->shape() != MapObject::Rectangle) {
             // TODO Add suport for non-rectangulaer shapes?

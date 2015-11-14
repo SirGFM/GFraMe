@@ -20,21 +20,18 @@
 #ifndef __GFMEXPORTER_H__
 #define __GFMEXPORTER_H__
 
-#include "mapwriterinterface.h"
+#include "mapformat.h"
 
 #include "gfmExporter_global.h"
 
 namespace GFMExporter {
 
 /** Declare the plugin's class as a QObject */
-class GFMEXPORTER_SHARED_EXPORT GFMExporterPlugin : public QObject,
-                                   public Tiled::MapWriterInterface
+class GFMEXPORTER_SHARED_EXPORT GFMExporterPlugin : public
+        Tiled::WritableMapFormat
 {
     Q_OBJECT
-    Q_INTERFACES(Tiled::MapWriterInterface)
-#if QT_VERSION >= 0x050000
-    Q_PLUGIN_METADATA(IID "org.mapeditor.MapWriterInterface" FILE "plugin.gfm")
-#endif
+    Q_PLUGIN_METADATA(IID "org.mapeditor.MapFormat" FILE "plugin.json")
 
 public:
     /** Constructor... that does nothing */
@@ -46,11 +43,15 @@ public:
      * @param  map      The tilemap to be exported
      * @param  filename The exported filename
      */
-    bool write(const Tiled::Map *map, const QString &fileName);
-    /** Return the plugin's description and file type */
-    QString nameFilter() const;
+    bool write(const Tiled::Map *map, const QString &fileName) override;
     /** Return the occurred error */
-    QString errorString() const;
+    QString errorString() const override;
+    /** ??? */
+    QStringList outputFiles(const Tiled::Map *map, const QString &fileName) const override;
+
+protected:
+    /** Return the plugin's description and file type */
+    QString nameFilter() const override;
 
 private:
     /** String that constains message on error */

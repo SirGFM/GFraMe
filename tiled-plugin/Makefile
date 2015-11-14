@@ -26,7 +26,7 @@ DST_DIR := $(TILED_DIR)/src/plugins/gfmExporter
 all:
 	@# Update the plugin's sources (on the tiled dir)
 	@mkdir -p $(DST_DIR)
-	@cp -f gfmExporter* $(DST_DIR)
+	@cp -f plugin.json gfmExporter* $(DST_DIR)
 	@# Regenerate the Makefile
 	@cd $(DST_DIR); qmake
 	@# Compile it
