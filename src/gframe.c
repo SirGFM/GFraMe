@@ -23,7 +23,9 @@
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmWindow_bkend.h>
+
 #include <GFraMe_int/gfmFPSCounter.h>
+#include <GFraMe_int/core/gfmVideo_bkend.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +66,8 @@ struct stGFMCtx {
     gfmAudioCtx *pAudio;
     /** The game's backbuffer */
     gfmBackbuffer *pBackbuffer;
+    /** Current video functions */
+    gfmVideoFuncs videoFuncs;
     /** Game's window */
     gfmWindow *pWindow;
     /** Timer used to issue new frames */
@@ -188,20 +192,23 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
     ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
     
-    // Check that it was already implemented
-    ASSERT(bkend == GFM_VIDEO_SDL2, GFMRV_FUNCTION_NOT_IMPLEMENTED);
-    
     // TODO Load the lib
     switch (bkend) {
         case GFM_VIDEO_SDL2: {
+            rv = gfmVideo_SDL2_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
         } break;
         case GFM_VIDEO_OPENGL3: {
+            rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
         } break;
-        case GFM_VIDEO_GLES2: {
-        } break;
-        case GFM_VIDEO_GLES3: {
-        } break;
-        default: {}
+        // case GFM_VIDEO_GLES2: {
+        // } break;
+        // case GFM_VIDEO_GLES3: {
+        // } break;
+        // case GFM_VIDEO_WGL3: {
+        // } break;
+        default: { ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED); }
     }
     
     rv = GFMRV_OK;

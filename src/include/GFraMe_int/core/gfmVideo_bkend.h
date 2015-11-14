@@ -1,6 +1,8 @@
 /**
  * Define a generic video backend that shall be loaded from a shared lib (so the
  * user may switch it)
+ * 
+ * @file src/include/GFraMe_int/core/gfmVideo_bkend.h
  */
 #ifndef __GFMVIDEO_STRUCT__
 #define __GFMVIDEO_STRUCT__
@@ -334,6 +336,22 @@ struct stGFMVideoFuncs {
      */
     gfmRV (*gfmVideo_drawEnd)(gfmVideo *pCtx);
 };
+
+/**
+ * Load all OpenGL3 video functions into the struct
+ * 
+ * @param  [ in]pCtx The video function context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+extern gfmRV gfmVideo_GL3_loadFunctions(gfmVideoFuncs *pCtx);
+
+/**
+ * Load all SDL2 video functions into the struct
+ * 
+ * @param  [ in]pCtx The video function context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+extern gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx);
 
 #endif /* __GFMVIDEO_BKEND_H__ */
 
