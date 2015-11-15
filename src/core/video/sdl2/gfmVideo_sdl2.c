@@ -7,7 +7,39 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_video.h>
+
+#include <stdlib.h>
+#include <string.h>
+
 #include "gfmVideo_sdl2.h"
+
+struct stGFMVideoSDL2 {
+    /** Actual window (managed by SDL2) */
+    SDL_Window *pSDLWindow;
+    /** Device's width */
+    int devWidth;
+    /** Device's height */
+    int devHeight;
+    /** Window's width */
+    int wndWidth;
+    /** Window's height */
+    int wndHeight;
+    /** Whether we are currently in full-screen mode */
+    int isFullScreen;
+    /** Current resolution; -1 if not set or custom */
+    int curResolution;
+    /** How many resolutions are supported by this device */
+    int resCount;
+    /** List of possible width resolutions */
+    int *pWidths;
+    /** List of possible height resolutions */
+    int *pHeights;
+    /** List of possible refresh rates */
+    int *pRefRates;
+};
+typedef struct stGFMVideoSDL2 gfmVideoSDL2;
 
 /**
  * Load all SDL2 video functions into the struct
@@ -58,7 +90,43 @@ __ret:
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
 gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int didInit, irv;
+
+    didInit = 0;
+    pCtx = 0;
+
+    /* Sanitize arguments */
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Alloc the video context */
+    pCtx = (gfmVideoSDL2*)malloc(sizeof(gfmVideoSDL2));
+    ASSERT(pCtx, GFMRV_ALLOC_FAILED);
+
+    /* Clean the struct */
+    memset(pCtx, 0x0, sizeof(gfmVideoSDL2));
+
+    /* Initialize the SDL2 video subsystem */
+    irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    /* Mark SDL2 as initialized, in case anything happens */
+    didInit = 1;
+
+    *ppCtx = (gfmVideo*)pCtx;
+    rv = GFMRV_OK;
+__ret:
+    if (rv != GFMRV_OK) {
+        if (didInit) {
+            SDL_QuitSubSystem(SDL_INIT_VIDEO);
+        }
+        if (pCtx) {
+            free(pCtx);
+        }
+    }
+
+    return rv;
 }
 
 /**

@@ -12,7 +12,7 @@
 /* Struct that store the loaded functions */
 typedef struct stGFMVideoFuncs gfmVideoFuncs;
 /* The video context */
-typedef struct stGFMVideo gfmVideo;
+typedef void gfmVideo;
 
 #endif /* __GFMVIDEO_STRUCT__ */
 
