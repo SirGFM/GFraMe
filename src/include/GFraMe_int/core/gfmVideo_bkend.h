@@ -42,17 +42,13 @@ struct stGFMVideoFuncs {
     gfmRV (*gfmVideo_free)(gfmVideo **ppCtx);
 
     /**
-     * Create a list with all possible window resolutions and refresh rate
-     * 
-     * This will depend on the actual backend, but the refresh rate may only be
-     * meaningful when on full-screen
+     * Count how many resolution modes there are available when in fullscreen
      * 
      * @param  [out]pCount How many resolutions were found
      * @param  [ in]pCtx   The video context (will store the resolutions list)
-     * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
-     *                     GFMRV_ALLOC_FAILED, ...
+     * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
      */
-    gfmRV (*gfmVideo_queryResolutions)(int *pCount, gfmVideo *pCtx);
+    gfmRV (*gfmVideo_countResolutions)(int *pCount, gfmVideo *pCtx);
 
     /**
      * Get one of the possibles window's resolution
@@ -65,8 +61,7 @@ struct stGFMVideoFuncs {
      * @param  [ in]pCtx     The video context
      * @param  [ in]index    Resolution to be read (0 is the default resolution)
      * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD,
-     *                       GFMRV_INTERNAL_ERROR, GFMRV_ALLOC_FAILED,
-     *                       GFMRV_INVALID_INDEX, ...
+     *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
      */
     gfmRV (*gfmVideo_getResolution)(int *pWidth, int *pHeight, int *pRefRate,
             gfmWindow *pCtx, int index);
@@ -147,7 +142,8 @@ struct stGFMVideoFuncs {
      * @param  [ in]pCtx   The video context
      * @param  [ in]width  The desired width
      * @param  [ in]height The desired height
-     * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+     * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+     *                     GFMRV_WINDOW_NOT_INITIALIZED
      */
     gfmRV (*gfmVideo_setDimensions)(gfmVideo *pCtx, int width, int height);
 
@@ -160,7 +156,8 @@ struct stGFMVideoFuncs {
      * @param  [out]pWidth  The current width
      * @param  [out]pHeight The current height
      * @param  [ in]pCtx    The video context
-     * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+     * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+     *                      GFMRV_WINDOW_NOT_INITIALIZED
      */
     gfmRV (*gfmVideo_getDimensions)(int *pWidth, int *pHeight, gfmVideo *pCtx);
 
@@ -169,7 +166,8 @@ struct stGFMVideoFuncs {
      * 
      * @param  [ in]pCtx The video context
      * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
-     *                   GFMRV_WINDOW_MODE_UNCHANGED
+     *                   GFMRV_WINDOW_MODE_UNCHANGED,
+     *                   GFMRV_WINDOW_NOT_INITIALIZED
      */
     gfmRV (*gfmVideo_setFullscreen)(gfmVideo *pCtx);
 
@@ -178,7 +176,8 @@ struct stGFMVideoFuncs {
      * 
      * @param  [ in]pCtx The video context
      * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
-     *                   GFMRV_WINDOW_MODE_UNCHANGED
+     *                   GFMRV_WINDOW_MODE_UNCHANGED,
+     *                   GFMRV_WINDOW_NOT_INITIALIZED
      */
     gfmRV (*gfmVideo_setWindowed)(gfmVideo *pCtx);
 
@@ -191,11 +190,12 @@ struct stGFMVideoFuncs {
      * NOTE 2: This modification will only take effect when switching to
      * fullscreen mode
      * 
-     * @param  [ in]pCtx The video context
-     * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
-     *                   GFMRV_INVALID_INDEX
+     * @param  [ in]pCtx  The video context
+     * @param  [ in]index The resolution's index
+     * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+     *                    GFMRV_INVALID_INDEX, GFMRV_WINDOW_NOT_INITIALIZED
      */
-    gfmRV (*gfmVideo_setResolution)(gfmVideo *pCtx);
+    gfmRV (*gfmVideo_setResolution)(gfmVideo *pCtx, int index);
 
     /**
      * Retrieve the backbuffer's dimensions

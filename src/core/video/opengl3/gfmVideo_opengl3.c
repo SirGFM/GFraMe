@@ -239,11 +239,12 @@ gfmRV gfmVideo_GL3_setWindowed(gfmVideo *pCtx) {
  * NOTE 2: This modification will only take effect when switching to
  * fullscreen mode
  * 
- * @param  [ in]pCtx The video context
- * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                   GFMRV_INVALID_INDEX
+ * @param  [ in]pCtx  The video context
+ * @param  [ in]index The resolution's index
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                    GFMRV_INVALID_INDEX
  */
-gfmRV gfmVideo_GL3_setResolution(gfmVideo *pCtx) {
+gfmRV gfmVideo_GL3_setResolution(gfmVideo *pCtx, int index) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
