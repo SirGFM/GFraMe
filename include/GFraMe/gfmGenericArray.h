@@ -175,6 +175,14 @@
     } while (0)
 
 /**
+ * Clean the latest alloc'ed object
+ * 
+ * Useful if an error happens after alloc'ing it, during its initialization
+ */
+#define gfmGenArr_pop(buffer) \
+    buffer.arr[buffer.used] = 0;
+
+/**
  * Validate a previous "gfmGenArr_getNextRef" by increasing the amount of used
  * items
  * 

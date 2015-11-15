@@ -213,20 +213,6 @@ gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY, gfmVideo *pVideo);
 gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color);
 
 /**
- * Loads a 24 bits bitmap file into a texture
- * 
- * NOTE: The image's dimensions must be power of two (e.g., 256x256)
- * 
- * @param  [out]ppTex     The loaded (and alloc'ed) texture
- * @param  [ in]pVideo    The video context
- * @param  [ in]pFilename The complete path to the file (must be NULL
- *                        terminated)
- * @param  [ in]colorKey  24 bits, RGB Color to be treated as transparent
- */
-gfmRV gfmVideo_SDL2_loadTextureBMP(gfmTexture **ppTex, gfmVideo *pVideo,
-        char *pFilename, int colorKey);
-
-/**
  * Enable batched draws, if supported
  * 
  * @param  [ in]pVideo The video context
@@ -314,6 +300,21 @@ gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo);
+
+/**
+ * Loads a 24 bits bitmap file into a texture
+ * 
+ * NOTE: The image's dimensions must be power of two (e.g., 256x256)
+ * 
+ * @param  [out]ppTex     The loaded (and alloc'ed) texture
+ * @param  [ in]pVideo    The video context
+ * @param  [ in]pFilename The complete path to the file (must be NULL
+ *                        terminated)
+ * @param  [ in]colorKey  24 bits, RGB Color to be treated as transparent
+ * @param  [ in]pLog      The logger interface
+ */
+gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo, char *pFilename,
+        int colorKey, gfmLog *pLog);
 
 #endif /* __GFMVIDEO_SDL2_H__ */
 

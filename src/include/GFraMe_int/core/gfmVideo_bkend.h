@@ -13,14 +13,18 @@
 typedef struct stGFMVideoFuncs gfmVideoFuncs;
 /* The video context */
 typedef void gfmVideo;
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
 
 #endif /* __GFMVIDEO_STRUCT__ */
 
 #ifndef __GFMVIDEO_BKEND_H__
 #define __GFMVIDEO_BKEND_H__
 
+#include <GFraMe/gfmLog.h>
 #include <GFraMe/gfmSpriteset.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
+
+#include <GFraMe/core/gfmFile_bkend.h>
 
 /** Struct to store all the loaded functions */
 struct stGFMVideoFuncs {
@@ -232,20 +236,6 @@ struct stGFMVideoFuncs {
     gfmRV (*gfmVideo_setBackgroundColor)(gfmVideo *pCtx, int color);
 
     /**
-     * Loads a 24 bits bitmap file into a texture
-     * 
-     * NOTE: The image's dimensions must be power of two (e.g., 256x256)
-     * 
-     * @param  [out]ppTex     The loaded (and alloc'ed) texture
-     * @param  [ in]pCtx      The video context
-     * @param  [ in]pFilename The complete path to the file (must be NULL
-     *                        terminated)
-     * @param  [ in]colorKey   24 bits, RGB Color to be treated as transparent
-     */
-    gfmRV (*gfmVideo_loadTextureBMP)(gfmTexture **ppTex, gfmVideo *pCtx,
-            char *pFilename, int colorKey);
-
-    /**
      * Enable batched draws, if supported
      * 
      * @param  [ in]pCtx The video context
@@ -333,6 +323,20 @@ struct stGFMVideoFuncs {
      * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
      */
     gfmRV (*gfmVideo_drawEnd)(gfmVideo *pCtx);
+
+    /**
+     * Loads a 24 bits bitmap file into a texture
+     * 
+     * NOTE: The image's dimensions must be power of two (e.g., 256x256)
+     * 
+     * @param  [out]ppTex    The loaded (and alloc'ed) texture
+     * @param  [ in]pCtx     The video context
+     * @param  [ in]pFile    The texture file
+     * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
+     * @param  [ in]pLog     The logger interface
+     */
+    gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
+            gfmFile *pFilename, int colorKey, gfmLog *pLog);
 };
 
 /**

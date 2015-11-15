@@ -20,18 +20,7 @@
 #define BMP_WIDTH_POS  0x12
 #define BMP_HEIGHT_POS 0x16
 
-struct stGFMTexture {
-    /** The actual SDL texture */
-    SDL_Texture *pTexture;
-    /** Texture's width */
-    int width;
-    /** Texture's height */
-    int height;
-};
-
-/** 'Exportable' size of gfmTexture */
-const int sizeofGFMTexture = (int)sizeof(gfmTexture);
-
+#if 0
 /**
  * Alloc a new texture
  * 
@@ -82,7 +71,9 @@ gfmRV gfmTexture_free(gfmTexture **ppCtx) {
 __ret:
     return rv;
 }
+#endif
 
+#if 0
 /**
  * Initialize a texture so sprites can be loaded into it
  * 
@@ -409,4 +400,6 @@ gfmRV gfmTexture_getDimensions(int *pWidth, int *pHeight, gfmTexture *pCtx) {
 __ret:
     return rv;
 }
+
+#endif
 

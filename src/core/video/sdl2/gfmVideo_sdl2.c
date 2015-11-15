@@ -5,6 +5,12 @@
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmLog.h>
+#include <GFraMe/gfmUtils.h>
+
+#include <GFraMe/core/gfmFile_bkend.h>
+
 #include <GFraMe_int/core/gfmVideo_bkend.h>
 
 #include <SDL2/SDL.h>
@@ -13,7 +19,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gfmVideo_sdl2.h"
+/** Define a texture array type */
+gfmGenArr_define(gfmTexture);
+
+struct stGFMTexture {
+    /** The actual SDL texture */
+    SDL_Texture *pTexture;
+    /** Texture's width */
+    int width;
+    /** Texture's height */
+    int height;
+};
 
 struct stGFMVideoSDL2 {
 /* ==== WINDOW FIELDS ======================================================= */
@@ -65,49 +81,55 @@ struct stGFMVideoSDL2 {
     Uint8 bgBlue;
     /** Background alpha component */
     Uint8 bgAlpha;
+/* ==== TEXTURE FIELDS ====================================================== */
+    /** Every cached texture */
+    gfmGenArr_var(gfmTexture, pTextures);
 };
 typedef struct stGFMVideoSDL2 gfmVideoSDL2;
 
-/**
- * Load all SDL2 video functions into the struct
- * 
- * @param  [ in]pCtx The video function context
- * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
-    gfmRV rv;
-
-    /* Sanitize arguments */
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-
-    /* Simply copy all function pointer */
-    pCtx->gfmVideo_init = gfmVideo_SDL2_init;
-    pCtx->gfmVideo_free = gfmVideo_SDL2_free;
-    pCtx->gfmVideo_countResolutions = gfmVideo_SDL2_countResolutions;
-    pCtx->gfmVideo_getResolution = gfmVideo_SDL2_getResolution;
-    pCtx->gfmVideo_initWindow = gfmVideo_SDL2_initWindow;
-    pCtx->gfmVideo_initWindowFullscreen = gfmVideo_SDL2_initWindowFullscreen;
-    pCtx->gfmVideo_setDimensions = gfmVideo_SDL2_setDimensions;
-    pCtx->gfmVideo_getDimensions = gfmVideo_SDL2_getDimensions;
-    pCtx->gfmVideo_setFullscreen = gfmVideo_SDL2_setFullscreen;
-    pCtx->gfmVideo_setWindowed = gfmVideo_SDL2_setWindowed;
-    pCtx->gfmVideo_setResolution = gfmVideo_SDL2_setResolution;
-    pCtx->gfmVideo_getBackbufferDimensions = gfmVideo_SDL2_getBackbufferDimensions;
-    pCtx->gfmVideo_windowToBackbuffer = gfmVideo_SDL2_windowToBackbuffer;
-    pCtx->gfmVideo_setBackgroundColor = gfmVideo_SDL2_setBackgroundColor;
-    pCtx->gfmVideo_loadTextureBMP = gfmVideo_SDL2_loadTextureBMP;
-    pCtx->gfmVideo_setBatched = gfmVideo_SDL2_setBatched;
-    pCtx->gfmVideo_drawBegin = gfmVideo_SDL2_drawBegin;
-    pCtx->gfmVideo_drawTile = gfmVideo_SDL2_drawTile;
-    pCtx->gfmVideo_drawRectangle = gfmVideo_SDL2_drawRectangle;
-    pCtx->gfmVideo_drawFillRectangle = gfmVideo_SDL2_drawFillRectangle;
-    pCtx->gfmVideo_getBackbufferData = gfmVideo_SDL2_getBackbufferData;
-    pCtx->gfmVideo_drawEnd = gfmVideo_SDL2_drawEnd;
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
+/* Forward declarations */
+static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx);
+static gfmRV gfmVideo_SDL2_free(gfmVideo **ppCtx);
+static gfmRV gfmVideo_SDL2_countResolutions(int *pCount, gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_getResolution(int *pWidth, int *pHeight,
+        int *pRefRate, gfmWindow *pVideo, int index);
+static gfmRV gfmVideoSDL2_cacheDimensions(gfmVideoSDL2 *pCtx, int width,
+        int height);
+static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
+        int height, int bbufWidth, int bbufHeight, char *pName,
+        SDL_WindowFlags flags, int vsync);
+static gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
+        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
+        int vsync);
+static gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo,
+        int resolution, int bbufWidth, int bbufHeight, char *pName,
+        int isUserResizable, int vsync);
+static gfmRV gfmVideo_SDL2_setDimensions(gfmVideo *pVideo, int width,
+        int height);
+static gfmRV gfmVideo_SDL2_getDimensions(int *pWidth, int *pHeight,
+        gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_setWindowed(gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index);
+static gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
+        gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY,
+        gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color);
+static gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
+        int x, int y, int tile, int isFlipped);
+static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
+        int width, int height, int color);
+static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
+        int width, int height, int color);
+static gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
+        gfmVideo *pVideo);
+static gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo);
+static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx);
+static gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
+        gfmFile *pFile, int colorKey, gfmLog *pLog);
 
 /**
  * Initializes a new gfmVideo
@@ -115,7 +137,7 @@ __ret:
  * @param  [out]ppCtx The alloc'ed gfmVideo context
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
-gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx) {
+static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int didInit, irv;
@@ -171,11 +193,46 @@ __ret:
 /**
  * Releases a previously alloc'ed/initialized gfmVideo
  * 
- * @param  [out]ppCtx The gfmVideo context
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @param  [out]ppVideo The gfmVideo context
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmVideo_SDL2_free(gfmVideo **ppCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+static gfmRV gfmVideo_SDL2_free(gfmVideo **ppVideo) {
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Sanitize arguments */
+    ASSERT(ppVideo, GFMRV_ARGUMENTS_BAD);
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)*ppVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Clean all textures */
+    gfmGenArr_clean(pCtx->pTextures, gfmVideo_SDL2_freeTexture);
+
+    /* Destroy the renderer and the backbuffer */
+    if (pCtx->pRenderer) {
+        SDL_DestroyRenderer(pCtx->pRenderer);
+    }
+    if (pCtx->pBackbuffer) {
+        SDL_DestroyTexture(pCtx->pBackbuffer);
+    }
+
+    /* Destroy the window */
+    if (pCtx->pSDLWindow) {
+        /* TODO revert screen to it's original mode? (is it required?) */
+        SDL_DestroyWindow(pCtx->pSDLWindow);
+    }
+
+    /* Release the video context */
+    free(pCtx);
+
+    *ppVideo = 0;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -185,7 +242,7 @@ gfmRV gfmVideo_SDL2_free(gfmVideo **ppCtx) {
  * @param  [ in]pVideo The video context (will store the resolutions list)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmVideo_SDL2_countResolutions(int *pCount, gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_countResolutions(int *pCount, gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
 
@@ -216,8 +273,8 @@ __ret:
  * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
  */
-gfmRV gfmVideo_SDL2_getResolution(int *pWidth, int *pHeight, int *pRefRate,
-        gfmWindow *pVideo, int index) {
+static gfmRV gfmVideo_SDL2_getResolution(int *pWidth, int *pHeight,
+        int *pRefRate, gfmWindow *pVideo, int index) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
@@ -415,7 +472,7 @@ __ret:
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
+static gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
         int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
         int vsync) {
     gfmRV rv;
@@ -470,9 +527,9 @@ __ret:
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR,
  *                              GFMRV_INVALID_INDEX
  */
-gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
-        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
-        int vsync) {
+static gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo,
+        int resolution, int bbufWidth, int bbufHeight, char *pName,
+        int isUserResizable, int vsync) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     SDL_WindowFlags flags;
@@ -522,7 +579,8 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_NOT_INITIALIZED
  */
-gfmRV gfmVideo_SDL2_setDimensions(gfmVideo *pVideo, int width, int height) {
+static gfmRV gfmVideo_SDL2_setDimensions(gfmVideo *pVideo, int width,
+        int height) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
 
@@ -578,7 +636,8 @@ __ret:
  * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                      GFMRV_WINDOW_NOT_INITIALIZED
  */
-gfmRV gfmVideo_SDL2_getDimensions(int *pWidth, int *pHeight, gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_getDimensions(int *pWidth, int *pHeight,
+        gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
@@ -622,7 +681,7 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_MODE_UNCHANGED, GFMRV_WINDOW_NOT_INITIALIZED
  */
-gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
@@ -664,7 +723,7 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_MODE_UNCHANGED, GFMRV_WINDOW_NOT_INITIALIZED
  */
-gfmRV gfmVideo_SDL2_setWindowed(gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_setWindowed(gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
@@ -708,7 +767,7 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_INVALID_INDEX, GFMRV_WINDOW_NOT_INITIALIZED
  */
-gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index) {
+static gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
@@ -759,7 +818,7 @@ __ret:
  * @param  [ in]pVideo  The video context
  * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
+static gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
         gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
@@ -793,7 +852,8 @@ __ret:
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY, gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY,
+        gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
 
@@ -827,7 +887,7 @@ __ret:
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
+static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
 
@@ -849,29 +909,13 @@ __ret:
 }
 
 /**
- * Loads a 24 bits bitmap file into a texture
- * 
- * NOTE: The image's dimensions must be power of two (e.g., 256x256)
- * 
- * @param  [out]ppTex     The loaded (and alloc'ed) texture
- * @param  [ in]pVideo    The video context
- * @param  [ in]pFilename The complete path to the file (must be NULL
- *                        terminated)
- * @param  [ in]colorKey   24 bits, RGB Color to be treated as transparent
- */
-gfmRV gfmVideo_SDL2_loadTextureBMP(gfmTexture **ppTex, gfmVideo *pVideo,
-        char *pFilename, int colorKey) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
-}
-
-/**
  * Enable batched draws, if supported
  * 
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                     GFMRV_FUNCTION_NOT_SUPPORTED
  */
-gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
     return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -881,7 +925,7 @@ gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
@@ -896,8 +940,8 @@ gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
  * @param  [ in]isFlipped Whether the tile should be flipped
  * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset, int x,
-        int y, int tile, int isFlipped) {
+static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
+        int x, int y, int tile, int isFlipped) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
@@ -912,8 +956,8 @@ gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset, int x,
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y, int width,
-        int height, int color) {
+static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
+        int width, int height, int color) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
@@ -928,8 +972,8 @@ gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y, int width,
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y, int width,
-        int height, int color) {
+static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
+        int width, int height, int color) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
@@ -952,7 +996,7 @@ gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y, int width,
  *                     GFMRV_BACKBUFFER_NOT_INITIALIZED,
  *                     GFMRV_BUFFER_TOO_SMALL, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
+static gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
         gfmVideo *pVideo) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
@@ -963,7 +1007,311 @@ gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo) {
+static gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
+
+/**
+ * Alloc a new texture
+ * 
+ * @param  [out]ppCtx The alocated texture
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+static gfmRV gfmVideo_SDL2_getNewTexture(gfmTexture **ppCtx) {
+    gfmRV rv;
+
+    /* Alloc the texture */
+    *ppCtx = (gfmTexture*)malloc(sizeof(gfmTexture));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+
+    /* Initialize the object */
+    memset(*ppCtx, 0x0, sizeof(gfmTexture));
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize a texture
+ * 
+ * @param  [ in]pCtx   The alocated texture
+ * @param  [ in]pVideo The video context
+ * @param  [ in]width  The texture's width
+ * @param  [ in]height The texture's height
+ * @param  [ in]pLog   The logger interface
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmVideoSDL2_initTexture(gfmTexture *pCtx, gfmVideoSDL2 *pVideo,
+        int width, int height, gfmLog *pLog) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pLog);
+    /* Check the dimensions */
+    ASSERT_LOG(gfmUtils_isPow2(width) == GFMRV_TRUE,
+            GFMRV_TEXTURE_INVALID_WIDTH, pLog);
+    ASSERT_LOG(gfmUtils_isPow2(height) == GFMRV_TRUE,
+            GFMRV_TEXTURE_INVALID_HEIGHT, pLog);
+
+    /* Create the texture */
+    pCtx->pTexture = SDL_CreateTexture(pVideo->pRenderer,
+            SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, width, height);
+    ASSERT_LOG(pCtx->pTexture, GFMRV_INTERNAL_ERROR, pLog);
+    pCtx->width = width;
+    pCtx->height = height;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Frees and cleans a previously allocated texture
+ * 
+ * @param  ppCtx The alocated texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx) {
+    /* Check if the object was actually alloc'ed */
+    if (ppCtx && *ppCtx) {
+        /* Check if the texture was created and destroy it */
+        if ((*ppCtx)->pTexture) {
+            SDL_DestroyTexture((*ppCtx)->pTexture);
+            (*ppCtx)->pTexture = 0;
+        }
+        /* Free the memory */
+        free(*ppCtx);
+
+        *ppCtx = 0;
+    }
+}
+
+#define BMP_OFFSET_POS 0x0a
+#define BMP_WIDTH_POS  0x12
+#define BMP_HEIGHT_POS 0x16
+#define READ_UINT(buffer) \
+        ((0xff & buffer[0]) | ((buffer[1]<<8) & 0xff00) | \
+        ((buffer[2]<<16) & 0xff0000) | ((buffer[3]<<24) & 0xff000000))
+
+
+/**
+ * Loads a 24 bits bitmap file into a texture
+ * 
+ * NOTE: The image's dimensions must be power of two (e.g., 256x256)
+ * 
+ * @param  [out]pTex     Handle to the loaded texture
+ * @param  [ in]pVideo   The video context
+ * @param  [ in]pFile    The texture file
+ * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
+ * @param  [ in]pLog     The logger interface
+ */
+static gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
+        gfmFile *pFile, int colorKey, gfmLog *pLog) {
+    char *pData, pBuffer[4];
+    gfmRV rv;
+    gfmTexture *pTexture;
+    gfmVideoSDL2 *pCtx;
+    /*int bytesInRow, height, i, irv, dataOffset, rowOffset, width; */
+    int bytesInRow, i, irv, rowOffset;
+    volatile int height, dataOffset, width;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Zero variable that must be cleaned on error */
+    pData = 0;
+    pTexture = 0;
+
+    /* Sanitize arguments */
+    ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(pFile, GFMRV_ARGUMENTS_BAD, pLog);
+
+    /*  Check the file type */
+    rv = gfmFile_rewind(pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 2/*count*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(pBuffer[0] == 'B', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+    ASSERT_LOG(pBuffer[1] == 'M', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+
+    /* Get the offset to the image's "data section" */
+    rv = gfmFile_rewind(pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_seek(pFile, BMP_OFFSET_POS);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
+
+    dataOffset = READ_UINT(pBuffer);
+
+    /* Get the image's dimensions */
+    rv = gfmFile_rewind(pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_seek(pFile, BMP_HEIGHT_POS);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
+
+    height = READ_UINT(pBuffer);
+
+    rv = gfmFile_rewind(pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_seek(pFile, BMP_WIDTH_POS);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
+
+    width = READ_UINT(pBuffer);
+
+    rv = gfmLog_log(pLog, gfmLog_info, "Loading %ix%i image...", width, height);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Alloc the data array */
+    pData = (char*)malloc(width*height*sizeof(char)*4);
+    ASSERT_LOG(pData, GFMRV_ALLOC_FAILED, pLog);
+
+    /* Calculate how many bytes there are in a row of pixels */
+    bytesInRow = width * 3;
+    rowOffset = bytesInRow % 4;
+    bytesInRow += rowOffset;
+
+    /* Buffer the data (in the desired format) */
+    rv = gfmFile_rewind(pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    rv = gfmFile_seek(pFile, dataOffset);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+    /* Data is written starting by the last line */
+    i = width * (height - 1);
+    /* Start "alpha" with 0 (since the image is in RGB-24) */
+    pBuffer[3] = 0;
+    while (1) {
+        /*int color, r, g, b, pos, n; */
+        int r, g, b, pos, n;
+        volatile int color;
+
+        /* Read until the EOF */
+        rv = gfmFile_readBytes(pBuffer, &n, pFile, 3/*numBytes*/);
+        ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED, rv, pLog);
+        if (rv == GFMRV_FILE_EOF_REACHED) {
+            break;
+        }
+
+        /* Get the actual color */
+        color = READ_UINT(pBuffer);
+        /* Get each component */
+        r = color & 0xff;
+        g = (color >> 8) & 0xff;
+        b = (color >> 16) & 0xff;
+
+        /* Output the color */
+        pos = i * 4;
+        if (color == colorKey) {
+            pData[pos + 0] = 0x00;
+            pData[pos + 1] = 0x00;
+            pData[pos + 2] = 0x00;
+            pData[pos + 3] = 0x00;
+        }
+        else {
+            pData[pos + 0] = (char)b & 0xff;
+            pData[pos + 1] = (char)g & 0xff;
+            pData[pos + 2] = (char)r & 0xff;
+            pData[pos + 3] =   0xff;
+        }
+
+        /* Go to the next pixel in this row */
+        i++;
+        /* If a row was read, go back the current row and the "next" one */
+        /* (actually the previous!) */
+        if (i % width == 0) {
+            i -= width * 2;
+            /* Go to the next line on the file */
+            if (rowOffset != 0) {
+                rv = gfmFile_seek(pFile, rowOffset);
+                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+            }
+        }
+    }
+
+    /* Initialize the texture  */
+    gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, 1/*incRate*/, pTexture,
+            gfmVideo_SDL2_getNewTexture);
+    rv = gfmVideoSDL2_initTexture(pTexture, pCtx, width, height, pLog);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+
+    /* Load the data into texture */
+    irv = SDL_UpdateTexture(pTexture->pTexture, NULL, (const void*)pData,
+            width * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_ARGB8888));
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
+    irv = SDL_SetTextureBlendMode(pTexture->pTexture, SDL_BLENDMODE_BLEND);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
+
+    /* Get the texture's index */
+    *pTex = gfmGenArr_getUsed(pCtx->pTextures);
+    /* Push the texture into the array */
+    gfmGenArr_push(pCtx->pTextures);
+
+    rv = GFMRV_OK;
+__ret:
+    /* Release the buffer, as it was already loaded into the texture */
+    if (pData)
+        free(pData);
+
+    if (rv != GFMRV_OK) {
+        if (pTexture) {
+            /* On error, clean the texture and remove it from the list */
+            gfmVideo_SDL2_freeTexture(&pTexture);
+            gfmGenArr_pop(pCtx->pTextures);
+        }
+    }
+
+    return rv;
+}
+
+/**
+ * Load all SDL2 video functions into the struct
+ * 
+ * @param  [ in]pCtx The video function context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Simply copy all function pointer */
+    pCtx->gfmVideo_init = gfmVideo_SDL2_init;
+    pCtx->gfmVideo_free = gfmVideo_SDL2_free;
+    pCtx->gfmVideo_countResolutions = gfmVideo_SDL2_countResolutions;
+    pCtx->gfmVideo_getResolution = gfmVideo_SDL2_getResolution;
+    pCtx->gfmVideo_initWindow = gfmVideo_SDL2_initWindow;
+    pCtx->gfmVideo_initWindowFullscreen = gfmVideo_SDL2_initWindowFullscreen;
+    pCtx->gfmVideo_setDimensions = gfmVideo_SDL2_setDimensions;
+    pCtx->gfmVideo_getDimensions = gfmVideo_SDL2_getDimensions;
+    pCtx->gfmVideo_setFullscreen = gfmVideo_SDL2_setFullscreen;
+    pCtx->gfmVideo_setWindowed = gfmVideo_SDL2_setWindowed;
+    pCtx->gfmVideo_setResolution = gfmVideo_SDL2_setResolution;
+    pCtx->gfmVideo_getBackbufferDimensions = gfmVideo_SDL2_getBackbufferDimensions;
+    pCtx->gfmVideo_windowToBackbuffer = gfmVideo_SDL2_windowToBackbuffer;
+    pCtx->gfmVideo_setBackgroundColor = gfmVideo_SDL2_setBackgroundColor;
+    pCtx->gfmVideo_loadTextureBMP = gfmVideo_SDL2_loadTextureBMP;
+    pCtx->gfmVideo_setBatched = gfmVideo_SDL2_setBatched;
+    pCtx->gfmVideo_drawBegin = gfmVideo_SDL2_drawBegin;
+    pCtx->gfmVideo_drawTile = gfmVideo_SDL2_drawTile;
+    pCtx->gfmVideo_drawRectangle = gfmVideo_SDL2_drawRectangle;
+    pCtx->gfmVideo_drawFillRectangle = gfmVideo_SDL2_drawFillRectangle;
+    pCtx->gfmVideo_getBackbufferData = gfmVideo_SDL2_getBackbufferData;
+    pCtx->gfmVideo_drawEnd = gfmVideo_SDL2_drawEnd;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 

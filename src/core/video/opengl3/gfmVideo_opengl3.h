@@ -7,6 +7,7 @@
 #define __GFMVIDEO_OPENGL3_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
 
 /**
  * Initializes a new gfmVideo
