@@ -196,8 +196,8 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
             ASSERT(rv == GFMRV_OK, rv);
         } break;
         case GFM_VIDEO_OPENGL3: {
-            rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
-            ASSERT(rv == GFMRV_OK, rv);
+            //rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
+            //ASSERT(rv == GFMRV_OK, rv);
         } break;
         // case GFM_VIDEO_GLES2: {
         // } break;

@@ -87,7 +87,6 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_getResolution = gfmVideo_SDL2_getResolution;
     pCtx->gfmVideo_initWindow = gfmVideo_SDL2_initWindow;
     pCtx->gfmVideo_initWindowFullscreen = gfmVideo_SDL2_initWindowFullscreen;
-    pCtx->gfmVideo_initBackbuffer = gfmVideo_SDL2_initBackbuffer;
     pCtx->gfmVideo_setDimensions = gfmVideo_SDL2_setDimensions;
     pCtx->gfmVideo_getDimensions = gfmVideo_SDL2_getDimensions;
     pCtx->gfmVideo_setFullscreen = gfmVideo_SDL2_setFullscreen;
@@ -250,6 +249,51 @@ __ret:
 }
 
 /**
+ * Recalculate helper variables to render the backbuffer into a window
+ *
+ * @param  [ in]pCtx   The backbuffer context
+ * @param  [ in]width  The window's width
+ * @param  [ in]height The window's height
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
+ */
+static gfmRV gfmVideoSDL2_cacheDimensions(gfmVideoSDL2 *pCtx, int width,
+        int height) {
+    gfmRV rv;
+    int horRatio, verRatio;
+
+    /* Check that the window's dimension is valid */
+    ASSERT(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+
+    /* Check each possible ratio */
+    horRatio = (int)( (double)width / (double)pCtx->bbufWidth);
+    verRatio = (int)( (double)height / (double)pCtx->bbufHeight);
+    /* Get the smaller of the two */
+    if (horRatio < verRatio)
+        pCtx->scrZoom = horRatio;
+    else
+        pCtx->scrZoom = verRatio;
+    ASSERT(pCtx->scrZoom > 0, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+
+    /* Center the output */
+    pCtx->scrPosX = (width - pCtx->bbufWidth * pCtx->scrZoom) / 2;
+    pCtx->scrPosY = (height - pCtx->bbufHeight * pCtx->scrZoom) / 2;
+    pCtx->scrWidth = pCtx->bbufWidth * pCtx->scrZoom;
+    pCtx->scrHeight = pCtx->bbufHeight * pCtx->scrZoom;
+
+    /* Cache it into a SDL_Rect (used for rendering) */
+    pCtx->outRect.x = pCtx->scrPosX;
+    pCtx->outRect.y = pCtx->scrPosY;
+    pCtx->outRect.w = pCtx->scrWidth;
+    pCtx->outRect.h = pCtx->scrHeight;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Create the only window for the game
  * 
  * NOTE 1: The window may switch to fullscreen mode later
@@ -263,17 +307,20 @@ __ret:
  * manually stretch/shrink, but doesn't control whether or not a window's
  * dimensions may be modified programatically
  * 
- * @param  [ in]pCtx   The video context
- * @param  [ in]width  The desired width
- * @param  [ in]height The desired height
- * @param  [ in]pName  The game's title
- * @param  [ in]flags  Whether the user can resize the window
- * @param  [ in]vsync  Whether vsync is enabled or not
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
- *                     GFMRV_INTERNAL_ERROR
+ * @param  [ in]pCtx       The video context
+ * @param  [ in]width      The desired width
+ * @param  [ in]height     The desired height
+ * @param  [ in]bbufWidth  The backbuffer's width
+ * @param  [ in]bbufHeight The backbuffer's height
+ * @param  [ in]pName      The game's title
+ * @param  [ in]flags      Whether the user can resize the window
+ * @param  [ in]vsync      Whether vsync is enabled or not
+ * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
+ *                         GFMRV_INTERNAL_ERROR
  */
 static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
-        int height, char *pName, SDL_WindowFlags flags, int vsync) {
+        int height, int bbufWidth, int bbufHeight, char *pName,
+        SDL_WindowFlags flags, int vsync) {
     gfmRV rv;
     SDL_RendererFlags rFlags;
 
@@ -290,6 +337,10 @@ static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
         height = pCtx->devHeight;
     }
 
+    /* Check that the window is big enough to support the backbuffer */
+    ASSERT(bbufWidth <= width, GFMRV_BACKBUFFER_WIDTH_INVALID);
+    ASSERT(bbufHeight <= height, GFMRV_BACKBUFFER_HEIGHT_INVALID);
+
     /* Create the window */
     pCtx->pSDLWindow = SDL_CreateWindow(pName, SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED, width, height, flags);
@@ -305,11 +356,28 @@ static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
     pCtx->pRenderer = SDL_CreateRenderer(pCtx->pSDLWindow, -1, rFlags);
     ASSERT(pCtx->pRenderer, GFMRV_INTERNAL_ERROR);
 
+    /* Create the backbuffer */
+    pCtx->pBackbuffer = SDL_CreateTexture(pCtx->pRenderer,
+            SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, bbufWidth,
+            bbufHeight);
+    ASSERT(pCtx->pBackbuffer , GFMRV_INTERNAL_ERROR);
+
     /* Store the window (in windowed mode) dimensions */
     pCtx->wndWidth = width;
     pCtx->wndHeight = height;
+    /* Store the backbbufer dimensions */
+    pCtx->bbufWidth = bbufWidth;
+    pCtx->bbufHeight = bbufHeight;
     /* Set it at the default resolution (since it's the default behaviour) */
     pCtx->curResolution = 0;
+
+    /* Update helper variables */
+    rv = gfmVideoSDL2_cacheDimensions(pCtx, width, height);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Set the background color */
+    rv = gfmVideo_SDL2_setBackgroundColor((gfmVideo*)pCtx, 0xff000000);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -339,6 +407,8 @@ __ret:
  * @param  [ in]pVideo          The video context
  * @param  [ in]width           The desired width
  * @param  [ in]height          The desired height
+ * @param  [ in]bbufWidth       The backbuffer's width
+ * @param  [ in]bbufHeight      The backbuffer's height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
  * @param  [ in]vsync           Whether vsync is enabled or not
@@ -346,7 +416,8 @@ __ret:
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
-        char *pName, int isUserResizable, int vsync) {
+        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
+        int vsync) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     SDL_WindowFlags flags;
@@ -368,7 +439,8 @@ gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
     }
 
     /* Actually create the window */
-    rv = gfmVideo_SDL2_createWindow(pCtx, width, height, pName, flags, vsync);
+    rv = gfmVideo_SDL2_createWindow(pCtx, width, height, bbufWidth, bbufHeight,
+            pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Set it as in windowed mode */
@@ -389,6 +461,8 @@ __ret:
  * 
  * @param  [ in]pVideo          The video context
  * @param  [ in]resolution      The desired resolution
+ * @param  [ in]bbufWidth       The backbuffer's width
+ * @param  [ in]bbufHeight      The backbuffer's height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
  * @param  [ in]vsync           Whether vsync is enabled or not
@@ -397,7 +471,8 @@ __ret:
  *                              GFMRV_INVALID_INDEX
  */
 gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
-        char *pName, int isUserResizable, int vsync) {
+        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
+        int vsync) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     SDL_WindowFlags flags;
@@ -419,7 +494,7 @@ gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
 
     /* Actually create the window */
     rv = gfmVideo_SDL2_createWindow(pCtx, pCtx->devWidth, pCtx->devHeight,
-            pName, flags, vsync);
+            bbufWidth, bbufHeight, pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Set it as in fullscreen mode */
@@ -432,30 +507,6 @@ gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
     rv = GFMRV_OK;
 __ret:
     return rv;
-}
-
-/**
- * Initialize the game's backbuffer
- * 
- * In order the decouple the window's resolution and the game's internal
- * resolution, a backbuffer is used. This is a view into the world-space in
- * "native" (i.e. per-pixel) resolution.
- * 
- * NOTE: The backbuffer resolution can't be changed after initialized.
- * 
- * @param  [ in]pVideo The video context
- * @param  [ in]width  The backbuffer's width
- * @param  [ in]height The backbuffer's height
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                     GFMRV_WINDOW_NOT_INITIALIZED,
- *                     GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
- *                     GFMRV_BACKBUFFER_WIDTH_INVALID,
- *                     GFMRV_BACKBUFFER_HEIGHT_INVALID,
- *                     GFMRV_INTERNAL_ERROR,
- *                     GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
- */
-gfmRV gfmVideo_SDL2_initBackbuffer(gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
 /**
@@ -493,8 +544,18 @@ gfmRV gfmVideo_SDL2_setDimensions(gfmVideo *pVideo, int width, int height) {
         height = pCtx->devHeight;
     }
 
+    /* Check if the backbuffer fit into this new window */
+    ASSERT(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+
     /* Try to change the dimensions */
     SDL_SetWindowSize(pCtx->pSDLWindow, width, height);
+
+    if (!pCtx->isFullscreen) {
+        /* Update helper variables */
+        rv = gfmVideoSDL2_cacheDimensions(pCtx, width, height);
+        ASSERT(rv == GFMRV_OK, rv);
+    }
 
     /* Store the new  dimensions */
     pCtx->wndWidth = width;
@@ -565,6 +626,7 @@ gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;
+    SDL_DisplayMode sdlMode;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoSDL2*)pVideo;
@@ -577,10 +639,18 @@ gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo) {
     /* Check that the window isn't in fullscreen mode */
     ASSERT(!pCtx->isFullscreen, GFMRV_WINDOW_MODE_UNCHANGED);
 
+    /* Retrieve the desired mode */
+    irv = SDL_GetDisplayMode(0 /*displayIndex*/, pCtx->curResolution, &sdlMode);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
     /* Try to make it fullscrren */
     irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pCtx->isFullscreen = 1;
+
+    /* Update helper variables */
+    rv = gfmVideoSDL2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -614,6 +684,10 @@ gfmRV gfmVideo_SDL2_setWindowed(gfmVideo *pVideo) {
     irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, 0);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     pCtx->isFullscreen = 0;
+
+    /* Update helper variables */
+    rv = gfmVideoSDL2_cacheDimensions(pCtx, pCtx->wndWidth, pCtx->wndHeight);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -655,9 +729,19 @@ gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index) {
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, index, &sdlMode);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
 
+    /* Check if the backbuffer fit into this new window */
+    ASSERT(sdlMode.w >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT(sdlMode.h >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+
     /* Switch the fullscreen resolution */
     irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    if (pCtx->isFullscreen) {
+        /* Update helper variables */
+        rv = gfmVideoSDL2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
+        ASSERT(rv == GFMRV_OK, rv);
+    }
 
     /* Store the resolution */
     pCtx->curResolution = index;
@@ -677,7 +761,26 @@ __ret:
  */
 gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
         gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    /* Check that the window was initialized */
+    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+
+    /* Retrieve the backbuffer's dimensions */
+    *pWidth = pCtx->bbufWidth;
+    *pHeight = pCtx->bbufHeight;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -691,7 +794,26 @@ gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY, gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Convert the space */
+    *pX = (*pX - pCtx->scrPosX) / (float)pCtx->scrZoom;
+    *pY = (*pY - pCtx->scrPosY) / (float)pCtx->scrZoom;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -706,7 +828,24 @@ gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY, gfmVideo *pVideo) {
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Set the color */
+    pCtx->bgAlpha = (color >> 24) & 0xff;
+    pCtx->bgRed   = (color >> 16) & 0xff;
+    pCtx->bgGreen = (color >> 8) & 0xff;
+    pCtx->bgBlue  = color & 0xff;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**

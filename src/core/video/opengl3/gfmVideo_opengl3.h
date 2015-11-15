@@ -52,20 +52,28 @@ gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight, int *pRefRate,
 /**
  * Create the only window for the game
  * 
- * NOTE 1: The window may switch to fullscreen mode later
+ * In order the decouple the window's resolution and the game's internal
+ * resolution, a backbuffer is used. This is a view into the world-space in
+ * "native" (i.e. per-pixel) resolution.
  * 
- * NOTE 2: The window's dimensions shall be clamped to the device's ones.
+ * NOTE 1: The backbuffer resolution can't be changed after initialized.
+ * 
+ * NOTE 2: The window may switch to fullscreen mode later
+ * 
+ * NOTE 3: The window's dimensions shall be clamped to the device's ones.
  * The resolution (i.e., width X height X refresh rate) may only take effect
  * when in fullscreen mode, so, in order to set all that on init, use
  * instead gfmVideo_GL3_initFullscreen
  * 
- * NOTE 3: The argument 'isUserResizable' defines whether a user may
+ * NOTE 4: The argument 'isUserResizable' defines whether a user may
  * manually stretch/shrink, but doesn't control whether or not a window's
  * dimensions may be modified programatically
  * 
  * @param  [ in]pCtx            The video context
  * @param  [ in]width           The desired width
  * @param  [ in]height          The desired height
+ * @param  [ in]bbufWidth       The backbuffer's width
+ * @param  [ in]bbufHeight      The backbuffer's height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
  * @param  [ in]vsync           Whether vsync is enabled or not
@@ -73,18 +81,27 @@ gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight, int *pRefRate,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmVideo_GL3_initWindow(gfmVideo *pCtx, int width, int height,
-        char *pName, int isUserResizable, int vsync);
+        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
+        int vsync);
 
 /**
  * Create the only window for the game in fullscreen mode
  * 
- * NOTE 1: The resolution is the index to one of the previously queried
+ * In order the decouple the window's resolution and the game's internal
+ * resolution, a backbuffer is used. This is a view into the world-space in
+ * "native" (i.e. per-pixel) resolution.
+ * 
+ * NOTE 1: The backbuffer resolution can't be changed after initialized.
+ * 
+ * NOTE 2: The resolution is the index to one of the previously queried
  * resolutions
  * 
- * NOTE 2: The window may switch to windowed mode later
+ * NOTE 3: The window may switch to windowed mode later
  * 
  * @param  [ in]pCtx            The video context
  * @param  [ in]resolution      The desired resolution
+ * @param  [ in]bbufWidth       The backbuffer's width
+ * @param  [ in]bbufHeight      The backbuffer's height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
  * @param  [ in]vsync           Whether vsync is enabled or not
@@ -93,29 +110,8 @@ gfmRV gfmVideo_GL3_initWindow(gfmVideo *pCtx, int width, int height,
  *                              GFMRV_INVALID_INDEX
  */
 gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pCtx, int resolution,
-        char *pName, int isUserResizable, int vsync);
-/**
- * Initialize the game's backbuffer
- * 
- * In order the decouple the window's resolution and the game's internal
- * resolution, a backbuffer is used. This is a view into the world-space in
- * "native" (i.e. per-pixel) resolution.
- * 
- * NOTE: The backbuffer resolution can't be changed after initialized.
- * 
- * @param  [ in]pCtx   The video context
- * @param  [ in]width  The backbuffer's width
- * @param  [ in]height The backbuffer's height
- * @param  [ in]vsync  Whether vsync is enabled or not
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                     GFMRV_WINDOW_NOT_INITIALIZED,
- *                     GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
- *                     GFMRV_BACKBUFFER_WIDTH_INVALID,
- *                     GFMRV_BACKBUFFER_HEIGHT_INVALID,
- *                     GFMRV_INTERNAL_ERROR,
- *                     GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
- */
-gfmRV gfmVideo_GL3_initBackbuffer(gfmVideo *pCtx);
+        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
+        int vsync);
 
 /**
  * Set the window's dimensions
