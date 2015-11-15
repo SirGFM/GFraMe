@@ -68,11 +68,12 @@ gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight, int *pRefRate,
  * @param  [ in]height          The desired height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
+ * @param  [ in]vsync           Whether vsync is enabled or not
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmVideo_GL3_initWindow(gfmVideo *pCtx, int width, int height,
-        char *pName, int isUserResizable);
+        char *pName, int isUserResizable, int vsync);
 
 /**
  * Create the only window for the game in fullscreen mode
@@ -86,12 +87,13 @@ gfmRV gfmVideo_GL3_initWindow(gfmVideo *pCtx, int width, int height,
  * @param  [ in]resolution      The desired resolution
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
+ * @param  [ in]vsync           Whether vsync is enabled or not
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR,
  *                              GFMRV_INVALID_INDEX
  */
 gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pCtx, int resolution,
-        char *pName, int isUserResizable);
+        char *pName, int isUserResizable, int vsync);
 /**
  * Initialize the game's backbuffer
  * 

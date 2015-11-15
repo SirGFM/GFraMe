@@ -20,7 +20,7 @@
       ifndef ($(CC))
         CC := gcc
 
-        USE_GL3_VIDEO := yes
+        #USE_GL3_VIDEO := yes
         USE_SDL2_VIDEO := yes
       endif
     endif

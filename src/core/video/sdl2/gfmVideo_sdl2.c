@@ -33,6 +33,38 @@ struct stGFMVideoSDL2 {
     int isFullscreen;
     /** How many resolutions are supported by this device */
     int resCount;
+/* ==== BACKBUFFER FIELDS =================================================== */
+    /** Intermediate context used to render things to the backbuffer and, then,
+      to the screen */
+    SDL_Renderer *pRenderer;
+    /** Buffer used to render everything */
+    SDL_Texture *pBackbuffer;
+    /** Input texture for rendering */
+    SDL_Texture *pCachedTexture;
+    /** Cached dimensions to help rendering */
+    SDL_Rect outRect;
+    /** Backbuffer's width */
+    int bbufWidth;
+    /** Backbuffer's height */
+    int bbufHeight;
+    /** Width of the actual rendered buffer */
+    int scrWidth;
+    /** Height of the actual rendered buffer */
+    int scrHeight;
+    /** Position of the rendered buffer on the window */
+    int scrPosX;
+    /** Position of the rendered buffer on the window */
+    int scrPosY;
+    /** Factor by which the (output) screen is bigger than the backbuffer */
+    int scrZoom;
+    /** Background red component */
+    Uint8 bgRed;
+    /** Background green component */
+    Uint8 bgGreen;
+    /** Background blue component */
+    Uint8 bgBlue;
+    /** Background alpha component */
+    Uint8 bgAlpha;
 };
 typedef struct stGFMVideoSDL2 gfmVideoSDL2;
 
@@ -236,12 +268,14 @@ __ret:
  * @param  [ in]height The desired height
  * @param  [ in]pName  The game's title
  * @param  [ in]flags  Whether the user can resize the window
+ * @param  [ in]vsync  Whether vsync is enabled or not
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *                     GFMRV_INTERNAL_ERROR
  */
 static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
-        int height, char *pName, SDL_WindowFlags flags) {
+        int height, char *pName, SDL_WindowFlags flags, int vsync) {
     gfmRV rv;
+    SDL_RendererFlags rFlags;
 
     /* if pName is NULL, the window should have no title */
     if (!pName) {
@@ -261,6 +295,16 @@ static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
             SDL_WINDOWPOS_UNDEFINED, width, height, flags);
     ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
 
+    /* Select the renderer flags */
+    rFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+    if (vsync) {
+        rFlags |= SDL_RENDERER_PRESENTVSYNC;
+    }
+
+    /* Create the window's renderer */
+    pCtx->pRenderer = SDL_CreateRenderer(pCtx->pSDLWindow, -1, rFlags);
+    ASSERT(pCtx->pRenderer, GFMRV_INTERNAL_ERROR);
+
     /* Store the window (in windowed mode) dimensions */
     pCtx->wndWidth = width;
     pCtx->wndHeight = height;
@@ -269,6 +313,12 @@ static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
 
     rv = GFMRV_OK;
 __ret:
+    if (rv != GFMRV_OK) {
+        if (pCtx->pSDLWindow) {
+            SDL_DestroyWindow(pCtx->pSDLWindow);
+        }
+    }
+
     return rv;
 }
 
@@ -291,11 +341,12 @@ __ret:
  * @param  [ in]height          The desired height
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
+ * @param  [ in]vsync           Whether vsync is enabled or not
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
-        char *pName, int isUserResizable) {
+        char *pName, int isUserResizable, int vsync) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     SDL_WindowFlags flags;
@@ -317,7 +368,7 @@ gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
     }
 
     /* Actually create the window */
-    rv = gfmVideo_SDL2_createWindow(pCtx, width, height, pName, flags);
+    rv = gfmVideo_SDL2_createWindow(pCtx, width, height, pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Set it as in windowed mode */
@@ -340,12 +391,13 @@ __ret:
  * @param  [ in]resolution      The desired resolution
  * @param  [ in]pName           The game's title (must be NULL terminated)
  * @param  [ in]isUserResizable Whether the user can resize the window
+ * @param  [ in]vsync           Whether vsync is enabled or not
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR,
  *                              GFMRV_INVALID_INDEX
  */
 gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
-        char *pName, int isUserResizable) {
+        char *pName, int isUserResizable, int vsync) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     SDL_WindowFlags flags;
@@ -367,7 +419,7 @@ gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo, int resolution,
 
     /* Actually create the window */
     rv = gfmVideo_SDL2_createWindow(pCtx, pCtx->devWidth, pCtx->devHeight,
-            pName, flags);
+            pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Set it as in fullscreen mode */
@@ -394,7 +446,6 @@ __ret:
  * @param  [ in]pVideo The video context
  * @param  [ in]width  The backbuffer's width
  * @param  [ in]height The backbuffer's height
- * @param  [ in]vsync  Whether vsync is enabled or not
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                     GFMRV_WINDOW_NOT_INITIALIZED,
  *                     GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
@@ -682,7 +733,7 @@ gfmRV gfmVideo_SDL2_loadTextureBMP(gfmTexture **ppTex, gfmVideo *pVideo,
  *                     GFMRV_FUNCTION_NOT_SUPPORTED
  */
 gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    return GFMRV_FUNCTION_NOT_SUPPORTED;
 }
 
 /**
