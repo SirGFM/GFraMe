@@ -7,6 +7,9 @@
     RELEASE := yes
     EXPORT_GIF := no
     BACKEND := emscript
+
+    #USE_WGL_VIDEO := yes
+    USE_SDL2_VIDEO := yes
   else
     ifeq ($(MAKECMDGOALS), emscript_clean)
       CC := emcc
@@ -16,6 +19,9 @@
     else
       ifndef ($(CC))
         CC := gcc
+
+        USE_GL3_VIDEO := yes
+        USE_SDL2_VIDEO := yes
       endif
     endif
   endif
@@ -45,6 +51,12 @@
   ifeq ($(DEBUG), yes)
     TARGET := $(TARGET)_dbg
   endif
+#==============================================================================
+
+#==============================================================================
+# Clean the backend objects
+#==============================================================================
+  BKEND_OBJS = 
 #==============================================================================
 
 #==============================================================================
@@ -80,6 +92,13 @@
           $(OBJDIR)/gfmUtils.o            \
           $(OBJDIR)/gfmVirtualKey.o       
 # Add objects based on the current backend
+  ifeq ($(USE_GL3_VIDEO), yes)
+    include src/core/video/opengl3/Makefile
+  endif
+  ifeq ($(USE_SDL2_VIDEO), yes)
+    include src/core/video/sdl2/Makefile
+  endif
+
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
   endif
@@ -159,10 +178,6 @@
   ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
   endif
-# Add OpenGL flags
- # ifeq ($(USE_OPENGL), yes)
- #   CFLAGS := $(CFLAGS) -DGFRAME_OPENGL
- # endif
 #==============================================================================
 
 #==============================================================================
@@ -185,13 +200,13 @@
 # Add the MML synthesizer
   LFLAGS := $(LFLAGS) -lCSynth
 # Add OpenGL lib
- # ifeq ($(USE_OPENGL), yes)
- #   ifeq ($(OS), Win)
- #     LFLAGS := $(LFLAGS) -lopengl32
- #   else
- #     LFLAGS := $(LFLAGS) -lGL
- #   endif
- # endif
+ ifeq ($(USE_OPENGL3_VIDEO), yes)
+   ifeq ($(OS), Win)
+     LFLAGS := $(LFLAGS) -lopengl32
+   else
+     LFLAGS := $(LFLAGS) -lGL
+   endif
+ endif
 #==============================================================================
 
 #==============================================================================
@@ -467,9 +482,11 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
 	mkdir -p $(OBJDIR)/core/common
+	mkdir -p $(OBJDIR)/core/emscript-sdl2
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
-	mkdir -p $(OBJDIR)/core/emscript-sdl2
+	mkdir -p $(OBJDIR)/core/video/sdl2
+	mkdir -p $(OBJDIR)/core/video/opengl3
 	mkdir -p $(BINDIR)
 	mkdir -p $(BINDIR)/tst
 #==============================================================================
@@ -490,10 +507,12 @@ clean:
 # Remove all built objects and target directories
 #==============================================================================
 distclean: clean
-	rmdir $(OBJDIR)/core/common
-	rmdir $(OBJDIR)/core/noip
+	rmdir $(OBJDIR)/core/video/sdl2
+	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
+	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/emscript-sdl2
+	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
 	rmdir $(OBJDIR)

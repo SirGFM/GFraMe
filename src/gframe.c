@@ -181,18 +181,15 @@ __ret:
  */
 gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
     gfmRV rv;
-    
-    // TODO Implement this
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(!pCtx->pLog, GFMRV_ALREADY_INITIALIZED);
     ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
     
-    // TODO Load the lib
+    /* Load the lib */
     switch (bkend) {
         case GFM_VIDEO_SDL2: {
             rv = gfmVideo_SDL2_loadFunctions(&(pCtx->videoFuncs));
