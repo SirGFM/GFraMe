@@ -166,7 +166,7 @@ __ret:
 }
 
 /**
- * Select the video backend to be used; MUST be called before gfm_init
+ * Select the video backend to be used; MUST be called before gfm_initWindow
  * 
  * @param  pCtx  The allocated context
  * @param  bkend The backend
@@ -178,7 +178,7 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */
-    ASSERT(!pCtx->pLog, GFMRV_ALREADY_INITIALIZED);
+    ASSERT(!pCtx->pVideo, GFMRV_ALREADY_INITIALIZED);
     ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
     

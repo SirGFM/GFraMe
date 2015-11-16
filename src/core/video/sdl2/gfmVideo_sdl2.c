@@ -489,7 +489,7 @@ static gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
     ASSERT(width <= 16384, GFMRV_ARGUMENTS_BAD);
     ASSERT(height <= 16384, GFMRV_ARGUMENTS_BAD);
     /* Check that it hasn't been initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
 
     /* Set the SDL flag */
     flags = 0;
@@ -545,7 +545,7 @@ static gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo,
     /* Check that the resolution is valid */
     ASSERT(resolution < pCtx->resCount, GFMRV_INVALID_INDEX);
     /* Check that it hasn't been initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
 
     /* Set the SDL flag */
     flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
