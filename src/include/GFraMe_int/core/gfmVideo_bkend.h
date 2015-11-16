@@ -337,6 +337,29 @@ struct stGFMVideoFuncs {
      */
     gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
             gfmFile *pFilename, int colorKey, gfmLog *pLog);
+
+    /**
+     * Retrieve a texture's pointer from its index
+     * 
+     * @param  [out]pTexture The texture
+     * @param  [ in]pVideo   The video context
+     * @param  [ in]handle   The texture's handle
+     * @param  [ in]pLog     The logger interface
+     * @return               GFMRV_OK, GFMRV_ARUMENTS_BAD, GFMRV_INVALID_INDEX
+     */
+    gfmRV (*gfmVideo_getTexture)(gfmTexture **ppTexture, gfmVideo *pCtx,
+            int handle, gfmLog *pLog);
+
+    /**
+     * Retrieves a texture's dimensions
+     * 
+     * @param [out]pWidth  The texture's width
+     * @param [out]pHeight The texture's height
+     * @param [ in]pCtx    The texture
+     * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+     */
+    gfmRV (*gfmVideo_getTextureDimensions)(int *pWidth, int *pHeight,
+        gfmTexture *pCtx);
 };
 
 /**

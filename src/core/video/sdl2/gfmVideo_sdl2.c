@@ -1275,6 +1275,65 @@ __ret:
 }
 
 /**
+ * Retrieve a texture's pointer from its index
+ * 
+ * @param  [out]pTexture The texture
+ * @param  [ in]pVideo   The video context
+ * @param  [ in]handle   The texture's handle
+ * @param  [ in]pLog     The logger interface
+ * @return               GFMRV_OK, GFMRV_ARUMENTS_BAD, GFMRV_INVALID_INDEX
+ */
+static gfmRV gfmVideo_SDL2_getTexture(gfmTexture **ppTexture, gfmVideo *pVideo,
+        int handle, gfmLog *pLog) {
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(ppTexture, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT_LOG(handle >= 0, GFMRV_ARGUMENTS_BAD, pLog);
+    /* Check that the texture is valid */
+    ASSERT_LOG(handle < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX,
+            pLog);
+
+    /* Return the texture */
+    *ppTexture = gfmGenArr_getObject(pCtx->pTextures, handle);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieves a texture's dimensions
+ * 
+ * @param [out]pWidth  The texture's width
+ * @param [out]pHeight The texture's height
+ * @param [ in]pCtx    The texture
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV gfmVideo_SDL2_getTextureDimensions(int *pWidth, int *pHeight,
+        gfmTexture *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    *pWidth = pCtx->width;
+    *pHeight = pCtx->height;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Load all SDL2 video functions into the struct
  * 
  * @param  [ in]pCtx The video function context
@@ -1309,6 +1368,8 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_drawFillRectangle = gfmVideo_SDL2_drawFillRectangle;
     pCtx->gfmVideo_getBackbufferData = gfmVideo_SDL2_getBackbufferData;
     pCtx->gfmVideo_drawEnd = gfmVideo_SDL2_drawEnd;
+    pCtx->gfmVideo_getTexture = gfmVideo_SDL2_getTexture;
+    pCtx->gfmVideo_getTextureDimensions = gfmVideo_SDL2_getTextureDimensions;
 
     rv = GFMRV_OK;
 __ret:
