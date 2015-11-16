@@ -181,26 +181,42 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
     ASSERT(!pCtx->pVideo, GFMRV_ALREADY_INITIALIZED);
     ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
-    
+
     /* Load the lib */
     switch (bkend) {
+#ifdef USE_SDL2_VIDEO
         case GFM_VIDEO_SDL2: {
             rv = gfmVideo_SDL2_loadFunctions(&(pCtx->videoFuncs));
             ASSERT(rv == GFMRV_OK, rv);
         } break;
+#endif /* USE_SDL2_VIDEO */
+#ifdef USE_GL3_VIDEO
         case GFM_VIDEO_OPENGL3: {
-            //rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
-            //ASSERT(rv == GFMRV_OK, rv);
+            rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
         } break;
-        // case GFM_VIDEO_GLES2: {
-        // } break;
-        // case GFM_VIDEO_GLES3: {
-        // } break;
-        // case GFM_VIDEO_WGL3: {
-        // } break;
+#endif /* USE_GL3_VIDEO */
+#ifdef USE_GLES2_VIDEO
+        case GFM_VIDEO_GLES2: {
+            rv = gfmVideo_GLES2_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+#endif /* USE_GLES2_VIDEO */
+#ifdef USE_GLES3_VIDEO
+        case GFM_VIDEO_GLES3: {
+            rv = gfmVideo_GLES3_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+#endif /* USE_GLES3_VIDEO */
+#ifdef USE_WGL_VIDEO
+        case GFM_VIDEO_WGL: {
+            rv = gfmVideo_WGL_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+#endif /* USE_WGL_VIDEO */
         default: { ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED); }
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;

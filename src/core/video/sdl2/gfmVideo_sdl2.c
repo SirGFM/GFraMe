@@ -87,49 +87,60 @@ struct stGFMVideoSDL2 {
 };
 typedef struct stGFMVideoSDL2 gfmVideoSDL2;
 
-/* Forward declarations */
-static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx);
-static gfmRV gfmVideo_SDL2_free(gfmVideo **ppCtx);
-static gfmRV gfmVideo_SDL2_countResolutions(int *pCount, gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_getResolution(int *pWidth, int *pHeight,
-        int *pRefRate, gfmWindow *pVideo, int index);
-static gfmRV gfmVideoSDL2_cacheDimensions(gfmVideoSDL2 *pCtx, int width,
-        int height);
-static gfmRV gfmVideo_SDL2_createWindow(gfmVideoSDL2 *pCtx, int width,
-        int height, int bbufWidth, int bbufHeight, char *pName,
-        SDL_WindowFlags flags, int vsync);
-static gfmRV gfmVideo_SDL2_initWindow(gfmVideo *pVideo, int width, int height,
-        int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
-        int vsync);
-static gfmRV gfmVideo_SDL2_initWindowFullscreen(gfmVideo *pVideo,
-        int resolution, int bbufWidth, int bbufHeight, char *pName,
-        int isUserResizable, int vsync);
-static gfmRV gfmVideo_SDL2_setDimensions(gfmVideo *pVideo, int width,
-        int height);
-static gfmRV gfmVideo_SDL2_getDimensions(int *pWidth, int *pHeight,
-        gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_setFullscreen(gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_setWindowed(gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index);
-static gfmRV gfmVideo_SDL2_getBackbufferDimensions(int *pWidth, int *pHeight,
-        gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY,
-        gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color);
-static gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
-        int x, int y, int tile, int isFlipped);
-static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
-        int width, int height, int color);
-static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
-        int width, int height, int color);
-static gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
-        gfmVideo *pVideo);
-static gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo);
-static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx);
-static gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
-        gfmFile *pFile, int colorKey, gfmLog *pLog);
+/**
+ * Set the background color
+ * 
+ * NOTE: This color is used only when cleaning the backbuffer. If the
+ * backbuffer has to be letter-boxed into the window, it will cleaned with
+ * black.
+ * 
+ * @param  [ in]pVideo The video context
+ * @param  [ in]color  The background color (in 0xAARRGGBB format)
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ */
+static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Set the color */
+    pCtx->bgAlpha = (color >> 24) & 0xff;
+    pCtx->bgRed   = (color >> 16) & 0xff;
+    pCtx->bgGreen = (color >> 8) & 0xff;
+    pCtx->bgBlue  = color & 0xff;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+
+/**
+ * Frees and cleans a previously allocated texture
+ * 
+ * @param  ppCtx The alocated texture
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx) {
+    /* Check if the object was actually alloc'ed */
+    if (ppCtx && *ppCtx) {
+        /* Check if the texture was created and destroy it */
+        if ((*ppCtx)->pTexture) {
+            SDL_DestroyTexture((*ppCtx)->pTexture);
+            (*ppCtx)->pTexture = 0;
+        }
+        /* Free the memory */
+        free(*ppCtx);
+
+        *ppCtx = 0;
+    }
+}
+
 
 /**
  * Initializes a new gfmVideo
@@ -344,6 +355,63 @@ static gfmRV gfmVideoSDL2_cacheDimensions(gfmVideoSDL2 *pCtx, int width,
     pCtx->outRect.y = pCtx->scrPosY;
     pCtx->outRect.w = pCtx->scrWidth;
     pCtx->outRect.h = pCtx->scrHeight;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Change the fullscreen resolution of the window
+ * 
+ * NOTE 1: The resolution is the index to one of the previously queried
+ * resolutions
+ * 
+ * NOTE 2: This modification will only take effect when switching to
+ * fullscreen mode
+ * 
+ * @param  [ in]pVideo The video context
+ * @param  [ in]index  The resolution's index
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
+ *                     GFMRV_INVALID_INDEX, GFMRV_WINDOW_NOT_INITIALIZED
+ */
+static gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index) {
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int irv;
+    SDL_DisplayMode sdlMode;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    /* Check that the index is valid */
+    ASSERT(index < pCtx->resCount, GFMRV_INVALID_INDEX);
+    /* Check that the window was already initialized */
+    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+
+    /* Retrieve the desired mode */
+    irv = SDL_GetDisplayMode(0 /*displayIndex*/, index, &sdlMode);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    /* Check if the backbuffer fit into this new window */
+    ASSERT(sdlMode.w >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT(sdlMode.h >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+
+    /* Switch the fullscreen resolution */
+    irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    if (pCtx->isFullscreen) {
+        /* Update helper variables */
+        rv = gfmVideoSDL2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
+        ASSERT(rv == GFMRV_OK, rv);
+    }
+
+    /* Store the resolution */
+    pCtx->curResolution = index;
 
     rv = GFMRV_OK;
 __ret:
@@ -758,63 +826,6 @@ __ret:
 }
 
 /**
- * Change the fullscreen resolution of the window
- * 
- * NOTE 1: The resolution is the index to one of the previously queried
- * resolutions
- * 
- * NOTE 2: This modification will only take effect when switching to
- * fullscreen mode
- * 
- * @param  [ in]pVideo The video context
- * @param  [ in]index  The resolution's index
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
- *                     GFMRV_INVALID_INDEX, GFMRV_WINDOW_NOT_INITIALIZED
- */
-static gfmRV gfmVideo_SDL2_setResolution(gfmVideo *pVideo, int index) {
-    gfmRV rv;
-    gfmVideoSDL2 *pCtx;
-    int irv;
-    SDL_DisplayMode sdlMode;
-
-    /* Retrieve the internal video context */
-    pCtx = (gfmVideoSDL2*)pVideo;
-
-    /* Sanitize arguments */
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
-    /* Check that the index is valid */
-    ASSERT(index < pCtx->resCount, GFMRV_INVALID_INDEX);
-    /* Check that the window was already initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
-
-    /* Retrieve the desired mode */
-    irv = SDL_GetDisplayMode(0 /*displayIndex*/, index, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-
-    /* Check if the backbuffer fit into this new window */
-    ASSERT(sdlMode.w >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
-    ASSERT(sdlMode.h >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
-
-    /* Switch the fullscreen resolution */
-    irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-
-    if (pCtx->isFullscreen) {
-        /* Update helper variables */
-        rv = gfmVideoSDL2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
-        ASSERT(rv == GFMRV_OK, rv);
-    }
-
-    /* Store the resolution */
-    pCtx->curResolution = index;
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Retrieve the backbuffer's dimensions
  * 
  * @param  [out]pWidth  The width
@@ -874,38 +885,6 @@ static gfmRV gfmVideo_SDL2_windowToBackbuffer(int *pX, int *pY,
     /* Convert the space */
     *pX = (*pX - pCtx->scrPosX) / (float)pCtx->scrZoom;
     *pY = (*pY - pCtx->scrPosY) / (float)pCtx->scrZoom;
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Set the background color
- * 
- * NOTE: This color is used only when cleaning the backbuffer. If the
- * backbuffer has to be letter-boxed into the window, it will cleaned with
- * black.
- * 
- * @param  [ in]pVideo The video context
- * @param  [ in]color  The background color (in 0xAARRGGBB format)
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
-    gfmRV rv;
-    gfmVideoSDL2 *pCtx;
-
-    /* Retrieve the internal video context */
-    pCtx = (gfmVideoSDL2*)pVideo;
-
-    /* Sanitize arguments */
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-
-    /* Set the color */
-    pCtx->bgAlpha = (color >> 24) & 0xff;
-    pCtx->bgRed   = (color >> 16) & 0xff;
-    pCtx->bgGreen = (color >> 8) & 0xff;
-    pCtx->bgBlue  = color & 0xff;
 
     rv = GFMRV_OK;
 __ret:
@@ -1286,27 +1265,6 @@ static gfmRV gfmVideoSDL2_initTexture(gfmTexture *pCtx, gfmVideoSDL2 *pVideo,
     rv = GFMRV_OK;
 __ret:
     return rv;
-}
-
-/**
- * Frees and cleans a previously allocated texture
- * 
- * @param  ppCtx The alocated texture
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
- */
-static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx) {
-    /* Check if the object was actually alloc'ed */
-    if (ppCtx && *ppCtx) {
-        /* Check if the texture was created and destroy it */
-        if ((*ppCtx)->pTexture) {
-            SDL_DestroyTexture((*ppCtx)->pTexture);
-            (*ppCtx)->pTexture = 0;
-        }
-        /* Free the memory */
-        free(*ppCtx);
-
-        *ppCtx = 0;
-    }
 }
 
 #define BMP_OFFSET_POS 0x0a

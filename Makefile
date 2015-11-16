@@ -178,6 +178,13 @@
   ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
   endif
+
+  ifeq ($(USE_GL3_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_GL3_VIDEO
+  endif
+  ifeq ($(USE_SDL2_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
+  endif
 #==============================================================================
 
 #==============================================================================
