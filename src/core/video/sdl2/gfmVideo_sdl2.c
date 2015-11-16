@@ -926,7 +926,27 @@ static gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Set backbuffer as rendering target */
+    SDL_SetRenderTarget(pCtx->pRenderer, pCtx->pBackbuffer);
+    /* Clear the backbuffer */
+    SDL_SetRenderDrawColor(pCtx->pRenderer, pCtx->bgRed, pCtx->bgGreen,
+            pCtx->bgBlue, pCtx->bgAlpha);
+    SDL_RenderClear(pCtx->pRenderer);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -942,7 +962,52 @@ static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
  */
 static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
         int x, int y, int tile, int isFlipped) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmTexture *pTex;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int irv;
+    SDL_Rect src;
+    SDL_Rect dst;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
+    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Retrieve the spriteset's texture */
+    rv = gfmSpriteset_getTexture(&pTex, pSset);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Get the tile's dimensions and position into the spriteset */
+    rv = gfmSpriteset_getDimension(&(src.w), &(src.h), pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSpriteset_getPosition(&(src.x), &(src.y), pSset, tile);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Set the destination position (into the backbuffer) */
+    dst.x = x;
+    dst.y = y;
+    dst.w = src.w;
+    dst.h = src.h;
+
+    /* Render the tile */
+    if (isFlipped) {
+        irv = SDL_RenderCopyEx(pCtx->pRenderer, pTex->pTexture, &src, &dst,
+                0.0/*angle*/, 0/*center*/, SDL_FLIP_HORIZONTAL);
+    }
+    else {
+        irv = SDL_RenderCopy(pCtx->pRenderer, pTex->pTexture, &src, &dst);
+    }
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -958,7 +1023,55 @@ static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
  */
 static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int irv;
+    SDL_Rect rect;
+    unsigned char alpha, blue, green, red;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Check that the rectangle is inside the screen */
+    if (x + width < 0) {
+        return GFMRV_OK;
+    }
+    if (y + height < 0) {
+        return GFMRV_OK;
+    }
+    if (x >= pCtx->bbufWidth) {
+        return GFMRV_OK;
+    }
+    if (y >= pCtx->bbufHeight) {
+        return GFMRV_OK;
+    }
+
+    /* Retrieve each color component */
+    alpha = (color >> 24) & 0xff;
+    red   = (color >> 16) & 0xff;
+    green = (color >> 8) & 0xff;
+    blue  = color & 0xff;
+
+    /* Set the rect's dimensions */
+    rect.x = x;
+    rect.y = y;
+    rect.w = width;
+    rect.h = height;
+
+    /* Set the color to render it */
+    irv = SDL_SetRenderDrawColor(pCtx->pRenderer, red, green, blue, alpha);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RenderDrawRect(pCtx->pRenderer, &rect);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -974,7 +1087,55 @@ static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
  */
 static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int irv;
+    SDL_Rect rect;
+    unsigned char alpha, blue, green, red;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Check that the rectangle is inside the screen */
+    if (x + width < 0) {
+        return GFMRV_OK;
+    }
+    if (y + height < 0) {
+        return GFMRV_OK;
+    }
+    if (x >= pCtx->bbufWidth) {
+        return GFMRV_OK;
+    }
+    if (y >= pCtx->bbufHeight) {
+        return GFMRV_OK;
+    }
+
+    /* Retrieve each color component */
+    alpha = (color >> 24) & 0xff;
+    red   = (color >> 16) & 0xff;
+    green = (color >> 8) & 0xff;
+    blue  = color & 0xff;
+
+    /* Set the rect's dimensions */
+    rect.x = x;
+    rect.y = y;
+    rect.w = width;
+    rect.h = height;
+
+    /* Set the color to render it */
+    irv = SDL_SetRenderDrawColor(pCtx->pRenderer, red, green, blue, alpha);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RenderFillRect(pCtx->pRenderer, &rect);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -998,7 +1159,40 @@ static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
  */
 static gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
         gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+    int len, irv;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Calculate the required length */
+    len = pCtx->bbufWidth * pCtx->bbufHeight * 3 * sizeof(unsigned char);
+
+    /* Check that either the buffer is big enough or it's requesting the len */
+    ASSERT(!pData || *pLen >= len, GFMRV_BUFFER_TOO_SMALL);
+    /* Store the return value */
+    *pLen = len;
+    /* If requested, return the required size */
+    if (!pData) {
+        return GFMRV_OK;
+    }
+
+    /* Make sure the current target is the backbuffer */
+    SDL_SetRenderTarget(pCtx->pRenderer, pCtx->pBackbuffer);
+    /* Actually retrieve the data */
+    irv = SDL_RenderReadPixels(pCtx->pRenderer, 0, SDL_PIXELFORMAT_RGB24,
+            (void*)pData, pCtx->bbufWidth * 3 * sizeof(unsigned char));
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -1008,7 +1202,30 @@ static gfmRV gfmVideo_SDL2_getBackbufferData(unsigned char *pData, int *pLen,
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
 static gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Set the screen as rendering target */
+    SDL_SetRenderTarget(pCtx->pRenderer, 0);
+    /* Clear the screen */
+    SDL_SetRenderDrawColor(pCtx->pRenderer, 0/*r*/, 0/*g*/, 0/*b*/, 0/*a*/);
+    SDL_RenderClear(pCtx->pRenderer);
+    /* Render the backbuffer to the screen */
+    SDL_RenderCopy(pCtx->pRenderer, pCtx->pBackbuffer, 0/*srcRect*/,
+            &(pCtx->outRect));
+    SDL_RenderPresent(pCtx->pRenderer);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
