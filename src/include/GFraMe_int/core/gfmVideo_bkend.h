@@ -336,7 +336,7 @@ struct stGFMVideoFuncs {
      * @param  [ in]pLog     The logger interface
      */
     gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
-            gfmFile *pFilename, int colorKey, gfmLog *pLog);
+            gfmFile *pFile, int colorKey, gfmLog *pLog);
 
     /**
      * Retrieve a texture's pointer from its index

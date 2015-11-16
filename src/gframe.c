@@ -15,14 +15,11 @@
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmAudio_bkend.h>
-#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 #include <GFraMe/core/gfmGifExporter_bkend.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
-#include <GFraMe/core/gfmWindow_bkend.h>
 
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
@@ -64,18 +61,14 @@ struct stGFMCtx {
     int lastDrawElapsed;
     /** Audio sub-system context */
     gfmAudioCtx *pAudio;
-    /** The game's backbuffer */
-    gfmBackbuffer *pBackbuffer;
     /** Current video functions */
     gfmVideoFuncs videoFuncs;
-    /** Game's window */
-    gfmWindow *pWindow;
+    /* The video context */
+    gfmVideo *pVideo;
     /** Timer used to issue new frames */
     gfmTimer *pTimer;
     /** Default camera */
     gfmCamera *pCamera;
-    /** Every cached texture */
-    gfmGenArr_var(gfmTexture, pTextures);
     /** Every cached spriteset */
     gfmGenArr_var(gfmSpriteset, pSpritesets);
     /** Texture that should be loaded on every gfm_drawBegin */
@@ -225,49 +218,49 @@ __ret:
  */
 gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     gfmRV rv;
-    
-    // Sanitize the arguments
+
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that it still wasn't initialized
+    /* Check that it still wasn't initialized */
     ASSERT(!(pCtx->pLog), GFMRV_ALREADY_INITIALIZED);
-    
+
 #ifndef GFRAME_MOBILE
-	// Get current directory
+    /* Get current directory */
     rv = gfmPath_getRunningPath(&(pCtx->pBinPath));
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_getLength(&(pCtx->binPathLen), pCtx->pBinPath);
     ASSERT_NR(rv == GFMRV_OK);
 #endif
-    
-    // Init the current backend
-    // TODO allow more than one backend?
+
+    /* Init the current backend */
+    /* TODO allow more than one backend? */
     rv = gfmBackend_init();
     ASSERT_NR(rv == GFMRV_OK);
-    // Set the backend as initialized
+    /* Set the backend as initialized */
     pCtx->isBackendInit = 1;
-    
-    // Initialize the logger
+
+    /* Initialize the logger */
     rv = gfmLog_getNew(&(pCtx->pLog));
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the fps counter, if debug
+
+    /* Initialize the fps counter, if debug */
 #if defined(DEBUG) || defined(FORCE_FPS)
     rv = gfmFPSCounter_getNew(&(pCtx->pCounter));
     ASSERT_NR(rv == GFMRV_OK);
 #endif
-    
-    // Set the game's title
+
+    /* Set the game's title */
     rv = gfm_setTitle(pCtx, pOrg, orgLen, pName, nameLen);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the logger
+
+    /* Initialize the logger */
 #if defined(DEBUG) || defined(FORCE_FPS)
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
 #else
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
 #endif
     ASSERT_NR(rv == GFMRV_OK);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "");
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "---------------------------------"
@@ -275,33 +268,37 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe...");
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the event's context
+
+    /* Set SDL2 as the default video backend */
+    rv = gfm_setVideoBackend(pCtx, GFM_VIDEO_SDL2);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Initialize the event's context */
     rv = gfmEvent_getNew(&(pCtx->pEvent));
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmEvent_init(pCtx->pEvent, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the input system
+
+    /* Initialize the input system */
     rv = gfmInput_getNew(&(pCtx->pInput));
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmInput_init(pCtx->pInput);
     ASSERT_NR(rv == GFMRV_OK);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe initialized!");
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Set the game as running
+
+    /* Set the game as running */
     pCtx->isAudioEnabled = 1;
     pCtx->doQuit = GFMRV_FALSE;
     pCtx->defaultTexture = -1;
     rv = GFMRV_OK;
 __ret:
-    // Clean up the context, on error
+    /* Clean up the context, on error */
     if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
         gfm_clean(pCtx);
     }
-    
+
     return rv;
 }
 
@@ -464,23 +461,24 @@ __ret:
  */
 gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pCount, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
-    // Alloc the window
-    if (!(pCtx->pWindow)) {
-        rv = gfmWindow_getNew(&(pCtx->pWindow));
+
+    /* Alloc the window */
+    if (!pCtx->pVideo) {
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    // Query the resolutions and set 'pCount'
-    rv = gfmWindow_queryResolutions(pCount, pCtx->pWindow);
+
+    /* Count how many resolutions are available */
+    (*(pCtx->videoFuncs.gfmVideo_countResolutions))(pCount, pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -501,21 +499,21 @@ __ret:
 gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
         gfmCtx *pCtx, int index) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pRefRate, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
-    // Get the desired resolution
-    rv = gfmWindow_getResolution(pWidth, pHeight, pRefRate, pCtx->pWindow,
-            index);
+
+    /* Get the desired resolution */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getResolution))(pWidth, pHeight, pRefRate,
+            pCtx->pVideo, index);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -540,58 +538,45 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int wndWidth, int wndHeight, int isUserResizable, int useVsync) {
     char *pTitle, *pOrg;
     gfmRV rv;
-    
-    // Sanitize the arguments
+
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    
-    // Check that the window hasn't been initialized
-    ASSERT_LOG(!(pCtx->pWindow) ||
-            gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
-            GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
-    // Check that the backbuffer hasn't been initialized
-    ASSERT_LOG(!pCtx->pBackbuffer, GFMRV_BACKBUFFER_ALREADY_INITIALIZED,
-            pCtx->pLog);
-    // Basic check for the resolution (it'll be later re-done, on window_init)
+
+    /* Basic check for the resolution (it'll be later re-done, on window_init) */
     ASSERT_LOG(wndWidth > 0, GFMRV_INVALID_WIDTH, pCtx->pLog);
     ASSERT_LOG(wndHeight > 0, GFMRV_INVALID_HEIGHT, pCtx->pLog);
-    
-    // Try to read the game's title
+
+    /* Try to read the game's title */
     pOrg = 0;
     pTitle = 0;
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window to %ix%i "
             "(backbuffer: %ix%i)", wndWidth, wndHeight, bufWidth, bufHeight);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the window
-    if (!(pCtx->pWindow)) {
-        rv = gfmWindow_getNew(&(pCtx->pWindow));
+
+    /* Alloc the video context */
+    if (!pCtx->pVideo) {
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    rv = gfmWindow_init(pCtx->pWindow, wndWidth, wndHeight, pTitle,
-            isUserResizable);
+    /* Initialize the window */
+    rv = (*(pCtx->videoFuncs.gfmVideo_initWindow))(pCtx->pVideo, wndWidth,
+            wndHeight, bufWidth, bufHeight, pTitle, isUserResizable, useVsync);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the backbuffer
-    rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
-            bufHeight, useVsync);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the camera
+
+    /* Alloc and initialize the camera */
     rv = gfmCamera_getNew(&(pCtx->pCamera));
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmCamera_init(pCtx->pCamera, pCtx, bufWidth, bufHeight);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -615,53 +600,43 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
         int resIndex, int isUserResizable, int useVsync) {
     char *pTitle, *pOrg;
     gfmRV rv;
-    
-    // Sanitize the arguments
+
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(resIndex >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the window hasn't been initialized
-    ASSERT_LOG(!(pCtx->pWindow) ||
-            gfmWindow_wasInit(pCtx->pWindow) == GFMRV_FALSE,
-            GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
-    
-    // Try to read the game's title
+
+    /* Try to read the game's title */
     pOrg = 0;
     pTitle = 0;
     rv = gfm_getTitle(&pOrg, &pTitle, pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing window in "
             "fullscreen mode (backbuffer: %ix%i)", bufWidth, bufHeight);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the window
-    if (!(pCtx->pWindow)) {
-        rv = gfmWindow_getNew(&(pCtx->pWindow));
+
+    /* Alloc the video context */
+    if (!pCtx->pVideo) {
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    rv = gfmWindow_initFullScreen(pCtx->pWindow, resIndex, pTitle,
-            isUserResizable);
+    /* Initialize the window */
+    rv = (*(pCtx->videoFuncs.gfmVideo_initWindowFullscreen))(pCtx->pVideo,
+            resIndex,  bufWidth, bufHeight, pTitle, isUserResizable, useVsync);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the backbuffer
-    rv = gfmBackbuffer_getNew(&(pCtx->pBackbuffer));
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfmBackbuffer_init(pCtx->pBackbuffer, pCtx->pWindow, bufWidth,
-            bufHeight, useVsync);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc and initialize the camera
+
+    /* Alloc and initialize the camera */
     rv = gfmCamera_getNew(&(pCtx->pCamera));
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = gfmCamera_init(pCtx->pCamera, pCtx, bufWidth, bufHeight);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -950,26 +925,32 @@ __ret:
 }
 
 /**
- * Get the current backbuffer
+ * Convert a point in window-space to backbuffer-space
  * 
- * @param  ppBbuf The backbuffer
- * @param  pCtx   The game's context
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ * NOTE: Both pX and pY must be initialized with the window-space point
+ * 
+ * @param  [out]pX   The horizontal position, in backbuffer-space
+ * @param  [out]pY   The vertical position, in backbuffer-space
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
-gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx) {
+gfmRV gfm_windowToBackbuffer(int *pX, int *pY, gfmCtx *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(ppBbuf, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the renderer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
-    *ppBbuf = pCtx->pBackbuffer;
+    /* Continue to sanitize arguments */
+    ASSERT_LOG(pX, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pY, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    /* Conver the point */
+    rv = (*(pCtx->videoFuncs.gfmVideo_windowToBackbuffer))(pX, pY,
+            pCtx->pVideo);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -986,21 +967,22 @@ __ret:
  */
 gfmRV gfm_getBackbufferDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the renderer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
-    // Get the dimenensions
-    rv = gfmBackbuffer_getDimensions(pWidth, pHeight, pCtx->pBackbuffer);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Get the dimensions */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferDimensions))(pWidth, pHeight,
+            pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1020,21 +1002,16 @@ __ret:
 gfmRV gfm_setDimensions(gfmCtx *pCtx, int width, int height) {
     gfmRV rv;
     
-    // Sanitize the arguments
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the window has already been initialized
-    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
-    // Cache the backbuffer's output dimensions
-    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, width, height);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    // Set the window's dimentions
-    rv = gfmWindow_setDimensions(pCtx->pWindow, width, height);
+    /* Set the window's dimentions */
+    rv = (*(pCtx->videoFuncs.gfmVideo_setDimensions))(pCtx->pVideo, width,
+            height);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
@@ -1052,25 +1029,18 @@ __ret:
  */
 gfmRV gfm_setFullscreen(gfmCtx *pCtx) {
     gfmRV rv;
-    int wndWidth, wndHeight;
-    
-    // Sanitize the arguments
+
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the window has already been initialized
-    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
-    
-    // Try to make it fullscreen
-    rv = gfmWindow_setFullScreen(pCtx->pWindow);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Try to make it fullscreen */
+    rv = (*(pCtx->videoFuncs.gfmVideo_setFullscreen))(pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    // Cache the backbuffer's output dimensions
-    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1086,24 +1056,16 @@ __ret:
  */
 gfmRV gfm_setWindowed(gfmCtx *pCtx) {
     gfmRV rv;
-    int wndWidth, wndHeight;
     
-    // Sanitize the arguments
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the window has already been initialized
-    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
-    // Try to make it fullscreen
-    rv = gfmWindow_setWindowed(pCtx->pWindow);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Cache the backbuffer's output dimensions
-    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
+    /* Try to make it windowed */
+    rv = (*(pCtx->videoFuncs.gfmVideo_setWindowed))(pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
@@ -1123,26 +1085,18 @@ __ret:
  */
 gfmRV gfm_setResolution(gfmCtx *pCtx, int resIndex) {
     gfmRV rv;
-    int wndWidth, wndHeight;
-    
-    // Sanitize the arguments
+
+    /* Sanitize the arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the window has already been initialized
-    ASSERT_LOG(pCtx->pWindow && gfmWindow_wasInit(pCtx->pWindow) == GFMRV_TRUE,
-            GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
-    
-    // Set the window's resolution
-    rv = gfmWindow_setResolution(pCtx->pWindow, resIndex);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Set the window's resolution */
+    rv = (*(pCtx->videoFuncs.gfmVideo_setResolution))(pCtx->pVideo, resIndex);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Cache the backbuffer's output dimensions
-    rv = gfmWindow_getDimensions(&wndWidth, &wndHeight, pCtx->pWindow);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfmBackbuffer_cacheDimensions(pCtx->pBackbuffer, wndWidth, wndHeight);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1162,15 +1116,15 @@ gfmRV gfm_initAll() {
 gfmRV gfm_setBackground(gfmCtx *pCtx, int color) {
     gfmRV rv;
     
-    // Sanitize arguments
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
-    // Set the bg color
-    rv = gfmBackbuffer_setBackground(pCtx->pBackbuffer, color);
+    /* Set the bg color */
+    rv = (*(pCtx->videoFuncs.gfmVideo_setBackgroundColor))(pCtx->pVideo, color);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
@@ -1195,49 +1149,56 @@ __ret:
  */
 gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
+    gfmFile *pFile;
     gfmRV rv;
     gfmTexture *pTex;
-    int incRate, height, width;
-    
-    // Sanitize arguments
+    int width, height;
+
+    pFile = 0;
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(pFilename, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(filenameLen, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading texture \"%*s\"",
             filenameLen, pFilename);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Try to get a new texture
-    incRate = 1;
-    // This macro already ASSERT errors
-    gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, incRate, pTex, gfmTexture_getNew);
-    
-    // Load the texture
-    rv = gfmTexture_load(pTex, pCtx, pFilename, filenameLen, colorKey);
+
+    /* Open the texture's file */
+    rv = gfmFile_getNew(&pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Get the texture's index
-    *pIndex = gfmGenArr_getUsed(pCtx->pTextures);
-    // Push the texture into the array
-    gfmGenArr_push(pCtx->pTextures);
-    
-    // Get the texture's dimensions
-    rv = gfmTexture_getDimensions(&width, &height, pTex);
+    rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
+    /* Load the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_loadTextureBMP))(pIndex, pCtx->pVideo,
+        pFile, colorKey, pCtx->pLog);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Get the texture's dimensions */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getTexture))(&pTex, pCtx->pVideo,
+            *pIndex, pCtx->pLog);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(&width, &height,
+            pCtx->pVideo);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
             "h=%i) at index %i!", filenameLen, pFilename, width, height,
             *pIndex);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    
+
     rv = GFMRV_OK;
 __ret:
+    if (pFile) {
+        gfmFile_free(&pFile);
+    }
+
     return rv;
 }
 
@@ -1251,75 +1212,51 @@ __ret:
  */
 gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(ppTex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the texture exists
-    ASSERT_LOG(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
-    
-    // Return the texture
-    *ppTex = gfmGenArr_getObject(pCtx->pTextures, index);
-    
+
+    /* Return the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getTexture))(ppTex, pCtx->pVideo, index,
+            pCtx->pLog);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
 }
 
 /**
- * Create a new (automatically managed) spriteset
+ * Get a texture's dimesions
  * 
- * @param  ppSset     The spriteset
- * @param  pCtx       The game's context
- * @param  pTex       The texture
- * @param  tileWidth  The width of each tile
- * @param  tileHeight The height of each tile
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                    GFMRV_SPRITESET_INVALID_WIDTH,
- *                    GFMRV_SPRITESET_INVALID_HEIGHT,
- *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ * @param  [out]pWidth  The texture's width
+ * @param  [out]pHeight The texture's height
+ * @param  [ in]pCtx    The game's context
+ * @param  [ in]pTex    The texture
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
-        int tileWidth, int tileHeight) {
+gfmRV gfm_getTextureDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx,
+        gfmTexture *pTex) {
     gfmRV rv;
-    gfmSpriteset *pSset;
-    int incRate;
-    
-    // Sanitize only the context (as the rest is checked on the inner function)
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(ppSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
-    // Initialize so it can ben cleaned on error
-    pSset = 0;
-    
-    // Try to get a new spriteset
-    incRate = 1;
-    // This macro already ASSERT errors
-    gfmGenArr_getNextRef(gfmSpriteset, pCtx->pSpritesets, incRate, pSset,
-            gfmSpriteset_getNew);
-    
-    // Initialize it
-    rv = gfmSpriteset_init(pSset, pTex, tileWidth, tileHeight);
+    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    /* Return the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(pWidth, pHeight,
+            pTex);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Push the spriteset into the array
-    gfmGenArr_push(pCtx->pSpritesets);
-    
-    // Set the return
-    *ppSset = pSset;
+
     rv = GFMRV_OK;
 __ret:
-    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD) {
-        gfmSpriteset_free(&pSset);
-    }
-    
     return rv;
 }
 
@@ -1380,6 +1317,8 @@ __ret:
 }
 
 /**
+ * OBSOLETE FUCTION!!
+ * 
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -1388,23 +1327,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_setDefaultTexture(gfmCtx *pCtx, int index) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
-    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the texture exists
-    ASSERT_LOG(index < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
-    
-    // Cache the default texture
-    pCtx->defaultTexture = index;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
+    return GFMRV_OK;
 }
 
 /**
@@ -2308,84 +2231,87 @@ gfmRV gfm_snapshot(gfmCtx *pCtx, char *pFilepath, int len, int useLocalPath) {
     gfmRV rv;
     int height, width;
     volatile int newLen;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pFilepath, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the operation is available
-    ASSERT_LOG(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED, pCtx->pLog);
-    // Check that the operation isn't active
+    /* Check that the operation is available */
+    ASSERT_LOG(gfmGif_isSupported() == GFMRV_TRUE, GFMRV_FUNCTION_NOT_SUPPORTED,
+            pCtx->pLog);
+    /* Check that the operation isn't active */
     ASSERT_LOG(!pCtx->takeSnapshot, GFMRV_OPERATION_ACTIVE, pCtx->pLog);
-    
-    // Create the GIF exporter, if needed)
+
+    /* Create the GIF exporter, if needed) */
     if (!pCtx->pGif) {
         rv = gfmGif_getNew(&(pCtx->pGif));
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    // Get the backbuffer's dimensions
-    rv = gfmBackbuffer_getDimensions(&width, &height, pCtx->pBackbuffer);
+    /* Get the backbuffer's dimensions */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferDimensions))(&width, &height,
+            pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    // Initialize the gif exporter to the current backbuffer
+    /* Initialize the gif exporter to the current backbuffer */
     rv = gfmGif_init(pCtx->pGif, pCtx, width, height);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Alloc as many bytes as required (or fail if not possible/supported)
+
+    /* Alloc as many bytes as required (or fail if not possible/supported) */
     newLen = pCtx->ssDataLen;
-    rv = gfmBackbuffer_getBackbufferData(0, (int*)&newLen, pCtx->pBackbuffer);
+    rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferData))(0, (int*)&newLen,
+            pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Expand the buffer, as necessary
+
+    /* Expand the buffer, as necessary */
     if (newLen > pCtx->ssDataLen) {
         pCtx->pSsData = (unsigned char*)realloc(pCtx->pSsData,
                 newLen * sizeof(unsigned char));
         ASSERT_LOG(pCtx->pSsData, GFMRV_ALLOC_FAILED, pCtx->pLog);
-        
-        // Must store the new buffer len
+
+        /* Must store the new buffer len */
         pCtx->ssDataLen = newLen;
     }
-    
-    // Create the path string, if necessary
+
+    /* Create the path string, if necessary */
     if (!pCtx->pSsPath) {
         rv = gfmString_getNew(&(pCtx->pSsPath));
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    
-    // store the path
+
+    /* store the path */
     if (useLocalPath) {
         char *pLocalPath;
         int doCopy;
-        
-        // Retrieve the local path from the save file path
+
+        /* Retrieve the local path from the save file path */
         rv = gfmString_getString(&pLocalPath, pCtx->pSaveFilename);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
+
         doCopy = 1;
         rv = gfmString_init(pCtx->pSsPath, pLocalPath, pCtx->saveFilenameLen,
                 doCopy);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
-        // Append the file's path
+
+        /* Append the file's path */
         rv = gfmString_concat(pCtx->pSsPath, pFilepath, len);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
         int doCopy;
-        
-        // Create the string with the path
+
+        /* Create the string with the path */
         doCopy = 1;
         rv = gfmString_init(pCtx->pSsPath, pFilepath, len, doCopy);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
-    
-    // TODO check if there's an extension and add it
-    
-    // Request the operation
+
+    /* TODO check if there's an extension and add it */
+
+    /* Request the operation */
     pCtx->takeSnapshot = 1;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2461,35 +2387,31 @@ __ret:
  */
 gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
 #if defined(DEBUG) || defined(FORCE_FPS)
-    // Store when drawing was initialized
+    /* Store when drawing was initialized */
     rv = gfmFPSCounter_initDraw(pCtx->pCounter);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 #endif
-    
-    // If there's a default texture, load it
-    if (pCtx->defaultTexture >= 0) {
-        rv = gfm_drawLoadCachedTexture(pCtx, pCtx->defaultTexture);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    }
-    
-    rv = gfmBackbuffer_drawBegin(pCtx->pBackbuffer);
+
+    rv = (*(pCtx->videoFuncs.gfmVideo_drawBegin))(pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
 }
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer; The texture must be managed by the
  * framework
  * 
@@ -2498,27 +2420,12 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
-    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(iTex >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the texture exists
-    ASSERT_LOG(iTex < gfmGenArr_getUsed(pCtx->pTextures), GFMRV_INVALID_INDEX, pCtx->pLog);
-    
-    // Load the texture
-    rv = gfm_drawLoadTexture(pCtx, gfmGenArr_getObject(pCtx->pTextures, iTex));
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
+    return GFMRV_OK;
 }
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer
  * 
  * @param  pCtx  The game's context
@@ -2526,24 +2433,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
 gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
-    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
-    // Load it into the backbuffer
-    rv = gfmBackbuffer_drawLoadTexture(pCtx->pBackbuffer, pTex);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
+    return GFMRV_OK;
 }
 
 /**
@@ -2554,7 +2444,21 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_batchBegin(gfmCtx *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    rv = (*(pCtx->videoFuncs.gfmVideo_setBatched))(pCtx->pVideo);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -2572,26 +2476,26 @@ gfmRV gfm_batchBegin(gfmCtx *pCtx) {
 gfmRV gfm_drawTile(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int tile,
         int isFlipped) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
     ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    // Check that the tile can be rendered
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Check that the tile can be rendered */
     if (tile < 0) {
         rv = GFMRV_OK;
         goto __ret;
     }
-    
-    // Render the tile
-    rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
-            isFlipped);
+
+    /* Render the tile */
+    rv = (*(pCtx->videoFuncs.gfmVideo_drawTile))(pCtx->pVideo, pSset, x, y,
+            tile, isFlipped);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2616,50 +2520,50 @@ gfmRV gfm_drawNumber(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y, int num,
     gfmRV rv;
     int digits, tileWidth, tileHeight, tile;
     
-    // Sanitize arguments
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
+    /* Continue to sanitize arguments */
     ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
     
-    // Get the spriteset dimensions
+    /* Get the spriteset dimensions */
     rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pSset);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
-    // Get 10^(res-1) (to get separate each digit later)
+    /* Get 10^(res-1) (to get separate each digit later) */
     digits = 1;
     while (res > 1) {
         digits *= 10;
         res--;
     }
     
-    // Renders a '-' sign, if necessary
+    /* Renders a '-' sign, if necessary */
     if (num < 0) {
-        // Get the tile position on the texture
+        /* Get the tile position on the texture */
         tile = '-' - '!' + firstTile;
-        // Render it
-        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
-                0/*flipped*/);
+        /* Render it */
+        rv = (*(pCtx->videoFuncs.gfmVideo_drawTile))(pCtx->pVideo, pSset, x, y,
+                tile, 0/*flipped*/);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        // Update the number and its position
+        /* Update the number and its position */
         num *= -1;
         x += tileWidth;
     }
     
-    // Render every digit
+    /* Render every digit */
     while (digits > 0) {
-        // Get the current digit
+        /* Get the current digit */
         tile = num / digits % 10;
-        // Get its position on the texture
+        /* Get its position on the texture */
         tile = tile + '0' - '!' + firstTile;
-        // Render it
-        rv = gfmBackbuffer_drawTile(pCtx->pBackbuffer, pSset, x, y, tile,
-                0/*flipped*/);
+        /* Render it */
+        rv = (*(pCtx->videoFuncs.gfmVideo_drawTile))(pCtx->pVideo, pSset, x, y,
+                tile, 0/*flipped*/);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        // Update its position and the digit
+        /* Update its position and the digit */
         x += tileWidth;
         digits /= 10;
     }
@@ -2696,8 +2600,8 @@ gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
 gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
         unsigned char red, unsigned char green, unsigned char blue) {
     gfmRV rv;
-    int camX, camY;
-    
+    int camX, camY, color;
+
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
@@ -2705,22 +2609,28 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
     // Continue to sanitize arguments
     ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
-    // Get the camera's position
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Get the camera's position */
     rv = gfm_getCameraPosition(&camX, &camY, pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Convert the position from world-space to screen-space
+
+    /* Convert the position from world-space to screen-space */
     x -= camX;
     y -= camY;
-    
-    // Draw the rectangle
-    rv = gfmBackbuffer_drawRect(pCtx->pBackbuffer, x, y, width, height, red,
-            green, blue);
+
+    /* Conver the color into a single int */
+    color = 0xff000000;
+    color |= (red << 16)  & 0x00ff0000;
+    color |= (green << 8) & 0x0000ff00;
+    color |=  blue        & 0x000000ff;
+
+    /* Draw the rectangle */
+    rv = (*(pCtx->videoFuncs.gfmVideo_drawRectangle))(pCtx->pVideo, x, y, width,
+            height, color);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2744,82 +2654,82 @@ gfmRV gfm_batchEnd(gfmCtx *pCtx) {
  */
 gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Check that the backbuffer was initialized
-    ASSERT_LOG(pCtx->pBackbuffer, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-    
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
 #if defined(DEBUG) || defined(FORCE_FPS)
-    // Display the current fps
+    /* Display the current fps */
     if (pCtx->showFPS) {
         rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 #endif
-    
-    rv = gfmBackbuffer_drawEnd(pCtx->pBackbuffer, pCtx->pWindow);
+
+    rv = (*(pCtx->videoFuncs.gfmVideo_drawEnd))(pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    
-    // Store the time taken from the previous draw (and calculate how long it
-    // has taken)
+
+    /* Store the time taken from the previous draw (and calculate how long it
+     * has taken) */
     if (pCtx->lastDrawnTime == 0) {
         rv = gfmTimer_getCurTimeMs(&pCtx->lastDrawnTime);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
         int curTime;
-        
+
         rv = gfmTimer_getCurTimeMs(&curTime);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
+
         pCtx->lastDrawElapsed = curTime - pCtx->lastDrawnTime;
         pCtx->lastDrawnTime = curTime;
     }
-    
-    // If requested, take the snapshot
+
+    /* If requested, take the snapshot */
     if (pCtx->takeSnapshot) {
         volatile int len;
-        
-        // Retrieve the data
+
+        /* Retrieve the data */
         len = pCtx->ssDataLen;
-        rv = gfmBackbuffer_getBackbufferData(pCtx->pSsData, (int*)&len,
-                pCtx->pBackbuffer);
+        rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferData))(0, (int*)&len,
+                pCtx->pVideo);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
-        // Store it in a GIF image
+
+        /* Store it in a GIF image */
         rv = gfmGif_storeFrame(pCtx->pGif, pCtx->pSsData, len);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
+
         if (!pCtx->isAnimation) {
-            // If it's a snapshot, simply save the animation
+            /* If it's a snapshot, simply save the animation */
             rv = gfmGif_exportImage(pCtx->pGif, pCtx->pSsPath);
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        
+
             pCtx->takeSnapshot = 0;
         }
         else {
             int delay;
-            
-            // Update the animation timer
+
+            /* Update the animation timer */
             rv = gfmAccumulator_getDelay(&delay, pCtx->pDrawAcc);
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-            
+
             pCtx->animationTime -= delay;
-            
-            // If enough frames were recorded, export it
+
+            /* If enough frames were recorded, export it */
             if (pCtx->animationTime <= 0) {
                 rv = gfmGif_exportAnimation(pCtx->pGif, pCtx->pSsPath);
                 ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-                
+
                 pCtx->takeSnapshot = 0;
                 pCtx->isAnimation = 0;
             }
         }
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2882,11 +2792,9 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #ifndef GFRAME_MOBILE
     gfmString_free(&(pCtx->pBinPath));
 #endif
-    gfmBackbuffer_free(&(pCtx->pBackbuffer));
-    gfmWindow_free(&(pCtx->pWindow));
+    (*(pCtx->videoFuncs.gfmVideo_free))(&(pCtx->pVideo));
     gfmCamera_free(&(pCtx->pCamera));
     gfmTimer_free(&(pCtx->pTimer));
-    gfmGenArr_clean(pCtx->pTextures, gfmTexture_free);
     gfmGenArr_clean(pCtx->pSpritesets, gfmSpriteset_free);
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));

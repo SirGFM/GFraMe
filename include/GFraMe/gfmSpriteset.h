@@ -38,21 +38,6 @@ gfmRV gfmSpriteset_getNew(gfmSpriteset **ppCtx);
 gfmRV gfmSpriteset_free(gfmSpriteset **ppCtx);
 
 /**
- * Initialize the spriteset from a texture
- * 
- * @param  pCtx       The spriteset
- * @param  pTex       The texture
- * @param  tileWidth  The width of each tile
- * @param  tileHeight The height of each tile
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                    GFMRV_SPRITESET_INVALID_WIDTH,
- *                    GFMRV_SPRITESET_INVALID_HEIGHT,
- *                    GFMRV_TEXTURE_NOT_INITIALIZED
- */
-gfmRV gfmSpriteset_init(gfmSpriteset *pCtx, gfmTexture *pTex, int tileWidth,
-        int tileHeight);
-
-/**
  * Initialize the spriteset from a internal texture
  * 
  * @param  pSset      The spriteset

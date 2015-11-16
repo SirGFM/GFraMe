@@ -289,14 +289,17 @@ gfmRV gfm_didGetQuitFlag(gfmCtx *pCtx);
 gfmRV gfm_getEventCtx(gfmEvent **ppEvent, gfmCtx *pCtx);
 
 /**
- * Get the current backbuffer
+ * Convert a point in window-space to backbuffer-space
  * 
- * @param  ppBbuf The backbuffer
- * @param  pCtx   The game's context
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ * NOTE: Both pX and pY must be initialized with the window-space point
+ * 
+ * @param  [out]pX   The horizontal position, in backbuffer-space
+ * @param  [out]pY   The vertical position, in backbuffer-space
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
-gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx);
+gfmRV gfm_windowToBackbuffer(int *pX, int *pY, gfmCtx *pCtx);
 
 /**
  * Get the backbuffer's dimension
@@ -399,27 +402,23 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
  * Get a texture
  * 
  * @param  ppTex The texture
- * @param  pCtx  The game's contex
+ * @param  pCtx  The game's context
  * @param  index The texture's index
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index);
 
 /**
- * Create a new (automatically managed) spriteset
+ * Get a texture's dimesions
  * 
- * @param  ppSset     The spriteset
- * @param  pCtx       The game's context
- * @param  pTex       The texture
- * @param  tileWidth  The width of each tile
- * @param  tileHeight The height of each tile
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                    GFMRV_SPRITESET_INVALID_WIDTH,
- *                    GFMRV_SPRITESET_INVALID_HEIGHT,
- *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ * @param  [out]pWidth  The texture's width
+ * @param  [out]pHeight The texture's height
+ * @param  [ in]pCtx    The game's context
+ * @param  [ in]pTex    The texture
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
-        int tileWidth, int tileHeight);
+gfmRV gfm_getTextureDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx,
+        gfmTexture *pTex);
 
 /**
  * Create a new (automatically managed) spriteset
@@ -438,6 +437,8 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
         int tileWidth, int tileHeight);
 
 /**
+ * OBSOLETE FUCTION!!
+ * 
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -830,6 +831,8 @@ gfmRV gfm_didExportGif(gfmCtx *pCtx);
 gfmRV gfm_drawBegin(gfmCtx *pCtx);
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer; The texture must be managed by the
  * framework
  * 
@@ -840,6 +843,8 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx);
 gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer
  * 
  * @param  pCtx  The game's context

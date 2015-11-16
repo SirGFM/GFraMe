@@ -84,61 +84,6 @@ __ret:
 }
 
 /**
- * Initialize the spriteset from a texture
- * 
- * @param  pCtx       The spriteset
- * @param  pTex       The texture
- * @param  tileWidth  The width of each tile
- * @param  tileHeight The height of each tile
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                    GFMRV_SPRITESET_INVALID_WIDTH,
- *                    GFMRV_SPRITESET_INVALID_HEIGHT,
- *                    GFMRV_TEXTURE_NOT_INITIALIZED
- */
-gfmRV gfmSpriteset_init(gfmSpriteset *pCtx, gfmTexture *pTex, int tileWidth,
-        int tileHeight) {
-    gfmRV rv;
-    int width, height;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pTex, GFMRV_ARGUMENTS_BAD);
-    ASSERT(tileWidth > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(tileHeight > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that the dimensions are power of two
-    ASSERT(gfmUtils_isPow2(tileWidth) == GFMRV_TRUE,
-            GFMRV_SPRITESET_INVALID_WIDTH);
-    ASSERT(gfmUtils_isPow2(tileHeight) == GFMRV_TRUE,
-            GFMRV_SPRITESET_INVALID_HEIGHT);
-    
-    // Get the texture's dimensions
-    rv = gfmTexture_getDimensions(&width, &height, pTex);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Check that the tile dimensions is smaller than the texture
-    ASSERT(tileWidth <= width, GFMRV_SPRITESET_INVALID_WIDTH);
-    ASSERT(tileHeight <= height, GFMRV_SPRITESET_INVALID_HEIGHT);
-    
-    // Calculate the number of rows, columns and the total of tiles
-    pCtx->columns = width / tileWidth;
-    pCtx->rows = height / tileHeight;
-    pCtx->tileCount = pCtx->columns * pCtx->rows;
-    
-    // Store info about the spriteset
-    pCtx->texWidth = width;
-    pCtx->texHeight = height;
-    pCtx->tileWidth = tileWidth;
-    pCtx->tileHeight = tileHeight;
-    
-    // Store the texture
-    pCtx->pTex = pTex;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Initialize the spriteset from a internal texture
  * 
  * @param  pSset      The spriteset
@@ -155,22 +100,46 @@ gfmRV gfmSpriteset_initCached(gfmSpriteset *pSset, gfmCtx *pCtx, int index,
         int tileWidth, int tileHeight) {
     gfmRV rv;
     gfmTexture *pTex;
-    
-    // Sanitize arguments
+    int width, height;
+
+    /* Sanitize arguments */
     ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(tileWidth > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(tileHeight > 0, GFMRV_ARGUMENTS_BAD);
-    
-    // Try to get the texture
+    /* Check that the dimensions are power of two */
+    ASSERT(gfmUtils_isPow2(tileWidth) == GFMRV_TRUE,
+            GFMRV_SPRITESET_INVALID_WIDTH);
+    ASSERT(gfmUtils_isPow2(tileHeight) == GFMRV_TRUE,
+            GFMRV_SPRITESET_INVALID_HEIGHT);
+
+    /* Try to get the texture */
     rv = gfm_getTexture(&pTex, pCtx, index);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Simply call the init texture
-    rv = gfmSpriteset_init(pSset, pTex, tileWidth, tileHeight);
+
+    /* Get the texture's dimensions */
+    rv = gfm_getTextureDimensions(&width, &height, pCtx, pTex);
     ASSERT_NR(rv == GFMRV_OK);
-    
+
+    /* Check that the tile dimensions is smaller than the texture */
+    ASSERT(tileWidth <= width, GFMRV_SPRITESET_INVALID_WIDTH);
+    ASSERT(tileHeight <= height, GFMRV_SPRITESET_INVALID_HEIGHT);
+
+    /* Calculate the number of rows, columns and the total of tiles */
+    pSset->columns = width / tileWidth;
+    pSset->rows = height / tileHeight;
+    pSset->tileCount = pSset->columns * pSset->rows;
+
+    /* Store info about the spriteset */
+    pSset->texWidth = width;
+    pSset->texHeight = height;
+    pSset->tileWidth = tileWidth;
+    pSset->tileHeight = tileHeight;
+
+    /* Store the texture */
+    pSset->pTex = pTex;
+
     rv = GFMRV_OK;
 __ret:
     return rv;

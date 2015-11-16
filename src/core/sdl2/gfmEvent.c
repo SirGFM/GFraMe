@@ -665,16 +665,13 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 }
             } break;
 			case SDL_MOUSEMOTION: {
-                gfmBackbuffer *pBbuf;
                 int x, y;
                 
                 // Get the position in the screen
                 x = ev.motion.x;
                 y = ev.motion.y;
                 // Convert it to 'game space'
-                rv = gfm_getBackbuffer(&pBbuf, pCtx);
-                ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
+                rv = gfm_windowToBackbuffer(&x, &y, pCtx);
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 // Set the mouse position

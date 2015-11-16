@@ -10,9 +10,3 @@
               $(OBJDIR)/core/sdl2/gfmTimer.o      \
 #==============================================================================
 
-# Those files are going to be removed (eventually)
- BKEND_OBJS +=                                    \
-              $(OBJDIR)/core/sdl2/gfmBackbuffer.o \
-              $(OBJDIR)/core/sdl2/gfmTexture.o    \
-              $(OBJDIR)/core/sdl2/gfmWindow.o     
-
