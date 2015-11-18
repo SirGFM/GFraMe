@@ -166,6 +166,9 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     // Event errors
     "Failed to bind controller", /* GFMRV_CONTROLLER_FAILED_TO_BIND */
     "Controller with invalid ID found", /* GFMRV_CONTROLLER_INVALID_ID */
+    // GL Errors
+    "Failed to compile the fragment shader", /* GFMRV_FRAGMENT_SHADER_ERROR */
+    "Failed to compile the vertex shader", /* GFMRV_VERTEX_SHADER_ERROR */
     "Max error" /* GFMRV_MAX */
 };
 

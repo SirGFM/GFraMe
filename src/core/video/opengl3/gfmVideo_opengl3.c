@@ -48,12 +48,18 @@ struct stGFMVideoGL3 {
 /* ==== OPENGL BACKBUFFER SHADER PROGRAM FIELDS ============================= */
     GLuint bbProgram;
     GLuint bbUnfTexture;
+/* ==== OPENGL DEFAULT MESH FIELDS ========================================== */
+    GLuint meshVbo;
+    GLuint meshIbo;
+    GLuint meshVao;
 /* ==== OPENGL BACKBUFFER FIELDS ============================================ */
     GLuint bbVbo;
     GLuint bbIbo;
     GLuint bbVao;
     GLuint bbTex;
     GLuint bbFbo;
+/* ==== OPENGL RENDER FIELDS ================================================ */
+    gfmTexture *pLastTexture;
 /* ==== WINDOW FIELDS ======================================================= */
     /** Actual window (managed by SDL2) */
     SDL_Window *pSDLWindow;
@@ -87,13 +93,13 @@ struct stGFMVideoGL3 {
     /** Factor by which the (output) screen is bigger than the backbuffer */
     int scrZoom;
     /** Background red component */
-    Uint8 bgRed;
+    GLclampf bgRed;
     /** Background green component */
-    Uint8 bgGreen;
+    GLclampf bgGreen;
     /** Background blue component */
-    Uint8 bgBlue;
+    GLclampf bgBlue;
     /** Background alpha component */
-    Uint8 bgAlpha;
+    GLclampf bgAlpha;
 /* ==== TEXTURE FIELDS ====================================================== */
     /** Every cached texture */
     gfmGenArr_var(gfmTexture, pTextures);
@@ -191,10 +197,10 @@ static gfmRV gfmVideo_GL3_setBackgroundColor(gfmVideo *pVideo, int color) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
     /* Set the color */
-    pCtx->bgAlpha = (color >> 24) & 0xff;
-    pCtx->bgRed   = (color >> 16) & 0xff;
-    pCtx->bgGreen = (color >> 8) & 0xff;
-    pCtx->bgBlue  = color & 0xff;
+    pCtx->bgAlpha = ((color >> 24) & 0xff) / 255.0f;
+    pCtx->bgRed   = ((color >> 16) & 0xff) / 255.0f;
+    pCtx->bgGreen = ((color >> 8) & 0xff) / 255.0f;
+    pCtx->bgBlue  = (color & 0xff) / 255.0f;
 
     rv = GFMRV_OK;
 __ret:
@@ -317,7 +323,31 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     /* Clean all textures */
     gfmGenArr_clean(pCtx->pTextures, gfmVideo_GL3_freeTexture);
 
-    /* TODO Delete everything OpenGL related */
+    /* Delete all OpenGL Objects */
+    if (pCtx->meshVao) {
+        glDeleteVertexArrays(1, &(pCtx->meshVao));
+    }
+    if (pCtx->meshIbo) {
+        glDeleteBuffers(1, &(pCtx->meshIbo));
+    }
+    if (pCtx->meshVbo) {
+        glDeleteBuffers(1, &(pCtx->meshVbo));
+    }
+    if (pCtx->bbFbo) {
+        glDeleteFramebuffers(1, &(pCtx->bbFbo));
+    }
+    if (pCtx->bbTex) {
+        glDeleteTextures(1, &(pCtx->bbTex));
+    }
+    if (pCtx->bbVao) {
+        glDeleteVertexArrays(1, &(pCtx->bbVao));
+    }
+    if (pCtx->bbIbo) {
+        glDeleteBuffers(1, &(pCtx->bbIbo));
+    }
+    if (pCtx->bbVbo) {
+        glDeleteBuffers(1, &(pCtx->bbVbo));
+    }
 
     /* Delete the shader programs */
     if (pCtx->sprProgram) {
@@ -325,6 +355,11 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     }
     if (pCtx->bbProgram) {
         glDeleteProgram(pCtx->bbProgram);
+    }
+
+    /* Destroy the OpenGL context */
+    if (pCtx->pGLCtx) {
+        SDL_GL_DeleteContext(pCtx->pGLCtx);
     }
 
     /* Destroy the window */
@@ -445,8 +480,6 @@ static gfmRV gfmVideoGL3_cacheDimensions(gfmVideoGL3 *pCtx, int width,
     pCtx->scrPosY = (height - pCtx->bbufHeight * pCtx->scrZoom) / 2;
     pCtx->scrWidth = pCtx->bbufWidth * pCtx->scrZoom;
     pCtx->scrHeight = pCtx->bbufHeight * pCtx->scrZoom;
-
-    /* TODO Update the OpenGL render stuff */
 
     rv = GFMRV_OK;
 __ret:
@@ -656,11 +689,13 @@ __ret:
 static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
         int height) {
     /* Backbuffer mesh */
-    float vbo_data[] = {-1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f, 1.0f,-1.0f};
+    float bbVboData[] = {-1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f, 1.0f,-1.0f};
+    /* Default mesh vertices (square centered on 0 of side 1) */
+	float meshVboData[] = {-0.5f,-0.5f, -0.5f,0.5f, 0.5f,0.5f, 0.5f,-0.5f};
     /* Error value */
     gfmRV rv;
     /* Sequence used to render the mesh as two triangles */
-    GLshort ibo_data[] = {0,1,2, 2,3,0};
+    GLshort iboData[] = {0,1,2, 2,3,0};
     /* Used for GL error checking */
     GLenum status;
 
@@ -669,7 +704,7 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     ASSERT(pCtx->bbVbo, GFMRV_INTERNAL_ERROR);
     /* Load the mesh data into the GPU (?) */
     glBindBuffer(GL_ARRAY_BUFFER, pCtx->bbVbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vbo_data), vbo_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bbVboData), bbVboData, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     /* Create the index for the backbuffer mesh */
@@ -677,7 +712,7 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     ASSERT(pCtx->bbIbo, GFMRV_INTERNAL_ERROR);
     /* Load the index data */
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->bbIbo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ibo_data), ibo_data,
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iboData), iboData,
             GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
@@ -719,6 +754,37 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     ASSERT(status == GL_FRAMEBUFFER_COMPLETE, GFMRV_INTERNAL_ERROR);
 
+    /* Create the default mesh */
+    glGenBuffers(1, &(pCtx->meshVbo));
+    ASSERT(pCtx->bbVbo, GFMRV_INTERNAL_ERROR);
+    /* Load the mesh data into the GPU (?) */
+    glBindBuffer(GL_ARRAY_BUFFER, pCtx->meshVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(meshVboData), meshVboData, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    /* Create the index for the default mesh */
+    glGenBuffers(1, &(pCtx->meshIbo));
+    ASSERT(pCtx->meshIbo, GFMRV_INTERNAL_ERROR);
+    /* Load the index data */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->meshIbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iboData), iboData,
+            GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    /* Create a vertex array that associates both mesh and indexes */
+    glGenVertexArrays(1, &(pCtx->meshVao));
+    ASSERT(pCtx->bbVao, GFMRV_INTERNAL_ERROR);
+    /* Associate both objects with this vao */
+    glBindVertexArray(pCtx->meshVao);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, pCtx->meshVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->meshIbo);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindVertexArray(0);
+
+    /* Modify the transformation matrix */
+	pCtx->worldMatrix[0] = 2.0f / (float)width;
+	pCtx->worldMatrix[5] = -2.0f / (float)height;
     /* Store the backbbufer dimensions */
     pCtx->bbufWidth = width;
     pCtx->bbufHeight = height;
@@ -726,7 +792,31 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     rv = GFMRV_OK;
 __ret:
     if (rv != GFMRV_OK) {
-        /* TODO Clean everything on error */
+        /* Clean everything on error */
+        if (pCtx->meshVao) {
+            glDeleteVertexArrays(1, &(pCtx->meshVao));
+        }
+        if (pCtx->meshIbo) {
+            glDeleteBuffers(1, &(pCtx->meshIbo));
+        }
+        if (pCtx->meshVbo) {
+            glDeleteBuffers(1, &(pCtx->meshVbo));
+        }
+        if (pCtx->bbFbo) {
+            glDeleteFramebuffers(1, &(pCtx->bbFbo));
+        }
+        if (pCtx->bbTex) {
+            glDeleteTextures(1, &(pCtx->bbTex));
+        }
+        if (pCtx->bbVao) {
+            glDeleteVertexArrays(1, &(pCtx->bbVao));
+        }
+        if (pCtx->bbIbo) {
+            glDeleteBuffers(1, &(pCtx->bbIbo));
+        }
+        if (pCtx->bbVbo) {
+            glDeleteBuffers(1, &(pCtx->bbVbo));
+        }
     }
 
     return rv;
@@ -804,8 +894,8 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     ASSERT(rv == GFMRV_OK, rv);
 
     /* TODO Enable alpha blending (?) */
-    /* glEnable(GL_BLEND); */
-    /* glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     /* Load shaders */
     rv = gfmVideo_GL3_loadShaders(pCtx);
@@ -820,6 +910,11 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     pCtx->wndHeight = height;
     /* Set it at the default resolution (since it's the default behaviour) */
     pCtx->curResolution = 0;
+
+    /* Already send the transform matrix to its uniform */
+    glUseProgram(pCtx->sprProgram);
+    glUniformMatrix4fv(pCtx->sprUnfTransformMatrix, 1, GL_FALSE, pCtx->worldMatrix);
+	glUseProgram(0);
 
     /* Update helper variables */
     rv = gfmVideoGL3_cacheDimensions(pCtx, width, height);
@@ -1234,8 +1329,22 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     /* Check that it was initialized */
     ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
 
-    /* TODO Implement this */
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    /* Set the clear color to black */
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    /* Clear the backbuffer */
+    glBindFramebuffer(GL_FRAMEBUFFER, pCtx->bbFbo);
+    glClear(GL_COLOR_BUFFER_BIT);
+    /* Activate the sprite rendering shader */
+	glUseProgram(pCtx->sprProgram);
+    /* Set its dimensions to the backbuffer's */
+	glViewport(0, 0, pCtx->bbufWidth, pCtx->bbufHeight);
+
+    /* Bind the default mesh (since it won't change through all rendering) */
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(pCtx->meshVao);
+
+    /* Clear the last texture, so it's at least pushed once */
+    pCtx->pLastTexture = 0;
 
     rv = GFMRV_OK;
 __ret:
@@ -1258,7 +1367,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     gfmTexture *pTex;
     gfmRV rv;
     gfmVideoGL3 *pCtx;
-    SDL_Rect src;
+    int width, height;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoGL3*)pVideo;
@@ -1273,15 +1382,30 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     /* Retrieve the spriteset's texture */
     rv = gfmSpriteset_getTexture(&pTex, pSset);
     ASSERT(rv == GFMRV_OK, rv);
+    /* If the texture just changed, load it into the shader */
+    if (pTex != pCtx->pLastTexture) {
+        pCtx->pLastTexture = pTex;
 
-    /* Get the tile's dimensions and position into the spriteset */
-    rv = gfmSpriteset_getDimension(&(src.w), &(src.h), pSset);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmSpriteset_getPosition(&(src.x), &(src.y), pSset, tile);
+        /* Bind the texture dimensions */
+        glUniform2f(pCtx->sprUnfTexDimensions, (float)pTex->width,
+                (float)pTex->height);
+        /* Bind the texture */
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, pTex->texture);
+        glUniform1i(pCtx->sprUnfTexture, 0);
+    }
+
+    /* Get the tile's dimensions */
+    rv = gfmSpriteset_getDimension(&width, &height, pSset);
     ASSERT_NR(rv == GFMRV_OK);
 
-    /* TODO Implement this */
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    /* Set the sprite's parameters */
+    glUniform2f(pCtx->sprUnfPosition, (float)x, (float)y);
+    glUniform3f(pCtx->sprUnfTile, (float)width, (float)height, (float)tile);
+    /* TODO Do something to flip the sprite */
+
+    /* Actually render it */
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
     rv = GFMRV_OK;
 __ret:
@@ -1436,8 +1560,29 @@ static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
     /* Check that it was initialized */
     ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
 
-    /* TODO Implement this */
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    /* Switch to the default framebuffer */
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    /* Set it's default color and clean it */
+    glClearColor(pCtx->bgRed, pCtx->bgGreen, pCtx->bgBlue, pCtx->bgAlpha);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    /* Activate the output program */
+    glUseProgram(pCtx->bbProgram);
+    glViewport(pCtx->scrPosX, pCtx->scrPosY, pCtx->scrWidth, pCtx->scrHeight);
+    /* Set the backbuffer as the input texture */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, pCtx->bbTex);
+    glUniform1i(pCtx->sprUnfTexture, 0);
+    glBindVertexArray(pCtx->bbVao);
+    /* Draw it */
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(0);
+
+    /* Finally, swap the buffers */
+    glUseProgram(0);
+    SDL_GL_SwapWindow(pCtx->pSDLWindow);
 
     rv = GFMRV_OK;
 __ret:

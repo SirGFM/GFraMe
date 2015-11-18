@@ -191,7 +191,7 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
         } break;
 #endif /* USE_SDL2_VIDEO */
 #ifdef USE_GL3_VIDEO
-        case GFM_VIDEO_OPENGL3: {
+        case GFM_VIDEO_GL3: {
             rv = gfmVideo_GL3_loadFunctions(&(pCtx->videoFuncs));
             ASSERT(rv == GFMRV_OK, rv);
         } break;
@@ -286,7 +286,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Set SDL2 as the default video backend */
-    rv = gfm_setVideoBackend(pCtx, GFM_VIDEO_SDL2);
+    rv = gfm_setVideoBackend(pCtx, GFM_VIDEO_GL3);
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the event's context */

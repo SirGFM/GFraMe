@@ -12,7 +12,7 @@ typedef struct stGFMCtx gfmCtx;
 /** 'Exports' the backends enum */
 enum enGFMVideoBackend {
     GFM_VIDEO_SDL2 = 0,
-    GFM_VIDEO_OPENGL3,
+    GFM_VIDEO_GL3,
     GFM_VIDEO_GLES2,
     GFM_VIDEO_GLES3,
     GFM_VIDEO_WGL,
