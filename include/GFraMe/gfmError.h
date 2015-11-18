@@ -167,6 +167,9 @@ enum enGFMError {
     // Event errors
     GFMRV_CONTROLLER_FAILED_TO_BIND,
     GFMRV_CONTROLLER_INVALID_ID,
+    // GL Errors
+    GFMRV_FRAGMENT_SHADER_ERROR,
+    GFMRV_VERTEX_SHADER_ERROR,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

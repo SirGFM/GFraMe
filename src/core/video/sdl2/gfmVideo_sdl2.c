@@ -892,17 +892,6 @@ __ret:
 }
 
 /**
- * Enable batched draws, if supported
- * 
- * @param  [ in]pVideo The video context
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                     GFMRV_FUNCTION_NOT_SUPPORTED
- */
-static gfmRV gfmVideo_SDL2_setBatched(gfmVideo *pVideo) {
-    return GFMRV_FUNCTION_NOT_SUPPORTED;
-}
-
-/**
  * Initialize the rendering operation
  * 
  * @param  [ in]pVideo The video context
@@ -1540,7 +1529,6 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_windowToBackbuffer = gfmVideo_SDL2_windowToBackbuffer;
     pCtx->gfmVideo_setBackgroundColor = gfmVideo_SDL2_setBackgroundColor;
     pCtx->gfmVideo_loadTextureBMP = gfmVideo_SDL2_loadTextureBMP;
-    pCtx->gfmVideo_setBatched = gfmVideo_SDL2_setBatched;
     pCtx->gfmVideo_drawBegin = gfmVideo_SDL2_drawBegin;
     pCtx->gfmVideo_drawTile = gfmVideo_SDL2_drawTile;
     pCtx->gfmVideo_drawRectangle = gfmVideo_SDL2_drawRectangle;

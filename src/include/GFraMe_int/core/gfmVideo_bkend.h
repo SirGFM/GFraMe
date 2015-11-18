@@ -236,15 +236,6 @@ struct stGFMVideoFuncs {
     gfmRV (*gfmVideo_setBackgroundColor)(gfmVideo *pCtx, int color);
 
     /**
-     * Enable batched draws, if supported
-     * 
-     * @param  [ in]pCtx The video context
-     * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
-     *                   GFMRV_FUNCTION_NOT_SUPPORTED
-     */
-    gfmRV (*gfmVideo_setBatched)(gfmVideo *pCtx);
-
-    /**
      * Initialize the rendering operation
      * 
      * @param  [ in]pCtx The video context

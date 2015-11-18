@@ -2453,31 +2453,6 @@ gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex) {
 }
 
 /**
- * Initialize a batch of renders (i.e., render many sprites in a single draw
- * call)
- * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-gfmRV gfm_batchBegin(gfmCtx *pCtx) {
-    gfmRV rv;
-
-    /* Sanitize arguments */
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    /* Check that the lib was initialized */
-    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    /* Check that the video context was initialized */
-    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-
-    rv = (*(pCtx->videoFuncs.gfmVideo_setBatched))(pCtx->pVideo);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Renders a tile into the backbuffer
  * 
  * @param  pCtx      The game's context
@@ -2650,16 +2625,6 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
     rv = GFMRV_OK;
 __ret:
     return rv;
-}
-
-/**
- * Finalize a batch of renders (i.e., render many sprites in a single draw call)
- * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-gfmRV gfm_batchEnd(gfmCtx *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
 
 /**

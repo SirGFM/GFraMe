@@ -854,15 +854,6 @@ gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);
 gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex);
 
 /**
- * Initialize a batch of renders (i.e., render many sprites in a single draw
- * call)
- * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-gfmRV gfm_batchBegin(gfmCtx *pCtx);
-
-/**
  * Renders a tile into the backbuffer
  * 
  * @param  pCtx      The game's context
@@ -919,14 +910,6 @@ gfmRV gfm_drawSprite(gfmCtx *pCtx, gfmSprite *pSpr);
  */
 gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
         unsigned char red, unsigned char green, unsigned char blue);
-
-/**
- * Finalize a batch of renders (i.e., render many sprites in a single draw call)
- * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-gfmRV gfm_batchEnd(gfmCtx *pCtx);
 
 /**
  * Finalize a rendering operation

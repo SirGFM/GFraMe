@@ -20,7 +20,7 @@
       ifndef ($(CC))
         CC := gcc
 
-        #USE_GL3_VIDEO := yes
+        USE_GL3_VIDEO := yes
         USE_SDL2_VIDEO := yes
       endif
     endif
@@ -207,7 +207,7 @@
 # Add the MML synthesizer
   LFLAGS := $(LFLAGS) -lCSynth
 # Add OpenGL lib
- ifeq ($(USE_OPENGL3_VIDEO), yes)
+ ifeq ($(USE_GL3_VIDEO), yes)
    ifeq ($(OS), Win)
      LFLAGS := $(LFLAGS) -lopengl32
    else
