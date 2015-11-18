@@ -6,6 +6,7 @@
 #ifndef __GFMERROR__
 #define __GFMERROR__
 
+
 enum enGFMError {
     // Generic errors
     GFMRV_OK = 0,
