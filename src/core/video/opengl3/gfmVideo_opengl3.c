@@ -38,6 +38,8 @@ struct stGFMVideoGL3 {
 /* ==== OPENGL FIELDS ======================================================= */
     SDL_GLContext *pGLCtx;
     GLfloat worldMatrix[16];
+    GLint logSize;
+    GLchar *pInfoLog;
 /* ==== OPENGL SPRITE SHADER PROGRAM FIELDS ================================= */
     GLuint sprProgram;
     GLuint sprUnfTransformMatrix;
@@ -136,15 +138,18 @@ static char spriteVertexShader[] =  /* TODO Use instancing in this shader */
     /* Convert from screen-space to opengl-space */
     "  gl_Position = position*locToGL;\n"
     /* -- Output the texture coordinate --------------------------------- */
+    /* Calculate the tile position into the texture */
+    "  vec2 texOffset;\n"
+    "  float columns = floor(texDimensions.x / tile.x);"
+    "  texOffset.x = mod(tile.z, columns) * tile.x;"
+    "  texOffset.y = floor(tile.z / columns) * tile.y;"
+    "  texOffset /= texDimensions;\n"
     /* Again, start with the default square and convert it to a rectangle */
-    "  vec2 _texCoord = vtx + vec2(0.5f, 0.5f)\n"
-    "  _texCoord *= texDimensions;\n"
-    "  _texCoord *= tile.xy;\n"
+    "  vec2 _texCoord = vtx + vec2(0.5f, 0.5f);\n"
+    "  _texCoord *= tile.xy / texDimensions;\n"
     /* Offset it by the tile position */
-    "  _texCoord.x += (texDimensions.x %% tile.z) * tile.x;"
-    "  _texCoord.y += (texDimensions.y / tile.z) * tile.y;"
     /* Output it to the fragment shader */
-    "  texCoord = vec2(1.0f / _texCoord.x, 1.0f / _texCoord.y);\n"
+    "  texCoord = _texCoord + texOffset;\n"
     "}\n";
 
 static char spriteFragmentShader[] = /* TODO Use instancing in this shader (?) */
@@ -322,6 +327,10 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
 
     /* Clean all textures */
     gfmGenArr_clean(pCtx->pTextures, gfmVideo_GL3_freeTexture);
+
+    if (pCtx->pInfoLog) {
+        free(pCtx->pInfoLog);
+    }
 
     /* Delete all OpenGL Objects */
     if (pCtx->meshVao) {
@@ -546,11 +555,13 @@ __ret:
 /**
  * Compile a GLSL shader
  * 
+ * @param  [ in]pCtx       The video context
  * @param  [ in]shaderType The shader type
  * @param  [ in]pStr       The shader (must be NULL terminated)
  * @return                 The shader's identifier or 0, on error
  */
-static GLuint gfmVideo_GL3_compileShader(GLenum shaderType, char *pStr) {
+static GLuint gfmVideo_GL3_compileShader(gfmVideoGL3 *pCtx,  GLenum shaderType,
+        char *pStr) {
     GLuint shader;
     GLint status;
 
@@ -562,6 +573,15 @@ static GLuint gfmVideo_GL3_compileShader(GLenum shaderType, char *pStr) {
     /* Check if it compiled successfully */
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE) {
+        /* Retrieve the length of the error string */
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &(pCtx->logSize));
+        /* Alloc enough bytes for the error string and retrieve it */
+        pCtx->pInfoLog = (GLchar*)malloc(sizeof(GLchar) * pCtx->logSize);
+        if (pCtx->pInfoLog) {
+            glGetShaderInfoLog(shader, pCtx->logSize, &(pCtx->logSize),
+                    pCtx->pInfoLog);
+        }
+
         return 0;
     }
 
@@ -572,13 +592,14 @@ static GLuint gfmVideo_GL3_compileShader(GLenum shaderType, char *pStr) {
  * Create a program from GLSL a vertex and a fragment shader
  * 
  * @param  [out]pProg    The compiled shader program
+ * @param  [ in]pCtx     The video context
  * @param  [ in]pVShader The vertex shader
  * @param  [ in]pFShader The fragment shader
  * @return               GFMRV_OK, GFMRV_FRAGMENT_SHADER_ERROR,
  *                       GFMRV_VERTEX_SHADER_ERROR, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, char *pVShader,
-        char *pFShader) {
+static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, gfmVideoGL3 *pCtx,
+        char *pVShader, char *pFShader) {
     gfmRV rv;
     GLuint vsi, fsi;
 	GLuint program;
@@ -590,11 +611,11 @@ static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, char *pVShader,
     *pProg = 0;
 
     /* Compile the vertex shader */
-    vsi = gfmVideo_GL3_compileShader(GL_VERTEX_SHADER, pVShader);
+    vsi = gfmVideo_GL3_compileShader(pCtx, GL_VERTEX_SHADER, pVShader);
     ASSERT(vsi, GFMRV_VERTEX_SHADER_ERROR);
 
     /* Compile the fragment shader */
-    fsi = gfmVideo_GL3_compileShader(GL_FRAGMENT_SHADER, pFShader);
+    fsi = gfmVideo_GL3_compileShader(pCtx, GL_FRAGMENT_SHADER, pFShader);
     ASSERT(fsi, GFMRV_VERTEX_SHADER_ERROR);
 
     /* Create the shader program */
@@ -644,11 +665,11 @@ static gfmRV gfmVideo_GL3_loadShaders(gfmVideoGL3 *pCtx) {
     /* TODO Load user-supplied shaders */
 
     /* Load the sprite program */
-    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->sprProgram),
+    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->sprProgram), pCtx,
             spriteVertexShader, spriteFragmentShader);
     ASSERT(rv == GFMRV_OK, rv);
     /* Load the backbuffer program */
-    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->bbProgram),
+    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->bbProgram), pCtx,
             backbufferVertexShader, backbufferFragmentShader);
     ASSERT(rv == GFMRV_OK, rv);
 
@@ -851,6 +872,7 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
         int height, int bbufWidth, int bbufHeight, char *pName,
         SDL_WindowFlags flags, int vsync) {
     gfmRV rv;
+    int irv;
 
     /* if pName is NULL, the window should have no title */
     if (!pName) {
@@ -888,6 +910,12 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     /* Retrieve the OpenGL context */
     pCtx->pGLCtx = SDL_GL_CreateContext(pCtx->pSDLWindow);
     ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
+
+    /* Enable VSync */
+    if (vsync) {
+        irv = SDL_GL_SetSwapInterval(1);
+        ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
+    }
 
     /* Load all required OpenGL functions */
     rv = gfmVideo_GL3_glLoadFunctions();

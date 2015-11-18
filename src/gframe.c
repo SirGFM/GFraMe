@@ -1201,7 +1201,7 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
             *pIndex, pCtx->pLog);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(&width, &height,
-            pCtx->pVideo);
+            pTex);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
