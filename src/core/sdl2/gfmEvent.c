@@ -664,6 +664,15 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                     default: {}
                 }
             } break;
+            case SDL_WINDOWEVENT: {
+                if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    /* TODO This event can't be issued/handled exactly after
+                     * switching mode (to/from fullscreen) */
+                    rv = gfm_setDimensions(pCtx, ev.window.data1,
+                            ev.window.data2);
+                    ASSERT_NR(rv == GFMRV_OK);
+                }
+            } break;
 			case SDL_MOUSEMOTION: {
                 int x, y;
                 
