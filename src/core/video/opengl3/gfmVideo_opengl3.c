@@ -119,19 +119,21 @@ static char spriteVertexShader[] =  /* TODO Use instancing in this shader */
     "uniform mat4 locToGL;\n"
     /* Current texture dimensions */
     "uniform vec2 texDimensions;\n"
-    /* The sprite position in screen-space */
-    "uniform vec2 translation;\n"
+    /* The sprite position (and flipped 'bit') in screen-space */
+    "uniform vec3 translation;\n"
     /* The sprite dimensions and tile */
     "uniform vec3 tile;\n"
     "void main() {\n"
     /* -- Output the vertex position ------------------------------------ */
     "  vec2 pos = vtx;\n"
+    /* Flip the X axis, if necessary */
+    "  pos.x *= 1.0f - (2.0f * translation.z);"
     /* Expand the postion to the sprite's dimensions (i.e., convert a (0,0)
     * centered, 1 unit wide square to a rectangle of width dimensions.x and
     * height dimensions.y dimensions */
     "  pos *= tile.xy;\n"
     "  pos += tile.xy * vec2(0.5f, 0.5f);\n"
-    "  pos += translation;\n"
+    "  pos += translation.xy;\n"
     /* Translate the sprite to its in-screen position */
     "  vec4 position = vec4(pos.x, pos.y,"
     "                     -1.0f, 1.0f);\n"
@@ -1428,9 +1430,8 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Set the sprite's parameters */
-    glUniform2f(pCtx->sprUnfPosition, (float)x, (float)y);
+    glUniform3f(pCtx->sprUnfPosition, (float)x, (float)y, (float)isFlipped);
     glUniform3f(pCtx->sprUnfTile, (float)width, (float)height, (float)tile);
-    /* TODO Do something to flip the sprite */
 
     /* Actually render it */
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
