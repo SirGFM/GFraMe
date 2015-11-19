@@ -51,9 +51,10 @@ struct stGFMVideoGL3 {
     GLuint bbUnfTexture;
 /* ==== OPENGL INSTANCED RENDERING FIELDS =================================== */
     GLuint instanceTex;
+    GLuint instanceBuf;
     int numObjects;
     int maxObjects;
-    GLfloat *pInstanceData;
+    GLint *pInstanceData;
 /* ==== OPENGL DEFAULT MESH FIELDS ========================================== */
     GLuint meshVbo;
     GLuint meshIbo;
@@ -124,19 +125,19 @@ static char spriteVertexShader[] =
     /* Current texture dimensions */
     "uniform vec2 texDimensions;\n"
     /* Texture used to pass all data */
-    "uniform sampler1D instanceData;\n"
+    "uniform isamplerBuffer instanceData;\n"
     "void main() {\n"
-    "  vec3 translation;\n"
-    "  vec3 tile;\n"
+    "  ivec3 translation;\n"
+    "  ivec3 tile;\n"
     "  int index;\n"
     /* -- Retrieve the instance data ------------------------------------ */
     /* Calculate the per-texel offset and the base index */
     "  index = 2 * gl_InstanceID;\n"
     /* Retrieve the position (and horizontal flipping) */
-    "  translation.xyz = texelFetch(instanceData, index, 0).rgb * 1024.0f;\n"
+    "  translation.xyz = texelFetch(instanceData, index).rgb;\n"
     /* Retrieve the tile data */
     "  index += 1;\n"
-    "  tile.xyz = texelFetch(instanceData, index, 0).rgb * 1024.0f;\n"
+    "  tile.xyz = texelFetch(instanceData, index).rgb;\n"
     /* -- Output the vertex position ------------------------------------ */
     "  vec2 pos = vtx;\n"
     /* Flip the X axis, if necessary */
@@ -374,13 +375,13 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     if (pCtx->bbVbo) {
         glDeleteBuffers(1, &(pCtx->bbVbo));
     }
-    if (pCtx->pInstanceData) {
-        free(pCtx->pInstanceData);
-        pCtx->pInstanceData = 0;
-    }
     if (pCtx->instanceTex) {
         glDeleteTextures(1, &(pCtx->instanceTex));
         pCtx->instanceTex = 0;
+    }
+    if (pCtx->instanceBuf) {
+        glDeleteBuffers(1, &(pCtx->instanceBuf));
+        pCtx->instanceBuf = 0;
     }
 
     /* Delete the shader programs */
@@ -826,27 +827,32 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glBindVertexArray(0);
 
-    /* Create the texture date */
     /* TODO Make this number used defined */
-    pCtx->maxObjects = 8192; /* For 8192 objects, 512KB VRAM is needed */
-    pCtx->pInstanceData = (GLfloat*)malloc(sizeof(GLfloat) * pCtx->maxObjects *
-            4 * 2);
-    ASSERT(pCtx->pInstanceData, GFMRV_ALLOC_FAILED);
+    if (GL_MAX_TEXTURE_BUFFER_SIZE < 8192 * 2 * 3) {
+        pCtx->maxObjects = GL_MAX_TEXTURE_BUFFER_SIZE / 2 / 3;
+    }
+    else {
+        pCtx->maxObjects = 8192; /* For 8192 objects, 192KB VRAM is needed */
+    }
+    /* Create the instance data buffer (used within the texture) */
+    glGenBuffers(1, &(pCtx->instanceBuf));
+    ASSERT(pCtx->instanceBuf, GFMRV_INTERNAL_ERROR);
+    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
+    glBufferData(GL_TEXTURE_BUFFER, pCtx->maxObjects * 2 * 3, 0,
+            GL_STREAM_DRAW);
 
     /* Create a texture to pass data to the shader */
     glGenTextures(1, &(pCtx->instanceTex));
-    ASSERT(pCtx->bbTex, GFMRV_INTERNAL_ERROR);
-    glBindTexture(GL_TEXTURE_1D, pCtx->instanceTex);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    /* Actually create the texture */
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, pCtx->maxObjects * 2, 0, GL_RGBA,
-            GL_FLOAT, pCtx->pInstanceData);
-    glBindTexture(GL_TEXTURE_1D, 0);
+    ASSERT(pCtx->instanceTex, GFMRV_INTERNAL_ERROR);
+    glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    /* Bind the texture to the buffer */
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32I, pCtx->instanceBuf);
 
     /* Modify the transformation matrix */
 	pCtx->worldMatrix[0] = 2.0f / (float)width;
@@ -891,13 +897,13 @@ __ret:
             glDeleteBuffers(1, &(pCtx->bbVbo));
             pCtx->bbVbo = 0;
         }
-        if (pCtx->pInstanceData) {
-            free(pCtx->pInstanceData);
-            pCtx->pInstanceData = 0;
-        }
         if (pCtx->instanceTex) {
             glDeleteTextures(1, &(pCtx->instanceTex));
             pCtx->instanceTex = 0;
+        }
+        if (pCtx->instanceBuf) {
+            glDeleteBuffers(1, &(pCtx->instanceBuf));
+            pCtx->instanceBuf = 0;
         }
     }
 
@@ -1437,15 +1443,35 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     pCtx->pLastTexture = 0;
     /* Clear the number of rendered objects */
     pCtx->numObjects = 0;
+    pCtx->pInstanceData = 0;
 
     /* Bind the texture to the sampler */
     glActiveTexture(GL_TEXTURE0 + 1);
-    glBindTexture(GL_TEXTURE_1D, pCtx->instanceTex);
+    glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
     glUniform1i(pCtx->sprUnfInstanceData, 1);
 
     rv = GFMRV_OK;
 __ret:
     return rv;
+}
+
+/**
+ * Alloc more data to pass with the instaces data
+ * 
+ * @param  [ in]pCtx The video context
+ * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
+ */
+static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
+    /* Orphan the previous buffer data and retrieve a new one */
+    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
+    pCtx->pInstanceData = (GLint*)glMapBufferRange(GL_TEXTURE_BUFFER, 0,
+            pCtx->maxObjects * 2 * 3, GL_MAP_WRITE_BIT |
+            GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+    if (!pCtx->pInstanceData) {
+        return GFMRV_INTERNAL_ERROR;
+    }
+    return GFMRV_OK;
 }
 
 /** 
@@ -1454,12 +1480,13 @@ __ret:
  * @param  [ in]pCtx The video context
  */
 static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
-    glActiveTexture(GL_TEXTURE0 + 1);
-    glTexSubImage1D(GL_TEXTURE_1D, 0, 0, pCtx->numObjects * 2, GL_RGBA, GL_FLOAT,
-            pCtx->pInstanceData);
+    /** Allow the instances data to be used by the shader */
+    glUnmapBuffer(GL_TEXTURE_BUFFER);
+    pCtx->pInstanceData = 0;
 
     /* Actually render it */
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, pCtx->numObjects);
+
     pCtx->numObjects = 0;
 }
 
@@ -1515,13 +1542,18 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     rv = gfmSpriteset_getDimension(&width, &height, pSset);
     ASSERT_NR(rv == GFMRV_OK);
 
-    /* TODO Set the sprite's parameters */
-    pCtx->pInstanceData[pCtx->numObjects * 8] = ((float)x) / 1024.0f;
-    pCtx->pInstanceData[pCtx->numObjects * 8 + 1] = ((float)y) / 1024.0f;
-    pCtx->pInstanceData[pCtx->numObjects * 8 + 2] = ((float)isFlipped) / 1024.0f;
-    pCtx->pInstanceData[pCtx->numObjects * 8 + 4] = ((float)width) / 1024.0f;
-    pCtx->pInstanceData[pCtx->numObjects * 8 + 5] = ((float)height) / 1024.0f;
-    pCtx->pInstanceData[pCtx->numObjects * 8 + 6] = ((float)tile) / 1024.0f;
+    if (!pCtx->pInstanceData) {
+        rv = gfmVideo_GL3_getInstanceData(pCtx);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+
+    /* Set the sprite's parameters */
+    pCtx->pInstanceData[pCtx->numObjects * 6] = x;
+    pCtx->pInstanceData[pCtx->numObjects * 6 + 1] = y;
+    pCtx->pInstanceData[pCtx->numObjects * 6 + 2] = isFlipped;
+    pCtx->pInstanceData[pCtx->numObjects * 6 + 3] = width;
+    pCtx->pInstanceData[pCtx->numObjects * 6 + 4] = height;
+    pCtx->pInstanceData[pCtx->numObjects * 6 + 5] = tile;
 
     pCtx->numObjects++;
     if (pCtx->numObjects == pCtx->maxObjects) {

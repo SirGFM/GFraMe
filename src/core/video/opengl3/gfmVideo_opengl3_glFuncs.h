@@ -56,6 +56,9 @@ extern PFNGLGETSHADERIVPROC glGetShaderiv;
 extern PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
 extern PFNGLVALIDATEPROGRAMPROC glValidateProgram;
 extern PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;
+extern PFNGLTEXBUFFERPROC glTexBuffer;
+extern PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+extern PFNGLUNMAPBUFFERPROC glUnmapBuffer;
 
 #endif /* __GFMVIDEO_GL3_GLFUNCS_H__ */
 
