@@ -743,6 +743,8 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     GLshort iboData[] = {0,1,2, 2,3,0};
     /* Used for GL error checking */
     GLenum status;
+    /* Maximum number of texels in a buffer texture */
+    GLint maxBufTexels;
 
     /* Create the in-video-memory (?) backbuffer mesh */
     glGenBuffers(1, &(pCtx->bbVbo));
@@ -828,8 +830,9 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     glBindVertexArray(0);
 
     /* TODO Make this number used defined */
-    if (GL_MAX_TEXTURE_BUFFER_SIZE < 8192 * 2 * 3) {
-        pCtx->maxObjects = GL_MAX_TEXTURE_BUFFER_SIZE / 2 / 3;
+    glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE , &maxBufTexels);
+    if (maxBufTexels < 8192 * 2) {
+        pCtx->maxObjects = maxBufTexels / 2;
     }
     else {
         pCtx->maxObjects = 8192; /* For 8192 objects, 192KB VRAM is needed */
