@@ -68,7 +68,7 @@ struct stGFMVideoFuncs {
      *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
      */
     gfmRV (*gfmVideo_getResolution)(int *pWidth, int *pHeight, int *pRefRate,
-            gfmWindow *pCtx, int index);
+            gfmVideo *pCtx, int index);
 
     /**
      * Create the only window for the game

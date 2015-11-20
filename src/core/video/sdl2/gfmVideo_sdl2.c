@@ -287,7 +287,7 @@ __ret:
  *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
  */
 static gfmRV gfmVideo_SDL2_getResolution(int *pWidth, int *pHeight,
-        int *pRefRate, gfmWindow *pVideo, int index) {
+        int *pRefRate, gfmVideo *pVideo, int index) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int irv;

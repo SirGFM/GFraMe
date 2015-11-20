@@ -464,7 +464,7 @@ __ret:
  *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
  */
 static gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight,
-        int *pRefRate, gfmWindow *pVideo, int index) {
+        int *pRefRate, gfmVideo *pVideo, int index) {
     gfmRV rv;
     gfmVideoGL3 *pCtx;
     int irv;

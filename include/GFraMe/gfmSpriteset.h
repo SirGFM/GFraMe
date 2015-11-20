@@ -8,6 +8,8 @@
 
 /** 'Exports' the gfmSpriteset structure */
 typedef struct stGFMSpriteset gfmSpriteset;
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
 
 #endif /* __GFMSPRITESET_STRUCT__ */
 
@@ -16,7 +18,6 @@ typedef struct stGFMSpriteset gfmSpriteset;
 
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gframe.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 
 /** 'Exportable' size of gfmSpritese */
 extern const int sizeofGFMSpriteset;

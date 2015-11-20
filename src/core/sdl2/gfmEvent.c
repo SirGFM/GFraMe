@@ -9,7 +9,6 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmLog.h>
-#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
 #include <SDL2/SDL.h>

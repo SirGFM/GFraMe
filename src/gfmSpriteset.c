@@ -8,7 +8,6 @@
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmUtils.h>
 #include <GFraMe/gframe.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 
 #include <stdlib.h>
 #include <string.h>

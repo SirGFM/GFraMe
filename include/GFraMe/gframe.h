@@ -8,6 +8,8 @@
 
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
 
 /** 'Exports' the backends enum */
 enum enGFMVideoBackend {
@@ -33,9 +35,7 @@ typedef enum enGFMVideoBackend gfmVideoBackend;
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmAudio_bkend.h>
-#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
