@@ -50,10 +50,23 @@ struct stGFMVideoGL3 {
     GLuint bbProgram;
     GLuint bbUnfTexture;
 /* ==== OPENGL INSTANCED RENDERING FIELDS =================================== */
+    /* Texture used to access the instance data on the shader */
     GLuint instanceTex;
+    /* Buffer that store the instance data */
     GLuint instanceBuf;
+    /* Number of batches rendered on this frame */
+    int batchCount;
+    /* Number of batches rendered on the last frame */
+    int lastBatchCount;
+    /* Number of sprites rendered on the last frame */
+    int lastNumObjects;
+    /* Number of sprites rendered on the current frame */
+    int totalNumObjects;
+    /* Number of sprites staged to render on this frame */
     int numObjects;
+    /* Max number of sprites that can be rendered in a single batch */
     int maxObjects;
+    /* Buffer, obtained from OpenGL, where each sprite date is written */
     GLint *pInstanceData;
 /* ==== OPENGL DEFAULT MESH FIELDS ========================================== */
     GLuint meshVbo;
@@ -1448,6 +1461,14 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     pCtx->numObjects = 0;
     pCtx->pInstanceData = 0;
 
+    /* Update the number of rendered sprites */
+    pCtx->lastNumObjects = pCtx->totalNumObjects;
+    pCtx->totalNumObjects = 0;
+
+    /* Update the number of batched draws */
+    pCtx->lastBatchCount = pCtx->batchCount;
+    pCtx->batchCount = 0;
+
     /* Bind the texture to the sampler */
     glActiveTexture(GL_TEXTURE0 + 1);
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
@@ -1466,11 +1487,17 @@ __ret:
  * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
  */
 static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
+    GLbitfield flags;
+
+    flags = 0;
+    flags |= GL_MAP_WRITE_BIT;
+    flags |= GL_MAP_INVALIDATE_BUFFER_BIT;
+    //flags |= GL_MAP_UNSYNCHRONIZED_BIT;
+
     /* Orphan the previous buffer data and retrieve a new one */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     pCtx->pInstanceData = (GLint*)glMapBufferRange(GL_TEXTURE_BUFFER, 0,
-            pCtx->maxObjects * 2 * 3, GL_MAP_WRITE_BIT |
-            GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+            pCtx->maxObjects * 2 * 3, flags);
 
     if (!pCtx->pInstanceData) {
         return GFMRV_INTERNAL_ERROR;
@@ -1493,6 +1520,7 @@ static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, pCtx->numObjects);
 
     pCtx->numObjects = 0;
+    pCtx->batchCount++;
 }
 
 /**
@@ -1564,6 +1592,8 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     if (pCtx->numObjects == pCtx->maxObjects) {
         gfmVideo_GL3_drawInstances(pCtx);
     }
+
+    pCtx->totalNumObjects++;
 
     rv = GFMRV_OK;
 __ret:
