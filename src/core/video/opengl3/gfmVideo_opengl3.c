@@ -1429,7 +1429,7 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
 
     /* Set the clear color to black */
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(pCtx->bgRed, pCtx->bgGreen, pCtx->bgBlue, pCtx->bgAlpha);
     /* Clear the backbuffer */
     glBindFramebuffer(GL_FRAMEBUFFER, pCtx->bbFbo);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1450,6 +1450,7 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
 
     /* Bind the texture to the sampler */
     glActiveTexture(GL_TEXTURE0 + 1);
+    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
     glUniform1i(pCtx->sprUnfInstanceData, 1);
 
@@ -1484,6 +1485,7 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
  */
 static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
     /** Allow the instances data to be used by the shader */
+    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     glUnmapBuffer(GL_TEXTURE_BUFFER);
     pCtx->pInstanceData = 0;
 
@@ -1726,7 +1728,7 @@ static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     /* Set it's default color and clean it */
-    glClearColor(pCtx->bgRed, pCtx->bgGreen, pCtx->bgBlue, pCtx->bgAlpha);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     /* Activate the output program */
