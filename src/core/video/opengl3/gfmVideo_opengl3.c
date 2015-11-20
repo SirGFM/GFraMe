@@ -127,86 +127,21 @@ struct stGFMVideoGL3 {
 typedef struct stGFMVideoGL3 gfmVideoGL3;
 
 /* Default shaders */
-static char spriteVertexShader[] =
-    "#version 330\n"
-    /* The current vertex */
-    "layout(location = 0) in vec2 vtx;\n"
-    /* Texture coordinate for the current vertex */
-    "out vec2 texCoord;\n"
-    /* Screen to OpenGL transformation matrix */
-    "uniform mat4 locToGL;\n"
-    /* Current texture dimensions */
-    "uniform vec2 texDimensions;\n"
-    /* Texture used to pass all data */
-    "uniform isamplerBuffer instanceData;\n"
-    "void main() {\n"
-    "  ivec3 translation;\n"
-    "  ivec3 tile;\n"
-    "  int index;\n"
-    /* -- Retrieve the instance data ------------------------------------ */
-    /* Calculate the per-texel offset and the base index */
-    "  index = 2 * gl_InstanceID;\n"
-    /* Retrieve the position (and horizontal flipping) */
-    "  translation.xyz = texelFetch(instanceData, index).rgb;\n"
-    /* Retrieve the tile data */
-    "  index += 1;\n"
-    "  tile.xyz = texelFetch(instanceData, index).rgb;\n"
-    /* -- Output the vertex position ------------------------------------ */
-    "  vec2 pos = vtx;\n"
-    /* Flip the X axis, if necessary */
-    "  pos.x *= 1.0f - (2.0f * translation.z);"
-    /* Expand the postion to the sprite's dimensions (i.e., convert a (0,0)
-    * centered, 1 unit wide square to a rectangle of width dimensions.x and
-    * height dimensions.y dimensions */
-    "  pos *= tile.xy;\n"
-    "  pos += tile.xy * vec2(0.5f, 0.5f);\n"
-    "  pos += translation.xy;\n"
-    /* Translate the sprite to its in-screen position */
-    "  vec4 position = vec4(pos.x, pos.y, -1.0f, 1.0f);\n"
-    /* Convert from screen-space to opengl-space */
-    "  gl_Position = position*locToGL;\n"
-    /* -- Output the texture coordinate --------------------------------- */
-    /* Calculate the tile position into the texture */
-    "  vec2 texOffset;\n"
-    "  float columns = floor(texDimensions.x / tile.x);"
-    "  texOffset.x = mod(tile.z, columns) * tile.x;"
-    "  texOffset.y = floor(tile.z / columns) * tile.y;"
-    "  texOffset /= texDimensions;\n"
-    /* Again, start with the default square and convert it to a rectangle */
-    "  vec2 _texCoord = vtx + vec2(0.5f, 0.5f);\n"
-    "  _texCoord *= tile.xy / texDimensions;\n"
-    /* Offset it by the tile position */
-    /* Output it to the fragment shader */
-    "  texCoord = _texCoord + texOffset;\n"
-    "}\n";
+static char spriteVertexShader[] = 
+#include "sprites_glsl.vs"
+;
 
 static char spriteFragmentShader[] =
-    "#version 330\n"
-    /* Texture coordinate, retrieved from vertex shader */
-    "in vec2 texCoord;\n"
-    /* The current texture */
-    "uniform sampler2D gSampler;\n"
-    "void main() {\n"
-    /* Simply retrieve the color from the texture coordinate */
-    "  gl_FragColor = texture2D(gSampler, texCoord.st);\n"
-    "}\n";
+#include "sprites_glsl.fs"
+;
 
 static char backbufferVertexShader[] = 
-    "#version 330\n"
-    "layout(location = 0) in vec2 vtx;\n"
-    "out vec2 texCoord;\n"
-    "void main() {\n"
-    "  gl_Position = vec4(vtx, -1.0f, 1.0f);\n"
-    "  texCoord = 0.5f * vtx + vec2(0.5f, 0.5f);\n"
-    "}\n";
+#include "bbuffer_glsl.vs"
+;
 
 static char backbufferFragmentShader[] = 
-    "#version 330\n"
-    "in vec2 texCoord;\n"
-    "uniform sampler2D gSampler;\n"
-    "void main() {\n"
-    "  gl_FragColor = texture2D(gSampler, texCoord.st);\n"
-    "}\n";
+#include "bbuffer_glsl.fs"
+;
 
 /**
  * Set the background color
