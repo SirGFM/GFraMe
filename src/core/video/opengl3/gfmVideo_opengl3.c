@@ -841,7 +841,7 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     glGenBuffers(1, &(pCtx->instanceBuf));
     ASSERT(pCtx->instanceBuf, GFMRV_INTERNAL_ERROR);
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
-    glBufferData(GL_TEXTURE_BUFFER, pCtx->maxObjects * 2 * 3, 0,
+    glBufferData(GL_TEXTURE_BUFFER, sizeof(int) * pCtx->maxObjects * 2 * 3, 0,
             GL_STREAM_DRAW);
 
     /* Create a texture to pass data to the shader */
