@@ -81,6 +81,8 @@ struct stGFMVideoSDL2 {
     Uint8 bgBlue;
     /** Background alpha component */
     Uint8 bgAlpha;
+    int totalNumObjects;
+    int lastNumObjects;
 /* ==== TEXTURE FIELDS ====================================================== */
     /** Every cached texture */
     gfmGenArr_var(gfmTexture, pTextures);
@@ -916,6 +918,9 @@ static gfmRV gfmVideo_SDL2_drawBegin(gfmVideo *pVideo) {
             pCtx->bgBlue, pCtx->bgAlpha);
     SDL_RenderClear(pCtx->pRenderer);
 
+    pCtx->lastNumObjects = pCtx->totalNumObjects;
+    pCtx->totalNumObjects = 0;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -976,6 +981,8 @@ static gfmRV gfmVideo_SDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
         irv = SDL_RenderCopy(pCtx->pRenderer, pTex->pTexture, &src, &dst);
     }
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    pCtx->totalNumObjects++;
 
     rv = GFMRV_OK;
 __ret:
@@ -1041,6 +1048,8 @@ static gfmRV gfmVideo_SDL2_drawRectangle(gfmVideo *pVideo, int x, int y,
     irv = SDL_RenderDrawRect(pCtx->pRenderer, &rect);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
 
+    pCtx->totalNumObjects++;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1104,6 +1113,8 @@ static gfmRV gfmVideo_SDL2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     irv = SDL_RenderFillRect(pCtx->pRenderer, &rect);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    pCtx->totalNumObjects++;
 
     rv = GFMRV_OK;
 __ret:
@@ -1194,6 +1205,37 @@ static gfmRV gfmVideo_SDL2_drawEnd(gfmVideo *pVideo) {
     SDL_RenderCopy(pCtx->pRenderer, pCtx->pBackbuffer, 0/*srcRect*/,
             &(pCtx->outRect));
     SDL_RenderPresent(pCtx->pRenderer);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieve information about the last frame
+ * 
+ * @param  [out]pBatched The number of batched draws
+ * @param  [out]pNum     The number of sprites rendered
+ * @param  [ in]pvideo   The video context
+ * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmVideo_SDL2_getDrawInfo(int *pBatched, int *pNum, gfmVideo *pVideo) {
+    gfmRV rv;
+    gfmVideoSDL2 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoSDL2*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pBatched, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->pRenderer, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Retrieve the info */
+    *pBatched = pCtx->lastNumObjects;
+    *pNum = pCtx->lastNumObjects;
 
     rv = GFMRV_OK;
 __ret:
@@ -1537,6 +1579,7 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_drawEnd = gfmVideo_SDL2_drawEnd;
     pCtx->gfmVideo_getTexture = gfmVideo_SDL2_getTexture;
     pCtx->gfmVideo_getTextureDimensions = gfmVideo_SDL2_getTextureDimensions;
+    pCtx->gfmVideo_getDrawInfo = gfmVideo_SDL2_getDrawInfo;
 
     rv = GFMRV_OK;
 __ret:

@@ -1783,6 +1783,37 @@ __ret:
 }
 
 /**
+ * Retrieve information about the last frame
+ * 
+ * @param  [out]pBatched The number of batched draws
+ * @param  [out]pNum     The number of sprites rendered
+ * @param  [ in]pvideo   The video context
+ * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+ */
+gfmRV gfmVideo_GL3_getDrawInfo(int *pBatched, int *pNum, gfmVideo *pVideo) {
+    gfmRV rv;
+    gfmVideoGL3 *pCtx;
+
+    /* Retrieve the internal video context */
+    pCtx = (gfmVideoGL3*)pVideo;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pBatched, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+
+    /* Retrieve the info */
+    *pBatched = pCtx->lastBatchCount;
+    *pNum = pCtx->lastNumObjects;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Alloc a new texture
  * 
  * @param  [out]ppCtx The alocated texture
@@ -2120,6 +2151,7 @@ gfmRV gfmVideo_GL3_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_drawEnd = gfmVideo_GL3_drawEnd;
     pCtx->gfmVideo_getTexture = gfmVideo_GL3_getTexture;
     pCtx->gfmVideo_getTextureDimensions = gfmVideo_GL3_getTextureDimensions;
+    pCtx->gfmVideo_getDrawInfo = gfmVideo_GL3_getDrawInfo;
 
     rv = GFMRV_OK;
 __ret:

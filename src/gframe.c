@@ -133,6 +133,11 @@ gfmRV gfm_getNew(gfmCtx **ppCtx) {
     
     // Zero the context's contents
     memset(*ppCtx, 0x00, sizeof(gfmCtx));
+
+    /* Set SDL2 as the default video backend */
+    rv = gfm_setVideoBackend((*ppCtx), GFM_VIDEO_SDL2);
+    ASSERT_NR(rv == GFMRV_OK);
+
     
     rv = GFMRV_OK;
 __ret:
@@ -283,10 +288,6 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
             "-----------------------------------------------");
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe...");
-    ASSERT_NR(rv == GFMRV_OK);
-
-    /* Set SDL2 as the default video backend */
-    rv = gfm_setVideoBackend(pCtx, GFM_VIDEO_GL3);
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the event's context */
@@ -803,6 +804,9 @@ __ret:
  */
 gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
     gfmRV rv;
+    int isInit;
+
+    isInit = 0;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -812,6 +816,8 @@ gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
     ASSERT_LOG(fps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     if (!pCtx->pTimer) {
+        isInit = 1;
+
         // Create a new timer, if necessary
         rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -827,6 +833,11 @@ gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
     
     rv = GFMRV_OK;
 __ret:
+    if (rv != GFMRV_OK && isInit) {
+        /* If the fps initialization failed, destroy the timer */
+        gfmTimer_free(&(pCtx->pTimer));
+    }
+
     return rv;
 }
 
@@ -2620,6 +2631,62 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
     /* Draw the rectangle */
     rv = (*(pCtx->videoFuncs.gfmVideo_drawRectangle))(pCtx->pVideo, x, y, width,
             height, color);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Render last frame's render info
+ * 
+ * The displayed info is the number of batched draws and the number of drawn
+ * sprites
+ * 
+ * @param  [ in]pCtx      The game's conext
+ * @param  [ in]pSset     The spriteset
+ * @param  [ in]x         Horizontal position
+ * @param  [ in]y         Vertical position
+ * @param  [ in]firstTile First ASCII tile in the spriteset
+ */
+gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
+        int firstTile) {
+    gfmRV rv;
+    int batches, height, num, tile, width;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    /* Check that the video context was initialized */
+    ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
+
+    /* Get the tile dimensions */
+    rv = gfmSpriteset_getDimension(&width, &height, pSset);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Retrieve the info */
+    rv = (*(pCtx->videoFuncs.gfmVideo_getDrawInfo))(&batches, &num,
+            pCtx->pVideo);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Draw the number of batched draws */
+    tile = 'B' - '!' + firstTile;
+    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, batches, 5/*res*/,
+            firstTile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Draw the number of sprites rendered */
+    y += height;
+    tile = 'N' - '!' + firstTile;
+    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, num, 5/*res*/,
+            firstTile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;

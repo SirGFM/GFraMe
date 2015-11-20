@@ -912,6 +912,23 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
         unsigned char red, unsigned char green, unsigned char blue);
 
 /**
+ * Render last frame's render info
+ * 
+ * The displayed info is the number of batched draws and the number of drawn
+ * sprites
+ * 
+ * @param  [ in]pCtx      The game's conext
+ * @param  [ in]pSset     The spriteset
+ * @param  [ in]x         Horizontal position
+ * @param  [ in]y         Vertical position
+ * @param  [ in]firstTile First ASCII tile in the spriteset
+ * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED,
+ *                        GFMRV_BACKBUFFER_NOT_INITIALIZED
+ */
+gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
+        int firstTile);
+
+/**
  * Finalize a rendering operation
  * 
  * @param  pCtx  The game's context

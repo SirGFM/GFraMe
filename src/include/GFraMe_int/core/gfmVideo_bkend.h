@@ -316,6 +316,16 @@ struct stGFMVideoFuncs {
     gfmRV (*gfmVideo_drawEnd)(gfmVideo *pCtx);
 
     /**
+     * Retrieve information about the last frame
+     * 
+     * @param  [out]pBatched The number of batched draws
+     * @param  [out]pNum     The number of sprites rendered
+     * @param  [ in]pCtx     The video context
+     * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
+     */
+    gfmRV (*gfmVideo_getDrawInfo)(int *pBatched, int *pNum, gfmVideo *pCtx);
+
+    /**
      * Loads a 24 bits bitmap file into a texture
      * 
      * NOTE: The image's dimensions must be power of two (e.g., 256x256)
