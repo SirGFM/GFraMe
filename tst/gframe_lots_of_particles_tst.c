@@ -285,9 +285,16 @@ int main(int argc, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmGroup_setDefAcceleration(pGrp, 0/*vx*/, 100/*vy*/);
     ASSERT_NR(rv == GFMRV_OK);
-    // Set the draw order (FUN!!!)
-    rv = gfmGroup_setDrawOrder(pGrp, gfmDrawOrder_oldestFirst);
-    ASSERT_NR(rv == GFMRV_OK);
+    if (simple) {
+        // Set the draw order (BOOO... BORING!!!)
+        rv = gfmGroup_setDrawOrder(pGrp, gfmDrawOrder_linear);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+    else {
+        // Set the draw order (FUN!!!)
+        rv = gfmGroup_setDrawOrder(pGrp, gfmDrawOrder_oldestFirst);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
     // Uncommenting enable the collision list
     //rv = gfmGroup_setCollisionQuality(pGrp,
     //        gfmCollisionQuality_collideEverything);
@@ -398,15 +405,9 @@ int main(int argc, char *argv[]) {
                     rv = gfmGroup_setFrame(pGrp, i % 7);
                     ASSERT_NR(rv == GFMRV_OK);
 
-                    if (simple) {
-                        vx = -50 + i * 5;
-                        vy = -50;
-                    }
-                    else {
-                        vx = 50 * cosf(ang);
-                        vy = 50 * sinf(ang);
-                        ang += 3.1415926 / 180.0f;
-                    }
+                    vx = 50 * cosf(ang);
+                    vy = 50 * sinf(ang);
+                    ang += 3.1415926 / 180.0f;
 
                     rv = gfmGroup_setVelocity(pGrp, vx, vy);
                     ASSERT_NR(rv == GFMRV_OK);
