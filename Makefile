@@ -170,7 +170,7 @@
   endif
 # Set flags required by OS
   ifeq ($(OS), Win)
-    CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include"
+    CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include" -I"/c/c_synth/include/"
   else
     CFLAGS := $(CFLAGS) -fPIC
   endif
