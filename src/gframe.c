@@ -18,8 +18,8 @@
 #include <GFraMe/core/gfmBackend_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 #include <GFraMe/core/gfmGifExporter_bkend.h>
-#include <GFraMe/core/gfmTimer_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
+#include <GFraMe/core/gfmTimer_bkend.h>
 
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
@@ -55,18 +55,16 @@ struct stGFMCtx {
      * lib */
     int isAudioEnabled;
     /** Moment, in milisecond, when the last draw op finished */
-    int lastDrawnTime;
+    unsigned int lastDrawnTime;
     /** Time elapsed since the last update (great for fixed 60fps update, when
      * using vsync) */
-    int lastDrawElapsed;
+    unsigned int lastDrawElapsed;
     /** Audio sub-system context */
     gfmAudioCtx *pAudio;
     /** Current video functions */
     gfmVideoFuncs videoFuncs;
     /* The video context */
     gfmVideo *pVideo;
-    /** Timer used to issue new frames */
-    gfmTimer *pTimer;
     /** Default camera */
     gfmCamera *pCamera;
     /** Every cached spriteset */
@@ -85,6 +83,8 @@ struct stGFMCtx {
     gfmLog *pLog;
     /** Whether a quit event was received */
     gfmRV doQuit;
+    /** The timer */
+    gfmTimer *pTimer;
     /** The GIF exporter */
     gfmGifExporter *pGif;
     /** Whether a snapshot should be taken */
@@ -804,40 +804,18 @@ __ret:
  */
 gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
     gfmRV rv;
-    int isInit;
 
-    isInit = 0;
-    
-    // Sanitize arguments
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
+    /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(fps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
-    if (!pCtx->pTimer) {
-        isInit = 1;
 
-        // Create a new timer, if necessary
-        rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        // Initialize the timer
-        rv = gfmTimer_init(pCtx->pTimer, fps);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    }
-    else {
-        // Only modify the timer
-        rv = gfmTimer_setFPS(pCtx->pTimer, fps);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    }
-    
+    /* Initialize the timer */
+    rv = gfmTimer_init(&(pCtx->pTimer), fps);
+    ASSERT(rv == GFMRV_OK, rv);
+
     rv = GFMRV_OK;
 __ret:
-    if (rv != GFMRV_OK && isInit) {
-        /* If the fps initialization failed, destroy the timer */
-        gfmTimer_free(&(pCtx->pTimer));
-    }
-
     return rv;
 }
 
@@ -855,32 +833,7 @@ __ret:
  *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
  */
 gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the lib was initialized
-    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(fps > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    
-    if (!pCtx->pTimer) {
-        // Create a new timer, if necessary
-        rv = gfmTimer_getNew(&(pCtx->pTimer), pCtx);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-        // Initialize the timer
-        rv = gfmTimer_initRaw(pCtx->pTimer, fps);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    }
-    else {
-        // Only modify the timer
-        rv = gfmTimer_setFPSRaw(pCtx->pTimer, fps);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    }
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
+    return  gfm_setFPS(pCtx, fps);
 }
 
 /**
@@ -1809,8 +1762,10 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     
     // Wait for the first event and process everything
-    rv = gfmEvent_waitEvent(pCtx->pEvent);
+    rv = gfmTimer_wait(pCtx->pTimer);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmEvent_pushTimeEvent(pCtx->pEvent);
+    ASSERT(rv == GFMRV_OK, rv);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
@@ -2728,7 +2683,7 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
-        int curTime;
+        unsigned int curTime;
 
         rv = gfmTimer_getCurTimeMs(&curTime);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -2790,14 +2745,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_issueFrame(gfmCtx *pCtx) {
-    gfmRV rv;
-    
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->pTimer, GFMRV_TIMER_NOT_INITIALIZED);
-    
-    rv = gfmTimer_issue(pCtx->pTimer);
-__ret:
-    return rv;
+    return GFMRV_OK;
 }
 
 /**
@@ -2807,14 +2755,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_waitFrame(gfmCtx *pCtx) {
-    gfmRV rv;
-    
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->pTimer, GFMRV_TIMER_NOT_INITIALIZED);
-    
-    rv = gfmTimer_wait(pCtx->pTimer);
-__ret:
-    return rv;
+    return GFMRV_OK;
 }
 
 /**
@@ -2842,7 +2783,6 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #endif
     (*(pCtx->videoFuncs.gfmVideo_free))(&(pCtx->pVideo));
     gfmCamera_free(&(pCtx->pCamera));
-    gfmTimer_free(&(pCtx->pTimer));
     gfmGenArr_clean(pCtx->pSpritesets, gfmSpriteset_free);
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
@@ -2858,6 +2798,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     }
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
+    gfmTimer_free(&(pCtx->pTimer));
     
     if (pCtx->pLog) {
         gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");

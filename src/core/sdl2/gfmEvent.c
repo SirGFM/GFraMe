@@ -607,14 +607,12 @@ __ret:
  */
 gfmRV gfmEvent_waitEvent(gfmEvent *pCtx) {
     gfmRV rv;
-    int irv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    irv = SDL_WaitEvent(0);
-    ASSERT(irv == 1, GFMRV_INTERNAL_ERROR);
-    
+
+    /* Push a new time event */
+
     rv = GFMRV_OK;
 __ret:
     return rv;
