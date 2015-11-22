@@ -19,6 +19,7 @@
 #include <GFraMe/core/gfmEvent_bkend.h>
 #include <GFraMe/core/gfmGifExporter_bkend.h>
 #include <GFraMe/core/gfmPath_bkend.h>
+#include <GFraMe/core/gfmTimer_bkend.h>
 
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
