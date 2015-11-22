@@ -55,10 +55,10 @@ struct stGFMCtx {
      * lib */
     int isAudioEnabled;
     /** Moment, in milisecond, when the last draw op finished */
-    int lastDrawnTime;
+    unsigned int lastDrawnTime;
     /** Time elapsed since the last update (great for fixed 60fps update, when
      * using vsync) */
-    int lastDrawElapsed;
+    unsigned int lastDrawElapsed;
     /** Audio sub-system context */
     gfmAudioCtx *pAudio;
     /** Current video functions */
@@ -83,6 +83,8 @@ struct stGFMCtx {
     gfmLog *pLog;
     /** Whether a quit event was received */
     gfmRV doQuit;
+    /** The timer */
+    gfmTimer *pTimer;
     /** The GIF exporter */
     gfmGifExporter *pGif;
     /** Whether a snapshot should be taken */
@@ -801,7 +803,20 @@ __ret:
  *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
  */
 gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
-    return GFMRV_OK;
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+
+    /* Initialize the timer */
+    rv = gfmTimer_init(&(pCtx->pTimer), fps);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -818,7 +833,7 @@ gfmRV gfm_setFPS(gfmCtx *pCtx, int fps) {
  *              GFMRV_INTERNAL_ERROR, GFMRV_FPS_TOO_HIGH
  */
 gfmRV gfm_setRawFPS(gfmCtx *pCtx, int fps) {
-    return GFMRV_OK;
+    return  gfm_setFPS(pCtx, fps);
 }
 
 /**
@@ -1747,8 +1762,10 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx) {
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
     
     // Wait for the first event and process everything
-    rv = gfmEvent_waitEvent(pCtx->pEvent);
+    rv = gfmTimer_wait(pCtx->pTimer);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmEvent_pushTimeEvent(pCtx->pEvent);
+    ASSERT(rv == GFMRV_OK, rv);
     rv = gfmEvent_processQueued(pCtx->pEvent, pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
@@ -2666,7 +2683,7 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     else {
-        int curTime;
+        unsigned int curTime;
 
         rv = gfmTimer_getCurTimeMs(&curTime);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -2781,6 +2798,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     }
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
+    gfmTimer_free(&(pCtx->pTimer));
     
     if (pCtx->pLog) {
         gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");

@@ -607,17 +607,11 @@ __ret:
  */
 gfmRV gfmEvent_waitEvent(gfmEvent *pCtx) {
     gfmRV rv;
-    int irv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
-    /* Wait some time (so the CPU won't fully focus on this) */
-    SDL_Delay(1);
-
     /* Push a new time event */
-    rv = gfmEvent_pushTimeEvent(pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:

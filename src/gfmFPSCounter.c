@@ -21,21 +21,21 @@ struct stGFMFPSCounter {
     /** First tile of the bitmap font */
     int firstTile;
     /** Time, in milliseconds, that the drawing process was initialized */
-    int drawInit;
+    unsigned int drawInit;
     /** Count how many draws were made last second */
     int drawCount;
     /** Accumulate draws */
     int drawAcc;
     /** Time, in milliseconds, that the update process was initialized */
-    int updateInit;
+    unsigned int updateInit;
     /** How long the update took */
-    int updateTime;
+    unsigned int updateTime;
     /** Count how many updates were made last second */
     int updateCount;
     /** Accumulate updates */
     int updateAcc;
     /** Last time the fps counter was updated */
-    int lastTime;
+    unsigned int lastTime;
 };
 
 /** Size of gfmFPSCounter */
@@ -49,7 +49,7 @@ const int sizeofGFMFPSCounter = (int)sizeof(gfmFPSCounter);
  */
 gfmRV gfmFPSCounter_getNew(gfmFPSCounter **ppCtx) {
     gfmRV rv;
-    int time;
+    unsigned int time;
     
     // Sanitize arguments
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
@@ -152,7 +152,7 @@ __ret:
  */
 gfmRV gfmFPSCounter_updateEnd(gfmFPSCounter *pCtx) {
     gfmRV rv;
-    int curTime;
+    unsigned int curTime;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -207,7 +207,8 @@ __ret:
  */
 gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     gfmRV rv;
-    int curTime, delta, dps, res, tile, tileWidth, tileHeight, ups, x, y;
+    int dps, res, tile, tileWidth, tileHeight, ups, x, y;
+    unsigned int curTime, delta;
     
     // Sanitize arguments
     ASSERT(pCounter, GFMRV_ARGUMENTS_BAD);
