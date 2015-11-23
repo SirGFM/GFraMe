@@ -49,8 +49,6 @@
 
 /** Define an array for the nodes */
 gfmGenArr_define(gfmGroupNode);
-/** Define an array for the tree nodes */
-gfmGenArr_define(gfmDrawTree);
 
 /** The gfmGroup structure */
 struct stGFMGroup {
@@ -58,8 +56,6 @@ struct stGFMGroup {
     int maxLen;
     /** Current draw order */
     gfmDrawOrder drawOrder;
-    /** Array with every tree node */
-    gfmGenArr_var(gfmDrawTree, pTree);
     /** Array with every group node */
     gfmGenArr_var(gfmGroupNode, pNodes);
     /** List of currently active nodes */
@@ -230,9 +226,6 @@ gfmRV gfmGroup_cacheSprites(gfmGroup *pCtx, int num) {
     // Expand the nodes buffer
     gfmGenArr_setMinSize(gfmGroupNode, pCtx->pNodes, pos + num,
             gfmGroupNode_getNew);
-    // Expand the tree nodes buffer
-    gfmGenArr_setMinSize(gfmDrawTree, pCtx->pTree, pos + num,
-            gfmDrawTree_getNew);
     
     // Initialize every new sprite
     i = pos;
@@ -297,7 +290,6 @@ gfmRV gfmGroup_clean(gfmGroup *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Free every node on the list
-    gfmGenArr_clean(pCtx->pTree, gfmDrawTree_free);
     gfmGenArr_clean(pCtx->pNodes, gfmGroupNode_free);
     
     rv = GFMRV_OK;
@@ -991,47 +983,47 @@ __ret:
  * @param  pTreeNode Node that will be added to the tree
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmGroup_addTopBottom(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
+static gfmRV gfmGroup_addTopBottom(gfmGroupNode *pRoot, gfmGroupNode *pNode) {
     gfmRV rv;
     int y, otherY;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pTreeNode, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the position of the sprite to be added
-    rv = gfmSprite_getVerticalPosition(&y, pTreeNode->pSelf->pSelf);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+
+    /* Get the position of the sprite to be added */
+    rv = gfmSprite_getVerticalPosition(&y, pNode->pSelf);
     ASSERT_NR(rv == GFMRV_OK);
     while (1) {
-        // Get the position of the sprite on the current node
-        rv = gfmSprite_getVerticalPosition(&otherY, pRoot->pSelf->pSelf);
+        /* Get the position of the sprite on the current node */
+        rv = gfmSprite_getVerticalPosition(&otherY, pRoot->pSelf);
         ASSERT_NR(rv == GFMRV_OK);
-        
-        // Make the first visited node have the lowest position
+
+        /* Make the first visited node have the lowest position */
         if (y <= otherY) {
-            if (pRoot->pLeft) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pLeft;
+            if (pRoot->pDrawLeft) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawLeft;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pLeft = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawLeft = pNode;
                 break;
             }
         }
         else {
-            if (pRoot->pRight) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pRight;
+            if (pRoot->pDrawRight) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawRight;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pRight = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawRight = pNode;
                 break;
             }
         }
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1045,47 +1037,47 @@ __ret:
  * @param  pTreeNode Node that will be added to the tree
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmGroup_addBottomTop(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
+static gfmRV gfmGroup_addBottomTop(gfmGroupNode *pRoot, gfmGroupNode *pNode) {
     gfmRV rv;
     int y, otherY;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pTreeNode, GFMRV_ARGUMENTS_BAD);
-    
-    // Get the position of the sprite to be added
-    rv = gfmSprite_getVerticalPosition(&y, pTreeNode->pSelf->pSelf);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+
+    /* Get the position of the sprite to be added */
+    rv = gfmSprite_getVerticalPosition(&y, pNode->pSelf);
     ASSERT_NR(rv == GFMRV_OK);
     while (1) {
-        // Get the position of the sprite on the current node
-        rv = gfmSprite_getVerticalPosition(&otherY, pRoot->pSelf->pSelf);
+        /* Get the position of the sprite on the current node */
+        rv = gfmSprite_getVerticalPosition(&otherY, pRoot->pSelf);
         ASSERT_NR(rv == GFMRV_OK);
-        
-        // Make the first visited node have the highest position
+
+        /* Make the first visited node have the highest position */
         if (y > otherY) {
-            if (pRoot->pLeft) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pLeft;
+            if (pRoot->pDrawLeft) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawLeft;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pLeft = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawLeft = pNode;
                 break;
             }
         }
         else {
-            if (pRoot->pRight) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pRight;
+            if (pRoot->pDrawRight) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawRight;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pRight = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawRight = pNode;
                 break;
             }
         }
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1098,34 +1090,34 @@ __ret:
  * @param  pTreeNode Node that will be added to the tree
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmGroup_addNewest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
+static gfmRV gfmGroup_addNewest(gfmGroupNode *pRoot, gfmGroupNode *pNode) {
     gfmRV rv;
     
-    // Sanitize arguments
+    /* Sanitize arguments */
     ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pTreeNode, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
     
     while (1) {
-        // Make the first visited node have the lowest timeAlive
-        if (pTreeNode->pSelf->timeAlive > pRoot->pSelf->timeAlive) {
-            if (pRoot->pLeft) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pLeft;
+        /* Make the first visited node have the lowest timeAlive */
+        if (pNode->timeAlive > pRoot->timeAlive) {
+            if (pRoot->pDrawLeft) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawLeft;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pLeft = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawLeft = pNode;
                 break;
             }
         }
         else {
-            if (pRoot->pRight) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pRight;
+            if (pRoot->pDrawRight) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawRight;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pRight = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawRight = pNode;
                 break;
             }
         }
@@ -1143,39 +1135,39 @@ __ret:
  * @param  pTreeNode Node that will be added to the tree
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmGroup_addOldest(gfmDrawTree *pRoot, gfmDrawTree *pTreeNode) {
+static gfmRV gfmGroup_addOldest(gfmGroupNode *pRoot, gfmGroupNode *pNode) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pTreeNode, GFMRV_ARGUMENTS_BAD);
-    
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+
     while (1) {
-        // Make the first visited node have the highest timeAlive
-        if (pTreeNode->pSelf->timeAlive <= pRoot->pSelf->timeAlive) {
-            if (pRoot->pLeft) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pLeft;
+        /* Make the first visited node have the highest timeAlive */
+        if (pNode->timeAlive <= pRoot->timeAlive) {
+            if (pRoot->pDrawLeft) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawLeft;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pLeft = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawLeft = pNode;
                 break;
             }
         }
         else {
-            if (pRoot->pRight) {
-                // If not a leaf, move to the next node
-                pRoot = pRoot->pRight;
+            if (pRoot->pDrawRight) {
+                /* If not a leaf, move to the next node */
+                pRoot = pRoot->pDrawRight;
             }
             else {
-                // Otherwise, add a new node
-                pRoot->pRight = pTreeNode;
+                /* Otherwise, add a new node */
+                pRoot->pDrawRight = pNode;
                 break;
             }
         }
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1184,28 +1176,47 @@ __ret:
 /**
  * Draw a (sub-)tree traversing it in pre-order
  * 
- * @param  pRoot The (sub-)tree root
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ * @param  [ in]pRoot  The (sub-)tree root
+ * @param  [ in]pCtx   The game's context
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmGroup_drawTree(gfmDrawTree *pRoot, gfmCtx *pCtx) {
+static gfmRV gfmGroup_drawTree(gfmGroupNode *pRoot, gfmCtx *pCtx) {
+    gfmGroupNode *pTop;
     gfmRV rv;
-    
-    // Sanitize argument
+
+    /* Sanitize argument */
     ASSERT(pRoot, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    if (pRoot->pLeft) {
-        rv = gfmGroup_drawTree(pRoot->pLeft, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
+
+    pTop = pRoot;
+    pTop->pStackNext = 0;
+
+    while (pTop) {
+        if (pTop->pDrawLeft) {
+            /* Push the current node to be rendered after the current one */
+            pTop->pDrawLeft->pStackNext = pTop;
+            pTop = pTop->pDrawLeft;
+            /* Remove the sub-tree to the left from the previous node */
+            pTop->pStackNext->pDrawLeft = 0;
+        }
+        else {
+            /* Render the current node */
+            rv = gfmSprite_draw(pTop->pSelf, pCtx);
+            ASSERT_NR(rv == GFMRV_OK);
+
+            if (pTop->pDrawRight) {
+                /* Render the sub-tree to the right before anything else on the
+                 * stack (and remove the current node) */
+                pTop->pDrawRight->pStackNext = pTop->pStackNext;
+                pTop = pTop->pDrawRight;
+            }
+            else {
+                /* Pop the next object to be renderd */
+                pTop = pTop->pStackNext;
+            }
+        }
     }
-    rv = gfmSprite_draw(pRoot->pSelf->pSelf, pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
-    if (pRoot->pRight) {
-        rv = gfmGroup_drawTree(pRoot->pRight, pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
-    }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1221,7 +1232,7 @@ __ret:
 gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
     gfmGroupNode *pNode;
     gfmRV rv;
-    
+
     /**
      * Macro to insert all visible nodes into a tree and draw it; It expects the
      * first visible node to be at pNode;
@@ -1233,33 +1244,19 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
      */
 #define insertAndDrawTree(insertFunction) \
     do { \
-        gfmDrawTree *pRoot; \
-        int inc; \
-        /* Reset the tree nodes */ \
-        gfmGenArr_reset(pGroup->pTree); \
-        /* Manually set the first tree node */ \
-        inc = 1; \
-        gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, inc, pRoot,\
-                gfmDrawTree_getNew); \
-        gfmGenArr_push(pGroup->pTree); \
-        pRoot->pLeft = 0; \
-        pRoot->pRight = 0; \
-        pRoot->pSelf = pNode; \
+        gfmGroupNode *pRoot; \
+        pRoot = pNode; \
+        pRoot->pDrawLeft = 0;\
+        pRoot->pDrawRight = 0;\
         /* Go to the visible node */\
         pNode = pNode->pNextVisible; \
         /* Add all nodes iteratively */ \
         while (pNode) { \
-            gfmDrawTree *pTreeNode; \
-            /* Get the current tree node (and insert the actual node) */ \
-            gfmGenArr_getNextRef(gfmDrawTree, pGroup->pTree, inc, \
-                    pTreeNode, gfmDrawTree_getNew); \
-            gfmGenArr_push(pGroup->pTree); \
-            pTreeNode->pSelf = pNode; \
             /* Make sure the node is clean */ \
-            pTreeNode->pLeft = 0; \
-            pTreeNode->pRight = 0; \
+            pNode->pDrawLeft = 0; \
+            pNode->pDrawRight = 0; \
             /* Insert it into the tree */ \
-            rv = insertFunction(pRoot, pTreeNode); \
+            rv = insertFunction(pRoot, pNode); \
             ASSERT_NR(rv == GFMRV_OK); \
             /* Go to the next visible node */ \
             pNode = pNode->pNextVisible; \
@@ -1268,7 +1265,7 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
         rv = gfmGroup_drawTree(pRoot, pCtx); \
         ASSERT_NR(rv == GFMRV_OK); \
     } while (0);
-    
+
     // Sanitize arguments
     ASSERT(pGroup, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1277,20 +1274,17 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
         rv = GFMRV_OK;
         goto __ret;
     }
-    //ASSERT(pGroup->pVisible, GFMRV_OK);
-    
+
     // Get the first node on the visible list
     pNode = pGroup->pVisible;
-    
-    // TODO Start batch
-    
+
     switch (pGroup->drawOrder) {
         case gfmDrawOrder_linear: {
             // Simply draw in the order they appear
             while (pNode) {
                 rv = gfmSprite_draw(pNode->pSelf, pCtx);
                 ASSERT_NR(rv == GFMRV_OK);
-                
+
                 pNode = pNode->pNextVisible;
             }
         } break;
@@ -1311,9 +1305,7 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
             ASSERT(0, GFMRV_INTERNAL_ERROR);
         }
     }
-    
-    // TODO End batch
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
