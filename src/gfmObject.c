@@ -98,7 +98,7 @@ gfmRV gfmObject_free(gfmObject **ppCtx) {
     
     // Sanitize arguments
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
     // Clean the object
     gfmObject_clean(*ppCtx);

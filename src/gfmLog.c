@@ -71,7 +71,7 @@ gfmRV gfmLog_free(gfmLog **ppCtx) {
     
     // Sanitize arguments
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
     
     // Clean it
     gfmLog_clean(*ppCtx);

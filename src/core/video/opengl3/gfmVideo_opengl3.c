@@ -1432,7 +1432,7 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
     /* Orphan the previous buffer data and retrieve a new one */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     pCtx->pInstanceData = (GLint*)glMapBufferRange(GL_TEXTURE_BUFFER, 0,
-            pCtx->maxObjects * 2 * 3, flags);
+            sizeof(int) * pCtx->maxObjects * 2 * 3, flags);
 
     if (!pCtx->pInstanceData) {
         return GFMRV_INTERNAL_ERROR;
