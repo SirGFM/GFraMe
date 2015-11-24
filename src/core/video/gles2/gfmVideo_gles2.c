@@ -1,7 +1,7 @@
 /**
- * OpenGL3 backend for the video functionalities
+ * OpenGLES2 backend for the video functionalities
  * 
- * @file src/core/video/opengl3/gfmVideo_opengl3.h
+ * @file src/core/video/gles2/gfmVideo_gles2.h
  */
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gfmVideo_opengl3_glFuncs.h"
+#include "gfmVideo_gles2_glFuncs.h"
 
 /** Define a texture array type */
 gfmGenArr_define(gfmTexture);
@@ -34,7 +34,7 @@ struct stGFMTexture {
     int height;
 };
 
-struct stGFMVideoGL3 {
+struct stGFMVideoGLES2 {
 /* ==== OPENGL FIELDS ======================================================= */
     SDL_GLContext *pGLCtx;
     GLfloat worldMatrix[16];
@@ -124,7 +124,7 @@ struct stGFMVideoGL3 {
     /** Every cached texture */
     gfmGenArr_var(gfmTexture, pTextures);
 };
-typedef struct stGFMVideoGL3 gfmVideoGL3;
+typedef struct stGFMVideoGLES2 gfmVideoGLES2;
 
 /* Default shaders */
 static char spriteVertexShader[] = 
@@ -154,12 +154,12 @@ static char backbufferFragmentShader[] =
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_setBackgroundColor(gfmVideo *pVideo, int color) {
+static gfmRV gfmVideo_GLES2_setBackgroundColor(gfmVideo *pVideo, int color) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -182,7 +182,7 @@ __ret:
  * @param  ppCtx The alocated texture
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-static void gfmVideo_GL3_freeTexture(gfmTexture **ppCtx) {
+static void gfmVideo_GLES2_freeTexture(gfmTexture **ppCtx) {
     /* Check if the object was actually alloc'ed */
     if (ppCtx && *ppCtx) {
         /* Check if the texture was created and destroy it */
@@ -204,9 +204,9 @@ static void gfmVideo_GL3_freeTexture(gfmTexture **ppCtx) {
  * @param  [out]ppCtx The alloc'ed gfmVideo context
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
-static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx) {
+static gfmRV gfmVideo_GLES2_init(gfmVideo **ppCtx) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int didInit, irv;
     SDL_DisplayMode sdlMode;
 
@@ -217,11 +217,11 @@ static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx) {
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
 
     /* Alloc the video context */
-    pCtx = (gfmVideoGL3*)malloc(sizeof(gfmVideoGL3));
+    pCtx = (gfmVideoGLES2*)malloc(sizeof(gfmVideoGLES2));
     ASSERT(pCtx, GFMRV_ALLOC_FAILED);
 
     /* Clean the struct */
-    memset(pCtx, 0x0, sizeof(gfmVideoGL3));
+    memset(pCtx, 0x0, sizeof(gfmVideoGLES2));
 
     /* Initialize the SDL2 video subsystem */
     irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
@@ -275,21 +275,21 @@ __ret:
  * @param  [out]ppVideo The gfmVideo context
  * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
+static gfmRV gfmVideo_GLES2_free(gfmVideo **ppVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Sanitize arguments */
     ASSERT(ppVideo, GFMRV_ARGUMENTS_BAD);
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)*ppVideo;
+    pCtx = (gfmVideoGLES2*)*ppVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
     /* Clean all textures */
-    gfmGenArr_clean(pCtx->pTextures, gfmVideo_GL3_freeTexture);
+    gfmGenArr_clean(pCtx->pTextures, gfmVideo_GLES2_freeTexture);
 
     if (pCtx->pInfoLog) {
         free(pCtx->pInfoLog);
@@ -367,12 +367,12 @@ __ret:
  * @param  [ in]pVideo The video context (will store the resolutions list)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmVideo_GL3_countResolutions(int *pCount, gfmVideo *pVideo) {
+static gfmRV gfmVideo_GLES2_countResolutions(int *pCount, gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -398,15 +398,15 @@ __ret:
  * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                       GFMRV_INTERNAL_ERROR, GFMRV_INVALID_INDEX
  */
-static gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight,
+static gfmRV gfmVideo_GLES2_getResolution(int *pWidth, int *pHeight,
         int *pRefRate, gfmVideo *pVideo, int index) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int irv;
     SDL_DisplayMode sdlMode;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -439,7 +439,7 @@ __ret:
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                GFMRV_BACKBUFFER_WINDOW_TOO_SMALL
  */
-static gfmRV gfmVideoGL3_cacheDimensions(gfmVideoGL3 *pCtx, int width,
+static gfmRV gfmVideoGLES2_cacheDimensions(gfmVideoGLES2 *pCtx, int width,
         int height) {
     gfmRV rv;
     int horRatio, verRatio;
@@ -483,14 +483,14 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_INVALID_INDEX, GFMRV_WINDOW_NOT_INITIALIZED
  */
-static gfmRV gfmVideo_GL3_setResolution(gfmVideo *pVideo, int index) {
+static gfmRV gfmVideo_GLES2_setResolution(gfmVideo *pVideo, int index) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int irv;
     SDL_DisplayMode sdlMode;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -514,7 +514,7 @@ static gfmRV gfmVideo_GL3_setResolution(gfmVideo *pVideo, int index) {
 
     if (pCtx->isFullscreen) {
         /* Update helper variables */
-        rv = gfmVideoGL3_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
+        rv = gfmVideoGLES2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
         ASSERT(rv == GFMRV_OK, rv);
     }
 
@@ -534,7 +534,7 @@ __ret:
  * @param  [ in]pStr       The shader (must be NULL terminated)
  * @return                 The shader's identifier or 0, on error
  */
-static GLuint gfmVideo_GL3_compileShader(gfmVideoGL3 *pCtx,  GLenum shaderType,
+static GLuint gfmVideo_GLES2_compileShader(gfmVideoGLES2 *pCtx,  GLenum shaderType,
         char *pStr) {
     GLuint shader;
     GLint status;
@@ -572,7 +572,7 @@ static GLuint gfmVideo_GL3_compileShader(gfmVideoGL3 *pCtx,  GLenum shaderType,
  * @return               GFMRV_OK, GFMRV_FRAGMENT_SHADER_ERROR,
  *                       GFMRV_VERTEX_SHADER_ERROR, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, gfmVideoGL3 *pCtx,
+static gfmRV gfmVideo_GLES2_glcreateProgram(GLuint *pProg, gfmVideoGLES2 *pCtx,
         char *pVShader, char *pFShader) {
     gfmRV rv;
     GLuint vsi, fsi;
@@ -585,11 +585,11 @@ static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, gfmVideoGL3 *pCtx,
     *pProg = 0;
 
     /* Compile the vertex shader */
-    vsi = gfmVideo_GL3_compileShader(pCtx, GL_VERTEX_SHADER, pVShader);
+    vsi = gfmVideo_GLES2_compileShader(pCtx, GL_VERTEX_SHADER, pVShader);
     ASSERT(vsi, GFMRV_VERTEX_SHADER_ERROR);
 
     /* Compile the fragment shader */
-    fsi = gfmVideo_GL3_compileShader(pCtx, GL_FRAGMENT_SHADER, pFShader);
+    fsi = gfmVideo_GLES2_compileShader(pCtx, GL_FRAGMENT_SHADER, pFShader);
     ASSERT(fsi, GFMRV_VERTEX_SHADER_ERROR);
 
     /* Create the shader program */
@@ -633,17 +633,17 @@ __ret:
  * @param  [ in]pCtx The video context
  * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_loadShaders(gfmVideoGL3 *pCtx) {
+static gfmRV gfmVideo_GLES2_loadShaders(gfmVideoGLES2 *pCtx) {
     gfmRV rv;
 
     /* TODO Load user-supplied shaders */
 
     /* Load the sprite program */
-    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->sprProgram), pCtx,
+    rv = gfmVideo_GLES2_glcreateProgram(&(pCtx->sprProgram), pCtx,
             spriteVertexShader, spriteFragmentShader);
     ASSERT(rv == GFMRV_OK, rv);
     /* Load the backbuffer program */
-    rv = gfmVideo_GL3_glcreateProgram(&(pCtx->bbProgram), pCtx,
+    rv = gfmVideo_GLES2_glcreateProgram(&(pCtx->bbProgram), pCtx,
             backbufferVertexShader, backbufferFragmentShader);
     ASSERT(rv == GFMRV_OK, rv);
 
@@ -679,7 +679,7 @@ __ret:
  * @param  [ in]height The backbuffer's height
  * @return             GFMRV_OK, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
+static gfmRV gfmVideo_GLES2_createBackbuffer(gfmVideoGLES2 *pCtx, int width,
         int height) {
     /* Backbuffer mesh */
     float bbVboData[] = {-1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f, 1.0f,-1.0f};
@@ -869,7 +869,7 @@ __ret:
  * NOTE 2: The window's dimensions shall be clamped to the device's ones.
  * The resolution (i.e., width X height X refresh rate) may only take effect
  * when in fullscreen mode, so, in order to set all that on init, use
- * instead gfmVideo_GL3_initFullscreen
+ * instead gfmVideo_GLES2_initFullscreen
  * 
  * NOTE 3: The argument 'isUserResizable' defines whether a user may
  * manually stretch/shrink, but doesn't control whether or not a window's
@@ -886,7 +886,7 @@ __ret:
  * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED,
  *                         GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
+static gfmRV gfmVideo_GLES2_createWindow(gfmVideoGLES2 *pCtx, int width,
         int height, int bbufWidth, int bbufHeight, char *pName,
         SDL_WindowFlags flags, int vsync) {
     gfmRV rv;
@@ -915,10 +915,10 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
     /* SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 1); */
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-            SDL_GL_CONTEXT_PROFILE_CORE);
+            SDL_GL_CONTEXT_PROFILE_ES);
 
     /* Create the window */
     pCtx->pSDLWindow = SDL_CreateWindow(pName, SDL_WINDOWPOS_UNDEFINED,
@@ -936,7 +936,7 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     }
 
     /* Load all required OpenGL functions */
-    rv = gfmVideo_GL3_glLoadFunctions();
+    rv = gfmVideo_GLES2_glLoadFunctions();
     ASSERT(rv == GFMRV_OK, rv);
 
     /* TODO Enable alpha blending (?) */
@@ -945,11 +945,11 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     glEnable(GL_TEXTURE_1D);
 
     /* Load shaders */
-    rv = gfmVideo_GL3_loadShaders(pCtx);
+    rv = gfmVideo_GLES2_loadShaders(pCtx);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Create the GL backbuffer */
-    rv = gfmVideo_GL3_createBackbuffer(pCtx, bbufWidth, bbufHeight);
+    rv = gfmVideo_GLES2_createBackbuffer(pCtx, bbufWidth, bbufHeight);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Store the window (in windowed mode) dimensions */
@@ -964,11 +964,11 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
 	glUseProgram(0);
 
     /* Update helper variables */
-    rv = gfmVideoGL3_cacheDimensions(pCtx, width, height);
+    rv = gfmVideoGLES2_cacheDimensions(pCtx, width, height);
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Set the background color */
-    rv = gfmVideo_GL3_setBackgroundColor((gfmVideo*)pCtx, 0xff000000);
+    rv = gfmVideo_GLES2_setBackgroundColor((gfmVideo*)pCtx, 0xff000000);
     ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
@@ -990,7 +990,7 @@ __ret:
  * NOTE 2: The window's dimensions shall be clamped to the device's ones.
  * The resolution (i.e., width X height X refresh rate) may only take effect
  * when in fullscreen mode, so, in order to set all that on init, use
- * instead gfmVideo_GL3_initFullscreen
+ * instead gfmVideo_GLES2_initFullscreen
  * 
  * NOTE 3: The argument 'isUserResizable' defines whether a user may
  * manually stretch/shrink, but doesn't control whether or not a window's
@@ -1007,15 +1007,15 @@ __ret:
  * @return                      GFMRV_OK, GFMRV_ARGUMENTS_BAD,
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_initWindow(gfmVideo *pVideo, int width, int height,
+static gfmRV gfmVideo_GLES2_initWindow(gfmVideo *pVideo, int width, int height,
         int bbufWidth, int bbufHeight, char *pName, int isUserResizable,
         int vsync) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     SDL_WindowFlags flags;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1033,7 +1033,7 @@ static gfmRV gfmVideo_GL3_initWindow(gfmVideo *pVideo, int width, int height,
     }
 
     /* Actually create the window */
-    rv = gfmVideo_GL3_createWindow(pCtx, width, height, bbufWidth, bbufHeight,
+    rv = gfmVideo_GLES2_createWindow(pCtx, width, height, bbufWidth, bbufHeight,
             pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
@@ -1064,15 +1064,15 @@ __ret:
  *                              GFMRV_ALLOC_FAILED, GFMRV_INTERNAL_ERROR,
  *                              GFMRV_INVALID_INDEX
  */
-static gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pVideo,
+static gfmRV gfmVideo_GLES2_initWindowFullscreen(gfmVideo *pVideo,
         int resolution, int bbufWidth, int bbufHeight, char *pName,
         int isUserResizable, int vsync) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     SDL_WindowFlags flags;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1089,7 +1089,7 @@ static gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pVideo,
     }
 
     /* Actually create the window */
-    rv = gfmVideo_GL3_createWindow(pCtx, pCtx->devWidth, pCtx->devHeight,
+    rv = gfmVideo_GLES2_createWindow(pCtx, pCtx->devWidth, pCtx->devHeight,
             bbufWidth, bbufHeight, pName, flags, vsync);
     ASSERT(rv == GFMRV_OK, rv);
 
@@ -1097,7 +1097,7 @@ static gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pVideo,
     pCtx->isFullscreen = 1;
 
     /* Set the current resolution */
-    rv = gfmVideo_GL3_setResolution(pCtx, resolution);
+    rv = gfmVideo_GLES2_setResolution(pCtx, resolution);
     ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
@@ -1118,13 +1118,13 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_NOT_INITIALIZED
  */
-static gfmRV gfmVideo_GL3_setDimensions(gfmVideo *pVideo, int width,
+static gfmRV gfmVideo_GLES2_setDimensions(gfmVideo *pVideo, int width,
         int height) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1150,7 +1150,7 @@ static gfmRV gfmVideo_GL3_setDimensions(gfmVideo *pVideo, int width,
 
     if (!pCtx->isFullscreen) {
         /* Update helper variables */
-        rv = gfmVideoGL3_cacheDimensions(pCtx, width, height);
+        rv = gfmVideoGLES2_cacheDimensions(pCtx, width, height);
         ASSERT(rv == GFMRV_OK, rv);
     }
 
@@ -1175,14 +1175,14 @@ __ret:
  * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                      GFMRV_WINDOW_NOT_INITIALIZED
  */
-static gfmRV gfmVideo_GL3_getDimensions(int *pWidth, int *pHeight,
+static gfmRV gfmVideo_GLES2_getDimensions(int *pWidth, int *pHeight,
         gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int irv;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1220,14 +1220,14 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_MODE_UNCHANGED, GFMRV_WINDOW_NOT_INITIALIZED
  */
-static gfmRV gfmVideo_GL3_setFullscreen(gfmVideo *pVideo) {
+static gfmRV gfmVideo_GLES2_setFullscreen(gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int irv;
     SDL_DisplayMode sdlMode;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1247,7 +1247,7 @@ static gfmRV gfmVideo_GL3_setFullscreen(gfmVideo *pVideo) {
     pCtx->isFullscreen = 1;
 
     /* Update helper variables */
-    rv = gfmVideoGL3_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
+    rv = gfmVideoGLES2_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
     ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
@@ -1262,13 +1262,13 @@ __ret:
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR,
  *                     GFMRV_WINDOW_MODE_UNCHANGED, GFMRV_WINDOW_NOT_INITIALIZED
  */
-static gfmRV gfmVideo_GL3_setWindowed(gfmVideo *pVideo) {
+static gfmRV gfmVideo_GLES2_setWindowed(gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int irv;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1284,7 +1284,7 @@ static gfmRV gfmVideo_GL3_setWindowed(gfmVideo *pVideo) {
     pCtx->isFullscreen = 0;
 
     /* Update helper variables */
-    rv = gfmVideoGL3_cacheDimensions(pCtx, pCtx->wndWidth, pCtx->wndHeight);
+    rv = gfmVideoGLES2_cacheDimensions(pCtx, pCtx->wndWidth, pCtx->wndHeight);
     ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
@@ -1300,13 +1300,13 @@ __ret:
  * @param  [ in]pVideo  The video context
  * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_getBackbufferDimensions(int *pWidth, int *pHeight,
+static gfmRV gfmVideo_GLES2_getBackbufferDimensions(int *pWidth, int *pHeight,
         gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1334,13 +1334,13 @@ __ret:
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_windowToBackbuffer(int *pX, int *pY,
+static gfmRV gfmVideo_GLES2_windowToBackbuffer(int *pX, int *pY,
         gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1364,12 +1364,12 @@ __ret:
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
+static gfmRV gfmVideo_GLES2_drawBegin(gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1421,7 +1421,7 @@ __ret:
  * @param  [ in]pCtx The video context
  * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
+static gfmRV gfmVideo_GLES2_getInstanceData(gfmVideoGLES2 *pCtx) {
     GLbitfield flags;
 
     flags = 0;
@@ -1445,7 +1445,7 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
  * 
  * @param  [ in]pCtx The video context
  */
-static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
+static void gfmVideo_GLES2_drawInstances(gfmVideoGLES2 *pCtx) {
     /** Allow the instances data to be used by the shader */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     glUnmapBuffer(GL_TEXTURE_BUFFER);
@@ -1469,15 +1469,15 @@ static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
  * @param  [ in]isFlipped Whether the tile should be flipped
  * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
+static gfmRV gfmVideo_GLES2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
         int x, int y, int tile, int isFlipped) {
     gfmTexture *pTex;
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     int width, height;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1494,7 +1494,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
         pCtx->pLastTexture = pTex;
 
         if (pCtx->numObjects > 0) {
-            gfmVideo_GL3_drawInstances(pCtx);
+            gfmVideo_GLES2_drawInstances(pCtx);
         }
 
         /* Bind the texture dimensions */
@@ -1511,7 +1511,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     ASSERT_NR(rv == GFMRV_OK);
 
     if (!pCtx->pInstanceData) {
-        rv = gfmVideo_GL3_getInstanceData(pCtx);
+        rv = gfmVideo_GLES2_getInstanceData(pCtx);
         ASSERT_NR(rv == GFMRV_OK);
     }
 
@@ -1525,7 +1525,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
 
     pCtx->numObjects++;
     if (pCtx->numObjects == pCtx->maxObjects) {
-        gfmVideo_GL3_drawInstances(pCtx);
+        gfmVideo_GLES2_drawInstances(pCtx);
     }
 
     pCtx->totalNumObjects++;
@@ -1546,14 +1546,14 @@ __ret:
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_drawRectangle(gfmVideo *pVideo, int x, int y,
+static gfmRV gfmVideo_GLES2_drawRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     unsigned char alpha, blue, green, red;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1599,14 +1599,14 @@ __ret:
  * @param  [ in]color  The background color (in 0xAARRGGBB format)
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-static gfmRV gfmVideo_GL3_drawFillRectangle(gfmVideo *pVideo, int x, int y,
+static gfmRV gfmVideo_GLES2_drawFillRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     unsigned char alpha, blue, green, red;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1660,7 +1660,7 @@ __ret:
  *                     GFMRV_BACKBUFFER_NOT_INITIALIZED,
  *                     GFMRV_BUFFER_TOO_SMALL, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_getBackbufferData(unsigned char *pData, int *pLen,
+static gfmRV gfmVideo_GLES2_getBackbufferData(unsigned char *pData, int *pLen,
         gfmVideo *pVideo) {
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 }
@@ -1671,12 +1671,12 @@ static gfmRV gfmVideo_GL3_getBackbufferData(unsigned char *pData, int *pLen,
  * @param  [ in]pVideo The video context
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
-static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
+static gfmRV gfmVideo_GLES2_drawEnd(gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1685,7 +1685,7 @@ static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
 
     /* Check if there's anything else to render */
     if (pCtx->numObjects > 0) {
-        gfmVideo_GL3_drawInstances(pCtx);
+        gfmVideo_GLES2_drawInstances(pCtx);
     }
 
     /* Switch to the default framebuffer */
@@ -1725,12 +1725,12 @@ __ret:
  * @param  [ in]pvideo   The video context
  * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INTERNAL_ERROR
  */
-gfmRV gfmVideo_GL3_getDrawInfo(int *pBatched, int *pNum, gfmVideo *pVideo) {
+gfmRV gfmVideo_GLES2_getDrawInfo(int *pBatched, int *pNum, gfmVideo *pVideo) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1754,7 +1754,7 @@ __ret:
  * @param  [out]ppCtx The alocated texture
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-static gfmRV gfmVideo_GL3_getNewTexture(gfmTexture **ppCtx) {
+static gfmRV gfmVideo_GLES2_getNewTexture(gfmTexture **ppCtx) {
     gfmRV rv;
 
     /* Alloc the texture */
@@ -1779,7 +1779,7 @@ __ret:
  * @param  [ in]pLog   The logger interface
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmVideoGL3_initTexture(gfmTexture *pCtx, gfmVideoGL3 *pVideo,
+static gfmRV gfmVideoGLES2_initTexture(gfmTexture *pCtx, gfmVideoGLES2 *pVideo,
         int width, int height, gfmLog *pLog) {
     gfmRV rv;
 
@@ -1823,18 +1823,18 @@ __ret:
  * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
  * @param  [ in]pLog     The logger interface
  */
-static gfmRV gfmVideo_GL3_loadTextureBMP(int *pTex, gfmVideo *pVideo,
+static gfmRV gfmVideo_GLES2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
         gfmFile *pFile, int colorKey, gfmLog *pLog) {
     char *pData, pBuffer[4];
     gfmRV rv;
     gfmTexture *pTexture;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
     /*int bytesInRow, height, i, irv, dataOffset, rowOffset, width; */
     int bytesInRow, i, irv, rowOffset;
     volatile int height, dataOffset, width;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Zero variable that must be cleaned on error */
     pData = 0;
@@ -1957,8 +1957,8 @@ static gfmRV gfmVideo_GL3_loadTextureBMP(int *pTex, gfmVideo *pVideo,
 
     /* Initialize the texture  */
     gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, 1/*incRate*/, pTexture,
-            gfmVideo_GL3_getNewTexture);
-    rv = gfmVideoGL3_initTexture(pTexture, pCtx, width, height, pLog);
+            gfmVideo_GLES2_getNewTexture);
+    rv = gfmVideoGLES2_initTexture(pTexture, pCtx, width, height, pLog);
     ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
 
     /* Load the data into texture */
@@ -1983,7 +1983,7 @@ __ret:
     if (rv != GFMRV_OK) {
         if (pTexture) {
             /* On error, clean the texture and remove it from the list */
-            gfmVideo_GL3_freeTexture(&pTexture);
+            gfmVideo_GLES2_freeTexture(&pTexture);
             gfmGenArr_pop(pCtx->pTextures);
         }
     }
@@ -2000,13 +2000,13 @@ __ret:
  * @param  [ in]pLog     The logger interface
  * @return               GFMRV_OK, GFMRV_ARUMENTS_BAD, GFMRV_INVALID_INDEX
  */
-static gfmRV gfmVideo_GL3_getTexture(gfmTexture **ppTexture, gfmVideo *pVideo,
+static gfmRV gfmVideo_GLES2_getTexture(gfmTexture **ppTexture, gfmVideo *pVideo,
         int handle, gfmLog *pLog) {
     gfmRV rv;
-    gfmVideoGL3 *pCtx;
+    gfmVideoGLES2 *pCtx;
 
     /* Retrieve the internal video context */
-    pCtx = (gfmVideoGL3*)pVideo;
+    pCtx = (gfmVideoGLES2*)pVideo;
 
     /* Sanitize arguments */
     ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
@@ -2033,7 +2033,7 @@ __ret:
  * @param [ in]pCtx    The texture
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmVideo_GL3_getTextureDimensions(int *pWidth, int *pHeight,
+static gfmRV gfmVideo_GLES2_getTextureDimensions(int *pWidth, int *pHeight,
         gfmTexture *pCtx) {
     gfmRV rv;
 
@@ -2056,37 +2056,37 @@ __ret:
  * @param  [ in]pCtx The video function context
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmVideo_GL3_loadFunctions(gfmVideoFuncs *pCtx) {
+gfmRV gfmVideo_GLES2_loadFunctions(gfmVideoFuncs *pCtx) {
     gfmRV rv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
     /* Simply copy all function pointer */
-    pCtx->gfmVideo_init = gfmVideo_GL3_init;
-    pCtx->gfmVideo_free = gfmVideo_GL3_free;
-    pCtx->gfmVideo_countResolutions = gfmVideo_GL3_countResolutions;
-    pCtx->gfmVideo_getResolution = gfmVideo_GL3_getResolution;
-    pCtx->gfmVideo_initWindow = gfmVideo_GL3_initWindow;
-    pCtx->gfmVideo_initWindowFullscreen = gfmVideo_GL3_initWindowFullscreen;
-    pCtx->gfmVideo_setDimensions = gfmVideo_GL3_setDimensions;
-    pCtx->gfmVideo_getDimensions = gfmVideo_GL3_getDimensions;
-    pCtx->gfmVideo_setFullscreen = gfmVideo_GL3_setFullscreen;
-    pCtx->gfmVideo_setWindowed = gfmVideo_GL3_setWindowed;
-    pCtx->gfmVideo_setResolution = gfmVideo_GL3_setResolution;
-    pCtx->gfmVideo_getBackbufferDimensions = gfmVideo_GL3_getBackbufferDimensions;
-    pCtx->gfmVideo_windowToBackbuffer = gfmVideo_GL3_windowToBackbuffer;
-    pCtx->gfmVideo_setBackgroundColor = gfmVideo_GL3_setBackgroundColor;
-    pCtx->gfmVideo_loadTextureBMP = gfmVideo_GL3_loadTextureBMP;
-    pCtx->gfmVideo_drawBegin = gfmVideo_GL3_drawBegin;
-    pCtx->gfmVideo_drawTile = gfmVideo_GL3_drawTile;
-    pCtx->gfmVideo_drawRectangle = gfmVideo_GL3_drawRectangle;
-    pCtx->gfmVideo_drawFillRectangle = gfmVideo_GL3_drawFillRectangle;
-    pCtx->gfmVideo_getBackbufferData = gfmVideo_GL3_getBackbufferData;
-    pCtx->gfmVideo_drawEnd = gfmVideo_GL3_drawEnd;
-    pCtx->gfmVideo_getTexture = gfmVideo_GL3_getTexture;
-    pCtx->gfmVideo_getTextureDimensions = gfmVideo_GL3_getTextureDimensions;
-    pCtx->gfmVideo_getDrawInfo = gfmVideo_GL3_getDrawInfo;
+    pCtx->gfmVideo_init = gfmVideo_GLES2_init;
+    pCtx->gfmVideo_free = gfmVideo_GLES2_free;
+    pCtx->gfmVideo_countResolutions = gfmVideo_GLES2_countResolutions;
+    pCtx->gfmVideo_getResolution = gfmVideo_GLES2_getResolution;
+    pCtx->gfmVideo_initWindow = gfmVideo_GLES2_initWindow;
+    pCtx->gfmVideo_initWindowFullscreen = gfmVideo_GLES2_initWindowFullscreen;
+    pCtx->gfmVideo_setDimensions = gfmVideo_GLES2_setDimensions;
+    pCtx->gfmVideo_getDimensions = gfmVideo_GLES2_getDimensions;
+    pCtx->gfmVideo_setFullscreen = gfmVideo_GLES2_setFullscreen;
+    pCtx->gfmVideo_setWindowed = gfmVideo_GLES2_setWindowed;
+    pCtx->gfmVideo_setResolution = gfmVideo_GLES2_setResolution;
+    pCtx->gfmVideo_getBackbufferDimensions = gfmVideo_GLES2_getBackbufferDimensions;
+    pCtx->gfmVideo_windowToBackbuffer = gfmVideo_GLES2_windowToBackbuffer;
+    pCtx->gfmVideo_setBackgroundColor = gfmVideo_GLES2_setBackgroundColor;
+    pCtx->gfmVideo_loadTextureBMP = gfmVideo_GLES2_loadTextureBMP;
+    pCtx->gfmVideo_drawBegin = gfmVideo_GLES2_drawBegin;
+    pCtx->gfmVideo_drawTile = gfmVideo_GLES2_drawTile;
+    pCtx->gfmVideo_drawRectangle = gfmVideo_GLES2_drawRectangle;
+    pCtx->gfmVideo_drawFillRectangle = gfmVideo_GLES2_drawFillRectangle;
+    pCtx->gfmVideo_getBackbufferData = gfmVideo_GLES2_getBackbufferData;
+    pCtx->gfmVideo_drawEnd = gfmVideo_GLES2_drawEnd;
+    pCtx->gfmVideo_getTexture = gfmVideo_GLES2_getTexture;
+    pCtx->gfmVideo_getTextureDimensions = gfmVideo_GLES2_getTextureDimensions;
+    pCtx->gfmVideo_getDrawInfo = gfmVideo_GLES2_getDrawInfo;
 
     rv = GFMRV_OK;
 __ret:

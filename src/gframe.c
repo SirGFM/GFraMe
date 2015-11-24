@@ -213,12 +213,6 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
             ASSERT(rv == GFMRV_OK, rv);
         } break;
 #endif /* USE_GLES3_VIDEO */
-#ifdef USE_WGL_VIDEO
-        case GFM_VIDEO_WGL: {
-            rv = gfmVideo_WGL_loadFunctions(&(pCtx->videoFuncs));
-            ASSERT(rv == GFMRV_OK, rv);
-        } break;
-#endif /* USE_WGL_VIDEO */
         default: { ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED); }
     }
 

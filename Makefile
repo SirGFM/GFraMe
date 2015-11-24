@@ -8,8 +8,7 @@
     EXPORT_GIF := no
     BACKEND := emscript
 
-    #USE_WGL_VIDEO := yes
-    USE_SDL2_VIDEO := yes
+    USE_GLES2_VIDEO := yes
   else
     ifeq ($(MAKECMDGOALS), emscript_clean)
       CC := emcc
@@ -98,6 +97,9 @@
   ifeq ($(USE_SDL2_VIDEO), yes)
     include src/core/video/sdl2/Makefile
   endif
+  ifeq ($(USE_GLES2_VIDEO), yes)
+    include src/core/video/gles2/Makefile
+  endif
 
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
@@ -184,6 +186,9 @@
   endif
   ifeq ($(USE_SDL2_VIDEO), yes)
     CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
+  endif
+  ifeq ($(USE_GLES2_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_GLES2_VIDEO
   endif
 #==============================================================================
 
@@ -499,6 +504,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/core/emscript-sdl2
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
+	mkdir -p $(OBJDIR)/core/video/gles2
 	mkdir -p $(OBJDIR)/core/video/sdl2
 	mkdir -p $(OBJDIR)/core/video/opengl3
 	mkdir -p $(BINDIR)
@@ -521,6 +527,7 @@ clean:
 # Remove all built objects and target directories
 #==============================================================================
 distclean: clean
+	rmdir $(OBJDIR)/core/video/gles2
 	rmdir $(OBJDIR)/core/video/sdl2
 	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
