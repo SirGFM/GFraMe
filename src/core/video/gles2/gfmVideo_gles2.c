@@ -45,15 +45,12 @@ struct stGFMVideoGLES2 {
     GLuint sprUnfTransformMatrix;
     GLuint sprUnfTexDimensions;
     GLuint sprUnfTexture;
-    GLuint sprUnfInstanceData;
+    GLuint sprUnfSprData;
+    GLuint sprUnfTileData;
 /* ==== OPENGL BACKBUFFER SHADER PROGRAM FIELDS ============================= */
     GLuint bbProgram;
     GLuint bbUnfTexture;
 /* ==== OPENGL INSTANCED RENDERING FIELDS =================================== */
-    /* Texture used to access the instance data on the shader */
-    GLuint instanceTex;
-    /* Buffer that store the instance data */
-    GLuint instanceBuf;
     /* Number of batches rendered on this frame */
     int batchCount;
     /* Number of batches rendered on the last frame */
@@ -62,12 +59,6 @@ struct stGFMVideoGLES2 {
     int lastNumObjects;
     /* Number of sprites rendered on the current frame */
     int totalNumObjects;
-    /* Number of sprites staged to render on this frame */
-    int numObjects;
-    /* Max number of sprites that can be rendered in a single batch */
-    int maxObjects;
-    /* Buffer, obtained from OpenGL, where each sprite date is written */
-    GLint *pInstanceData;
 /* ==== OPENGL DEFAULT MESH FIELDS ========================================== */
     GLuint meshVbo;
     GLuint meshIbo;
@@ -311,9 +302,6 @@ static gfmRV gfmVideo_GLES2_free(gfmVideo **ppVideo) {
     if (pCtx->bbTex) {
         glDeleteTextures(1, &(pCtx->bbTex));
     }
-    if (pCtx->instanceTex) {
-        glDeleteTextures(1, &(pCtx->instanceTex));
-    }
     if (pCtx->bbVao) {
         glDeleteVertexArrays(1, &(pCtx->bbVao));
     }
@@ -322,14 +310,6 @@ static gfmRV gfmVideo_GLES2_free(gfmVideo **ppVideo) {
     }
     if (pCtx->bbVbo) {
         glDeleteBuffers(1, &(pCtx->bbVbo));
-    }
-    if (pCtx->instanceTex) {
-        glDeleteTextures(1, &(pCtx->instanceTex));
-        pCtx->instanceTex = 0;
-    }
-    if (pCtx->instanceBuf) {
-        glDeleteBuffers(1, &(pCtx->instanceBuf));
-        pCtx->instanceBuf = 0;
     }
 
     /* Delete the shader programs */
@@ -653,7 +633,8 @@ static gfmRV gfmVideo_GLES2_loadShaders(gfmVideoGLES2 *pCtx) {
     pCtx->sprUnfTexDimensions = glGetUniformLocation(pCtx->sprProgram,
             "texDimensions");
     pCtx->sprUnfTexture = glGetUniformLocation(pCtx->sprProgram, "gSampler");
-    pCtx->sprUnfInstanceData = glGetUniformLocation(pCtx->sprProgram, "instanceData");
+    pCtx->sprUnfSprData = glGetUniformLocation(pCtx->sprProgram, "sprData");
+    pCtx->sprUnfTileData = glGetUniformLocation(pCtx->sprProgram, "tileData");
     pCtx->bbUnfTexture = glGetUniformLocation(pCtx->bbProgram, "gSampler");
 
     rv = GFMRV_OK;
@@ -777,34 +758,6 @@ static gfmRV gfmVideo_GLES2_createBackbuffer(gfmVideoGLES2 *pCtx, int width,
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glBindVertexArray(0);
 
-    /* TODO Make this number used defined */
-    glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE , &maxBufTexels);
-    if (maxBufTexels < 8192 * 2) {
-        pCtx->maxObjects = maxBufTexels / 2;
-    }
-    else {
-        pCtx->maxObjects = 8192; /* For 8192 objects, 192KB VRAM is needed */
-    }
-    /* Create the instance data buffer (used within the texture) */
-    glGenBuffers(1, &(pCtx->instanceBuf));
-    ASSERT(pCtx->instanceBuf, GFMRV_INTERNAL_ERROR);
-    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
-    glBufferData(GL_TEXTURE_BUFFER, sizeof(int) * pCtx->maxObjects * 2 * 3, 0,
-            GL_STREAM_DRAW);
-
-    /* Create a texture to pass data to the shader */
-    glGenTextures(1, &(pCtx->instanceTex));
-    ASSERT(pCtx->instanceTex, GFMRV_INTERNAL_ERROR);
-    glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    /* Bind the texture to the buffer */
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32I, pCtx->instanceBuf);
-
     /* Modify the transformation matrix */
 	pCtx->worldMatrix[0] = 2.0f / (float)width;
 	pCtx->worldMatrix[5] = -2.0f / (float)height;
@@ -847,14 +800,6 @@ __ret:
         if (pCtx->bbVbo) {
             glDeleteBuffers(1, &(pCtx->bbVbo));
             pCtx->bbVbo = 0;
-        }
-        if (pCtx->instanceTex) {
-            glDeleteTextures(1, &(pCtx->instanceTex));
-            pCtx->instanceTex = 0;
-        }
-        if (pCtx->instanceBuf) {
-            glDeleteBuffers(1, &(pCtx->instanceBuf));
-            pCtx->instanceBuf = 0;
         }
     }
 
@@ -1392,9 +1337,6 @@ static gfmRV gfmVideo_GLES2_drawBegin(gfmVideo *pVideo) {
 
     /* Clear the last texture, so it's at least pushed once */
     pCtx->pLastTexture = 0;
-    /* Clear the number of rendered objects */
-    pCtx->numObjects = 0;
-    pCtx->pInstanceData = 0;
 
     /* Update the number of rendered sprites */
     pCtx->lastNumObjects = pCtx->totalNumObjects;
@@ -1404,58 +1346,9 @@ static gfmRV gfmVideo_GLES2_drawBegin(gfmVideo *pVideo) {
     pCtx->lastBatchCount = pCtx->batchCount;
     pCtx->batchCount = 0;
 
-    /* Bind the texture to the sampler */
-    glActiveTexture(GL_TEXTURE0 + 1);
-    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
-    glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
-    glUniform1i(pCtx->sprUnfInstanceData, 1);
-
     rv = GFMRV_OK;
 __ret:
     return rv;
-}
-
-/**
- * Alloc more data to pass with the instaces data
- * 
- * @param  [ in]pCtx The video context
- * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
- */
-static gfmRV gfmVideo_GLES2_getInstanceData(gfmVideoGLES2 *pCtx) {
-    GLbitfield flags;
-
-    flags = 0;
-    flags |= GL_MAP_WRITE_BIT;
-    flags |= GL_MAP_INVALIDATE_BUFFER_BIT;
-    //flags |= GL_MAP_UNSYNCHRONIZED_BIT;
-
-    /* Orphan the previous buffer data and retrieve a new one */
-    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
-    pCtx->pInstanceData = (GLint*)glMapBufferRange(GL_TEXTURE_BUFFER, 0,
-            sizeof(int) * pCtx->maxObjects * 2 * 3, flags);
-
-    if (!pCtx->pInstanceData) {
-        return GFMRV_INTERNAL_ERROR;
-    }
-    return GFMRV_OK;
-}
-
-/** 
- * Draw the current batch of sprites
- * 
- * @param  [ in]pCtx The video context
- */
-static void gfmVideo_GLES2_drawInstances(gfmVideoGLES2 *pCtx) {
-    /** Allow the instances data to be used by the shader */
-    glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
-    glUnmapBuffer(GL_TEXTURE_BUFFER);
-    pCtx->pInstanceData = 0;
-
-    /* Actually render it */
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, pCtx->numObjects);
-
-    pCtx->numObjects = 0;
-    pCtx->batchCount++;
 }
 
 /**
@@ -1493,10 +1386,6 @@ static gfmRV gfmVideo_GLES2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     if (pTex != pCtx->pLastTexture) {
         pCtx->pLastTexture = pTex;
 
-        if (pCtx->numObjects > 0) {
-            gfmVideo_GLES2_drawInstances(pCtx);
-        }
-
         /* Bind the texture dimensions */
         glUniform2f(pCtx->sprUnfTexDimensions, (float)pTex->width,
                 (float)pTex->height);
@@ -1510,23 +1399,10 @@ static gfmRV gfmVideo_GLES2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     rv = gfmSpriteset_getDimension(&width, &height, pSset);
     ASSERT_NR(rv == GFMRV_OK);
 
-    if (!pCtx->pInstanceData) {
-        rv = gfmVideo_GLES2_getInstanceData(pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
-    }
+    glUniform3i(pCtx->sprUnfSprData, x, y, isFlipped);
+    glUniform3f(pCtx->sprUnfTileData, (float)width, (float)height, (float)tile);
 
-    /* Set the sprite's parameters */
-    pCtx->pInstanceData[pCtx->numObjects * 6] = x;
-    pCtx->pInstanceData[pCtx->numObjects * 6 + 1] = y;
-    pCtx->pInstanceData[pCtx->numObjects * 6 + 2] = isFlipped;
-    pCtx->pInstanceData[pCtx->numObjects * 6 + 3] = width;
-    pCtx->pInstanceData[pCtx->numObjects * 6 + 4] = height;
-    pCtx->pInstanceData[pCtx->numObjects * 6 + 5] = tile;
-
-    pCtx->numObjects++;
-    if (pCtx->numObjects == pCtx->maxObjects) {
-        gfmVideo_GLES2_drawInstances(pCtx);
-    }
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
     pCtx->totalNumObjects++;
 
@@ -1682,11 +1558,6 @@ static gfmRV gfmVideo_GLES2_drawEnd(gfmVideo *pVideo) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that it was initialized */
     ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
-
-    /* Check if there's anything else to render */
-    if (pCtx->numObjects > 0) {
-        gfmVideo_GLES2_drawInstances(pCtx);
-    }
 
     /* Switch to the default framebuffer */
     glBindVertexArray(0);

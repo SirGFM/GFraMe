@@ -5,13 +5,13 @@
  */
 
 
-"#version 330\n"
-
-/** The current vertex */
-"layout(location = 0) in vec2 vtx;\n"
+"#version 100\n"
 
 /** Texture coordinate for the current vertex */
-"out vec2 texCoord;\n"
+"varying mediump vec2 texCoord;\n"
+
+/** The current vertex */
+"attribute vec2 vtx;\n"
 
 "void main() {\n"
     /* Scaling is done automatically, simply maps src square to dst */

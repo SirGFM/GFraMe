@@ -311,9 +311,6 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     if (pCtx->bbTex) {
         glDeleteTextures(1, &(pCtx->bbTex));
     }
-    if (pCtx->instanceTex) {
-        glDeleteTextures(1, &(pCtx->instanceTex));
-    }
     if (pCtx->bbVao) {
         glDeleteVertexArrays(1, &(pCtx->bbVao));
     }

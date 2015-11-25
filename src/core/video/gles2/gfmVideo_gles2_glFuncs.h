@@ -18,6 +18,8 @@ extern gfmRV gfmVideo_GLES2_glLoadFunctions();
 extern PFNGLUSEPROGRAMPROC glUseProgram;
 extern PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 extern PFNGLUNIFORM2FPROC glUniform2f;
+extern PFNGLUNIFORM3IPROC glUniform3i;
+extern PFNGLUNIFORM3FPROC glUniform3f;
 extern PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 extern PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 extern PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
