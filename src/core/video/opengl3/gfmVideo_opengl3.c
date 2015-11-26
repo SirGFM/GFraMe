@@ -939,7 +939,6 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     /* TODO Enable alpha blending (?) */
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_1D);
 
     /* Load shaders */
     rv = gfmVideo_GL3_loadShaders(pCtx);
