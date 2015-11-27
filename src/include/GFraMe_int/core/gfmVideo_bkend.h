@@ -33,9 +33,11 @@ struct stGFMVideoFuncs {
      * Initializes a new gfmVideo
      * 
      * @param  [out]ppCtx The alloc'ed gfmVideo context
+     * @param  [ in]pLog  The logger facility, so it's possible to log whatever
+     *                    happens in this module
      * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
      */
-    gfmRV (*gfmVideo_init)(gfmVideo **ppCtx);
+    gfmRV (*gfmVideo_init)(gfmVideo **ppCtx, gfmLog *pLog);
 
     /**
      * Releases a previously alloc'ed/initialized gfmVideo

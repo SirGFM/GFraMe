@@ -22,7 +22,7 @@ gfmRV gfmBackend_init() {
     int irv;
     
     ASSERT(isSDLInit == 0, GFMRV_BACKEND_ALREADY_INITIALIZED);
-    irv = SDL_Init(SDL_INIT_TIMER);
+    irv = SDL_Init(0);
     ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
     
     isSDLInit = 1;

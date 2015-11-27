@@ -35,6 +35,7 @@ struct stGFMTexture {
 };
 
 struct stGFMVideoGL3 {
+    gfmLog *pLog;
 /* ==== OPENGL FIELDS ======================================================= */
     SDL_GLContext *pGLCtx;
     GLfloat worldMatrix[16];
@@ -202,9 +203,11 @@ static void gfmVideo_GL3_freeTexture(gfmTexture **ppCtx) {
  * Initializes a new gfmVideo
  * 
  * @param  [out]ppCtx The alloc'ed gfmVideo context
+ * @param  [ in]pLog  The logger facility, so it's possible to log whatever
+ *                    happens in this module
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
-static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx) {
+static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx, gfmLog *pLog) {
     gfmRV rv;
     gfmVideoGL3 *pCtx;
     int didInit, irv;
@@ -222,6 +225,9 @@ static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx) {
 
     /* Clean the struct */
     memset(pCtx, 0x0, sizeof(gfmVideoGL3));
+
+    /* Store the log facility */
+    pCtx->pLog = pLog;
 
     /* Initialize the SDL2 video subsystem */
     irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
@@ -939,10 +945,9 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     rv = gfmVideo_GL3_glLoadFunctions();
     ASSERT(rv == GFMRV_OK, rv);
 
-    /* TODO Enable alpha blending (?) */
+    /* Enable alpha blending */
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_1D);
 
     /* Load shaders */
     rv = gfmVideo_GL3_loadShaders(pCtx);

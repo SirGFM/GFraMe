@@ -488,7 +488,7 @@ gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx) {
 
     /* Alloc the window */
     if (!pCtx->pVideo) {
-        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo), pCtx->pLog);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
@@ -577,7 +577,7 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
 
     /* Alloc the video context */
     if (!pCtx->pVideo) {
-        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo), pCtx->pLog);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     /* Initialize the window */
@@ -637,7 +637,7 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
 
     /* Alloc the video context */
     if (!pCtx->pVideo) {
-        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo));
+        rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo), pCtx->pLog);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     /* Initialize the window */

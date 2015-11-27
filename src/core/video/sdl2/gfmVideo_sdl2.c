@@ -32,6 +32,7 @@ struct stGFMTexture {
 };
 
 struct stGFMVideoSDL2 {
+    gfmLog *pLog;
 /* ==== WINDOW FIELDS ======================================================= */
     /** Actual window (managed by SDL2) */
     SDL_Window *pSDLWindow;
@@ -148,9 +149,11 @@ static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx) {
  * Initializes a new gfmVideo
  * 
  * @param  [out]ppCtx The alloc'ed gfmVideo context
+ * @param  [ in]pLog  The logger facility, so it's possible to log whatever
+ *                    happens in this module
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
-static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx) {
+static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int didInit, irv;
@@ -168,6 +171,9 @@ static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx) {
 
     /* Clean the struct */
     memset(pCtx, 0x0, sizeof(gfmVideoSDL2));
+
+    /* Store the log facility */
+    pCtx->pLog = pLog;
 
     /* Initialize the SDL2 video subsystem */
     irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
