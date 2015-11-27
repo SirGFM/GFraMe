@@ -232,46 +232,54 @@ static gfmRV gfmLog_logTime(gfmLog *pCtx) {
     //int len;
     struct tm *_pTm;
 	time_t _time, ret;
-    
+
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the logger was initialized
 #ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
 #endif
-    
+
 	// Get current time
 	ret = time(&_time);
     ASSERT(ret != ((time_t) -1), GFMRV_INTERNAL_ERROR);
     _pTm = localtime(&_time);
     ASSERT(_pTm != 0, GFMRV_INTERNAL_ERROR);
-    
+
+#define LOG_INT(var) \
+    if (var < 10) { \
+        /* Make sure the integer is 2 digits long */ \
+        rv = gfmLog_logString(pCtx, "0", 1); \
+        ASSERT(rv == GFMRV_OK, rv); \
+    } \
+    rv = gfmLog_logInt(pCtx, var)
+
     // Log the time
-    rv = gfmLog_logInt(pCtx, _pTm->tm_year + 1900);
+    LOG_INT(_pTm->tm_year + 1900);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, "/", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _pTm->tm_mon);
+    LOG_INT(_pTm->tm_mon);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, "/", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _pTm->tm_mday);
+    LOG_INT(_pTm->tm_mday);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, " ", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _pTm->tm_hour);
+    LOG_INT(_pTm->tm_hour);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, ":", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _pTm->tm_min);
+    LOG_INT(_pTm->tm_min);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, ":", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmLog_logInt(pCtx, _pTm->tm_sec);
+    LOG_INT(_pTm->tm_sec);
     ASSERT(rv == GFMRV_OK, rv);
     rv = gfmLog_logString(pCtx, " ", 1);
     ASSERT(rv == GFMRV_OK, rv);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
