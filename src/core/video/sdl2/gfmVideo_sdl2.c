@@ -111,8 +111,12 @@ static gfmRV gfmVideo_SDL2_setBackgroundColor(gfmVideo *pVideo, int color) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
-    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Setting BG color to 0x%08X", color);
+    /* %x must be added to log before logging here */
+#if 0
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Setting BG color to 0x%*X", 8,
+            color);
     ASSERT(rv == GFMRV_OK, rv);
+#endif
 
     /* Set the color */
     pCtx->bgAlpha = (color >> 24) & 0xff;

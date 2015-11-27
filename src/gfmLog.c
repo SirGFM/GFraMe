@@ -109,7 +109,10 @@ gfmRV gfmLog_init(gfmLog *pLog, gfmCtx *pCtx, gfmLogLevel level) {
     // Alloc and open the file
     rv = gfmFile_getNew(&(pLog->pFile));
     ASSERT(rv == GFMRV_OK, rv);
-    rv = gfmFile_openLocal(pLog->pFile, pCtx, "game.log", 8/*nameLen*/, "a");
+
+    /* TODO Check for an "error on previous run" flag and open in append mode */
+
+    rv = gfmFile_openLocal(pLog->pFile, pCtx, "game.log", 8/*nameLen*/, "w");
     ASSERT(rv == GFMRV_OK, rv);
 #endif
     
