@@ -175,22 +175,30 @@ static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
     /* Store the log facility */
     pCtx->pLog = pLog;
 
+    gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing SDL2 video backend");
+
     /* Initialize the SDL2 video subsystem */
     irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Mark SDL2 as initialized, in case anything happens */
     didInit = 1;
 
     /* Get the device's default resolution */
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, 0/*defResolution*/, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     pCtx->devWidth = sdlMode.w;
     pCtx->devHeight = sdlMode.h;
 
+    gfmLog_log(pCtx->pLog, gfmLog_info, "Main display dimensions: %i x %i",
+            pCtx->devWidth, pCtx->devHeight);
+
     /* Retrieve the number of available resolutions */
     pCtx->resCount = SDL_GetNumDisplayModes(0);
-    ASSERT(pCtx->resCount, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(pCtx->resCount, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+
+    gfmLog_log(pCtx->pLog, gfmLog_info, "Number of available resolutions: %i",
+            pCtx->resCount);
 
     /* Set the return variables */
     *ppCtx = (gfmVideo*)pCtx;
