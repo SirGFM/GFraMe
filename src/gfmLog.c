@@ -31,6 +31,7 @@ struct stGFMLog {
 /** States for the log parser */
 enum enGFMLogParser {
     gfmLogParser_waiting = 0,
+    gfmLogParser_getOptions,
     gfmLogParser_getType,
     gfmLogParser_max
 };
@@ -182,7 +183,7 @@ __ret:
  * @param  val  Value to be logged
  */
 static gfmRV gfmLog_logInt(gfmLog *pCtx, int val) {
-    // Enough bytes for 32 bytes signed + '\0'
+    // Enough bytes for 32 bits signed + '\0'
     char pBuf[12];
     gfmRV rv;
     int i;
@@ -217,6 +218,62 @@ static gfmRV gfmLog_logInt(gfmLog *pCtx, int val) {
     rv = gfmLog_logString(pCtx, pBuf + i, 11 - i);
     ASSERT(rv == GFMRV_OK, rv);
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Log an hexadecimal number
+ *
+ * NOTE: It's always logged as 8 hexadecimal digits
+ *
+ * @param  [ in]pCtx    The logger
+ * @param  [ in]val     The value to be logged
+ * @param  [ in]isUpper Whether it should be printed as upper case
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_LOG_NOT_INITIALIZED
+ */
+static gfmRV gfmLog_logHex(gfmLog *pCtx, int val, int isUpper) {
+    /* Enough bytes for 8 hexadecimal digits + '\0' */
+    char pBuf[9];
+    gfmRV rv;
+    int i;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the logger was initialized */
+#ifndef EMCC
+    ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
+#endif
+
+    i = 0;
+    while (i < 8) {
+        char c;
+
+        c = val & 0x0000000f;
+
+        /* Output the current nibble */
+        if (c < 10) {
+            pBuf[7 - i] = c + '0';
+        }
+        else if (isUpper) {
+            pBuf[7 - i] = c - 10 + 'A';
+        }
+        else {
+            pBuf[7 - i] = c - 10 + 'a';
+        }
+
+        /* Go to the next one */
+        val >>= 4;
+        i++;
+    }
+    /* Set the NULL terminating byte */
+    pBuf[8] = '\0';
+
+    /* Write the hexa number as string */
+    rv = gfmLog_logString(pCtx, pBuf, 8);
+    ASSERT(rv == GFMRV_OK, rv);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -334,8 +391,10 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
         switch (parser) {
             case gfmLogParser_waiting: {
                 if (c == '%') {
-                    // After a '%' comes the type, so flag it!
-                    parser = gfmLogParser_getType;
+                    // After a '%' comes the options, so flag it!
+                    parser = gfmLogParser_getOptions;
+                    // Reset the length
+                    strLen = -1;
                     // If there was a string before the '%', print it
                     if (strIni != -1) {
                         rv = gfmLog_logString(pCtx, pFmt + strIni, i - strIni);
@@ -348,13 +407,23 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
                     strIni = i;
                 }
             } break;
-            case gfmLogParser_getType: {
-                // TODO Get formatting options
+            case gfmLogParser_getOptions: {
                 switch (c) {
                     case '*': {
                         // Retrieve the string's max size from the variadic args
                         strLen = va_arg(args, int);
                     } break;
+                    // TODO Get other formatting options
+                    default: {
+                        // Since all formatting options were parsed, go to the
+                        // next state
+                        parser = gfmLogParser_getType;
+                        continue;
+                    }
+                }
+            } break;
+            case gfmLogParser_getType: {
+                switch (c) {
                     case 'c': {
                         // TODO Retrieve a character from the variadic args
                         // TODO Print it to the log
@@ -371,9 +440,13 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
                     } break;
                     case 'X':
                     case 'x': {
-                        // TODO Retrieve a integer from the variadic args
-                        // TODO Check if upper-case
-                        // TODO Print it as an hexadecimal number to the log
+                        int val;
+                        
+                        // Retrieve a integer from the variadic args
+                        val = va_arg(args, int);
+                        // Print it to the log
+                        rv = gfmLog_logHex(pCtx, val, c == 'X');
+                        ASSERT(rv == GFMRV_OK, rv);
                     } break;
                     case 's': {
                         char *pStr;
@@ -400,9 +473,7 @@ gfmRV gfmLog_simpleLog(gfmLog *pCtx, gfmLogLevel level, char *pFmt, ...) {
                     default: ASSERT(0, GFMRV_LOG_UNKNOWN_TOKEN);
                 }
                 // Go back to the previous state
-                if (c != '*') {
-                    parser = gfmLogParser_waiting;
-                }
+                parser = gfmLogParser_waiting;
             } break;
             default: ASSERT(0, GFMRV_LOG_UNKNOWN_TOKEN);
         }
