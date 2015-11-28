@@ -21,6 +21,9 @@
 /** Texture used to pass all data */
 "uniform isamplerBuffer instanceData;\n"
 
+/** Offset into the data buffer */
+"uniform int dataOffset;\n"
+
 "void main() {\n"
     /** .xy = sprite's position; .z = isFlipped */
 "    ivec3 translation;\n"
@@ -34,7 +37,7 @@
     /* -- Retrieve the instance data ------------------------------------ */
 
     /* Calculate the per-texel offset and the base index */
-"    index = 2 * gl_InstanceID;\n"
+"    index = 2 * (dataOffset + gl_InstanceID);\n"
 
     /* Retrieve the position (and horizontal flipping) */
 "    translation.xyz = texelFetch(instanceData, index).rgb;\n"
