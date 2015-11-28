@@ -144,6 +144,56 @@ static char backbufferFragmentShader[] =
 #include "bbuffer_glsl.fs"
 ;
 
+#define ASSERT_GL_ERROR() \
+  ASSERT_LOG(gfmVideo_GL3_checkErrors(pCtx) == GFMRV_OK, GFMRV_INTERNAL_ERROR, \
+            pCtx->pLog)
+/**
+ * Check if any error happened on a previous OpenGL call
+ * 
+ * @param  [ in]pCtx The video context
+ * @return           GFMRV_OK, GFMRV_INTERNAL_ERROR
+ */
+static gfmRV gfmVideo_GL3_checkErrors(gfmVideoGL3 *pCtx) {
+    GLenum glErr;
+    gfmRV rv;
+
+    rv = GFMRV_OK;
+    do {
+        glErr = glGetError();
+
+        switch (glErr) {
+#define LOG_GL_ERR(err, msg) \
+  case err: { \
+    gfmLog_log(pCtx->pLog, gfmLog_info, "OpenGL error: "msg); \
+    rv = GFMRV_INTERNAL_ERROR; \
+  } break
+            LOG_GL_ERR(GL_INVALID_ENUM, "An unacceptable value is specified "
+                    "for an enumerated argument.");
+            LOG_GL_ERR(GL_INVALID_VALUE, "A numeric argument is out of range.");
+            LOG_GL_ERR(GL_INVALID_OPERATION, "The specified operation is not "
+                    "allowed in the current state.");
+            LOG_GL_ERR(GL_INVALID_FRAMEBUFFER_OPERATION, "The framebuffer "
+                    "object is not complete.");
+            LOG_GL_ERR(GL_OUT_OF_MEMORY, "There is not enough memory left to "
+                    "execute the command.");
+            LOG_GL_ERR(GL_STACK_UNDERFLOW, "An attempt has been made to "
+                    "perform an operation that would cause an internal stack "
+                    "to underflow.");
+            LOG_GL_ERR(GL_STACK_OVERFLOW, "An attempt has been made to perform "
+                    "an operation that would cause an internal stack to "
+                    "overflow.");
+            case GL_NO_ERROR: { /* do nothing */} break;
+            default: {
+                gfmLog_log(pCtx->pLog, gfmLog_info, "Unknown error");
+                rv = GFMRV_INTERNAL_ERROR;
+            } break;
+        }
+#undef LOG_GL_ERR
+    } while (glErr != GL_NO_ERROR);
+
+    return rv;
+}
+
 /**
  * Set the background color
  * 
@@ -170,6 +220,9 @@ static gfmRV gfmVideo_GL3_setBackgroundColor(gfmVideo *pVideo, int color) {
     pCtx->bgRed   = ((color >> 16) & 0xff) / 255.0f;
     pCtx->bgGreen = ((color >> 8) & 0xff) / 255.0f;
     pCtx->bgBlue  = (color & 0xff) / 255.0f;
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Setting BG color to 0x%X", color);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -266,6 +319,8 @@ static gfmRV gfmVideo_GL3_init(gfmVideo **ppCtx, gfmLog *pLog) {
     pCtx->worldMatrix[7] = 1;
     pCtx->worldMatrix[10] = 1;
     pCtx->worldMatrix[15] = 1;
+
+    gfmLog_log(pCtx->pLog, gfmLog_info, "OpenGL 3.1 context initialized");
 
     /* Set the return variables */
     *ppCtx = (gfmVideo*)pCtx;
@@ -425,16 +480,63 @@ static gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pRefRate, GFMRV_ARGUMENTS_BAD);
-    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pRefRate, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the resolution is valid */
-    ASSERT(index < pCtx->resCount, GFMRV_INVALID_INDEX);
+    ASSERT_LOG(index < pCtx->resCount, GFMRV_INVALID_INDEX, pCtx->pLog);
 
     /* Retrieve the dimensions for the current resolution mode */
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, pCtx->curResolution, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Resolution %i: %i x %i @ %iHz",
+            sdlMode.w, sdlMode.h, sdlMode.refresh_rate);
+    ASSERT(rv == GFMRV_OK, rv);
+    switch (sdlMode.format) {
+#define LOG_PF(fmt) \
+    case SDL_PIXELFORMAT_##fmt: { \
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Color format: "#fmt); \
+    } break
+        LOG_PF(UNKNOWN);
+        LOG_PF(INDEX1LSB);
+        LOG_PF(INDEX1MSB);
+        LOG_PF(INDEX4LSB);
+        LOG_PF(INDEX4MSB);
+        LOG_PF(INDEX8);
+        LOG_PF(RGB332);
+        LOG_PF(RGB444);
+        LOG_PF(RGB555);
+        LOG_PF(BGR555);
+        LOG_PF(ARGB4444);
+        LOG_PF(RGBA4444);
+        LOG_PF(ABGR4444);
+        LOG_PF(BGRA4444);
+        LOG_PF(ARGB1555);
+        LOG_PF(RGBA5551);
+        LOG_PF(ABGR1555);
+        LOG_PF(BGRA5551);
+        LOG_PF(RGB565);
+        LOG_PF(BGR565);
+        LOG_PF(RGB24);
+        LOG_PF(BGR24);
+        LOG_PF(RGB888);
+        LOG_PF(RGBX8888);
+        LOG_PF(BGR888);
+        LOG_PF(BGRX8888);
+        LOG_PF(ARGB8888);
+        LOG_PF(RGBA8888);
+        LOG_PF(ABGR8888);
+        LOG_PF(BGRA8888);
+        LOG_PF(ARGB2101010);
+        LOG_PF(YV12);
+        LOG_PF(IYUV);
+        LOG_PF(YUY2);
+        LOG_PF(UYVY);
+        LOG_PF(YVYU);
+    }
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Set the return */
     *pWidth = sdlMode.w;
@@ -460,8 +562,10 @@ static gfmRV gfmVideoGL3_cacheDimensions(gfmVideoGL3 *pCtx, int width,
     int horRatio, verRatio;
 
     /* Check that the window's dimension is valid */
-    ASSERT(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
-    ASSERT(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT_LOG(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
+    ASSERT_LOG(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
 
     /* Check each possible ratio */
     horRatio = (int)( (double)width / (double)pCtx->bbufWidth);
@@ -471,13 +575,24 @@ static gfmRV gfmVideoGL3_cacheDimensions(gfmVideoGL3 *pCtx, int width,
         pCtx->scrZoom = horRatio;
     else
         pCtx->scrZoom = verRatio;
-    ASSERT(pCtx->scrZoom > 0, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT_LOG(pCtx->scrZoom > 0, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
 
     /* Center the output */
     pCtx->scrPosX = (width - pCtx->bbufWidth * pCtx->scrZoom) / 2;
     pCtx->scrPosY = (height - pCtx->bbufHeight * pCtx->scrZoom) / 2;
     pCtx->scrWidth = pCtx->bbufWidth * pCtx->scrZoom;
     pCtx->scrHeight = pCtx->bbufHeight * pCtx->scrZoom;
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Backbuffer position: %i x %i",
+            pCtx->scrPosX, pCtx->scrPosY);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Backbuffer resized dimensions: "
+            "%i x %i", pCtx->scrWidth, pCtx->scrHeight);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Backbuffer scalling ratio: %i "
+            "times", pCtx->scrZoom);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -509,28 +624,35 @@ static gfmRV gfmVideo_GL3_setResolution(gfmVideo *pVideo, int index) {
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(index >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the index is valid */
-    ASSERT(index < pCtx->resCount, GFMRV_INVALID_INDEX);
+    ASSERT_LOG(index < pCtx->resCount, GFMRV_INVALID_INDEX, pCtx->pLog);
     /* Check that the window was already initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     /* Retrieve the desired mode */
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, index, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Check if the backbuffer fit into this new window */
-    ASSERT(sdlMode.w >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
-    ASSERT(sdlMode.h >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT_LOG(sdlMode.w >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
+    ASSERT_LOG(sdlMode.h >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
 
     /* Switch the fullscreen resolution */
     irv = SDL_SetWindowDisplayMode(pCtx->pSDLWindow, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Fullscreen resolution set to %i "
+            "x %i @ %iHz", sdlMode.w, sdlMode.h, sdlMode.refresh_rate);
+    ASSERT(rv == GFMRV_OK, rv);
+
 
     if (pCtx->isFullscreen) {
         /* Update helper variables */
         rv = gfmVideoGL3_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
-        ASSERT(rv == GFMRV_OK, rv);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
     /* Store the resolution */
@@ -562,6 +684,8 @@ static GLuint gfmVideo_GL3_compileShader(gfmVideoGL3 *pCtx,  GLenum shaderType,
     /* Check if it compiled successfully */
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE) {
+        gfmLog_log(pCtx->pLog, gfmLog_info, "Failed to compile shader!");
+
         /* Retrieve the length of the error string */
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &(pCtx->logSize));
         /* Alloc enough bytes for the error string and retrieve it */
@@ -569,6 +693,10 @@ static GLuint gfmVideo_GL3_compileShader(gfmVideoGL3 *pCtx,  GLenum shaderType,
         if (pCtx->pInfoLog) {
             glGetShaderInfoLog(shader, pCtx->logSize, &(pCtx->logSize),
                     pCtx->pInfoLog);
+
+            gfmLog_log(pCtx->pLog, gfmLog_info, "Error message:"
+                    "\n--------------------\n%*s\n--------------------\n",
+                    pCtx->logSize, pCtx->pInfoLog);
         }
 
         return 0;
@@ -601,11 +729,11 @@ static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, gfmVideoGL3 *pCtx,
 
     /* Compile the vertex shader */
     vsi = gfmVideo_GL3_compileShader(pCtx, GL_VERTEX_SHADER, pVShader);
-    ASSERT(vsi, GFMRV_VERTEX_SHADER_ERROR);
+    ASSERT_LOG(vsi, GFMRV_VERTEX_SHADER_ERROR, pCtx->pLog);
 
     /* Compile the fragment shader */
     fsi = gfmVideo_GL3_compileShader(pCtx, GL_FRAGMENT_SHADER, pFShader);
-    ASSERT(fsi, GFMRV_VERTEX_SHADER_ERROR);
+    ASSERT_LOG(fsi, GFMRV_FRAGMENT_SHADER_ERROR, pCtx->pLog);
 
     /* Create the shader program */
     program = glCreateProgram();
@@ -615,7 +743,7 @@ static gfmRV gfmVideo_GL3_glcreateProgram(GLuint *pProg, gfmVideoGL3 *pCtx,
     glLinkProgram(program);
     /* Check that it linked successfully */
 	glGetProgramiv(program, GL_LINK_STATUS, &status);
-    ASSERT(status == GL_TRUE, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(status == GL_TRUE, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Set the return variables */
     *pProg = program;
@@ -654,22 +782,32 @@ static gfmRV gfmVideo_GL3_loadShaders(gfmVideoGL3 *pCtx) {
     /* TODO Load user-supplied shaders */
 
     /* Load the sprite program */
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Compiling sprite shader");
+    ASSERT(rv == GFMRV_OK, rv);
     rv = gfmVideo_GL3_glcreateProgram(&(pCtx->sprProgram), pCtx,
             spriteVertexShader, spriteFragmentShader);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     /* Load the backbuffer program */
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Compiling backbuffer shader");
+    ASSERT(rv == GFMRV_OK, rv);
     rv = gfmVideo_GL3_glcreateProgram(&(pCtx->bbProgram), pCtx,
             backbufferVertexShader, backbufferFragmentShader);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Load the programs uniforms */
     pCtx->sprUnfTransformMatrix = glGetUniformLocation(pCtx->sprProgram,
             "locToGL");
+    ASSERT_GL_ERROR();
     pCtx->sprUnfTexDimensions = glGetUniformLocation(pCtx->sprProgram,
             "texDimensions");
+    ASSERT_GL_ERROR();
     pCtx->sprUnfTexture = glGetUniformLocation(pCtx->sprProgram, "gSampler");
+    ASSERT_GL_ERROR();
     pCtx->sprUnfInstanceData = glGetUniformLocation(pCtx->sprProgram, "instanceData");
+    ASSERT_GL_ERROR();
     pCtx->bbUnfTexture = glGetUniformLocation(pCtx->bbProgram, "gSampler");
+    ASSERT_GL_ERROR();
 
     rv = GFMRV_OK;
 __ret:
@@ -711,89 +849,134 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
 
     /* Create the in-video-memory (?) backbuffer mesh */
     glGenBuffers(1, &(pCtx->bbVbo));
-    ASSERT(pCtx->bbVbo, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(pCtx->bbVbo, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    ASSERT_GL_ERROR();
     /* Load the mesh data into the GPU (?) */
     glBindBuffer(GL_ARRAY_BUFFER, pCtx->bbVbo);
+    ASSERT_GL_ERROR();
     glBufferData(GL_ARRAY_BUFFER, sizeof(bbVboData), bbVboData, GL_STATIC_DRAW);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    ASSERT_GL_ERROR();
 
     /* Create the index for the backbuffer mesh */
     glGenBuffers(1, &(pCtx->bbIbo));
-    ASSERT(pCtx->bbIbo, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbIbo, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Load the index data */
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->bbIbo);
+    ASSERT_GL_ERROR();
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iboData), iboData,
             GL_STATIC_DRAW);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    ASSERT_GL_ERROR();
 
     /* Create a vertex array that associates both mesh and indexes */
     glGenVertexArrays(1, &(pCtx->bbVao));
-    ASSERT(pCtx->bbVao, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbVao, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Associate both objects with this vao */
     glBindVertexArray(pCtx->bbVao);
+    ASSERT_GL_ERROR();
     glEnableVertexAttribArray(0);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ARRAY_BUFFER, pCtx->bbVbo);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->bbIbo);
+    ASSERT_GL_ERROR();
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    ASSERT_GL_ERROR();
     glBindVertexArray(0);
+    ASSERT_GL_ERROR();
 
     /* Create the backbuffer actual texture */
     glGenTextures(1, &(pCtx->bbTex));
-    ASSERT(pCtx->bbTex, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbTex, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     glBindTexture(GL_TEXTURE_2D, pCtx->bbTex);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    ASSERT_GL_ERROR();
     /* Remove any ugly (i.e., non-nearest-neighbour) up/down-scale */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    ASSERT_GL_ERROR();
     /* Actually create the texture */
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
             GL_UNSIGNED_BYTE, NULL);
+    ASSERT_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, 0);
+    ASSERT_GL_ERROR();
 
     /* Create the framebuffer used to target the texture */
     glGenFramebuffers(1, &(pCtx->bbFbo));
-    ASSERT(pCtx->bbFbo, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Associate the framebuffer with the texture */
     glBindFramebuffer(GL_FRAMEBUFFER, pCtx->bbFbo);
+    ASSERT_GL_ERROR();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
             pCtx->bbTex, 0);
+    ASSERT_GL_ERROR();
     status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    ASSERT(status == GL_FRAMEBUFFER_COMPLETE, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(status == GL_FRAMEBUFFER_COMPLETE, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Create the default mesh */
     glGenBuffers(1, &(pCtx->meshVbo));
-    ASSERT(pCtx->bbVbo, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbVbo, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Load the mesh data into the GPU (?) */
     glBindBuffer(GL_ARRAY_BUFFER, pCtx->meshVbo);
+    ASSERT_GL_ERROR();
     glBufferData(GL_ARRAY_BUFFER, sizeof(meshVboData), meshVboData, GL_STATIC_DRAW);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    ASSERT_GL_ERROR();
 
     /* Create the index for the default mesh */
     glGenBuffers(1, &(pCtx->meshIbo));
-    ASSERT(pCtx->meshIbo, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->meshIbo, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Load the index data */
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->meshIbo);
+    ASSERT_GL_ERROR();
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iboData), iboData,
             GL_STATIC_DRAW);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    ASSERT_GL_ERROR();
 
     /* Create a vertex array that associates both mesh and indexes */
     glGenVertexArrays(1, &(pCtx->meshVao));
-    ASSERT(pCtx->bbVao, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->bbVao, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     /* Associate both objects with this vao */
     glBindVertexArray(pCtx->meshVao);
+    ASSERT_GL_ERROR();
     glEnableVertexAttribArray(0);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ARRAY_BUFFER, pCtx->meshVbo);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCtx->meshIbo);
+    ASSERT_GL_ERROR();
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    ASSERT_GL_ERROR();
     glBindVertexArray(0);
+    ASSERT_GL_ERROR();
 
     /* TODO Make this number used defined */
     glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE , &maxBufTexels);
+    ASSERT_GL_ERROR();
     if (maxBufTexels < 8192 * 2) {
         pCtx->maxObjects = maxBufTexels / 2;
     }
@@ -802,23 +985,23 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     }
     /* Create the instance data buffer (used within the texture) */
     glGenBuffers(1, &(pCtx->instanceBuf));
-    ASSERT(pCtx->instanceBuf, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->instanceBuf, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
+    ASSERT_GL_ERROR();
     glBufferData(GL_TEXTURE_BUFFER, sizeof(int) * pCtx->maxObjects * 2 * 3, 0,
             GL_STREAM_DRAW);
+    ASSERT_GL_ERROR();
 
     /* Create a texture to pass data to the shader */
     glGenTextures(1, &(pCtx->instanceTex));
-    ASSERT(pCtx->instanceTex, GFMRV_INTERNAL_ERROR);
+    ASSERT_GL_ERROR();
+    ASSERT_LOG(pCtx->instanceTex, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    ASSERT_GL_ERROR();
     /* Bind the texture to the buffer */
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32I, pCtx->instanceBuf);
+    ASSERT_GL_ERROR();
 
     /* Modify the transformation matrix */
 	pCtx->worldMatrix[0] = 2.0f / (float)width;
@@ -921,50 +1104,66 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
     }
 
     /* Check that the window is big enough to support the backbuffer */
-    ASSERT(bbufWidth <= width, GFMRV_BACKBUFFER_WIDTH_INVALID);
-    ASSERT(bbufHeight <= height, GFMRV_BACKBUFFER_HEIGHT_INVALID);
+    ASSERT_LOG(bbufWidth <= width, GFMRV_BACKBUFFER_WIDTH_INVALID, pCtx->pLog);
+    ASSERT_LOG(bbufHeight <= height, GFMRV_BACKBUFFER_HEIGHT_INVALID,
+            pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Creating %i x %i window...",
+            width, height);
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Ready the OpenGL attributes */
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-    /* SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 1); */
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+    irv = SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    irv = SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
             SDL_GL_CONTEXT_PROFILE_CORE);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Create the window */
     pCtx->pSDLWindow = SDL_CreateWindow(pName, SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED, width, height, flags);
-    ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Retrieve the OpenGL context */
     pCtx->pGLCtx = SDL_GL_CreateContext(pCtx->pSDLWindow);
-    ASSERT(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Enable VSync */
     if (vsync) {
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Enabling VSYNC...");
+        ASSERT(rv == GFMRV_OK, rv);
+
         irv = SDL_GL_SetSwapInterval(1);
-        ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
+        ASSERT_LOG(irv >= 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     }
 
     /* Load all required OpenGL functions */
     rv = gfmVideo_GL3_glLoadFunctions();
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Enable alpha blending */
     glEnable(GL_BLEND);
+    ASSERT_GL_ERROR();
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    ASSERT_GL_ERROR();
 
     /* Load shaders */
     rv = gfmVideo_GL3_loadShaders(pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Create the GL backbuffer */
     rv = gfmVideo_GL3_createBackbuffer(pCtx, bbufWidth, bbufHeight);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Store the window (in windowed mode) dimensions */
     pCtx->wndWidth = width;
@@ -974,16 +1173,19 @@ static gfmRV gfmVideo_GL3_createWindow(gfmVideoGL3 *pCtx, int width,
 
     /* Already send the transform matrix to its uniform */
     glUseProgram(pCtx->sprProgram);
+    ASSERT_GL_ERROR();
     glUniformMatrix4fv(pCtx->sprUnfTransformMatrix, 1, GL_FALSE, pCtx->worldMatrix);
+    ASSERT_GL_ERROR();
 	glUseProgram(0);
+    ASSERT_GL_ERROR();
 
     /* Update helper variables */
     rv = gfmVideoGL3_cacheDimensions(pCtx, width, height);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Set the background color */
     rv = gfmVideo_GL3_setBackgroundColor((gfmVideo*)pCtx, 0xff000000);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
 __ret:
@@ -1033,12 +1235,12 @@ static gfmRV gfmVideo_GL3_initWindow(gfmVideo *pVideo, int width, int height,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(width <= 16384, GFMRV_ARGUMENTS_BAD);
-    ASSERT(height <= 16384, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(width <= 16384, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height <= 16384, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that it hasn't been initialized */
-    ASSERT(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT_LOG(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
 
     /* Set the SDL flag */
     flags = SDL_WINDOW_OPENGL;
@@ -1046,10 +1248,14 @@ static gfmRV gfmVideo_GL3_initWindow(gfmVideo *pVideo, int width, int height,
         flags |= SDL_WINDOW_RESIZABLE;
     }
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing game in windowed "
+            "mode");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     /* Actually create the window */
     rv = gfmVideo_GL3_createWindow(pCtx, width, height, bbufWidth, bbufHeight,
             pName, flags, vsync);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Set it as in windowed mode */
     pCtx->isFullscreen = 0;
@@ -1090,11 +1296,11 @@ static gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pVideo,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(resolution >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(resolution >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the resolution is valid */
-    ASSERT(resolution < pCtx->resCount, GFMRV_INVALID_INDEX);
+    ASSERT_LOG(resolution < pCtx->resCount, GFMRV_INVALID_INDEX, pCtx->pLog);
     /* Check that it hasn't been initialized */
-    ASSERT(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED);
+    ASSERT_LOG(!pCtx->pSDLWindow, GFMRV_WINDOW_ALREADY_INITIALIZED, pCtx->pLog);
 
     /* Set the SDL flag */
     flags = SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_OPENGL;
@@ -1102,17 +1308,21 @@ static gfmRV gfmVideo_GL3_initWindowFullscreen(gfmVideo *pVideo,
         flags |= SDL_WINDOW_RESIZABLE;
     }
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing game in fullscreen "
+            "mode");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     /* Actually create the window */
     rv = gfmVideo_GL3_createWindow(pCtx, pCtx->devWidth, pCtx->devHeight,
             bbufWidth, bbufHeight, pName, flags, vsync);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Set it as in fullscreen mode */
     pCtx->isFullscreen = 1;
 
     /* Set the current resolution */
     rv = gfmVideo_GL3_setResolution(pCtx, resolution);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
 __ret:
@@ -1142,10 +1352,10 @@ static gfmRV gfmVideo_GL3_setDimensions(gfmVideo *pVideo, int width,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
-    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the window was initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     /* Clamp the dimensions to the device's */
     if (width > pCtx->devWidth) {
@@ -1156,8 +1366,10 @@ static gfmRV gfmVideo_GL3_setDimensions(gfmVideo *pVideo, int width,
     }
 
     /* Check if the backbuffer fit into this new window */
-    ASSERT(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
-    ASSERT(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL);
+    ASSERT_LOG(width >= pCtx->bbufWidth, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
+    ASSERT_LOG(height >= pCtx->bbufHeight, GFMRV_BACKBUFFER_WINDOW_TOO_SMALL,
+            pCtx->pLog);
 
     /* Try to change the dimensions */
     SDL_SetWindowSize(pCtx->pSDLWindow, width, height);
@@ -1165,8 +1377,12 @@ static gfmRV gfmVideo_GL3_setDimensions(gfmVideo *pVideo, int width,
     if (!pCtx->isFullscreen) {
         /* Update helper variables */
         rv = gfmVideoGL3_cacheDimensions(pCtx, width, height);
-        ASSERT(rv == GFMRV_OK, rv);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window dimensions set to %i x %i",
+            width, height);
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Store the new  dimensions */
     pCtx->wndWidth = width;
@@ -1200,10 +1416,10 @@ static gfmRV gfmVideo_GL3_getDimensions(int *pWidth, int *pHeight,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the window was initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     if (!pCtx->isFullscreen) {
         /* Retrieve the window's dimensions */
@@ -1216,7 +1432,7 @@ static gfmRV gfmVideo_GL3_getDimensions(int *pWidth, int *pHeight,
         /* Retrieve the dimensions for the current resolution mode */
         irv = SDL_GetDisplayMode(0 /*displayIndex*/, pCtx->curResolution,
                 &sdlMode);
-        ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+        ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
         *pWidth = sdlMode.w;
         *pHeight = sdlMode.h;
@@ -1246,23 +1462,27 @@ static gfmRV gfmVideo_GL3_setFullscreen(gfmVideo *pVideo) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the window was initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     /* Check that the window isn't in fullscreen mode */
-    ASSERT(!pCtx->isFullscreen, GFMRV_WINDOW_MODE_UNCHANGED);
+    ASSERT_LOG(!pCtx->isFullscreen, GFMRV_WINDOW_MODE_UNCHANGED, pCtx->pLog);
 
     /* Retrieve the desired mode */
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, pCtx->curResolution, &sdlMode);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Try to make it fullscrren */
     irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     pCtx->isFullscreen = 1;
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Just switched to fullscreen "
+            "mode");
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Update helper variables */
     rv = gfmVideoGL3_cacheDimensions(pCtx, sdlMode.w, sdlMode.h);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
 __ret:
@@ -1287,19 +1507,22 @@ static gfmRV gfmVideo_GL3_setWindowed(gfmVideo *pVideo) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the window was initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     /* Check that the window isn't in windowed mode */
-    ASSERT(pCtx->isFullscreen, GFMRV_WINDOW_MODE_UNCHANGED);
+    ASSERT_LOG(pCtx->isFullscreen, GFMRV_WINDOW_MODE_UNCHANGED, pCtx->pLog);
 
     /* Try to make it fullscrren */
     irv = SDL_SetWindowFullscreen(pCtx->pSDLWindow, 0);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
     pCtx->isFullscreen = 0;
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Just switched to windowed mode");
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Update helper variables */
     rv = gfmVideoGL3_cacheDimensions(pCtx, pCtx->wndWidth, pCtx->wndHeight);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
 __ret:
@@ -1324,10 +1547,10 @@ static gfmRV gfmVideo_GL3_getBackbufferDimensions(int *pWidth, int *pHeight,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pWidth, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pHeight, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the window was initialized */
-    ASSERT(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->pSDLWindow, GFMRV_WINDOW_NOT_INITIALIZED, pCtx->pLog);
 
     /* Retrieve the backbuffer's dimensions */
     *pWidth = pCtx->bbufWidth;
@@ -1357,11 +1580,11 @@ static gfmRV gfmVideo_GL3_windowToBackbuffer(int *pX, int *pY,
     pCtx = (gfmVideoGL3*)pVideo;
 
     /* Sanitize arguments */
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pX, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pY, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Convert the space */
     *pX = (*pX - pCtx->scrPosX) / (float)pCtx->scrZoom;
@@ -1388,21 +1611,28 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Set the clear color to black */
     glClearColor(pCtx->bgRed, pCtx->bgGreen, pCtx->bgBlue, pCtx->bgAlpha);
+    ASSERT_GL_ERROR();
     /* Clear the backbuffer */
     glBindFramebuffer(GL_FRAMEBUFFER, pCtx->bbFbo);
+    ASSERT_GL_ERROR();
     glClear(GL_COLOR_BUFFER_BIT);
+    ASSERT_GL_ERROR();
     /* Activate the sprite rendering shader */
 	glUseProgram(pCtx->sprProgram);
+    ASSERT_GL_ERROR();
     /* Set its dimensions to the backbuffer's */
 	glViewport(0, 0, pCtx->bbufWidth, pCtx->bbufHeight);
+    ASSERT_GL_ERROR();
 
     /* Bind the default mesh (since it won't change through all rendering) */
     glEnableVertexAttribArray(0);
+    ASSERT_GL_ERROR();
     glBindVertexArray(pCtx->meshVao);
+    ASSERT_GL_ERROR();
 
     /* Clear the last texture, so it's at least pushed once */
     pCtx->pLastTexture = 0;
@@ -1420,9 +1650,13 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
 
     /* Bind the texture to the sampler */
     glActiveTexture(GL_TEXTURE0 + 1);
+    ASSERT_GL_ERROR();
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
+    ASSERT_GL_ERROR();
     glBindTexture(GL_TEXTURE_BUFFER, pCtx->instanceTex);
+    ASSERT_GL_ERROR();
     glUniform1i(pCtx->sprUnfInstanceData, 1);
+    ASSERT_GL_ERROR();
 
     rv = GFMRV_OK;
 __ret:
@@ -1437,6 +1671,7 @@ __ret:
  */
 static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
     GLbitfield flags;
+    gfmRV rv;
 
     flags = 0;
     flags |= GL_MAP_WRITE_BIT;
@@ -1445,13 +1680,16 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
 
     /* Orphan the previous buffer data and retrieve a new one */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
+    ASSERT_GL_ERROR();
     pCtx->pInstanceData = (GLint*)glMapBufferRange(GL_TEXTURE_BUFFER, 0,
             sizeof(int) * pCtx->maxObjects * 2 * 3, flags);
+    ASSERT_GL_ERROR();
 
-    if (!pCtx->pInstanceData) {
-        return GFMRV_INTERNAL_ERROR;
-    }
-    return GFMRV_OK;
+    ASSERT_LOG(pCtx->pInstanceData, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /** 
@@ -1459,7 +1697,9 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
  * 
  * @param  [ in]pCtx The video context
  */
-static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
+static gfmRV gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
+    gfmRV rv;
+
     /** Allow the instances data to be used by the shader */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     glUnmapBuffer(GL_TEXTURE_BUFFER);
@@ -1467,9 +1707,14 @@ static void gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
 
     /* Actually render it */
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, pCtx->numObjects);
+    ASSERT_GL_ERROR();
 
     pCtx->numObjects = 0;
     pCtx->batchCount++;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -1495,38 +1740,43 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pSset, GFMRV_ARGUMENTS_BAD);
-    ASSERT(tile >= 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(tile >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Retrieve the spriteset's texture */
     rv = gfmSpriteset_getTexture(&pTex, pSset);
-    ASSERT(rv == GFMRV_OK, rv);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     /* If the texture just changed, load it into the shader */
     if (pTex != pCtx->pLastTexture) {
         pCtx->pLastTexture = pTex;
 
         if (pCtx->numObjects > 0) {
-            gfmVideo_GL3_drawInstances(pCtx);
+            rv = gfmVideo_GL3_drawInstances(pCtx);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         }
 
         /* Bind the texture dimensions */
         glUniform2f(pCtx->sprUnfTexDimensions, (float)pTex->width,
                 (float)pTex->height);
+        ASSERT_GL_ERROR();
         /* Bind the texture */
         glActiveTexture(GL_TEXTURE0);
+        ASSERT_GL_ERROR();
         glBindTexture(GL_TEXTURE_2D, pTex->texture);
+        ASSERT_GL_ERROR();
         glUniform1i(pCtx->sprUnfTexture, 0);
+        ASSERT_GL_ERROR();
     }
 
     /* Get the tile's dimensions */
     rv = gfmSpriteset_getDimension(&width, &height, pSset);
-    ASSERT_NR(rv == GFMRV_OK);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     if (!pCtx->pInstanceData) {
         rv = gfmVideo_GL3_getInstanceData(pCtx);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
     /* Set the sprite's parameters */
@@ -1539,7 +1789,8 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
 
     pCtx->numObjects++;
     if (pCtx->numObjects == pCtx->maxObjects) {
-        gfmVideo_GL3_drawInstances(pCtx);
+        rv = gfmVideo_GL3_drawInstances(pCtx);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
     pCtx->totalNumObjects++;
@@ -1572,7 +1823,7 @@ static gfmRV gfmVideo_GL3_drawRectangle(gfmVideo *pVideo, int x, int y,
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Check that the rectangle is inside the screen */
     if (x + width < 0) {
@@ -1625,7 +1876,7 @@ static gfmRV gfmVideo_GL3_drawFillRectangle(gfmVideo *pVideo, int x, int y,
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Check that the rectangle is inside the screen */
     if (x + width < 0) {
@@ -1695,35 +1946,50 @@ static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Check if there's anything else to render */
     if (pCtx->numObjects > 0) {
-        gfmVideo_GL3_drawInstances(pCtx);
+        rv = gfmVideo_GL3_drawInstances(pCtx);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
     /* Switch to the default framebuffer */
     glBindVertexArray(0);
+    ASSERT_GL_ERROR();
     glUseProgram(0);
+    ASSERT_GL_ERROR();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    ASSERT_GL_ERROR();
     /* Set it's default color and clean it */
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    ASSERT_GL_ERROR();
     glClear(GL_COLOR_BUFFER_BIT);
+    ASSERT_GL_ERROR();
 
     /* Activate the output program */
     glUseProgram(pCtx->bbProgram);
+    ASSERT_GL_ERROR();
     glViewport(pCtx->scrPosX, pCtx->scrPosY, pCtx->scrWidth, pCtx->scrHeight);
+    ASSERT_GL_ERROR();
     /* Set the backbuffer as the input texture */
     glActiveTexture(GL_TEXTURE0);
+    ASSERT_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, pCtx->bbTex);
+    ASSERT_GL_ERROR();
     glUniform1i(pCtx->bbUnfTexture, 0);
+    ASSERT_GL_ERROR();
     glBindVertexArray(pCtx->bbVao);
+    ASSERT_GL_ERROR();
     /* Draw it */
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+    ASSERT_GL_ERROR();
     glBindVertexArray(0);
+    ASSERT_GL_ERROR();
 
     /* Finally, swap the buffers */
     glUseProgram(0);
+    ASSERT_GL_ERROR();
     SDL_GL_SwapWindow(pCtx->pSDLWindow);
 
     rv = GFMRV_OK;
@@ -1748,10 +2014,10 @@ gfmRV gfmVideo_GL3_getDrawInfo(int *pBatched, int *pNum, gfmVideo *pVideo) {
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pBatched, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pNum, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pBatched, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that it was initialized */
-    ASSERT(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED);
+    ASSERT_LOG(pCtx->bbFbo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
     /* Retrieve the info */
     *pBatched = pCtx->lastBatchCount;
@@ -1790,12 +2056,14 @@ __ret:
  * @param  [ in]pVideo The video context
  * @param  [ in]width  The texture's width
  * @param  [ in]height The texture's height
- * @param  [ in]pLog   The logger interface
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 static gfmRV gfmVideoGL3_initTexture(gfmTexture *pCtx, gfmVideoGL3 *pVideo,
-        int width, int height, gfmLog *pLog) {
+        int width, int height) {
+    gfmLog *pLog;
     gfmRV rv;
+
+    pLog = pVideo->pLog;
 
     /* Sanitize arguments */
     ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pLog);
@@ -1975,16 +2243,21 @@ static gfmRV gfmVideo_GL3_loadTextureBMP(int *pTex, gfmVideo *pVideo,
     /* Initialize the texture  */
     gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, 1/*incRate*/, pTexture,
             gfmVideo_GL3_getNewTexture);
-    rv = gfmVideoGL3_initTexture(pTexture, pCtx, width, height, pLog);
+    rv = gfmVideoGL3_initTexture(pTexture, pCtx, width, height);
     ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
 
     /* Load the data into texture */
     glBindTexture(GL_TEXTURE_2D, pTexture->texture);
+    ASSERT_GL_ERROR();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
             GL_UNSIGNED_BYTE, pData);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    ASSERT_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    ASSERT_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, 0);
+    ASSERT_GL_ERROR();
 
     /* Get the texture's index */
     *pTex = gfmGenArr_getUsed(pCtx->pTextures);
