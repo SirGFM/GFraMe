@@ -187,13 +187,13 @@ int main(int argc, char *argv[]) {
     rv = gfm_getNew(&pCtx);
     ASSERT_NR(rv == GFMRV_OK);
 
+    rv = gfm_initStatic(pCtx, "com.gfmgamecorner", "gframe_input");
+    ASSERT_NR(rv == GFMRV_OK);
+    
     /* Select the video backend */
     rv = gfm_setVideoBackend(pCtx, vbk);
     ASSERT_NR(rv == GFMRV_OK);
 
-    rv = gfm_initStatic(pCtx, "com.gfmgamecorner", "gframe_input");
-    ASSERT_NR(rv == GFMRV_OK);
-    
     // Initialize the window
     if (!fullscreen) {
         rv = gfm_initGameWindow(pCtx, WNDW, WNDH, 640, 480, 1, vsync);
