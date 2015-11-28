@@ -1157,7 +1157,7 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
 
     /* Load the texture */
     rv = (*(pCtx->videoFuncs.gfmVideo_loadTextureBMP))(pIndex, pCtx->pVideo,
-        pFile, colorKey, pCtx->pLog);
+        pFile, colorKey);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Get the texture's dimensions */

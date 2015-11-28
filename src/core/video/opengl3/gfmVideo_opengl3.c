@@ -1835,11 +1835,11 @@ __ret:
  * @param  [ in]pVideo   The video context
  * @param  [ in]pFile    The texture file
  * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
- * @param  [ in]pLog     The logger interface
  */
 static gfmRV gfmVideo_GL3_loadTextureBMP(int *pTex, gfmVideo *pVideo,
-        gfmFile *pFile, int colorKey, gfmLog *pLog) {
+        gfmFile *pFile, int colorKey) {
     char *pData, pBuffer[4];
+    gfmLog *pLog;
     gfmRV rv;
     gfmTexture *pTexture;
     gfmVideoGL3 *pCtx;
@@ -1855,9 +1855,12 @@ static gfmRV gfmVideo_GL3_loadTextureBMP(int *pTex, gfmVideo *pVideo,
     pTexture = 0;
 
     /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    pLog = pCtx->pLog;
+
     ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
     ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
-    ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
     ASSERT_LOG(pFile, GFMRV_ARGUMENTS_BAD, pLog);
 
     /*  Check the file type */

@@ -336,10 +336,9 @@ struct stGFMVideoFuncs {
      * @param  [ in]pCtx     The video context
      * @param  [ in]pFile    The texture file
      * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
-     * @param  [ in]pLog     The logger interface
      */
     gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
-            gfmFile *pFile, int colorKey, gfmLog *pLog);
+            gfmFile *pFile, int colorKey);
 
     /**
      * Retrieve a texture's pointer from its index
