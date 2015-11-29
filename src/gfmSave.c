@@ -4,22 +4,27 @@
  * It's written over the gfmFile module. The only thing it actually does is
  * store key, type, value tuples.
  *
- * @file include/GFraMe/gfmSave.h
+ * @file src/gfmSave.c
  */
-#ifndef __GFMSAVE_STRUCT__
-#define __GFMSAVE_STRUCT__
-
-/** Export the 'gfmSave' struct */
-typedef struct stGFMSave gfmSave;
-
-#endif /* __GFMSAVE_STRUCT__ */
-
-#ifndef __GFMSAVE_H__
-#define __GFMSAVE_H__
-
 #include <GFraMe/gframe.h>
+#include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmLog.h>
+#include <GFraMe/gfmSave.h>
 #include <GFraMe/core/gfmFile_bkend.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+/** gfmSave struct */
+struct stGFMSave {
+    /* Save file version (useful if this is ever modified) */
+    int version;
+    /** The actual save file */
+    gfmFile *pFile;
+    /** Logger, so we can debug stuff */
+    gfmLog *pLog;
+};
 
 /**
  * Alloc a new save object
@@ -27,7 +32,23 @@ typedef struct stGFMSave gfmSave;
  * @param  [out]ppCtx The alloc'ed object
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
-gfmRV gfmSave_getNew(gfmSave **ppCtx);
+gfmRV gfmSave_getNew(gfmSave **ppCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Alloc the struct */
+    *ppCtx = (gfmSave*)malloc(sizeof(gfmSave));
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+
+    /* Clean it */
+    memset(*ppCtx, 0x0, sizeof(gfmSave));
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Free a save object, flushing and releasing all of its resources
@@ -35,7 +56,24 @@ gfmRV gfmSave_getNew(gfmSave **ppCtx);
  * @param  [ in]ppCtx The object to be free'd
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmSave_free(gfmSave **ppCtx);
+gfmRV gfmSave_free(gfmSave **ppCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* TODO Release all internal structs */
+    gfmFile_free(&((*ppCtx)->pFile));
+
+    /* Release the save structure */
+    free(*ppCtx);
+    *ppCtx = 0;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Associate a save object with a file on the system
@@ -46,7 +84,47 @@ gfmRV gfmSave_free(gfmSave **ppCtx);
  * @param  [ in]len       Length of the filename
  * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len);
+gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pSave, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+
+    /* Retrieve the logger */
+    rv = gfm_getLogger(&(pSave->pLog), pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Open the save file */
+    rv = gfmFile_getNew(&(pCtx->pFile));
+    ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+    /* Try to open the file for read/write (file must exist) */
+    rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "r+b");
+    ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_NOT_FOUND, rv, pSave->pLog);
+    if (rv == GFMRV_FILE_NOT_FOUND) {
+        /* If it didn't already exist, create it */
+        rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "w+b");
+        ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+
+        /* TODO Add save file version? */
+
+        /* Close and re-open the file in "r+b" mode; This is necessary because
+         * of the way that erasing a file is handled by gfmFile */
+        rv = gfmFile_close(pSave->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+
+        rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "r+b");
+    }
+    ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+
+    /* TODO Check the save file version */
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Flush the save file and close it
@@ -119,6 +197,4 @@ gfmRV gfmSave_writeData(gfmSave *pCtx, char *pId, int len, char *pData,
  */
 gfmRV gfmSave_readData(char *pData, int *pNumBytes, gfmSave *pCtx, char *pId,
         int len);
-
-#endif /* __GFMSAVE_H__ */
 
