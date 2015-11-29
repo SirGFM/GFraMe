@@ -14,10 +14,16 @@
 struct stGFMAccumulator {
     /** At how many frames per seconds this is running */
     int fps;
-    /** Elapsed time on the current frame */
-    int elapsed;
-    /** How long until a 'frame' is issued */
+    /** Accumulate the elapsed time, in ms, since last frame */
+    int accElapsed;
+    /** How many frames were issued since the decimal part was zeroed */
+    int accDelays;
+    /** How long most frames takes, in ms */
     int delay;
+    /** How long the frame that rounds the decimal takes */
+    int delayOff;
+    /** Number of 'delay' frames for each 'delayOff' */
+    int delayProportion;
     /** How many frames have been accumulated */
     int accFrames;
     /** At most, how many frames can be accumulated */
@@ -35,17 +41,17 @@ const int sizeofGFMAccumulator = (int)sizeof(gfmAccumulator);
  */
 gfmRV gfmAccumulator_getNew(gfmAccumulator **ppCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
-    
-    // Alloc and clean the accumulator
+
+    /* Alloc and clean the accumulator */
     *ppCtx = (gfmAccumulator*)malloc(sizeof(gfmAccumulator));
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
-    
+
     memset(*ppCtx, 0x0, sizeof(gfmAccumulator));
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -59,15 +65,15 @@ __ret:
  */
 gfmRV gfmAccumulator_free(gfmAccumulator **ppCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Free the 'object'
+
+    /* Free the 'object' */
     free(*ppCtx);
     *ppCtx = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -83,21 +89,53 @@ __ret:
  */
 gfmRV gfmAccumulator_setFPS(gfmAccumulator *pCtx, int fps, int maxFrames) {
     gfmRV rv;
-    int delay;
-    
-    // Sanitize argments
+    int delay, prop;
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(fps > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(maxFrames > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that the FPS is valid
+    /* Check that the FPS is valid */
     ASSERT(fps < 1000, GFMRV_ACC_FPS_TOO_HIGH);
-    
-    // Get the expected delay, in milliseconds
+
+    /* Calculate how long a frame should take (rounded down) and how many of
+     * those there are in a second */
     delay = 1000 / fps;
-    // Set the delay
-    rv = gfmAccumulator_setTime(pCtx, delay, maxFrames);
-    ASSERT_NR(rv == GFMRV_OK);
-    
+    prop = fps * (delay + 1) - 1000;
+    ASSERT(prop <= fps, GFMRV_INTERNAL_ERROR);
+    ASSERT(prop > 0, GFMRV_INTERNAL_ERROR);
+
+    /* Adjust the time each frame takes */
+    if (prop == fps) {
+        /* All frames should take the same time */
+        pCtx->delayProportion = 1;
+
+        pCtx->delay = delay;
+        pCtx->delayOff = delay;
+    }
+    else if (prop < fps - prop) {
+        /* There are more frame that takes delay + 1 ms */
+        pCtx->delayProportion = fps / prop;
+
+        pCtx->delay = delay + 1;
+        pCtx->delayOff = delay;
+    }
+    else {
+        /* There are more frames that takes the exact delay */
+        pCtx->delayProportion = fps / (fps - prop);
+
+        pCtx->delay = delay;
+        pCtx->delayOff = delay + 1;
+    }
+
+    /* Store the current fps */
+    pCtx->fps = fps;
+    /* Store the maximum number of accumulated frames */
+    pCtx->maxFrames = maxFrames;
+
+    /* Initialize the elapsed time */
+    pCtx->accElapsed = -pCtx->delay;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -113,19 +151,23 @@ __ret:
  */
 gfmRV gfmAccumulator_setTime(gfmAccumulator *pCtx, int delay, int maxFrames) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(delay > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(maxFrames > 0, GFMRV_ARGUMENTS_BAD);
-    
-    // Set the delay (and clean the previous state)
-    pCtx->elapsed = 0;
+
+    /* Set the delay (and clean the previous state) */
+    pCtx->delayProportion = 1;
     pCtx->delay = delay;
+    pCtx->delayOff = delay;
     pCtx->accFrames = 0;
     pCtx->maxFrames = maxFrames;
     pCtx->fps = 1000 / delay;
-    
+
+    /* Initialize the elapsed time */
+    pCtx->accElapsed = -pCtx->delay;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -140,16 +182,16 @@ __ret:
  */
 gfmRV gfmAccumulator_getFPS(int *pFps, gfmAccumulator *pCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFps, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
+    /* Check that it was initialized */
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Simply return the FPS
+
+    /* Simply return the FPS */
     *pFps = pCtx->fps;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -164,16 +206,16 @@ __ret:
  */
 gfmRV gfmAccumulator_checkFrames(int *pFrames, gfmAccumulator *pCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*pFrames, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
+    /* Check that it was initialized */
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Simply return the accumulated frames
+
+    /* Simply return the accumulated frames */
     *pFrames = pCtx->accFrames;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -188,21 +230,21 @@ __ret:
  */
 gfmRV gfmAccumulator_getFrames(int *pFrames, gfmAccumulator *pCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFrames, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
+    /* Check that it was initialized */
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Return the accumulated frames or the maximum number of frames
+
+    /* Return the accumulated frames or the maximum number of frames */
     if (pCtx->accFrames < pCtx->maxFrames)
         *pFrames = pCtx->accFrames;
     else
         *pFrames = pCtx->maxFrames;
-    // Clean up the frames
+    /* Clean up the frames */
     pCtx->accFrames = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -217,16 +259,21 @@ __ret:
  */
 gfmRV gfmAccumulator_getDelay(int *pDelay, gfmAccumulator *pCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pDelay, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
+    /* Check that it was initialized */
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Simply return the accumulated frames
-    *pDelay = pCtx->delay;
-    
+
+    /* Simply return the accumulated frames */
+    if (pCtx->accDelays == 0) {
+        *pDelay = pCtx->delayOff;
+    }
+    else {
+        *pDelay = pCtx->delay;
+    }
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -241,14 +288,14 @@ __ret:
  */
 gfmRV gfmAccumulator_reset(gfmAccumulator *pCtx) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Clean up the frames
-    pCtx->elapsed = 0;
+
+    /* Clean up the frames */
+    /*pCtx->elapsed = 0;*/
     pCtx->accFrames = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -262,19 +309,33 @@ __ret:
  */
 gfmRV gfmAccumulator_update(gfmAccumulator *pCtx, int ms) {
     gfmRV rv;
-    
-    // Sanitize argments
+
+    /* Sanitize argments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(ms > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that it was initialized
+    /* Check that it was initialized */
     ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
-    
-    // Update the elapsed time
-    pCtx->elapsed += ms;
-    // Check if new frames should be issued
-    pCtx->accFrames += pCtx->elapsed / pCtx->delay;
-    pCtx->elapsed = pCtx->elapsed % pCtx->delay;
-    
+
+    /* Update the elapsed time */
+    pCtx->accElapsed += ms;
+
+    /* Check if a new frame should be issued */
+    if (pCtx->accElapsed > 0) {
+        /* Update how many frames were issued since the last time it rounded */
+        pCtx->accDelays = (pCtx->accDelays + 1) % pCtx->delayProportion;
+
+        /* Update how long the next frame should take */
+        if (pCtx->accDelays == 0) {
+            pCtx->accElapsed -= pCtx->delayOff;
+        }
+        else {
+            pCtx->accElapsed -= pCtx->delay;
+        }
+
+        /* Update the number of issued frames */
+        pCtx->accFrames++;
+    }
+
     rv = GFMRV_OK;
 __ret:
     return rv;
