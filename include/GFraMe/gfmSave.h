@@ -37,6 +37,9 @@ gfmRV gfmSave_getNew(gfmSave **ppCtx);
  */
 gfmRV gfmSave_free(gfmSave **ppCtx);
 
+#define gfmSave_bindStatic(pSave, pCtx, pFilename) \
+    gfmSave_bind(pSave, pCtx, pFilename, sizeof(pFilename) - 1)
+
 /**
  * Associate a save object with a file on the system
  *
@@ -66,6 +69,9 @@ gfmRV gfmSave_close(gfmSave *pCtx);
  */
 gfmRV gfmSave_erase(gfmSave *pCtx);
 
+#define gfmSave_writeStatic(pCtx, pId, value) \
+    gfmSave_write(pCtx, pId, sizeof(pId) - 1, value)
+
 /**
  * Store a tuple on the save file
  *
@@ -77,6 +83,9 @@ gfmRV gfmSave_erase(gfmSave *pCtx);
  */
 gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value);
 
+#define gfmSave_readStatic(pValue, pCtx, pId) \
+    gfmSave_read(pValue, pCtx, pId, sizeof(pId) - 1)
+
 /**
  * Retrieve a tuple from the save file
  *
@@ -87,6 +96,9 @@ gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value);
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len);
+
+#define gfmSave_writeDataStatic(pCtx, pId, value, numBytes) \
+    gfmSave_writeData(pCtx, pId, sizeof(pId) - 1, value, numBytes)
 
 /**
  * Store an array of bytes on the save file
@@ -100,6 +112,9 @@ gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len);
  */
 gfmRV gfmSave_writeData(gfmSave *pCtx, char *pId, int len, char *pData,
         int numbytes);
+
+#define gfmSave_readDataStatic(pValue, pNumBytes, pCtx, pId) \
+    gfmSave_readData(pValue, pNumBytes, pCtx, pId, sizeof(pId) - 1)
 
 /**
  * Retrieve an array of bytes from the save file

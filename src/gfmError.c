@@ -171,6 +171,8 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     // GL Errors
     "Failed to compile the fragment shader", /* GFMRV_FRAGMENT_SHADER_ERROR */
     "Failed to compile the vertex shader", /* GFMRV_VERTEX_SHADER_ERROR */
+    // Save errors
+    "Save file not yet bound", /* GFMRV_SAVE_NOT_BOUND */
     "Max error" /* GFMRV_MAX */
 };
 

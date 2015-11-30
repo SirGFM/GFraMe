@@ -171,6 +171,8 @@ enum enGFMError {
     // GL Errors
     GFMRV_FRAGMENT_SHADER_ERROR,
     GFMRV_VERTEX_SHADER_ERROR,
+    // Save errors
+    GFMRV_SAVE_NOT_BOUND,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

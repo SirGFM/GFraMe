@@ -98,28 +98,32 @@ gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Open the save file */
-    rv = gfmFile_getNew(&(pCtx->pFile));
+    rv = gfmFile_getNew(&(pSave->pFile));
     ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
     /* Try to open the file for read/write (file must exist) */
-    rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "r+b");
+    rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "r+b");
     ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_NOT_FOUND, rv, pSave->pLog);
     if (rv == GFMRV_FILE_NOT_FOUND) {
         /* If it didn't already exist, create it */
-        rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "w+b");
+        rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "w+b");
         ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
-        /* TODO Add save file version? */
+        /* Add save file version */
+        rv = gfmSave_writeStatic(pSave, "gfmSave", 0x00010000);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
         /* Close and re-open the file in "r+b" mode; This is necessary because
          * of the way that erasing a file is handled by gfmFile */
         rv = gfmFile_close(pSave->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
-        rv = gfmFile_openLocal(pFile, pCtx, pFilename, len, "r+b");
+        rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "r+b");
     }
     ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
-    /* TODO Check the save file version */
+    /* Check the save file version */
+    rv = gfmSave_readStatic(&(pSave->version), pSave, "gfmSave");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
     rv = GFMRV_OK;
 __ret:
@@ -132,7 +136,22 @@ __ret:
  * @param  [ in]pCtx The object to be free'd
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmSave_close(gfmSave *pCtx);
+gfmRV gfmSave_close(gfmSave *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Close the file */
+    if (pCtx->pFile) {
+        rv = gfmFile_close(pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Erase all contents of the save file
@@ -142,7 +161,9 @@ gfmRV gfmSave_close(gfmSave *pCtx);
  * @param  [ in]pCtx The object to be free'd
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmSave_erase(gfmSave *pCtx);
+gfmRV gfmSave_erase(gfmSave *pCtx) {
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+}
 
 /**
  * Store a tuple on the save file
@@ -153,7 +174,27 @@ gfmRV gfmSave_erase(gfmSave *pCtx);
  * @param  [ in]value Value to be stored
  * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
-gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value);
+gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pId, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    /* Check that the save file is bound */
+    ASSERT(pCtx->pFile, GFMRV_SAVE_NOT_BOUND);
+
+    /* TODO Check if the id already exists */
+    /* TODO If not, write the id */
+    /* TODO Else, seek its position */
+    /* TODO Write the value */
+
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Retrieve a tuple from the save file
