@@ -111,7 +111,7 @@ gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len);
  * @return               GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmSave_writeData(gfmSave *pCtx, char *pId, int len, char *pData,
-        int numbytes);
+        int numBytes);
 
 #define gfmSave_readDataStatic(pValue, pNumBytes, pCtx, pId) \
     gfmSave_readData(pValue, pNumBytes, pCtx, pId, sizeof(pId) - 1)

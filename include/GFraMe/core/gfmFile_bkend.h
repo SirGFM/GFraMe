@@ -242,7 +242,7 @@ gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx);
  * @param  pVal The character
  * @param  pCtx The file
  */
-gfmRV gfmFile_writeChar(gfmFile *pCtx, char val);
+gfmRV gfmFile_writeChar(gfmFile *pCtx, unsigned char val);
 
 /**
  * Roll back a character (similar to stdio's ungetc); The last read character

@@ -175,6 +175,8 @@ enum enGFMError {
     GFMRV_SAVE_NOT_BOUND,
     GFMRV_SAVE_ID_NOT_FOUND,
     GFMRV_SAVE_ID_TOO_LONG,
+    GFMRV_SAVE_DATA_TOO_LONG,
+    GFMRV_SAVE_INVALID_DATA_LEN,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

@@ -26,9 +26,12 @@
 
 #define STACK_SIZE 4
 
-/** Static buffer for reading stuff (which screws thread safety... but who uses
- those, anyway?) */
-static char pBuf[4];
+/* Types of possible operations */
+enum enGFMFileOp {
+    gfmFile_noop = 0,
+    gfmFile_read,
+    gfmFile_write
+};
 
 struct stGFMFile {
     /** The currently opened file pointer */
@@ -39,8 +42,12 @@ struct stGFMFile {
     int lastChar;
     /** Current node to be popped */
     int curStackPos;
+    /** Type of the last executed operation */
+    enum enGFMFileOp lastOp;
     /** The actual stack */
     fpos_t stack[STACK_SIZE];
+    /** Buffer for reading stuff */
+    char pBuf[4];
 };
 
 /**
@@ -51,20 +58,20 @@ struct stGFMFile {
  */
 gfmRV gfmFile_getNew(gfmFile **ppCtx) {
     gfmRV rv;
-    
-    // Sanitizer arguments
+
+    /* Sanitizer arguments */
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
-    
-    // Alloc the struct
+
+    /* Alloc the struct */
     *ppCtx = (gfmFile*)malloc(sizeof(gfmFile));
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
-    // Clean it
+    /* Clean it */
     memset(*ppCtx, 0x0, sizeof(gfmFile));
-    // Alloc the path string
+    /* Alloc the path string */
     rv = gfmString_getNew(&((*ppCtx)->pPath));
     ASSERT(rv == GFMRV_OK, rv);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -78,19 +85,19 @@ __ret:
  */
 gfmRV gfmFile_free(gfmFile **ppCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(*ppCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Release the path
+
+    /* Release the path */
     gfmString_free(&((*ppCtx)->pPath));
-    // Close the file (in case it's still open)
+    /* Close the file (in case it's still open) */
     gfmFile_close(*ppCtx);
-    // Free the memory
+    /* Free the memory */
     free(*ppCtx);
     *ppCtx = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -111,44 +118,44 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
         gfmString *pStr, const char *mode) {
     char *pPath;
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
     ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
-    
-    // Check that the file isn't opened
+
+    /* Check that the file isn't opened */
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
-    
+
 #ifndef EMCC
-    // Retrieve the file's directory
+    /* Retrieve the file's directory */
     rv = gfmString_getString(&pPath, pStr);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Initialize the local string with that path
+
+    /* Initialize the local string with that path */
     rv = gfmString_init(pCtx->pPath, pPath, strlen(pPath), 1/*doCopy*/);
     ASSERT_NR(rv == GFMRV_OK);
 #else
     rv = gfmString_setLength(pCtx->pPath, 0/*len*/);
     ASSERT(rv == GFMRV_OK, rv);
 #endif
-    
-    // Append the filename to its path
+
+    /* Append the filename to its path */
     rv = gfmString_concat(pCtx->pPath, pFilename, filenameLen);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Retrieve the absolute path
+
+    /* Retrieve the absolute path */
     rv = gfmString_getString(&pPath, pCtx->pPath);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Open the file
+
+    /* Open the file */
     pCtx->pFp = fopen(pPath, mode);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
-    
-    // Clear stuff
+
+    /* Clear stuff */
     pCtx->lastChar = -1;
     pCtx->curStackPos = STACK_SIZE;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -172,26 +179,26 @@ gfmRV gfmFile_openLocal(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
         int filenameLen, const char *mode) {
     gfmRV rv;
     gfmString *pStr;
-    
-    // Set default values
+
+    /* Set default values */
     pStr = 0;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Retrieve the absolute file path (i.e., copy the 'static' string)
+
+    /* Retrieve the absolute file path (i.e., copy the 'static' string) */
     rv = gfm_getLocalPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Open the file
+
+    /* Open the file */
     rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, mode);
     ASSERT_NR(rv == GFMRV_OK);
-    
+
     rv = GFMRV_OK;
 __ret:
     gfmString_free(&pStr);
-    
+
     return rv;
 }
 
@@ -212,18 +219,18 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int isText) {
     gfmRV rv;
     gfmString *pStr;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    // Retrieve the absolute file path (i.e., copy the 'static' string)
+
+    /* Retrieve the absolute file path (i.e., copy the 'static' string) */
     rv = gfm_getBinaryPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_concatStatic(pStr, "assets/");
     ASSERT_NR(rv == GFMRV_OK);
-    
-    // Open the file
+
+    /* Open the file */
     if (isText) {
         rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rt");
     }
@@ -231,7 +238,7 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
         rv = gfmFile_openFile(pFile, pFilename, filenameLen, pStr, "rb");
     }
     ASSERT_NR(rv == GFMRV_OK);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -245,16 +252,16 @@ __ret:
  */
 gfmRV gfmFile_close(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the file is actually open
+    /* Check that the file is actually open */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     fflush(pCtx->pFp);
     fclose(pCtx->pFp);
     pCtx->pFp = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -268,10 +275,10 @@ __ret:
  */
 gfmRV gfmFile_isOpen(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
+
     if (pCtx->pFp) {
         rv = GFMRV_TRUE;
     }
@@ -291,17 +298,17 @@ __ret:
  */
 gfmRV gfmFile_getPath(char **ppPath, gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(ppPath, GFMRV_ARGUMENTS_BAD);
-    // Check that the file is currently open
+    /* Check that the file is currently open */
     ASSERT(gfmFile_isOpen(pCtx) == GFMRV_TRUE, GFMRV_FILE_NOT_OPEN);
-    
-    // Retrieve the file's path
+
+    /* Retrieve the file's path */
     rv = gfmString_getString(ppPath, pCtx->pPath);
     ASSERT_NR(rv == GFMRV_OK);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -353,11 +360,11 @@ __ret:
  */
 gfmRV gfmFile_didFinish(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     if (feof(pCtx->pFp)) {
         rv = GFMRV_TRUE;
     }
@@ -376,14 +383,15 @@ __ret:
  */
 gfmRV gfmFile_rewind(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     rewind(pCtx->pFp);
-    
+    pCtx->lastOp = gfmFile_noop;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -400,16 +408,16 @@ __ret:
 gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes) {
     gfmRV rv;
     int irv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(numBytes > 0, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     irv = fseek(pCtx->pFp, numBytes, SEEK_CUR);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-    
+    pCtx->lastOp = gfmFile_noop;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -425,16 +433,17 @@ __ret:
 gfmRV gfmFile_flush(gfmFile *pCtx) {
     gfmRV rv;
     int irv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    // TODO Check that it was open for writing
-    
+    /* TODO Check that it was open for writing */
+
     irv = fflush(pCtx->pFp);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-    
+    pCtx->lastOp = gfmFile_noop;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -449,15 +458,15 @@ __ret:
  */
 gfmRV gfmFile_getPosStackLeft(int *pNum, gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pNum, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     *pNum = pCtx->curStackPos;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -473,19 +482,20 @@ __ret:
 gfmRV gfmFile_pushPos(gfmFile *pCtx) {
     gfmRV rv;
     int irv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    // Check that there are spaces left at the stack
+    /* Check that there are spaces left at the stack */
     ASSERT(pCtx->curStackPos > 0, GFMRV_FILE_MAX_STACK_POS);
-    
-    // Push the position into the stack
+
+    /* Push the position into the stack */
     pCtx->curStackPos--;
     irv = fgetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-    
+    pCtx->lastOp = gfmFile_noop;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -501,20 +511,21 @@ __ret:
 gfmRV gfmFile_popPos(gfmFile *pCtx) {
     gfmRV rv;
     int irv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    // Check that the stack isn't empty
+    /* Check that the stack isn't empty */
     ASSERT(pCtx->curStackPos < STACK_SIZE, GFMRV_FILE_STACK_EMPTY);
-    
-    // Move the stream to the previous position
+
+    /* Move the stream to the previous position */
     irv = fsetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-    // Pop it from the stack
+    /* Pop it from the stack */
     pCtx->curStackPos++;
-    
+    pCtx->lastOp = gfmFile_noop;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -529,16 +540,16 @@ __ret:
  */
 gfmRV gfmFile_clearLastPosStack(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     if (pCtx->curStackPos < STACK_SIZE) {
         pCtx->curStackPos++;
     }
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -552,14 +563,14 @@ __ret:
  */
 gfmRV gfmFile_clearPosStack(gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
     pCtx->curStackPos = STACK_SIZE;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -575,21 +586,27 @@ __ret:
  */
 gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
     gfmRV rv;
-    
-    // Sanitize arguents
+
+    /* Sanitize arguents */
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
-    // Read a char
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_write) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_read;
+
+    /* Read a char */
     pCtx->lastChar = fgetc(pCtx->pFp);
     if (pCtx->lastChar == EOF) {
         rv = GFMRV_FILE_EOF_REACHED;
         goto __ret;
     }
-    //ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED);
-    
+    /*ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED); */
+
     *pVal = (char)pCtx->lastChar;
     rv = GFMRV_OK;
 __ret:
@@ -602,7 +619,29 @@ __ret:
  * @param  pVal The character
  * @param  pCtx The file
  */
-gfmRV gfmFile_writeChar(gfmFile *pCtx, char val);
+gfmRV gfmFile_writeChar(gfmFile *pCtx, unsigned char val) {
+    gfmRV rv;
+    int irv;
+
+    /* Sanitize arguents */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that there's an open file */
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_read) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_write;
+
+    /* Read a char */
+    irv = fputc(val, pCtx->pFp);
+    ASSERT(irv == (int)((unsigned char)val), GFMRV_FILE_WRITE_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Roll back a character (similar to stdio's ungetc); The last read character
@@ -616,18 +655,18 @@ gfmRV gfmFile_writeChar(gfmFile *pCtx, char val);
 gfmRV gfmFile_unreadChar(gfmFile *pCtx) {
     gfmRV rv;
     int irv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    // Check that there's a character to be unread
+    /* Check that there's a character to be unread */
     ASSERT(pCtx->lastChar >= 0, GFMRV_FILE_CANT_UNREAD);
-    
-    // Unread the character
+
+    /* Unread the character */
     irv = ungetc(pCtx->lastChar, pCtx->pFp);
     ASSERT(irv == pCtx->lastChar, GFMRV_INTERNAL_ERROR);
-    
+
     pCtx->lastChar = -1;
     rv = GFMRV_OK;
 __ret:
@@ -664,23 +703,29 @@ gfmRV gfmFile_writeHalfWord(gfmFile *pCtx, int val);
 gfmRV gfmFile_readWord(int *pVal, gfmFile *pCtx) {
     gfmRV rv;
     int irv, count;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
-    // Try to read a integer (i.e., 4 bytes)
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_write) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_read;
+
+    /* Try to read a integer (i.e., 4 bytes) */
     count = 4;
-    irv = fread(pBuf, sizeof(char), count, pCtx->pFp);
+    irv = fread(pCtx->pBuf, sizeof(char), count, pCtx->pFp);
     ASSERT(irv == count, GFMRV_READ_ERROR);
-    // Convert the word (the arch is expected to be little-endian)
-    *pVal = (int)( ( ((pBuf)[0]      ) & 0x000000ff)
-                 | ( ((pBuf)[1] << 8 ) & 0x0000ff00)
-                 | ( ((pBuf)[2] << 16) & 0x00ff0000)
-                 | ( ((pBuf)[3] << 24) & 0xff000000) );
-    
+    /* Convert the word (the arch is expected to be little-endian) */
+    *pVal = (int)( ( ((pCtx->pBuf)[0]      ) & 0x000000ff)
+            | ( ((pCtx->pBuf)[1] << 8 ) & 0x0000ff00)
+            | ( ((pCtx->pBuf)[2] << 16) & 0x00ff0000)
+            | ( ((pCtx->pBuf)[3] << 24) & 0xff000000) );
+
     pCtx->lastChar = -1;
     rv = GFMRV_OK;
 __ret:
@@ -710,17 +755,23 @@ gfmRV gfmFile_writeWord(gfmFile *pCtx, int val);
 gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes) {
     gfmRV rv;
     int count;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
     ASSERT(pLen, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_write) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_read;
+
     count = fread(pVal, sizeof(char), numBytes, pCtx->pFp);
     ASSERT(count >= 0, GFMRV_READ_ERROR);
-    
+
     *pLen = count;
     pCtx->lastChar = -1;
     if (count == 0) {
@@ -746,17 +797,23 @@ __ret:
 gfmRV gfmFile_writeBytes(gfmFile *pCtx, char *pVal, int len) {
     gfmRV rv;
     int count;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
     ASSERT(len, GFMRV_ARGUMENTS_BAD);
-    // Check that there's an open file
+    /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
-    
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_read) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_write;
+
     count = fwrite(pVal, sizeof(char), len, pCtx->pFp);
     ASSERT(count == len, GFMRV_FILE_WRITE_ERROR);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;

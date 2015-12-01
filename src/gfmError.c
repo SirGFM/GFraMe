@@ -175,6 +175,8 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Save file not yet bound", /* GFMRV_SAVE_NOT_BOUND */
     "Failed to find ID in save file", /* GFMRV_SAVE_ID_NOT_FOUND */
     "ID too long to be stored", /* GFMRV_SAVE_ID_TOO_LONG */
+    "Data too long to be stored", /* GFMRV_SAVE_DATA_TOO_LONG */
+    "Data length doesn't match the stored", /* GFMRV_SAVE_INVALID_DATA_LEN */
     "Max error" /* GFMRV_MAX */
 };
 
