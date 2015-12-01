@@ -173,6 +173,8 @@ enum enGFMError {
     GFMRV_VERTEX_SHADER_ERROR,
     // Save errors
     GFMRV_SAVE_NOT_BOUND,
+    GFMRV_SAVE_ID_NOT_FOUND,
+    GFMRV_SAVE_ID_TOO_LONG,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

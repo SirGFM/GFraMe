@@ -16,6 +16,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Tuple's info (except for it's data) */
+struct stGFMSaveTuple {
+    /* The tuple's ID */
+    char pId[256];
+    /* ID's length */
+    unsigned char idLen;
+    /* Number of bytes on the data */
+    unsigned char dataLen;
+};
+typedef struct stGFMSaveTuple gfmSaveTuple;
+
 /** gfmSave struct */
 struct stGFMSave {
     /* Save file version (useful if this is ever modified) */
@@ -24,6 +35,8 @@ struct stGFMSave {
     gfmFile *pFile;
     /** Logger, so we can debug stuff */
     gfmLog *pLog;
+    /* Tuple at which the file is currently pointing */
+    gfmSaveTuple curTuple;
 };
 
 /**
@@ -166,6 +179,143 @@ gfmRV gfmSave_erase(gfmSave *pCtx) {
 }
 
 /**
+ * Compare an ID to a tuple
+ *
+ * @param  [ in]pCtx The tuple
+ * @param  [ in]pId  The key
+ * @param  [ in]len  The key's length
+ * @return           GFMRV_TRUE, GFMRV_FALSE
+ */
+static gfmRV gfmSave_tuplecmp(gfmSaveTuple *pCtx, char *pId, int len) {
+    int i;
+
+    /* No need to sanitize as inputs have been previously sanitized */
+
+    /* If the sizes aren't equal, the string definitely differ */
+    if (pCtx->idLen != len) {
+        return GFMRV_FALSE;
+    }
+
+    i = 0;
+    while (i < len) {
+        /* Check that every character match */
+        if (pId[i] != pCtx->pId[i]) {
+            return GFMRV_FALSE;
+        }
+        i++;
+    }
+
+    return GFMRV_TRUE;
+}
+
+/**
+ * Search for the desired ID
+ *
+ * @param  [ in]pCtx The save file
+ * @param  [ in]pId  Tuple's key
+ * @return           GFMRV_OK, GFMRV_SAVE_ID_NOT_FOUND
+ */
+static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
+    char pTmpId[256];
+    gfmSaveTuple *pTuple;
+    gfmRV rv;
+    int didLoop, loopPos, pos, size;
+
+    /* No need to sanitize as inputs have been previously sanitized */
+
+    /* Retrieve the current tuple */
+    pTuple = &(pCtx->curTuple);
+
+    /* Check if the files is already at the desired tuple */
+    rv = gfmSave_tuplecmp(pTuple, pId, len);
+    if (rv == GFMRV_TRUE) {
+        return GFMRV_OK;
+    }
+
+    /* Get the file's length and current position */
+    rv = gfmFile_getSize(&size, pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = gfmFile_getPos(&loopPos, pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Search for the tuple */
+    didLoop = 0;
+    pos = loopPos;
+    while (1) {
+        unsigned char idLen;
+        int len;
+
+        /* Check if we just looped over the file */
+        if (!didLoop && pos >= size) {
+            rv = gfmFile_rewind(pCtx->pFile);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+            pos = 0;
+            didLoop = 1;
+        }
+        /* No 'else' here so it can break on the first pass */
+        if (didLoop && pos >= loopPos) {
+            /* Clear the current tuple, as it's invalid */
+            memset(pTuple, 0x0, sizeof(gfmSaveTuple));
+            rv = GFMRV_SAVE_ID_NOT_FOUND;
+            break;
+        }
+
+        /* Retrieve the current ID */
+        rv = gfmFile_readChar((char*)&(pTuple->idLen), pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        pos++;
+        rv = gfmFile_readBytes(pTuple->pId, &len, pCtx->pFile, pTuple->idLen);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        pos += len;
+        pTuple->idLen = (unsigned char)len;
+
+        /* Retrieve the data length */
+        rv = gfmFile_readChar((char*)&(pTuple->dataLen), pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        pos++;
+
+        /* Check if it's the desired id */
+        rv = gfmSave_tuplecmp(pTuple, pId, len);
+        if (rv == GFMRV_TRUE) {
+            rv = GFMRV_OK;
+            break;
+        }
+
+        /* If it wasn't found, move to the next one */
+        pos += pTuple->dataLen;
+    }
+
+__ret:
+    return rv;
+}
+
+/**
+ * Write a ID at the end of the file
+ *
+ * @param  [ in]pCtx The save file
+ * @param  [ in]pId  Tuple's key
+ * @param  [ in]len  Tuple's value
+ * @return           GFMRV_OK, ...
+ */
+static gfmRV gfmSave_writeID(gfmSave *pCtx, char *pId, int len) {
+    gfmRV rv;
+
+    /* No need to sanitize as inputs have been previously sanitized */
+
+    /* TODO Move to the end of the file */
+    /* Store the id length */
+    rv = gfmFile_writeChar(pCtx->pFile, len);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /* Store the actual id */
+    rv = gfmFile_writeByte(pCtx->pFile, pId, len);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Store a tuple on the save file
  *
  * @param  [ in]pCtx  The save file
@@ -181,15 +331,23 @@ gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pId, GFMRV_ARGUMENTS_BAD);
     ASSERT(len > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(len < 128, GFMRV_SAVE_ID_TOO_LONG);
     /* Check that the save file is bound */
     ASSERT(pCtx->pFile, GFMRV_SAVE_NOT_BOUND);
 
-    /* TODO Check if the id already exists */
-    /* TODO If not, write the id */
-    /* TODO Else, seek its position */
-    /* TODO Write the value */
-
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    /* Check if the id already exists */
+    rv = gfmSave_gotoId(pCtx, pId, len);
+    if (rv == GFMRV_SAVE_ID_NOT_FOUND) {
+        /* If not, write the id */
+        rv = gfmSave_writeID(pCtx, pId, len);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    }
+    /* Write the value's length (always 4 bytes) */
+    rv = gfmFile_writeChar(pCtx->pFile, 4);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /* Write the value */
+    rv = gfmFile_writeWord(pCtx->pFile, value);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
 __ret:

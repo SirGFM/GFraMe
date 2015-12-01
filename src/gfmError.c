@@ -173,6 +173,8 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Failed to compile the vertex shader", /* GFMRV_VERTEX_SHADER_ERROR */
     // Save errors
     "Save file not yet bound", /* GFMRV_SAVE_NOT_BOUND */
+    "Failed to find ID in save file", /* GFMRV_SAVE_ID_NOT_FOUND */
+    "ID too long to be stored", /* GFMRV_SAVE_ID_TOO_LONG */
     "Max error" /* GFMRV_MAX */
 };
 

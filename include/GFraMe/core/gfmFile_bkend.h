@@ -139,6 +139,15 @@ gfmRV gfmFile_getPath(char **ppPath, gfmFile *pCtx);
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
 
 /**
+ * Retrieve the current position into the file
+ *
+ * @param  [out]pPos The current position
+ * @param  [ in]pCtx The file struct
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPos(int *pPos, gfmFile *pCtx);
+
+/**
  * Check if a file reached its end
  * 
  * @param  pCtx The 'generic' file
