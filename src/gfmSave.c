@@ -158,7 +158,7 @@ gfmRV gfmSave_close(gfmSave *pCtx) {
     /* Close the file */
     if (pCtx->pFile) {
         rv = gfmFile_close(pCtx->pFile);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
 
     rv = GFMRV_OK;
@@ -216,7 +216,6 @@ static gfmRV gfmSave_tuplecmp(gfmSaveTuple *pCtx, char *pId, int len) {
  * @return           GFMRV_OK, GFMRV_SAVE_ID_NOT_FOUND
  */
 static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
-    char pTmpId[256];
     gfmSaveTuple *pTuple;
     gfmRV rv;
     int didLoop, loopPos, pos, size;
@@ -248,7 +247,6 @@ static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
     didLoop = 0;
     pos = loopPos;
     while (1) {
-        unsigned char idLen;
         int len;
 
         /* Check if we just looped over the file */
@@ -327,7 +325,7 @@ static gfmRV gfmSave_writeID(gfmSave *pCtx, char *pId, int len) {
     rv = gfmFile_writeChar(pCtx->pFile, len);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     /* Store the actual id */
-    rv = gfmFile_writeByte(pCtx->pFile, pId, len);
+    rv = gfmFile_writeBytes(pCtx->pFile, pId, len);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
@@ -406,7 +404,7 @@ gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len) {
     /* Check if the id exists */
     rv = gfmSave_gotoId(pCtx, pId, len);
     if (rv == GFMRV_OK) {
-        rv = gfmSave_readWord(pValue, pCtx->pFile);
+        rv = gfmFile_readWord(pValue, pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
         /* Move the file back to the start of this tuple's data segment */
@@ -511,7 +509,7 @@ gfmRV gfmSave_readData(char *pData, int *pNumBytes, gfmSave *pCtx, char *pId,
         if (pData) {
             int len;
 
-            rv = gfmFile_readBytes(pData, &len, pCtx->pFp,
+            rv = gfmFile_readBytes(pData, &len, pCtx->pFile,
                     pCtx->curTuple.dataLen);
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
             ASSERT_LOG(len == pCtx->curTuple.dataLen, GFMRV_INTERNAL_ERROR,

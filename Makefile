@@ -81,6 +81,7 @@
           $(OBJDIR)/gfmParser.o           \
           $(OBJDIR)/gfmParserCommon.o     \
           $(OBJDIR)/gfmQuadtree.o         \
+          $(OBJDIR)/gfmSave.o             \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
