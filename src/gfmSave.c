@@ -110,6 +110,10 @@ gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
     rv = gfm_getLogger(&(pSave->pLog), pCtx);
     ASSERT(rv == GFMRV_OK, rv);
 
+    rv = gfmLog_log(pSave->pLog, gfmLog_debug, "Binding \"%*s\" to a save "
+            "file...", len, pFilename);
+    ASSERT(rv == GFMRV_OK, rv);
+
     /* Open the save file */
     rv = gfmFile_getNew(&(pSave->pFile));
     ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
@@ -117,6 +121,9 @@ gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
     rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "r+b");
     ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_NOT_FOUND, rv, pSave->pLog);
     if (rv == GFMRV_FILE_NOT_FOUND) {
+        rv = gfmLog_log(pSave->pLog, gfmLog_debug, "Creating a new file...");
+        ASSERT(rv == GFMRV_OK, rv);
+
         /* If it didn't already exist, create it */
         rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "w+b");
         ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
@@ -137,6 +144,10 @@ gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
     /* Check the save file version */
     rv = gfmSave_readStatic(&(pSave->version), pSave, "gfmSave");
     ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
+
+    rv = gfmLog_log(pSave->pLog, gfmLog_debug, "File opened! Version 0x%x",
+            pSave->version);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -159,6 +170,9 @@ gfmRV gfmSave_close(gfmSave *pCtx) {
     if (pCtx->pFile) {
         rv = gfmFile_close(pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+        rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Save file closed");
+        ASSERT(rv == GFMRV_OK, rv);
     }
 
     rv = GFMRV_OK;
@@ -225,9 +239,15 @@ static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
     /* Retrieve the current tuple */
     pTuple = &(pCtx->curTuple);
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Searching tuple \"%*s\"...", len,
+            pId);
+    ASSERT(rv == GFMRV_OK, rv);
+
     /* Check if the files is already at the desired tuple */
     rv = gfmSave_tuplecmp(pTuple, pId, len);
     if (rv == GFMRV_TRUE) {
+        rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Already pointing to it!");
+        ASSERT(rv == GFMRV_OK, rv);
         return GFMRV_OK;
     }
     else if (pTuple->dataLen > 0) {
@@ -243,6 +263,12 @@ static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
     rv = gfmFile_getPos(&loopPos, pCtx->pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Current file size: %i", size);
+    ASSERT(rv == GFMRV_OK, rv);
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Starting from positiong %i...",
+            loopPos);
+    ASSERT(rv == GFMRV_OK, rv);
+
     /* Search for the tuple */
     didLoop = 0;
     pos = loopPos;
@@ -255,9 +281,14 @@ static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
             pos = 0;
             didLoop = 1;
+
+            rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Just looped!");
+            ASSERT(rv == GFMRV_OK, rv);
         }
         /* No 'else' here so it can break on the first pass */
         if (didLoop && pos >= loopPos) {
+            rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Failed to find ID");
+            ASSERT(rv == GFMRV_OK, rv);
             rv = GFMRV_SAVE_ID_NOT_FOUND;
             break;
         }
@@ -276,9 +307,15 @@ static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
         pos++;
 
+        rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Just found tuple \"%*s\" "
+                "(dataLen: %i)", pTuple->idLen, pTuple->pId, pTuple->dataLen);
+        ASSERT(rv == GFMRV_OK, rv);
+
         /* Check if it's the desired id */
         rv = gfmSave_tuplecmp(pTuple, pId, len);
         if (rv == GFMRV_TRUE) {
+            rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Tuple found!");
+            ASSERT(rv == GFMRV_OK, rv);
             rv = GFMRV_OK;
             break;
         }
@@ -311,6 +348,9 @@ static gfmRV gfmSave_writeID(gfmSave *pCtx, char *pId, int len) {
     int size;
 
     /* No need to sanitize as inputs have been previously sanitized */
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Adding ID \"%*s\"...", len, pId);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = gfmFile_getSize(&size, pCtx->pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -352,6 +392,10 @@ gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value) {
     ASSERT_LOG(len < 128, GFMRV_SAVE_ID_TOO_LONG, pCtx->pLog);
     /* Check that the save file is bound */
     ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Writing value (\"%*s\", %i) to "
+            "file", len, pId, value);
+    ASSERT(rv == GFMRV_OK, rv);
 
     /* Check if the id already exists */
     rv = gfmSave_gotoId(pCtx, pId, len);
@@ -401,11 +445,18 @@ gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len) {
     /* Check that the save file is bound */
     ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Retrieving \"%*s\"'s value...",
+            len, pId);
+    ASSERT(rv == GFMRV_OK, rv);
+
     /* Check if the id exists */
     rv = gfmSave_gotoId(pCtx, pId, len);
     if (rv == GFMRV_OK) {
         rv = gfmFile_readWord(pValue, pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+        rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Found value %i", *pValue);
+        ASSERT(rv == GFMRV_OK, rv);
 
         /* Move the file back to the start of this tuple's data segment */
         rv = gfmFile_seek(pCtx->pFile, -pCtx->curTuple.dataLen);
