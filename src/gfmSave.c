@@ -389,9 +389,33 @@ __ret:
  * @param  [ in]pCtx   The save file
  * @param  [ in]pId    Tuple's key
  * @param  [ in]len    Tuple's value
- * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_SAVE_ID_NOT_FOUND
  */
-gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len);
+gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pValue, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pId, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len < 128, GFMRV_SAVE_ID_TOO_LONG, pCtx->pLog);
+    /* Check that the save file is bound */
+    ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
+
+    /* Check if the id exists */
+    rv = gfmSave_gotoId(pCtx, pId, len);
+    if (rv == GFMRV_OK) {
+        rv = gfmSave_readWord(pValue, pCtx->pFile);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+        /* Move the file back to the start of this tuple's data segment */
+        rv = gfmFile_seek(pCtx->pFile, -pCtx->curTuple.dataLen);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    }
+__ret:
+    return rv;
+}
 
 /**
  * Store an array of bytes on the save file
@@ -467,5 +491,41 @@ __ret:
  * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfmSave_readData(char *pData, int *pNumBytes, gfmSave *pCtx, char *pId,
-        int len);
+        int len) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pNumBytes, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pId, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len < 128, GFMRV_SAVE_ID_TOO_LONG, pCtx->pLog);
+    /* Check that the save file is bound */
+    ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
+
+    /* Check if the id exists */
+    rv = gfmSave_gotoId(pCtx, pId, len);
+    if (rv == GFMRV_OK) {
+        /* Check if the data should actually be read */
+        if (pData) {
+            int len;
+
+            rv = gfmFile_readBytes(pData, &len, pCtx->pFp,
+                    pCtx->curTuple.dataLen);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+            ASSERT_LOG(len == pCtx->curTuple.dataLen, GFMRV_INTERNAL_ERROR,
+                    pCtx->pLog);
+
+            /* Move the file back to the start of this tuple's data segment */
+            rv = gfmFile_seek(pCtx->pFile, -pCtx->curTuple.dataLen);
+            ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        }
+
+        /* Retrieve the data length */
+        *pNumBytes = pCtx->curTuple.dataLen;
+    }
+__ret:
+    return rv;
+}
 

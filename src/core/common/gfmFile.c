@@ -321,7 +321,35 @@ __ret:
  * @param  pCtx  The file struct
  */
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
+#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+#else
+    char *pPath;
+    gfmRV rv;
+    int irv;
+    struct stat buf;
+
+    /* Sanitize arguments */
+    ASSERT(pSize, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the file was opened */
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+
+    /* Retrieve the file path */
+    rv = gfmString_getString(&pPath, pCtx->pPath);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Retrieve the file status */
+    irv = stat(pPath, &buf);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    /* Retrieve only the file size */
+    *pSize = (int)buf.st_size;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+#endif
 }
 
 /**
@@ -733,13 +761,41 @@ __ret:
 }
 
 /**
- * Read 4 bytes (i.e., a 32 bits integer) into an integer; The value will be
+ * Write 4 bytes (i.e., a 32 bits integer) into an integer; The value will be
  * written in little-endian format
  * 
  * @param  pCtx The file
  * @param  val  The word
  */
-gfmRV gfmFile_writeWord(gfmFile *pCtx, int val);
+gfmRV gfmFile_writeWord(gfmFile *pCtx, int val) {
+    gfmRV rv;
+    int irv, count;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that there's an open file */
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+
+    /* ANSI C requirement... */
+    if (pCtx->lastOp == gfmFile_read) {
+        fseek(pCtx->pFp, 0L, SEEK_CUR);
+    }
+    pCtx->lastOp = gfmFile_write;
+
+    /* Try to write a integer (i.e., 4 bytes) */
+    pCtx->pBuf[0] = (char)(val & 0x000000ff);
+    pCtx->pBuf[1] = (char)((val >> 8) & 0x000000ff);
+    pCtx->pBuf[2] = (char)((val >> 16) & 0x000000ff);
+    pCtx->pBuf[3] = (char)((val >> 24) & 0x000000ff);
+
+    count = 4;
+    irv = fwrite(pCtx->pBuf, sizeof(char), count, pCtx->pFp);
+    ASSERT(irv == count, GFMRV_FILE_WRITE_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
 
 /**
  * Read a stream of bytes from the file; If the EOF is reached before reading
