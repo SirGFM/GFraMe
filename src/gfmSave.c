@@ -137,6 +137,10 @@ gfmRV gfmSave_bind(gfmSave *pSave, gfmCtx *pCtx, char *pFilename, int len) {
         rv = gfmFile_close(pSave->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
 
+        /* Since the file was closed and the file is back at the start, the
+         * cache must be flushed */
+        memset(&(pSave->curTuple), 0x0, sizeof(gfmSaveTuple));
+
         rv = gfmFile_openLocal(pSave->pFile, pCtx, pFilename, len, "r+b");
     }
     ASSERT_LOG(rv == GFMRV_OK, rv, pSave->pLog);
@@ -173,6 +177,9 @@ gfmRV gfmSave_close(gfmSave *pCtx) {
 
         rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Save file closed");
         ASSERT(rv == GFMRV_OK, rv);
+
+        /* Make sure there's no cached tuple */
+        memset(&(pCtx->curTuple), 0x0, sizeof(gfmSaveTuple));
     }
 
     rv = GFMRV_OK;
@@ -202,6 +209,9 @@ gfmRV gfmSave_erase(gfmSave *pCtx) {
     /* Erase the file */
     rv = gfmFile_erase(pCtx->pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Make sure there's no cached tuple */
+    memset(&(pCtx->curTuple), 0x0, sizeof(gfmSaveTuple));
 
     /* Add save file version */
     rv = gfmSave_writeStatic(pCtx, "gfmSave", 0x00010000);
