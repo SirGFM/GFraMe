@@ -196,6 +196,9 @@ gfmRV gfmSave_erase(gfmSave *pCtx) {
     /* Check that the save file is bound */
     ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
 
+    rv = gfmLog_log(pCtx->pLog, gfmLog_debug, "Erasing file...");
+    ASSERT(rv == GFMRV_OK, rv);
+
     /* Erase the file */
     rv = gfmFile_erase(pCtx->pFile);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);

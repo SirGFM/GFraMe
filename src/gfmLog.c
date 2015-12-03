@@ -183,41 +183,60 @@ __ret:
  * @param  val  Value to be logged
  */
 static gfmRV gfmLog_logInt(gfmLog *pCtx, int val) {
-    // Enough bytes for 32 bits signed + '\0'
-    char pBuf[12];
+    /* Enough bytes for 32 bits signed + '\0' */
+    char pBuf[12], *pTmp;
     gfmRV rv;
-    int i;
-    
-    // Sanitize arguments
+    int len, isNeg;
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    // Check that the logger was initialized
+    /* Check that the logger was initialized */
 #ifndef EMCC
     ASSERT(pCtx->pFile, GFMRV_LOG_NOT_INITIALIZED);
 #endif
-    
-    // Terminate the string
-    pBuf[11] = '\0';
-    // "Convert" the integer to a string (a digit at a time)
-    i = 10;
-    while ((val >= 10 || val <= -10) && i > 1) {
-        pBuf[i] = (char)(val % 10 + '0');
-        val /= 10;
-        i--;
-    }
-    // Check that there's enough space for the last digit and the signal
-    ASSERT(i > 1, GFMRV_INTERNAL_ERROR);
-    // Set the last digit
-    pBuf[i] = (char)(val % 10 + '0');
-    // Set the signal, if necessary
+
+    /* Stored whether the number is negative */
+    isNeg = val < 0;
     if (val < 0) {
-        i--;
-        pBuf[i] = '-';
+        val = -val;
     }
-    
-    // Write the integer as a string
-    rv = gfmLog_logString(pCtx, pBuf + i, 11 - i);
+
+    /* Point to the end of the string */
+    pTmp = pBuf + sizeof(pBuf) - 1;
+    /* Set the NULL terminator */
+    *pTmp = '\0';
+
+    len = 0;
+    /* Loop until the last digit (so '0' is correctly displayed) */
+    while (val >= 10 && len < 10) {
+        char c;
+
+        /* "Convert" the integer to a string (a digit at a time) */
+        c = (char)(val % 10);
+        val /= 10;
+        c += '0';
+
+        /* Prepend the character */
+        pTmp--;
+        *pTmp = c;
+        len++;
+    }
+
+    /* Add the last digit to the string */
+    pTmp--;
+    *pTmp = (char)(val % 10 + '0');
+    len++;
+    /* Set the signal, if necessary */
+    if (isNeg) {
+        pTmp--;
+        *pTmp = '-';
+        len++;
+    }
+
+    /* Write the integer as a string */
+    rv = gfmLog_logString(pCtx, pTmp, len);
     ASSERT(rv == GFMRV_OK, rv);
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;
