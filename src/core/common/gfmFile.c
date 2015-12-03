@@ -48,6 +48,8 @@ struct stGFMFile {
     fpos_t stack[STACK_SIZE];
     /** Buffer for reading stuff */
     char pBuf[4];
+    /** Mode the file was opened on */
+    char pMode[4];
 };
 
 /**
@@ -127,6 +129,9 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     /* Check that the file isn't opened */
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
 
+    /** Check that the mode is at most 3 characters long */
+    ASSERT(strnlen(mode, 4) <= 3, GFMRV_INTERNAL_ERROR);
+
 #ifndef EMCC
     /* Retrieve the file's directory */
     rv = gfmString_getString(&pPath, pStr);
@@ -151,6 +156,11 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     /* Open the file */
     pCtx->pFp = fopen(pPath, mode);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
+
+    /* Copy the new mode */
+    pCtx->pMode[0] = '\0';
+    strncpy(pCtx->pMode, mode, 4);
+    pCtx->pMode[3] = '\0';
 
     /* Clear stuff */
     pCtx->lastChar = -1;
@@ -322,8 +332,6 @@ __ret:
  */
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
 #if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
-#else
     char *pPath;
     gfmRV rv;
     int irv;
@@ -349,6 +357,8 @@ gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
     rv = GFMRV_OK;
 __ret:
     return rv;
+#else
+    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
 #endif
 }
 
@@ -374,6 +384,42 @@ gfmRV gfmFile_getPos(int *pPos, gfmFile *pCtx) {
     ASSERT(pos >= 0, GFMRV_INTERNAL_ERROR);
 
     *pPos = pos;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Erase the file contents
+ *
+ * NOTE: The file is kept at the same mode it had been previously opened
+ *
+ * @param  [ in]pCtx The file struct
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_erase(gfmFile *pCtx) {
+    char *pPath;
+    gfmRV rv;
+    long pos;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the file was opened */
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+
+    /* Retrieve the file path */
+    rv = gfmString_getString(&pPath, pCtx->pPath);
+    ASSERT(rv == GFMRV_OK, rv);
+
+    /* Close the file and reopen it in 'w' mode (so it's erased) */
+    fclose(pCtx->pFp);
+    pCtx->pFp = fopen(pPath, "w");
+    ASSERT(pCtx->pFp, GFMRV_INTERNAL_ERROR);
+    /* Close again and reopen it with its original flags */
+    fclose(pCtx->pFp);
+    pCtx->pFp = fopen(pPath, pCtx->pMode);
+    ASSERT(pCtx->pFp, GFMRV_INTERNAL_ERROR);
+
     rv = GFMRV_OK;
 __ret:
     return rv;

@@ -189,7 +189,24 @@ __ret:
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmSave_erase(gfmSave *pCtx) {
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the save file is bound */
+    ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
+
+    /* Erase the file */
+    rv = gfmFile_erase(pCtx->pFile);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Add save file version */
+    rv = gfmSave_writeStatic(pCtx, "gfmSave", 0x00010000);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
@@ -367,6 +384,11 @@ static gfmRV gfmSave_writeID(gfmSave *pCtx, char *pId, int len) {
     /* Store the actual id */
     rv = gfmFile_writeBytes(pCtx->pFile, pId, len);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    /* Store the current tuple */
+    strncpy(pCtx->curTuple.pId, pId, 256);
+    pCtx->curTuple.pId[255] = '\0';
+    pCtx->curTuple.idLen = len;
 
     rv = GFMRV_OK;
 __ret:
