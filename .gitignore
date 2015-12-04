@@ -43,6 +43,7 @@ example-game/assets/song01.dat
 
 # Android project (many things are simply duplicated)
 example-game/android-project/
+old_mobile/example-game/android-project/
 
 # Windows
 # =========================
