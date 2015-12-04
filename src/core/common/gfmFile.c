@@ -331,11 +331,12 @@ __ret:
  * @param  pCtx  The file struct
  */
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
-#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
-    char *pPath;
     gfmRV rv;
     int irv;
+#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
+    char *pPath;
     struct stat buf;
+#endif
 
     /* Sanitize arguments */
     ASSERT(pSize, GFMRV_ARGUMENTS_BAD);
@@ -343,6 +344,7 @@ gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
     /* Check that the file was opened */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
+#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
     /* Retrieve the file path */
     rv = gfmString_getString(&pPath, pCtx->pPath);
     ASSERT(rv == GFMRV_OK, rv);
@@ -353,13 +355,30 @@ gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
 
     /* Retrieve only the file size */
     *pSize = (int)buf.st_size;
-
+#else
+    /* Store the current position on the file */
+    rv = gfmFile_pushPos(pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    /* Go to the file end (in a lazy and not-platform-independent way) */
+    irv = fseek(pCtx->pFp, 0, SEEK_END);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    /* Retrieve the length */
+    rv = gfmFile_getPos(pSize, pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+    /* Return to the previous position */
+    rv = gfmFile_popPos(pCtx);
+    ASSERT(rv == GFMRV_OK, rv);
+#endif
     rv = GFMRV_OK;
 __ret:
-    return rv;
-#else
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+#if defined(EMCC) || defined(__WIN32) || defined(__WIN32__)
+    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD &&
+            rv != GFMRV_FILE_NOT_OPEN) {
+        /* On error, rewind the file */
+        gfmFile_rewind(pCtx);
+    }
 #endif
+    return rv;
 }
 
 /**
@@ -400,7 +419,6 @@ __ret:
 gfmRV gfmFile_erase(gfmFile *pCtx) {
     char *pPath;
     gfmRV rv;
-    long pos;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
