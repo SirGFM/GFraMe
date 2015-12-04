@@ -2,27 +2,25 @@
 #==============================================================================
 # Select which compiler to use (either gcc or emcc)
 #==============================================================================
-  ifeq ($(MAKECMDGOALS), emscript)
+  ifneq (,$(findstring emscript, $(MAKECMDGOALS)))
     CC := emcc
     RELEASE := yes
     EXPORT_GIF := no
     BACKEND := emscript
 
-    #USE_WGL_VIDEO := yes
+    #USE_GLES2_VIDEO := yes
     USE_SDL2_VIDEO := yes
   else
-    ifeq ($(MAKECMDGOALS), emscript_clean)
-      CC := emcc
-      RELEASE := yes
-      EXPORT_GIF := no
-      BACKEND := emscript
-    else
-      ifndef ($(CC))
-        CC := gcc
+    CC := gcc
 
-        USE_GL3_VIDEO := yes
-        USE_SDL2_VIDEO := yes
-      endif
+    ifneq ($(NO_GL), yes)
+      USE_GL3_VIDEO := yes
+    endif
+    USE_SDL2_VIDEO := yes
+
+# By default, the FPS counter is enabled
+    ifneq ($(FPS_COUNTER), no)
+      FPS_COUNTER := yes
     endif
   endif
 #==============================================================================
@@ -43,7 +41,7 @@
 # Define compilation target
 #==============================================================================
   TARGET := libGFraMe
-  MAJOR_VERSION := 1
+  MAJOR_VERSION := 2
   MINOR_VERSION := 0
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
@@ -427,12 +425,12 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 ifeq ($(OS), Win)
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 else
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).$(MNV) $(BINDIR)/$(TARGET).$(SO)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)

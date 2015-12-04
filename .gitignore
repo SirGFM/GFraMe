@@ -33,6 +33,8 @@ example-game/bin/
 *.x86_64
 *.hex
 
+tst/gframe_*_tst
+
 # Assets
 tst/assets*
 old_mobile/example-game/assets/xcf/
