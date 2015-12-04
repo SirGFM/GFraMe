@@ -24,7 +24,7 @@
 
 /** Create the tilemap in a lazy way */
 int pTmData[] = {
-#include "../assets/map.csv"
+#include "assets/map.csv"
 };
 
 // Those values are broken, but it doesn't really matter for now...

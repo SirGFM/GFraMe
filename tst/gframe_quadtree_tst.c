@@ -19,7 +19,7 @@
 
 // Static buffer with the tilemap data
 static int pBuf[] = {
-    #include "../assets/map2.csv"
+    #include "assets/map2.csv"
 };
 
 // Define two types for the tiles

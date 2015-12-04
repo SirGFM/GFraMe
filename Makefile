@@ -248,7 +248,7 @@
 # Automatically look up for tests and compile them
 #==============================================================================
  TEST_SRC := $(wildcard $(TESTDIR)/*.c)
- TEST_BIN := $(addprefix $(BINDIR)/, $(TEST_SRC:%.c=%$(BIN_EXT)))
+ TEST_BIN := $(TEST_SRC:%.c=%$(BIN_EXT))
 #==============================================================================
 
 #==============================================================================
@@ -461,15 +461,17 @@ MAKEDIRS: | $(OBJDIR)
 
 #==============================================================================
 # Rule for compiling every test (must be suffixed by _tst)
+# There's also a small cheat for ignoring some warnings caused by macros
 #==============================================================================
-$(BINDIR)/tst/gframe_lots_of_particles_tst$(BIN_EXT): $(OBJDIR)/tst/gframe_lots_of_particles_tst.o
-	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) -lm
+tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+					-lm
 #==============================================================================
 
 #==============================================================================
 # Rule for compiling every test (must be suffixed by _tst)
 #==============================================================================
-$(BINDIR)/%_tst$(BIN_EXT): $(OBJDIR)/%_tst.o
+%_tst$(BIN_EXT): %_tst.c
 	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS)
 #==============================================================================
 

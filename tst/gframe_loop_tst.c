@@ -14,7 +14,7 @@
 
 /** Create the tilemap in a lazy way */
 int pTmData[] = {
-#include "../assets/map.csv"
+#include "assets/map.csv"
 };
 
 /** Create the animations */
