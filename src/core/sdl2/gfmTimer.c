@@ -9,6 +9,9 @@
 
 #include <SDL2/SDL_timer.h>
 
+#include <stdlib.h>
+#include <string.h>
+
 struct stGFMTimer {
     unsigned int desiredDelay;
     unsigned int lastTime;

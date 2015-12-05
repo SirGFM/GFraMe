@@ -13,6 +13,11 @@
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmFile_bkend.h>
 
+#if defined(__WIN32) || defined(__WIN32__)
+/* Required on Windows because of strnlen */
+#  include <GFraMe/gfmUtils.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
