@@ -6,8 +6,8 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmLog.h>
-#include <GFraMe_int/gfmAudio_wave.h>
 #include <GFraMe/core/gfmFile_bkend.h>
+#include <GFraMe_int/gfmAudio_wave.h>
 
 #include <stdlib.h>
 #include <string.h>

@@ -57,8 +57,6 @@ struct stGFMTilemap {
     int widthInTiles;
     /** How many tiles there are vertically */
     int heightInTiles;
-    /** Whether the tilemap should automatically batch its tiles */
-    int doBatched;
     /** Areas in the tilemap */
     gfmGenArr_var(gfmObject, pAreas);
     /** Tiles and theirs respective types */
@@ -89,9 +87,6 @@ gfmRV gfmTilemap_getNew(gfmTilemap **ppCtx) {
     *ppCtx = (gfmTilemap*)malloc(sizeof(gfmTilemap));
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     memset(*ppCtx, 0x0, sizeof(gfmTilemap));
-    
-    // Set anything that should be different from 0
-    (*ppCtx)->doBatched = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -1262,46 +1257,6 @@ __ret:
 }
 
 /**
- * Disable batched draw; It should be used when it's desired to batch more tiles
- * at once
- * 
- * @param  pCtx The tilemap
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmTilemap_disableBatchedDraw(gfmTilemap *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    pCtx->doBatched = 0;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
- * Enable batched draw; It should be used when it's desired to batch more tiles
- * at once
- * 
- * @param  pCtx The tilemap
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmTilemap_enableBatchedDraw(gfmTilemap *pCtx) {
-    gfmRV rv;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    pCtx->doBatched = 1;
-    
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Run through every animated tile and update its time and the tile itself
  * 
  * @param  pTMap The tilemap
@@ -1437,10 +1392,6 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
         verTiles = camHeight / tileHeight + 2;
     }
     
-    // Check if should batch
-    if (pTMap->doBatched)
-        gfm_batchBegin(pCtx);
-    
     i = 0;
     j = 0;
     // Loop through every visible tile
@@ -1459,10 +1410,6 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
             j++;
         }
     }
-    
-    // Check if should end batch
-    if (pTMap->doBatched)
-        gfm_batchEnd(pCtx);
     
     rv = GFMRV_OK;
 __ret:

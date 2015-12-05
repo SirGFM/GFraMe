@@ -24,7 +24,7 @@
 
 /** Create the tilemap in a lazy way */
 int pTmData[] = {
-#include "../assets/map.csv"
+#include "assets/map.csv"
 };
 
 // Those values are broken, but it doesn't really matter for now...
@@ -58,7 +58,7 @@ int main(int arg, char *argv[]) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Initialize the window
-    rv = gfm_initGameWindow(pCtx, 160, 120, 640, 480, 0);
+    rv = gfm_initGameWindow(pCtx, 160, 120, 640, 480, 0, 0);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Load the texture

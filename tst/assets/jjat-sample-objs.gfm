@@ -1,0 +1,26 @@
+area ver_door 160 400 0 0
+area ver_door 104 400 0 0
+obj term 112 328 0 0
+obj term 128 400 0 0 [ close , A ] [ open , B ]
+obj ver_door 64 136 0 0
+obj hor_door 8 344 0 0
+obj term 32 400 0 0
+obj term 32 136 0 0
+obj ver_door 96 192 0 0
+obj term 32 216 0 0
+obj hor_door 272 168 0 0
+area term 264 48 0 0
+area r_eye 17 256 0 0
+obj r_eye 97 288 0 0
+obj r_eye 17 176 0 0
+obj r_eye 73 80 0 0
+obj r_eye 177 360 0 0
+obj l_eye 87 288 0 0
+obj l_eye 287 376 0 0
+obj l_eye 287 200 0 0
+obj r_eye 145 232 0 0
+obj l_eye 199 64 0 0
+obj teleport 320 272 8 48 [ next , 7 ]
+obj teleport 320 96 8 48 [ next , 9 ]
+obj l_jumper 160 329 0 0
+obj l_jumper 136 329 0 0

@@ -73,6 +73,7 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Camera invalid height", /* GFMRV_CAMERA_INVALID_HEIGHT */
     "Camera moved", /* GFMRV_CAMERA_MOVED */
     "Camera didn't move", /* GFMRV_CAMERA_DIDNT_MOVE */
+    "Pointer outside of camera", /* GFMRV_CAMERA_POINTER_OUT_OF_SCREEN */
     // Tilemap errors
     "Tilemap not initialized", /* GFMRV_TILEMAP_NOT_INITIALIZED */
     "Tilemap no tiletype", /* GFMRV_TILEMAP_NO_TILETYPE */
@@ -119,6 +120,7 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Group width not set", /* GFMRV_GROUP_WIDTH_NOT_SET */
     "Group height not set", /* GFMRV_GROUP_HEIGHT_NOT_SET */
     "Group invalid type", /* GFMRV_GROUP_INVALID_TYPE */
+    "Group list empty", /* GFMRV_GROUP_LIST_EMPTY */
     // Input errors
     "Input not initialized", /* GFMRV_INPUT_NOT_INITIALIZED */
     "Input invalid handle", /* GFMRV_INPUT_INVALID_HANDLE */
@@ -140,6 +142,7 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Audio already initialized", /* GFMRV_AUDIO_ALREADY_INITIALIZED */
     "Audio not initialized", /* GFMRV_AUDIO_NOT_INITIALIZED */
     "Audio file not supported", /* GFMRV_AUDIO_FILE_NOT_SUPPORTED */
+    "Invalid audio type", /* GFMRV_AUDIO_INVALID_TYPE */
     // File errors
     "File already open", /* GFMRV_FILE_ALREADY_OPEN */
     "File not open", /* GFMRV_FILE_NOT_OPEN */
@@ -160,12 +163,20 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Error while parsing", /* GFMRV_PARSER_ERROR */
     "Got a invalid token while parsing", /* GFMRV_PARSER_BAD_TOKEN */
     "Parser no object parsed", /* GFMRV_PARSER_NO_OBJECT */
-    "Parsed object doesn't have the requested parameter",
-            /* GFMRV_PARSER_INVALID_OBJECT */
+    "Parsed object doesn't have the requested parameter", /* GFMRV_PARSER_INVALID_OBJECT */
     "Finished parsing the file", /* GFMRV_PARSER_FINISHED */
     // Event errors
     "Failed to bind controller", /* GFMRV_CONTROLLER_FAILED_TO_BIND */
     "Controller with invalid ID found", /* GFMRV_CONTROLLER_INVALID_ID */
+    // GL Errors
+    "Failed to compile the fragment shader", /* GFMRV_FRAGMENT_SHADER_ERROR */
+    "Failed to compile the vertex shader", /* GFMRV_VERTEX_SHADER_ERROR */
+    // Save errors
+    "Save file not yet bound", /* GFMRV_SAVE_NOT_BOUND */
+    "Failed to find ID in save file", /* GFMRV_SAVE_ID_NOT_FOUND */
+    "ID too long to be stored", /* GFMRV_SAVE_ID_TOO_LONG */
+    "Data too long to be stored", /* GFMRV_SAVE_DATA_TOO_LONG */
+    "Data length doesn't match the stored", /* GFMRV_SAVE_INVALID_DATA_LEN */
     "Max error" /* GFMRV_MAX */
 };
 

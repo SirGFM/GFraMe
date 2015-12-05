@@ -6,6 +6,7 @@
 #ifndef __GFMERROR__
 #define __GFMERROR__
 
+
 enum enGFMError {
     // Generic errors
     GFMRV_OK = 0,
@@ -141,6 +142,7 @@ enum enGFMError {
     GFMRV_AUDIO_ALREADY_INITIALIZED,
     GFMRV_AUDIO_NOT_INITIALIZED,
     GFMRV_AUDIO_FILE_NOT_SUPPORTED,
+    GFMRV_AUDIO_INVALID_TYPE,
     // File errors
     GFMRV_FILE_ALREADY_OPEN,
     GFMRV_FILE_NOT_OPEN,
@@ -166,6 +168,15 @@ enum enGFMError {
     // Event errors
     GFMRV_CONTROLLER_FAILED_TO_BIND,
     GFMRV_CONTROLLER_INVALID_ID,
+    // GL Errors
+    GFMRV_FRAGMENT_SHADER_ERROR,
+    GFMRV_VERTEX_SHADER_ERROR,
+    // Save errors
+    GFMRV_SAVE_NOT_BOUND,
+    GFMRV_SAVE_ID_NOT_FOUND,
+    GFMRV_SAVE_ID_TOO_LONG,
+    GFMRV_SAVE_DATA_TOO_LONG,
+    GFMRV_SAVE_INVALID_DATA_LEN,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

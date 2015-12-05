@@ -9,7 +9,6 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmLog.h>
-#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
 
 #include <SDL2/SDL.h>
@@ -608,14 +607,12 @@ __ret:
  */
 gfmRV gfmEvent_waitEvent(gfmEvent *pCtx) {
     gfmRV rv;
-    int irv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
-    irv = SDL_WaitEvent(0);
-    ASSERT(irv == 1, GFMRV_INTERNAL_ERROR);
-    
+
+    /* Push a new time event */
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -664,17 +661,23 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                     default: {}
                 }
             } break;
+            case SDL_WINDOWEVENT: {
+                if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    /* TODO This event can't be issued/handled exactly after
+                     * switching mode (to/from fullscreen) */
+                    rv = gfm_setDimensions(pCtx, ev.window.data1,
+                            ev.window.data2);
+                    ASSERT_NR(rv == GFMRV_OK);
+                }
+            } break;
 			case SDL_MOUSEMOTION: {
-                gfmBackbuffer *pBbuf;
                 int x, y;
                 
                 // Get the position in the screen
                 x = ev.motion.x;
                 y = ev.motion.y;
                 // Convert it to 'game space'
-                rv = gfm_getBackbuffer(&pBbuf, pCtx);
-                ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmBackbuffer_screenToBackbuffer(&x, &y, pBbuf);
+                rv = gfm_windowToBackbuffer(&x, &y, pCtx);
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 // Set the mouse position

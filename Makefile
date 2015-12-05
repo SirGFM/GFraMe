@@ -1,14 +1,47 @@
 
-ifndef ($(CC))
-  CC = gcc
-endif
-.SUFFIXES=.c .o
+#==============================================================================
+# Select which compiler to use (either gcc or emcc)
+#==============================================================================
+  ifneq (,$(findstring emscript, $(MAKECMDGOALS)))
+    CC := emcc
+    RELEASE := yes
+    EXPORT_GIF := no
+    BACKEND := emscript
+
+    #USE_GLES2_VIDEO := yes
+    USE_SDL2_VIDEO := yes
+  else
+    CC := gcc
+
+    ifneq ($(NO_GL), yes)
+      USE_GL3_VIDEO := yes
+    endif
+    USE_SDL2_VIDEO := yes
+
+# By default, the FPS counter is enabled
+    ifneq ($(FPS_COUNTER), no)
+      FPS_COUNTER := yes
+    endif
+  endif
+#==============================================================================
+
+#==============================================================================
+# Clear the suffixes' default rule, since there's an explicit one
+#==============================================================================
+.SUFFIXES:
+#==============================================================================
+
+#==============================================================================
+# Define all targets that doesn't match its generated file
+#==============================================================================
+.PHONY: emscript fast fast_all release install clean emscript_clean distclean
+#==============================================================================
 
 #==============================================================================
 # Define compilation target
 #==============================================================================
   TARGET := libGFraMe
-  MAJOR_VERSION := 1
+  MAJOR_VERSION := 2
   MINOR_VERSION := 0
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
@@ -16,6 +49,12 @@ endif
   ifeq ($(DEBUG), yes)
     TARGET := $(TARGET)_dbg
   endif
+#==============================================================================
+
+#==============================================================================
+# Clean the backend objects
+#==============================================================================
+  BKEND_OBJS = 
 #==============================================================================
 
 #==============================================================================
@@ -40,6 +79,7 @@ endif
           $(OBJDIR)/gfmParser.o           \
           $(OBJDIR)/gfmParserCommon.o     \
           $(OBJDIR)/gfmQuadtree.o         \
+          $(OBJDIR)/gfmSave.o             \
           $(OBJDIR)/gfmSprite.o           \
           $(OBJDIR)/gfmSpriteset.o        \
           $(OBJDIR)/gfmString.o           \
@@ -51,6 +91,13 @@ endif
           $(OBJDIR)/gfmUtils.o            \
           $(OBJDIR)/gfmVirtualKey.o       
 # Add objects based on the current backend
+  ifeq ($(USE_GL3_VIDEO), yes)
+    include src/core/video/opengl3/Makefile
+  endif
+  ifeq ($(USE_SDL2_VIDEO), yes)
+    include src/core/video/sdl2/Makefile
+  endif
+
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
   endif
@@ -122,7 +169,7 @@ endif
   endif
 # Set flags required by OS
   ifeq ($(OS), Win)
-    CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include"
+    CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include" -I"/c/c_synth/include/"
   else
     CFLAGS := $(CFLAGS) -fPIC
   endif
@@ -130,10 +177,13 @@ endif
   ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
   endif
-# Add OpenGL flags
- # ifeq ($(USE_OPENGL), yes)
- #   CFLAGS := $(CFLAGS) -DGFRAME_OPENGL
- # endif
+
+  ifeq ($(USE_GL3_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_GL3_VIDEO
+  endif
+  ifeq ($(USE_SDL2_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
+  endif
 #==============================================================================
 
 #==============================================================================
@@ -143,22 +193,26 @@ endif
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
-      LFLAGS := $(LFLAGS) -I"/d/windows/mingw/lib"
+      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
     else
-      LFLAGS := $(LFLAGS) -I"/d/windows/mingw/mingw32/lib"
+      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
     endif
     LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
+  else
+    LFLAGS := $(LFLAGS) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
+# Add the MML synthesizer
+  LFLAGS := $(LFLAGS) -lCSynth
 # Add OpenGL lib
- # ifeq ($(USE_OPENGL), yes)
- #   ifeq ($(OS), Win)
- #     LFLAGS := $(LFLAGS) -lopengl32
- #   else
- #     LFLAGS := $(LFLAGS) -lGL
- #   endif
- # endif
+ ifeq ($(USE_GL3_VIDEO), yes)
+   ifeq ($(OS), Win)
+     LFLAGS := $(LFLAGS) -lopengl32
+   else
+     LFLAGS := $(LFLAGS) -lGL
+   endif
+ endif
 #==============================================================================
 
 #==============================================================================
@@ -192,7 +246,7 @@ endif
 # Automatically look up for tests and compile them
 #==============================================================================
  TEST_SRC := $(wildcard $(TESTDIR)/*.c)
- TEST_BIN := $(addprefix $(BINDIR)/, $(TEST_SRC:%.c=%$(BIN_EXT)))
+ TEST_BIN := $(TEST_SRC:%.c=%$(BIN_EXT))
 #==============================================================================
 
 #==============================================================================
@@ -216,6 +270,16 @@ endif
 #==============================================================================
 
 #==============================================================================
+# Get the number of cores for fun stuff
+#==============================================================================
+  ifeq ($(OS), Win)
+   CORES := 1
+  else
+   CORES := $$(($(shell nproc) * 2))
+  endif
+#==============================================================================
+
+#==============================================================================
 # Define default compilation rule
 #==============================================================================
 all: static tests
@@ -230,34 +294,27 @@ release: MAKEDIRS
 	# Remove all old binaries
 	make clean
 	# Compile everything in release mode
-	make RELEASE=yes static
-	make RELEASE=yes shared
-	make RELEASE=yes optmized
+	make NO_GL=$(NO_GL) RELEASE=yes fast
 	# Remove all debug info from the binaries
 	strip $(BINDIR)/$(TARGET).a
 	strip $(BINDIR)/$(TARGET).$(MNV)
-	strip $(BINDIR)/$(TARGET)_opt.$(MNV)
 	# Delete all .o to recompile as debug
 	rm -f $(OBJS)
 	# Recompile the lib with debug info
-	make DEBUG=yes static
-	make DEBUG=yes shared
+	make NO_GL=$(NO_GL) DEBUG=yes fast
 	date
 #==============================================================================
 
 #==============================================================================
 # Rule for building a object file for emscript
 #==============================================================================
-emscript:
-	# Ugly solution: call make with the correct params
-	make RELEASE=yes EXPORT_GIF=no CC=emcc BACKEND=emscript bin/emscript/$(TARGET).bc
+emscript: bin/emscript/$(TARGET).bc
 #==============================================================================
 
 #==============================================================================
-# Stupid rule for cleaning emscript build... gotta fix this at some point
+# Rule for cleaning emscript build... It's required to modify the CC
 #==============================================================================
-emscript_clean:
-	make CC=emcc BACKEND=emscript clean
+emscript_clean: clean
 #==============================================================================
 
 #==============================================================================
@@ -286,7 +343,7 @@ ifeq ($(OS), Win)
 	# Create destiny directories
 	mkdir -p /c/GFraMe/lib/
 	mkdir -p /c/GFraMe/include/GFrame
-	# Copy every shared lib (normal, optmized and debug)
+	# Copy every shared lib (normal and debug)
 	cp -f $(BINDIR)/$(TARGET)*.$(MNV) /c/GFraMe/lib
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
@@ -298,7 +355,7 @@ else
 	# Create destiny directories
 	mkdir -p $(LIBPATH)/GFraMe
 	mkdir -p $(HEADERPATH)/GFraMe
-	# Copy every shared lib (normal, optmized and debug)
+	# Copy every shared lib (normal and debug)
 	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
@@ -323,9 +380,6 @@ ifeq ($(OS), Win)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MJV)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(SO)
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MNV) 
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(MJV) 
-	rm -f /c/GFraMe/lib/$(TARGET)_opt.$(SO) 
 	rm -f /c/GFraMe/lib/$(TARGET).$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(MJV)
 	rm -f /c/GFraMe/lib/$(TARGET).$(SO)
@@ -341,9 +395,6 @@ else
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MNV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MJV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(SO)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MNV) 
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(MJV) 
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_opt.$(SO) 
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MNV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MJV)
 	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(SO)
@@ -374,32 +425,15 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 ifeq ($(OS), Win)
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 else
   $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).$(MNV) $(BINDIR)/$(TARGET).$(SO)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
-endif
-#==============================================================================
-
-#==============================================================================
-# Rule for creating an optimized object file (must be tested!)
-#==============================================================================
-ifeq ($(OS), Win)
-  optmized:
-	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
-else
-  optmized:
-	rm -f $(BINDIR)/$(TARGET)_opt.$(MNV) $(BINDIR)/$(TARGET)_opt.$(SO)
-	$(CC) -shared -Wl,-soname,$(TARGET)_opt.$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET)_opt.$(MNV) $(ALL_SRC) $(LFLAGS)
-	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MNV) $(TARGET)_opt.$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET)_opt.$(MJV) $(TARGET)_opt.$(SO)
 endif
 #==============================================================================
 
@@ -418,13 +452,6 @@ $(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
 #==============================================================================
 
 #==============================================================================
-# Define compilation rule for gfmAudio so it avoids optimizations
-#==============================================================================
-$(OBJDIR)/core/sdl2/gfmAudio.o: src/core/sdl2/gfmAudio.c
-	$(CC) $(CFLAGS) -O0 -o $@ -c $<
-#==============================================================================
-
-#==============================================================================
 # Rule for creating every directory
 #==============================================================================
 MAKEDIRS: | $(OBJDIR)
@@ -432,9 +459,34 @@ MAKEDIRS: | $(OBJDIR)
 
 #==============================================================================
 # Rule for compiling every test (must be suffixed by _tst)
+# There's also a small cheat for ignoring some warnings caused by macros
 #==============================================================================
-$(BINDIR)/%_tst$(BIN_EXT): $(OBJDIR)/%_tst.o
-	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) 
+tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+					-lm
+#==============================================================================
+
+#==============================================================================
+# Rule for compiling every test (must be suffixed by _tst)
+#==============================================================================
+%_tst$(BIN_EXT): %_tst.c
+	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS)
+#==============================================================================
+
+#==============================================================================
+# Build everything as fast as possible (and using as many cores/threads as
+# possible)
+#==============================================================================
+fast:
+	make -j $(CORES) static shared
+#==============================================================================
+
+#==============================================================================
+# Build everything as fast as possible (and using as many cores/threads as
+# possible)
+#==============================================================================
+fast_all:
+	make -j $(CORES) static shared && make -j $(CORES)
 #==============================================================================
 
 #==============================================================================
@@ -445,14 +497,18 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
 	mkdir -p $(OBJDIR)/core/common
+	mkdir -p $(OBJDIR)/core/emscript-sdl2
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
-	mkdir -p $(OBJDIR)/core/emscript-sdl2
+	mkdir -p $(OBJDIR)/core/video/sdl2
+	mkdir -p $(OBJDIR)/core/video/opengl3
 	mkdir -p $(BINDIR)
 	mkdir -p $(BINDIR)/tst
 #==============================================================================
 
-.PHONY: clean mostlyclean
+#==============================================================================
+# Removes all built objects (use emscript_clean to clear the emscript stuff)
+#==============================================================================
 clean:
 	rm -f $(OBJS)
 	rm -f $(TEST_BIN)
@@ -460,15 +516,22 @@ clean:
 	rm -f $(BINDIR)/$(TARGET)*.$(MNV)
 	rm -f $(BINDIR)/$(TARGET)*.$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
+#==============================================================================
 
-mostlyclean: clean
-	rmdir $(OBJDIR)/core/common
-	rmdir $(OBJDIR)/core/noip
+#==============================================================================
+# Remove all built objects and target directories
+#==============================================================================
+distclean: clean
+	rmdir $(OBJDIR)/core/video/sdl2
+	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
+	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/emscript-sdl2
+	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
 	rmdir $(OBJDIR)
 	rmdir $(BINDIR)/tst
 	rmdir $(BINDIR)
+#==============================================================================
 

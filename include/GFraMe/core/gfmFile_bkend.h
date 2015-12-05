@@ -122,12 +122,40 @@ gfmRV gfmFile_close(gfmFile *pCtx);
 gfmRV gfmFile_isOpen(gfmFile *pCtx);
 
 /**
+ * Get the path to the currently opened file
+ * 
+ * @param  [out]ppPath The path to the file (mustn't be dealloc'ed)
+ * @param  [ in]pCtx   The 'generic' file
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPath(char **ppPath, gfmFile *pCtx);
+
+/**
  * Retrieve the file's size
  * 
  * @param  pSize The file size (in bytes)
  * @param  pCtx  The file struct
  */
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx);
+
+/**
+ * Retrieve the current position into the file
+ *
+ * @param  [out]pPos The current position
+ * @param  [ in]pCtx The file struct
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getPos(int *pPos, gfmFile *pCtx);
+
+/**
+ * Erase the file contents
+ *
+ * NOTE: The file is kept at the same mode it had been previously opened
+ *
+ * @param  [ in]pCtx The file struct
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_erase(gfmFile *pCtx);
 
 /**
  * Check if a file reached its end
@@ -224,7 +252,7 @@ gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx);
  * @param  pVal The character
  * @param  pCtx The file
  */
-gfmRV gfmFile_writeChar(gfmFile *pCtx, char val);
+gfmRV gfmFile_writeChar(gfmFile *pCtx, unsigned char val);
 
 /**
  * Roll back a character (similar to stdio's ungetc); The last read character

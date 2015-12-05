@@ -1565,7 +1565,11 @@ gfmRV gfmSprite_resetAnimation(gfmSprite *pCtx) {
     // Check that there's a animation playing
     ASSERT(pCtx->pCurAnim, GFMRV_NO_ANIMATION_PLAYING);
     
+    // Reset the animation
     rv = gfmAnimation_reset(pCtx->pCurAnim);
+    ASSERT_NR(rv == GFMRV_OK);
+    // Update the current frame
+    rv = gfmAnimation_getFrame(&(pCtx->frame), pCtx->pCurAnim);
 __ret:
     return rv;
 }

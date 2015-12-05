@@ -21,23 +21,19 @@ struct stGFMGroupNode {
     struct stGFMGroupNode *pNextVisible;
     /** Next collideable node on the list */
     struct stGFMGroupNode *pNextCollideable;
-    /* Actualy pointer to the object */
+    /** Next visible object, to the left */
+    struct stGFMGroupNode *pDrawLeft;
+    /** Next visible object, to the right */
+    struct stGFMGroupNode *pDrawRight;
+    /** Next object on the stack */
+    struct stGFMGroupNode *pStackNext;
+    /** Actualy pointer to the object */
     gfmSprite *pSelf;
     /** For how long this node may keep living; If set to gfmGroup_keepAlive,
         the node won't be removed ever */
     int timeAlive;
     /** Whether this reference should be automatically freed or not */
     int autoFree;
-};
-
-/** The gfmDrawTree structure */
-struct stGFMDrawTree {
-    /** Left node (less or equal some value) */
-    gfmDrawTree *pLeft;
-    /** Right node (greater than some value) */
-    gfmDrawTree *pRight;
-    /** Current node */
-    struct stGFMGroupNode *pSelf;
 };
 
 #endif /* __GFMGROUPHELPERS_STRUCT__ */
@@ -63,22 +59,6 @@ gfmRV gfmGroupNode_getNew(gfmGroupNode **ppCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmGroupNode_free(gfmGroupNode **pCtx);
-
-/**
- * Alloc a new tree node
- * 
- * @param  ppCtx The new tree node
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFM_ALLOC_FAILED
- */
-gfmRV gfmDrawTree_getNew(gfmDrawTree **ppCtx);
-
-/**
- * Release a tree node
- * 
- * @param  ppCtx The tree node
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmDrawTree_free(gfmDrawTree **ppCtx);
 
 #endif /* __GFMGROUPHELPERS_H__ */
 

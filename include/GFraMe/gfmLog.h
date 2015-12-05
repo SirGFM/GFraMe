@@ -79,9 +79,15 @@ gfmRV gfmLog_clean(gfmLog *pCtx);
  * @param  pFmt  The message's format (similar to printf's)
  * @param  ...   The message's arguments (similar to printf's)
  */
-#define gfmLog_log(pCtx, level, pFmt, ...) \
+#ifdef DEBUG
+#  define gfmLog_log(pCtx, level, pFmt, ...) \
     gfmLog_simpleLog(pCtx, level, "[%s - %s (%d)] - "pFmt"\n", __FILE__, \
         __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+#  define gfmLog_log(pCtx, level, pFmt, ...) \
+    gfmLog_simpleLog(pCtx, level, "[%s (%d)] - "pFmt"\n", __FUNCTION__, \
+        __LINE__, ##__VA_ARGS__)
+#endif
         
 /**
  * Log a message; The current time will be printed prior to the message

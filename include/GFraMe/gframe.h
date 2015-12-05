@@ -8,6 +8,19 @@
 
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+
+/** 'Exports' the backends enum */
+enum enGFMVideoBackend {
+    GFM_VIDEO_SDL2 = 0,
+    GFM_VIDEO_GL3,
+    GFM_VIDEO_GLES2,
+    GFM_VIDEO_GLES3,
+    GFM_VIDEO_WGL,
+    GFM_VIDEO_MAX
+};
+typedef enum enGFMVideoBackend gfmVideoBackend;
 
 #endif /* __GFRAME_STRUCT__ */
 
@@ -22,9 +35,7 @@ typedef struct stGFMCtx gfmCtx;
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmString.h>
 #include <GFraMe/core/gfmAudio_bkend.h>
-#include <GFraMe/core/gfmBackbuffer_bkend.h>
 #include <GFraMe/core/gfmEvent_bkend.h>
-#include <GFraMe/core/gfmTexture_bkend.h>
 
 #define GFraMe_major_version	0
 #define GFraMe_minor_version	1
@@ -50,6 +61,15 @@ gfmRV gfm_getNew(gfmCtx **ppCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_free(gfmCtx **ppCtx);
+
+/**
+ * Select the video backend to be used; MUST be called before gfm_init
+ * 
+ * @param  pCtx  The allocated context
+ * @param  bkend The backend
+ * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALREADY_INITIALIZED
+ */
+gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend);
 
 /**
  * Initialize and alloc every one of this object's members; Also sets the
@@ -166,11 +186,12 @@ gfmRV gfm_getResolution(int *pWidth, int *pHeight, int *pRefRate,
  * @param  wndWidth        Window's width
  * @param  wndHeight       Window's height
  * @param  isUserResizable Whether the user can resize the window through the OS
+ * @param  useVsync        Whether vsync should be enabled or not
  * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
  *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int wndWidth, int wndHeight, int isUserResizable);
+        int wndWidth, int wndHeight, int isUserResizable, int useVsync);
 
 /**
  * Initialize the game's window (in fullscreen) and backbuffer
@@ -182,11 +203,12 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
  * @param  bufHeight       Backbuffer's height
  * @param  resIndex        Resolution to be used (0 is the default resolution)
  * @param  isUserResizable Whether the user can resize the window through the OS
+ * @param  useVsync        Whether vsync should be enabled or not
  * @return                 GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TITLE_NOT_SET,
  *                         GFMRV_INVALID_WIDTH, GFMRV_INVALID_HEIGHT
  */
 gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
-        int resIndex, int isUserResizable);
+        int resIndex, int isUserResizable, int useVsync);
 
 /**
  * Disable the audio subsystem; Any further call to any audio function will be
@@ -267,14 +289,17 @@ gfmRV gfm_didGetQuitFlag(gfmCtx *pCtx);
 gfmRV gfm_getEventCtx(gfmEvent **ppEvent, gfmCtx *pCtx);
 
 /**
- * Get the current backbuffer
+ * Convert a point in window-space to backbuffer-space
  * 
- * @param  ppBbuf The backbuffer
- * @param  pCtx   The game's context
- * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                GFMRV_BACKBUFFER_NOT_INITIALIZED
+ * NOTE: Both pX and pY must be initialized with the window-space point
+ * 
+ * @param  [out]pX   The horizontal position, in backbuffer-space
+ * @param  [out]pY   The vertical position, in backbuffer-space
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                   GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
-gfmRV gfm_getBackbuffer(gfmBackbuffer **ppBbuf, gfmCtx *pCtx);
+gfmRV gfm_windowToBackbuffer(int *pX, int *pY, gfmCtx *pCtx);
 
 /**
  * Get the backbuffer's dimension
@@ -377,27 +402,23 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
  * Get a texture
  * 
  * @param  ppTex The texture
- * @param  pCtx  The game's contex
+ * @param  pCtx  The game's context
  * @param  index The texture's index
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX
  */
 gfmRV gfm_getTexture(gfmTexture **ppTex, gfmCtx *pCtx, int index);
 
 /**
- * Create a new (automatically managed) spriteset
+ * Get a texture's dimesions
  * 
- * @param  ppSset     The spriteset
- * @param  pCtx       The game's context
- * @param  pTex       The texture
- * @param  tileWidth  The width of each tile
- * @param  tileHeight The height of each tile
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                    GFMRV_SPRITESET_INVALID_WIDTH,
- *                    GFMRV_SPRITESET_INVALID_HEIGHT,
- *                    GFMRV_TEXTURE_NOT_INITIALIZED
+ * @param  [out]pWidth  The texture's width
+ * @param  [out]pHeight The texture's height
+ * @param  [ in]pCtx    The game's context
+ * @param  [ in]pTex    The texture
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfm_createSpriteset(gfmSpriteset **ppSset, gfmCtx *pCtx, gfmTexture *pTex,
-        int tileWidth, int tileHeight);
+gfmRV gfm_getTextureDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx,
+        gfmTexture *pTex);
 
 /**
  * Create a new (automatically managed) spriteset
@@ -416,6 +437,8 @@ gfmRV gfm_createSpritesetCached(gfmSpriteset **ppSset, gfmCtx *pCtx, int index,
         int tileWidth, int tileHeight);
 
 /**
+ * OBSOLETE FUCTION!!
+ * 
  * Set a texture as default; this texture will always be loaded before drawing
  * anything
  * 
@@ -808,6 +831,8 @@ gfmRV gfm_didExportGif(gfmCtx *pCtx);
 gfmRV gfm_drawBegin(gfmCtx *pCtx);
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer; The texture must be managed by the
  * framework
  * 
@@ -818,6 +843,8 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx);
 gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);
 
 /**
+ * OBSOLETE FUNCTION!!
+ * 
  * Loads a texture into the backbuffer
  * 
  * @param  pCtx  The game's context
@@ -825,15 +852,6 @@ gfmRV gfm_drawLoadCachedTexture(gfmCtx *pCtx, int iTex);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_INITIALIZED
  */
 gfmRV gfm_drawLoadTexture(gfmCtx *pCtx, gfmTexture *pTex);
-
-/**
- * Initialize a batch of renders (i.e., render many sprites in a single draw
- * call)
- * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
- */
-gfmRV gfm_batchBegin(gfmCtx *pCtx);
 
 /**
  * Renders a tile into the backbuffer
@@ -894,12 +912,21 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
         unsigned char red, unsigned char green, unsigned char blue);
 
 /**
- * Finalize a batch of renders (i.e., render many sprites in a single draw call)
+ * Render last frame's render info
  * 
- * @param  pCtx  The game's context
- * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
+ * The displayed info is the number of batched draws and the number of drawn
+ * sprites
+ * 
+ * @param  [ in]pCtx      The game's conext
+ * @param  [ in]pSset     The spriteset
+ * @param  [ in]x         Horizontal position
+ * @param  [ in]y         Vertical position
+ * @param  [ in]firstTile First ASCII tile in the spriteset
+ * @return                GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NOT_INITIALIZED,
+ *                        GFMRV_BACKBUFFER_NOT_INITIALIZED
  */
-gfmRV gfm_batchEnd(gfmCtx *pCtx);
+gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
+        int firstTile);
 
 /**
  * Finalize a rendering operation

@@ -33,16 +33,18 @@ example-game/bin/
 *.x86_64
 *.hex
 
+tst/gframe_*_tst
+
 # Assets
-assets*
-example-game/assets/xcf/
-example-game/assets/promo/
-example-game/assets/icons/*.png
-example-game/assets/song01.wav
-example-game/assets/song01.dat
+tst/assets*
+old_mobile/example-game/assets/xcf/
+old_mobile/example-game/assets/promo/
+old_mobile/example-game/assets/icons/*.png
+old_mobile/example-game/assets/song01.wav
+old_mobile/example-game/assets/song01.dat
 
 # Android project (many things are simply duplicated)
-example-game/android-project/
+old_mobile/example-game/android-project/
 
 # Windows
 # =========================
