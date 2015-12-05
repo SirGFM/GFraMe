@@ -294,14 +294,14 @@ release: MAKEDIRS
 	# Remove all old binaries
 	make clean
 	# Compile everything in release mode
-	make RELEASE=yes fast
+	make NO_GL=$(NO_GL) RELEASE=yes fast
 	# Remove all debug info from the binaries
 	strip $(BINDIR)/$(TARGET).a
 	strip $(BINDIR)/$(TARGET).$(MNV)
 	# Delete all .o to recompile as debug
 	rm -f $(OBJS)
 	# Recompile the lib with debug info
-	make DEBUG=yes fast
+	make NO_GL=$(NO_GL) DEBUG=yes fast
 	date
 #==============================================================================
 
