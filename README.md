@@ -25,15 +25,14 @@ Head over to the wiki to find out more about it!
   <summary>Fixed time step</summary>
   Time elapsed between frames is counted in milliseconds and guaranteed to be
   constant between frames. When that isn't possible (e.g., 60FPS would require
-  16.666...ms), frames will vary in a consistent matter (e.g., 17ms/17ms/16ms).
+  16.666...ms), frames will vary in a consistent manner (e.g., 17ms/17ms/16ms).
 </details>
 
 <details>
   <summary>"Action-oriented" input</summary>
-  Instead of delegating to the lib's user to check whether an action was
-  performed in any of the assigned keys (e.g., assigning jump to both up key,
-  'w' and spacebar), "virtual keys" may be created and have inputs (keyboard
-  keys, mouse buttons and gamepad buttons) assigned to them.
+  To handle input, "virtual keys" must be created to represent action. Keys,
+  gamepad buttons e mouse buttons can be assigned to those "v-keys". This should
+  make customizable controls easier to implement.
 
   *NOTE:* Inputs can't be bound to more than one action!
 </details>
@@ -47,48 +46,62 @@ Head over to the wiki to find out more about it!
 
 <details>
   <summary>Auto batched rendering</summary>
+  If OpenGL is set as the video backend, draws with the same texture are batched
+  until either a different texture is used or 8192 sprites are batched.
+  
   *NOTE 1:* This feature requires OpenGL 3.1 or better
 
-  If OpenGL is set as the video backend, draws with the same texture are batched
-  until either a different texture is used or 8192 sprites are batched. This
-  limit was selected to try to limit the use of VRAM for batching to 576KB.
+  *NOTE 2:* The limit was selected to try to limit the use of VRAM for batching
+  to 576KB. More VRAM is actually needed for storing textures and others
+  objects.
 
-  *NOTE 2:* The limit of 8192 sprites may be lower. It depends on
+  *NOTE 3:* The limit of 8192 sprites may be lower. It depends on
   GL_MAX_TEXTURE_BUFFER_SIZE being at least 49152 (2 texels per sprite with 3 
   separated buffers).
 </details>
 
 <details>
   <summary>Assets management</summary>
-  There's no need to know the full path to an asset, nor its type. The library
-  only needs the asset name (e.g., "texture.bmp", "song.mml", "sfx.wav", ...)
-  and it handles the rest. File extensions doesn't even need to be correct. The
-  framework looks into a file's identifier (usually within its first bytes) to
-  retrieve the file's type.
+  Assets are accessed only through their filename. There's no need to know the
+  complete path to those files. Whoever, this caused two implications:
+    1. There *must* be an 'assets/' directory on the same level as the
+    executable
+    2. All assets must be located on that 'assets/' folder. One can separate
+    assets into sub-directories, but this would required the sub-directory to
+    be listed on the filename (e.g., "sub_dir/texture.bmp").
 
-  *NOTE:* Assets are required to be inside a 'assets' directory (on the same
-  level as the game's binary file). 
+  On load, known file identifiers are looked up on the asset, to check if the
+  file is supported or not. One such example is the first 2 "BM" bytes on
+  bitmap files.
 </details>
 
 <details>
   <summary>MML support</summary>
-  Other than supporting WAVE files for audio, the framework can also handle MML
-  files. Those can be correctly versioned, requires less disk space and are
-  great for pixel-art games.
+  Audio may be loaded from MML files. Those can be correctly versioned, requires
+  less disk space and are great for pixel-art games.
 
   *NOTE 1:* This features makes use of
+
   [libCSynth](https://github.com/SirGFM/c_synth)
   *NOTE 2:* Unloading a specific MML is still not supported. This shouldn't be a
   problem on desktop environment, though...
 </details>
 
 <details>
+  <summary>Camera system</summary>
+  Single camera used to convert world-space to screen space. There are already
+  functionalities to follow objects.
+</details>
+
+<details>
   <summary>Non-recursive collision detection</summary>
-  The library uses a quadtree for collision detection. Instead of traversing it
-  recursively (and requiring a callback for handling the collision/overlap), it
-  does so iteratively and stops execution whenever a collision is detected (akin
-  to 'yield' statement in some languages). The user may than handle it however
-  wanted and, then, continue traversing the quadtree.
+  Collision detection is implemented through a quadtree structure. Although
+  those are usually recursive and make use of callbacks to handle overlaps,
+  it was implemented iteratively.
+
+  Whenever a collision test detects two overlapping objects, the quadtree halts
+  execution (akin to 'yield' statements in some languages) and returns the
+  overlapping objects. Collision may be later resumed.
 </details>
 
 <details>
@@ -109,27 +122,39 @@ Head over to the wiki to find out more about it!
 
 <details>
   <summary>Gamepad support</summary>
-  TODO: write details...
+  When gamepads are connected, they are sorted into 'ports' (similar to how
+  gamepads used to be connected to physically numbered ports on consoles).
+
+  Whenever a gamepad is disconnected, its 'port' is closed. A new controller
+  will be connected on this "released" 'port', keeping the previous order
+  unchanged.
+
+  To assign a gamepad button to an action, the button and the desired port
+  must be passed. Axis may be used either as simple triggers (setting the
+  deadzone to trigger it) or by getting its current value (as floats in the
+  range [-1, 1]).
 </details>
 
 <details>
   <summary>Save file</summary>
-  TODO: write details...
-</details>
-
-<details>
-  <summary>Camera system</summary>
-  TODO: write details...
-</details>
-
-<details>
-  <summary>File parser</summary>
-  TODO: write details...
+  Simple files that associates IDs to values. Can be used to store a game's
+  state and/or highscore.
 </details>
 
 <details>
   <summary>Tiled plugin</summary>
-  TODO: write details...
+  Since [Tiled](https://github.com/bjorn/tiled) can be extended with custom
+  plugins, it was selected as the default tilemap/level editor to be used with
+  the framework.
+
+  This plugin can export a level's tilemap, it's types for specific tiles (e.g.,
+  floor, spike, checkpoint etc.) and objects.
+</details>
+
+<details>
+  <summary>File parser</summary>
+  Parser for a JSON-like objects. It's quite useful for defining enemies,
+  objects, events etc.
 </details>
 
 
