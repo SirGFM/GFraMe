@@ -2698,8 +2698,8 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
 
         /* Retrieve the data */
         len = pCtx->ssDataLen;
-        rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferData))(0, (int*)&len,
-                pCtx->pVideo);
+        rv = (*(pCtx->videoFuncs.gfmVideo_getBackbufferData))(pCtx->pSsData,
+                (int*)&len, pCtx->pVideo);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
         /* Store it in a GIF image */
