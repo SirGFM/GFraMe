@@ -1707,7 +1707,7 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the flags
-    *pDir = (pCtx->hit & gfmCollision_last) >> 8;
+    *pDir = (pCtx->hit & gfmCollision_last) >> 4;
     
     rv = GFMRV_OK;
 __ret:
