@@ -345,7 +345,7 @@ static gfmRV gfmParser_parseObject(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        rv = gfmFile_popPos(pCtx->pFile);
+        gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;

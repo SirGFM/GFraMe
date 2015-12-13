@@ -61,8 +61,9 @@ __ret:
  *                 GFMRV_PARSER_ERROR, GFMRV_ALLOC_FAILED
  */
 gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
+    char prevC;
     gfmRV rv;
-    int isPosSet, len;
+    int gotDelimiter, isPosSet, len;
     
     // Set default values
     isPosSet = 0;
@@ -81,6 +82,8 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
     
     // Read all characters until a blank one
     len = 0;
+    prevC = '\0';
+    gotDelimiter = 0;
     while (1) {
         char c;
         
@@ -88,9 +91,41 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
         rv = gfmFile_readChar(&c, pFp);
         ASSERT_NR(rv == GFMRV_OK);
         // Stop if it's a blank character
-        if (gfmParser_isBlank(c)) {
+        if (gfmParser_isBlank(c) && !gotDelimiter) {
             break;
         }
+
+        if (c == '\\') {
+            if (prevC == '\\') {
+                /* The character was escaped, output it! */
+            }
+            else {
+                /* Otherwise store the escape and move on */
+                prevC = c;
+                continue;
+            }
+        }
+
+        if (prevC == '\\') {
+            if (c == 'n') {
+                c = '\n';
+            }
+            else if (c == 't') {
+                c = '\t';
+            }
+        }
+
+        if (c == '"' && prevC != '\\') {
+            /* Check if this character wasn't escaped */
+            if (!gotDelimiter && len == 0) {
+                gotDelimiter = 1;
+                continue;
+            }
+            else if (gotDelimiter) {
+                break;
+            }
+        }
+
         // Expand the buffer as necessary
         if (len >= *pStrLen) {
             // Realloc the buffer with enough space for more chars and the null
@@ -102,11 +137,26 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
         // Copy this new character into it
         (*ppStr)[len] = (char)c;
         
+        prevC = c;
         len++;
     }
     ASSERT(len > 0, GFMRV_PARSER_ERROR);
     // Set the null terminator
     (*ppStr)[len] = '\0';
+
+    /* Must go to the next non blank */
+    if (gotDelimiter) {
+        while (1) {
+            char c;
+
+            rv = gfmFile_readChar(&c, pFp);
+            ASSERT_NR(rv == GFMRV_OK);
+            // Stop if it's a blank character
+            if (gfmParser_isBlank(c)) {
+                break;
+            }
+        }
+    }
     
     // Try to remove the pushed position
     rv = gfmFile_clearLastPosStack(pFp);
