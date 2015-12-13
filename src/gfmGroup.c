@@ -644,6 +644,8 @@ gfmRV gfmGroup_setAnimation(gfmGroup *pCtx, int anim) {
     // Play the animation
     rv = gfmSprite_playAnimation(pCtx->pLast, anim);
     ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmSprite_resetAnimation(pCtx->pLast);
+    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
