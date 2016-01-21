@@ -1,28 +1,8 @@
 
 #==============================================================================
-# Select which compiler to use (either gcc or emcc)
+# Import the configurations
 #==============================================================================
-  ifneq (,$(findstring emscript, $(MAKECMDGOALS)))
-    CC := emcc
-    RELEASE := yes
-    EXPORT_GIF := no
-    BACKEND := emscript
-
-    #USE_GLES2_VIDEO := yes
-    USE_SDL2_VIDEO := yes
-  else
-    CC := gcc
-
-    ifneq ($(NO_GL), yes)
-      USE_GL3_VIDEO := yes
-    endif
-    USE_SDL2_VIDEO := yes
-
-# By default, the FPS counter is enabled
-    ifneq ($(FPS_COUNTER), no)
-      FPS_COUNTER := yes
-    endif
-  endif
+  include Makefile.conf
 #==============================================================================
 
 #==============================================================================
@@ -145,12 +125,12 @@
 # Add architecture flag
   ARCH := $(shell uname -m)
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32
+    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
   else
     ifeq ($(ARCH), x86_64)
-      CFLAGS := $(CFLAGS) -m64
+      CFLAGS := $(CFLAGS) -m64 -DALIGN=8
     else
-      CFLAGS := $(CFLAGS) -m32
+      CFLAGS := $(CFLAGS) -m32 -DALIGN=4
     endif
   endif
 # Add debug flags
@@ -294,14 +274,14 @@ release: MAKEDIRS
 	# Remove all old binaries
 	make clean
 	# Compile everything in release mode
-	make NO_GL=$(NO_GL) RELEASE=yes fast
+	make RELEASE=yes fast
 	# Remove all debug info from the binaries
 	strip $(BINDIR)/$(TARGET).a
 	strip $(BINDIR)/$(TARGET).$(MNV)
 	# Delete all .o to recompile as debug
 	rm -f $(OBJS)
 	# Recompile the lib with debug info
-	make NO_GL=$(NO_GL) DEBUG=yes fast
+	make DEBUG=yes fast
 	date
 #==============================================================================
 
