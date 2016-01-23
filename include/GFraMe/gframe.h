@@ -628,6 +628,16 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx);
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile);
 
 /**
+ * Set the position where the FPS counter is to be rendered
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setFPSCounterPos(gfmCtx *pCtx, int x, int y);
+
+/**
  * Make the FPS counter visible
  * 
  * @param  pCtx      The game's context

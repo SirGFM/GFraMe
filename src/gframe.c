@@ -1817,6 +1817,34 @@ __ret:
 }
 
 /**
+ * Set the position where the FPS counter is to be rendered
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setFPSCounterPos(gfmCtx *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+#if defined(DEBUG) || defined(FORCE_FPS)
+    /* Check that it was initialized, on debug mode */
+    ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
+    /* Set its position */
+    rv = gfmFPSCounter_setPosition(pCtx->pCounter, x, y);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+#endif
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Make the FPS counter visible
  * 
  * @param  pCtx      The game's context

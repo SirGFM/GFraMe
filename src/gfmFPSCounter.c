@@ -18,6 +18,10 @@
 struct stGFMFPSCounter {
     /** Spriteset with a bitmap font */
     gfmSpriteset *pSset;
+    /** FPS counter's horizontal position, on the screen */
+    int x;
+    /** FPS counter's vertical position, on the screen */
+    int y;
     /** First tile of the bitmap font */
     int firstTile;
     /** Time, in milliseconds, that the drawing process was initialized */
@@ -118,6 +122,29 @@ gfmRV gfmFPSCounter_init(gfmFPSCounter *pCtx, gfmSpriteset *pSset,
     pCtx->pSset = pSset;
     pCtx->firstTile = firstTile;
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the position where the FPS counter is to be rendered
+ *
+ * @param  [ in]pCtx The FPS counter
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_setPosition(gfmFPSCounter *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Set the position */
+    pCtx->x = x;
+    pCtx->y = y;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -240,8 +267,8 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Draw updates-per-second
-    x = 0;
-    y = 0;
+    x = pCounter->x;
+    y = pCounter->y;
     
     // Draw an 'U'
     tile = 'U' - '!' + pCounter->firstTile;
@@ -279,7 +306,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     pCounter->updateTime = 0;
     
     // Draw draws-per-second
-    x = 0;
+    x = pCounter->x;
     y += tileHeight;
     
     // Draw a 'D'
