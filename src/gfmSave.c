@@ -259,12 +259,18 @@ static gfmRV gfmSave_tuplecmp(gfmSaveTuple *pCtx, char *pId, int len) {
  * @param  [ in]pId  Tuple's key
  * @return           GFMRV_OK, GFMRV_SAVE_ID_NOT_FOUND
  */
-static gfmRV gfmSave_gotoId(gfmSave *pCtx, char *pId, int len) {
+gfmRV gfmSave_findId(gfmSave *pCtx, char *pId, int len) {
     gfmSaveTuple *pTuple;
     gfmRV rv;
     int didLoop, loopPos, pos, size;
 
-    /* No need to sanitize as inputs have been previously sanitized */
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT_LOG(pId, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(len < 128, GFMRV_SAVE_ID_TOO_LONG, pCtx->pLog);
+    /* Check that the save file is bound */
+    ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
 
     /* Retrieve the current tuple */
     pTuple = &(pCtx->curTuple);
@@ -433,7 +439,7 @@ gfmRV gfmSave_write(gfmSave *pCtx, char *pId, int len, int value) {
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Check if the id already exists */
-    rv = gfmSave_gotoId(pCtx, pId, len);
+    rv = gfmSave_findId(pCtx, pId, len);
     if (rv == GFMRV_SAVE_ID_NOT_FOUND) {
         /* If not, write the id */
         rv = gfmSave_writeID(pCtx, pId, len);
@@ -485,7 +491,7 @@ gfmRV gfmSave_read(int *pValue, gfmSave *pCtx, char *pId, int len) {
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Check if the id exists */
-    rv = gfmSave_gotoId(pCtx, pId, len);
+    rv = gfmSave_findId(pCtx, pId, len);
     if (rv == GFMRV_OK) {
         rv = gfmFile_readWord(pValue, pCtx->pFile);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -527,7 +533,7 @@ gfmRV gfmSave_writeData(gfmSave *pCtx, char *pId, int len, char *pData,
     ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
 
     /* Check if the id already exists */
-    rv = gfmSave_gotoId(pCtx, pId, len);
+    rv = gfmSave_findId(pCtx, pId, len);
     if (rv == GFMRV_SAVE_ID_NOT_FOUND) {
         /* If not, write the id */
         rv = gfmSave_writeID(pCtx, pId, len);
@@ -589,7 +595,7 @@ gfmRV gfmSave_readData(char *pData, int *pNumBytes, gfmSave *pCtx, char *pId,
     ASSERT_LOG(pCtx->pFile, GFMRV_SAVE_NOT_BOUND, pCtx->pLog);
 
     /* Check if the id exists */
-    rv = gfmSave_gotoId(pCtx, pId, len);
+    rv = gfmSave_findId(pCtx, pId, len);
     if (rv == GFMRV_OK) {
         /* Check if the data should actually be read */
         if (pData) {

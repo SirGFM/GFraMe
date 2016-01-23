@@ -69,6 +69,18 @@ gfmRV gfmSave_close(gfmSave *pCtx);
  */
 gfmRV gfmSave_erase(gfmSave *pCtx);
 
+#define gfmSave_findIdStatic(pCtx, pId) \
+    gfmSave_findId(pCtx, pId, sizeof(pId) - 1)
+
+/**
+ * Search for the desired ID
+ *
+ * @param  [ in]pCtx The save file
+ * @param  [ in]pId  Tuple's key
+ * @return           GFMRV_OK, GFMRV_SAVE_ID_NOT_FOUND
+ */
+gfmRV gfmSave_findId(gfmSave *pCtx, char *pId, int len);
+
 #define gfmSave_writeStatic(pCtx, pId, value) \
     gfmSave_write(pCtx, pId, sizeof(pId) - 1, value)
 
