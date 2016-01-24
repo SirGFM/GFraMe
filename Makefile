@@ -40,36 +40,36 @@
 #==============================================================================
 # Define every object required by compilation
 #==============================================================================
-  OBJS =                                  \
-          $(OBJDIR)/gframe.o              \
-          $(OBJDIR)/gfmAccumulator.o      \
-          $(OBJDIR)/gfmAnimation.o        \
-          $(OBJDIR)/gfmAudio_mml.o        \
-          $(OBJDIR)/gfmAudio_vorbis.o     \
-          $(OBJDIR)/gfmAudio_wave.o       \
-          $(OBJDIR)/gfmCamera.o           \
-          $(OBJDIR)/gfmError.o            \
-          $(OBJDIR)/gfmFPSCounter.o       \
-          $(OBJDIR)/gfmGroup.o            \
-          $(OBJDIR)/gfmGroupHelpers.o     \
-          $(OBJDIR)/gfmKeyNode.o          \
-          $(OBJDIR)/gfmInput.o            \
-          $(OBJDIR)/gfmLog.o              \
-          $(OBJDIR)/gfmObject.o           \
-          $(OBJDIR)/gfmParser.o           \
-          $(OBJDIR)/gfmParserCommon.o     \
-          $(OBJDIR)/gfmQuadtree.o         \
-          $(OBJDIR)/gfmSave.o             \
-          $(OBJDIR)/gfmSprite.o           \
-          $(OBJDIR)/gfmSpriteset.o        \
-          $(OBJDIR)/gfmString.o           \
-          $(OBJDIR)/gfmText.o             \
-          $(OBJDIR)/gfmTileAnimation.o    \
-          $(OBJDIR)/gfmTilemap.o          \
-          $(OBJDIR)/gfmTileType.o         \
-          $(OBJDIR)/gfmTrie.o             \
-          $(OBJDIR)/gfmUtils.o            \
-          $(OBJDIR)/gfmVirtualKey.o       
+  OBJS =                                    \
+          $(OBJDIR)/gframe.o                \
+          $(OBJDIR)/gfmAccumulator.o        \
+          $(OBJDIR)/gfmAnimation.o          \
+          $(OBJDIR)/util/gfmAudio_mml.o     \
+          $(OBJDIR)/util/gfmAudio_vorbis.o  \
+          $(OBJDIR)/util/gfmAudio_wave.o    \
+          $(OBJDIR)/gfmCamera.o             \
+          $(OBJDIR)/gfmError.o              \
+          $(OBJDIR)/util/gfmFPSCounter.o    \
+          $(OBJDIR)/gfmGroup.o              \
+          $(OBJDIR)/util/gfmGroupHelpers.o  \
+          $(OBJDIR)/util/gfmKeyNode.o       \
+          $(OBJDIR)/gfmInput.o              \
+          $(OBJDIR)/gfmLog.o                \
+          $(OBJDIR)/gfmObject.o             \
+          $(OBJDIR)/gfmParser.o             \
+          $(OBJDIR)/util/gfmParserCommon.o  \
+          $(OBJDIR)/gfmQuadtree.o           \
+          $(OBJDIR)/gfmSave.o               \
+          $(OBJDIR)/gfmSprite.o             \
+          $(OBJDIR)/gfmSpriteset.o          \
+          $(OBJDIR)/gfmString.o             \
+          $(OBJDIR)/gfmText.o               \
+          $(OBJDIR)/util/gfmTileAnimation.o \
+          $(OBJDIR)/gfmTilemap.o            \
+          $(OBJDIR)/util/gfmTileType.o      \
+          $(OBJDIR)/util/gfmTrie.o          \
+          $(OBJDIR)/gfmUtils.o              \
+          $(OBJDIR)/util/gfmVirtualKey.o
 # Add objects based on the current backend
   ifeq ($(USE_GL3_VIDEO), yes)
     include src/core/video/opengl3/Makefile
@@ -457,7 +457,7 @@ tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
 # Build everything as fast as possible (and using as many cores/threads as
 # possible)
 #==============================================================================
-fast:
+fast: MAKEDIRS
 	make -j $(CORES) static shared
 #==============================================================================
 
@@ -465,7 +465,7 @@ fast:
 # Build everything as fast as possible (and using as many cores/threads as
 # possible)
 #==============================================================================
-fast_all:
+fast_all: MAKEDIRS
 	make -j $(CORES) static shared && make -j $(CORES)
 #==============================================================================
 
@@ -474,7 +474,6 @@ fast_all:
 #==============================================================================
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
-	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
 	mkdir -p $(OBJDIR)/core/common
 	mkdir -p $(OBJDIR)/core/emscript-sdl2
@@ -482,8 +481,10 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(OBJDIR)/core/video/sdl2
 	mkdir -p $(OBJDIR)/core/video/opengl3
+	mkdir -p $(OBJDIR)/tst
+	mkdir -p $(OBJDIR)/util
 	mkdir -p $(BINDIR)
-	mkdir -p $(BINDIR)/tst
+	mkdir -p $(BINDIR)
 #==============================================================================
 
 #==============================================================================
@@ -510,8 +511,8 @@ distclean: clean
 	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
+	rmdir $(OBJDIR)/util
 	rmdir $(OBJDIR)
-	rmdir $(BINDIR)/tst
 	rmdir $(BINDIR)
 #==============================================================================
 
