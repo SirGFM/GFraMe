@@ -337,7 +337,7 @@ struct stGFMVideoFuncs {
      * @param  [ in]pFile    The texture file
      * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
      */
-    gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
+    gfmRV (*gfmVideo_loadTexture)(int *pTex, gfmVideo *pCtx,
             gfmFile *pFile, int colorKey);
 
     /**

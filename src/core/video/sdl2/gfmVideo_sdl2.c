@@ -12,6 +12,7 @@
 #include <GFraMe/core/gfmFile_bkend.h>
 
 #include <GFraMe_int/core/gfmVideo_bkend.h>
+#include <GFraMe_int/gfmVideo_bmp.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
@@ -1432,14 +1433,6 @@ __ret:
     return rv;
 }
 
-#define BMP_OFFSET_POS 0x0a
-#define BMP_WIDTH_POS  0x12
-#define BMP_HEIGHT_POS 0x16
-#define READ_UINT(buffer) \
-        ((0xff & buffer[0]) | ((buffer[1]<<8) & 0xff00) | \
-        ((buffer[2]<<16) & 0xff0000) | ((buffer[3]<<24) & 0xff000000))
-
-
 /**
  * Loads a 24 bits bitmap file into a texture
  * 
@@ -1450,16 +1443,14 @@ __ret:
  * @param  [ in]pFile    The texture file
  * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
  */
-static gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
+static gfmRV gfmVideo_SDL2_loadTexture(int *pTex, gfmVideo *pVideo,
         gfmFile *pFile, int colorKey) {
-    char *pData, pBuffer[4];
+    char *pData;
     gfmRV rv;
     gfmLog *pLog;
     gfmTexture *pTexture;
     gfmVideoSDL2 *pCtx;
-    /*int bytesInRow, height, i, irv, dataOffset, rowOffset, width; */
-    int bytesInRow, i, irv, rowOffset;
-    volatile int height, dataOffset, width;
+    int didLoad, height, irv, width;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoSDL2*)pVideo;
@@ -1478,112 +1469,16 @@ static gfmRV gfmVideo_SDL2_loadTextureBMP(int *pTex, gfmVideo *pVideo,
     ASSERT_LOG(pFile, GFMRV_ARGUMENTS_BAD, pLog);
 
     /*  Check the file type */
-    rv = gfmFile_rewind(pFile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 2/*count*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    ASSERT_LOG(pBuffer[0] == 'B', GFMRV_TEXTURE_NOT_BITMAP, pLog);
-    ASSERT_LOG(pBuffer[1] == 'M', GFMRV_TEXTURE_NOT_BITMAP, pLog);
+    rv = gfmVideo_isBmp(pFile, pLog);
+    if (rv == GFMRV_TRUE) {
+        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pLog,
+                colorKey);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
+        didLoad = 1;
+    }
 
-    /* Get the offset to the image's "data section" */
-    rv = gfmFile_rewind(pFile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_seek(pFile, BMP_OFFSET_POS);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
-
-    dataOffset = READ_UINT(pBuffer);
-
-    /* Get the image's dimensions */
-    rv = gfmFile_rewind(pFile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_seek(pFile, BMP_HEIGHT_POS);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
-
-    height = READ_UINT(pBuffer);
-
-    rv = gfmFile_rewind(pFile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_seek(pFile, BMP_WIDTH_POS);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_readBytes(pBuffer, &irv, pFile, 4/*count*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    ASSERT_LOG(irv == 4, GFMRV_READ_ERROR, pLog);
-
-    width = READ_UINT(pBuffer);
-
-    rv = gfmLog_log(pLog, gfmLog_info, "Loading %ix%i image...", width, height);
-    ASSERT(rv == GFMRV_OK, rv);
-
-    /* Alloc the data array */
-    pData = (char*)malloc(width*height*sizeof(char)*4);
-    ASSERT_LOG(pData, GFMRV_ALLOC_FAILED, pLog);
-
-    /* Calculate how many bytes there are in a row of pixels */
-    bytesInRow = width * 3;
-    rowOffset = bytesInRow % 4;
-    bytesInRow += rowOffset;
-
-    /* Buffer the data (in the desired format) */
-    rv = gfmFile_rewind(pFile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    rv = gfmFile_seek(pFile, dataOffset);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-    /* Data is written starting by the last line */
-    i = width * (height - 1);
-    /* Start "alpha" with 0 (since the image is in RGB-24) */
-    pBuffer[3] = 0;
-    while (1) {
-        /*int color, r, g, b, pos, n; */
-        int r, g, b, pos, n;
-        volatile int color;
-
-        /* Read until the EOF */
-        rv = gfmFile_readBytes(pBuffer, &n, pFile, 3/*numBytes*/);
-        ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED, rv, pLog);
-        if (rv == GFMRV_FILE_EOF_REACHED) {
-            break;
-        }
-
-        /* Get the actual color */
-        color = READ_UINT(pBuffer);
-        /* Get each component */
-        r = color & 0xff;
-        g = (color >> 8) & 0xff;
-        b = (color >> 16) & 0xff;
-
-        /* Output the color */
-        pos = i * 4;
-        if (color == colorKey) {
-            pData[pos + 0] = 0x00;
-            pData[pos + 1] = 0x00;
-            pData[pos + 2] = 0x00;
-            pData[pos + 3] = 0x00;
-        }
-        else {
-            pData[pos + 0] = (char)b & 0xff;
-            pData[pos + 1] = (char)g & 0xff;
-            pData[pos + 2] = (char)r & 0xff;
-            pData[pos + 3] =   0xff;
-        }
-
-        /* Go to the next pixel in this row */
-        i++;
-        /* If a row was read, go back the current row and the "next" one */
-        /* (actually the previous!) */
-        if (i % width == 0) {
-            i -= width * 2;
-            /* Go to the next line on the file */
-            if (rowOffset != 0) {
-                rv = gfmFile_seek(pFile, rowOffset);
-                ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-            }
-        }
+    if (!didLoad) {
+        /* TODO Check other formats */
     }
 
     /* Initialize the texture  */
@@ -1707,7 +1602,7 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
     pCtx->gfmVideo_getBackbufferDimensions = gfmVideo_SDL2_getBackbufferDimensions;
     pCtx->gfmVideo_windowToBackbuffer = gfmVideo_SDL2_windowToBackbuffer;
     pCtx->gfmVideo_setBackgroundColor = gfmVideo_SDL2_setBackgroundColor;
-    pCtx->gfmVideo_loadTextureBMP = gfmVideo_SDL2_loadTextureBMP;
+    pCtx->gfmVideo_loadTexture= gfmVideo_SDL2_loadTexture;
     pCtx->gfmVideo_drawBegin = gfmVideo_SDL2_drawBegin;
     pCtx->gfmVideo_drawTile = gfmVideo_SDL2_drawTile;
     pCtx->gfmVideo_drawRectangle = gfmVideo_SDL2_drawRectangle;

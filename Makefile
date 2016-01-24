@@ -44,31 +44,32 @@
           $(OBJDIR)/gframe.o                \
           $(OBJDIR)/gfmAccumulator.o        \
           $(OBJDIR)/gfmAnimation.o          \
-          $(OBJDIR)/util/gfmAudio_mml.o     \
-          $(OBJDIR)/util/gfmAudio_vorbis.o  \
-          $(OBJDIR)/util/gfmAudio_wave.o    \
           $(OBJDIR)/gfmCamera.o             \
           $(OBJDIR)/gfmError.o              \
-          $(OBJDIR)/util/gfmFPSCounter.o    \
           $(OBJDIR)/gfmGroup.o              \
-          $(OBJDIR)/util/gfmGroupHelpers.o  \
-          $(OBJDIR)/util/gfmKeyNode.o       \
           $(OBJDIR)/gfmInput.o              \
           $(OBJDIR)/gfmLog.o                \
           $(OBJDIR)/gfmObject.o             \
           $(OBJDIR)/gfmParser.o             \
-          $(OBJDIR)/util/gfmParserCommon.o  \
           $(OBJDIR)/gfmQuadtree.o           \
           $(OBJDIR)/gfmSave.o               \
           $(OBJDIR)/gfmSprite.o             \
           $(OBJDIR)/gfmSpriteset.o          \
           $(OBJDIR)/gfmString.o             \
           $(OBJDIR)/gfmText.o               \
-          $(OBJDIR)/util/gfmTileAnimation.o \
           $(OBJDIR)/gfmTilemap.o            \
+          $(OBJDIR)/gfmUtils.o              \
+          $(OBJDIR)/util/gfmAudio_mml.o     \
+          $(OBJDIR)/util/gfmAudio_vorbis.o  \
+          $(OBJDIR)/util/gfmAudio_wave.o    \
+          $(OBJDIR)/util/gfmFPSCounter.o    \
+          $(OBJDIR)/util/gfmGroupHelpers.o  \
+          $(OBJDIR)/util/gfmKeyNode.o       \
+          $(OBJDIR)/util/gfmParserCommon.o  \
+          $(OBJDIR)/util/gfmTileAnimation.o \
           $(OBJDIR)/util/gfmTileType.o      \
           $(OBJDIR)/util/gfmTrie.o          \
-          $(OBJDIR)/gfmUtils.o              \
+          $(OBJDIR)/util/gfmVideo_bmp.o     \
           $(OBJDIR)/util/gfmVirtualKey.o
 # Add objects based on the current backend
   ifeq ($(USE_GL3_VIDEO), yes)
