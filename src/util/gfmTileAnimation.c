@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe/gfmTileAnimation.h
+ * @file src/util/gfmTileAnimation.c
  * 
  * Wrapper for gfmTileAnimation and gfmTileAnimationInfo
  */

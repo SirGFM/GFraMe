@@ -1,5 +1,5 @@
 /**
- * @file src/gfmFPSCounter.c
+ * @file src/util/gfmFPSCounter.c
  * 
  * Module that calculates and displays the current FPS
  * This module requires gfmTimer_getCurTimeMs to be implemented!

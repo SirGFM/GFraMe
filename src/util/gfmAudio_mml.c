@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmAudio_mml.h
+ * @file src/util/gfmAudio_mml.c
  * 
  * Module to parse a MML audio file
  */

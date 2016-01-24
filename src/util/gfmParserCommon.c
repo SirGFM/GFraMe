@@ -1,5 +1,5 @@
 /**
- * @file src/gfmParserCommon.c
+ * @file src/util/gfmParserCommon.c
  * 
  * Common functions used when parsing files
  */

@@ -1,5 +1,5 @@
 /**
- * @file src/gfmTrie.c
+ * @file src/util/gfmTrie.c
  * 
  * Trie implementation; Used by the GIF exporter to store the LZW dictionary;
  * Only insertion and search are implemented, as those are the only functions

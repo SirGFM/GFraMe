@@ -1,4 +1,6 @@
 /**
+ * @file src/util/gfmGroupHelpers.c
+ *
  * Defines a few structures and helper functions to keep gfmGroup clearner
  * (albeit a little less easy to read)
  */
