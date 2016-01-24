@@ -63,12 +63,13 @@ Head over to the wiki to find out more about it!
 <details>
   <summary>Assets management</summary>
   Assets are accessed only through their filename. There's no need to know the
-  complete path to those files. Whoever, this caused two implications:
-    1. There *must* be an 'assets/' directory on the same level as the
-    executable
-    2. All assets must be located on that 'assets/' folder. One can separate
-    assets into sub-directories, but this would required the sub-directory to
-    be listed on the filename (e.g., "sub_dir/texture.bmp").
+  complete path to those files. Whoever, this causes two implications:
+
+  1. There *must* be an 'assets/' directory on the same level as the
+  executable.
+  2. All assets must be located on that 'assets/' folder. One can separate
+  assets into sub-directories, but this would required the sub-directory to
+  be listed on the filename (e.g., "sub_dir/texture.bmp").
 
   On load, known file identifiers are looked up on the asset, to check if the
   file is supported or not. One such example is the first 2 "BM" bytes on
