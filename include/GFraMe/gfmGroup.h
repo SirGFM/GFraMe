@@ -295,6 +295,20 @@ gfmRV gfmGroup_setVelocity(gfmGroup *pCtx, int vx, int vy);
 gfmRV gfmGroup_setAcceleration(gfmGroup *pCtx, int ax, int ay);
 
 /**
+ * Set the type of the last recycled/added sprite
+ *
+ * WARNING: If this function is called even once, you'll have to call it after
+ * recycling any sprite. Otherwise, there's no guarantee about the recycled
+ * sprite's type. (unless you never "kill/release" the only sprite that had its
+ * type modified...)
+ *
+ * @param  [ in]pCtx The group
+ * @param  [ in]type The new type
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_GROUP_NO_LAST_SPRITE
+ */
+gfmRV gfmGroup_setType(gfmGroup *pCtx, int type);
+
+/**
  * Set the group's draw order
  * 
  * @param  pCtx  The group

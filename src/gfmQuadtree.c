@@ -1190,7 +1190,7 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
                 
                 // Get the object's color
                 if (type >= gfmType_max)
-                    type = gfmType_max;
+                    type = (type % gfmType_max) + 1;
                 pNodeColor = pColors + type * 3;
                 
                 // Get the object's position
