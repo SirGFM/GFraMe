@@ -181,13 +181,25 @@ gfmRV gfmQuadtree_getOverlaping(gfmObject **ppObj1, gfmObject **ppObj2,
 gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx);
 
 /**
- * Draw the quadtree to the screen; Colors are configured accordingly to the
- * object's type (therefore, there are 20 basic colors and a default one)
+ * Draw the quadtree to the screen.
+ *
+ * The object's type acts as index for the color. The first five colors are
+ * reserved to represent the framework's types. It loops at gfmType_max
+ * (currently 32).
+ *
+ * It's possible (and quite easy) to force different types to use the same
+ * color. The following bitmask combination can be used:
+ *
+ *   27 bits for dif. entities | 5 bits for the different types
+ * |---------------------------|-----|
+ *
+ * This way, the user may specify 27 different types, each of which may be used
+ * in any of 2^27 different entities.
  * NOTE: This functions will be most likely slow!! Be careful when calling it!
  * 
  * @param  pQt     The quadtree's root
  * @param  pCtx    The game's context
- * @param  pColors The colors to be used; Must have 21 colors, each with RGB
+ * @param  pColors The colors to be used; Must have 32 colors, each with RGB
  *                 components; The first set is for quadtree nodes, while the
  *                 others respect the types on gfmTypes.h
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD

@@ -37,30 +37,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-static unsigned char gfmQt_defColors[(gfmType_max + 1) * 3] =
+static unsigned char gfmQt_defColors[(gfmType_max) * 3] =
 {
 /* red ,green, blue */
-  0x72 ,0xab , 0x97,  /* quadtree_node */
-  0x8c ,0x7a , 0xae,  /* gfmType_object */
-  0xff ,0xf4 , 0xaa,  /* gfmType_sprite */
-  0xff ,0xc6 , 0xaa,  /* gfmType_tilemap */
-  0x47 ,0x8e , 0x75,  /* gfmType_group */
-  0x67 ,0x50 , 0x91,  /* gfmType_reserved_2 */
-  0xd4 ,0xc7 , 0x6a,  /* gfmType_reserved_3 */
-  0xd4 ,0x8d , 0x6a,  /* gfmType_reserved_4 */
-  0x26 ,0x72 , 0x57,  /* gfmType_reserved_5 */
-  0xff ,0xff , 0xff,  /* gfmType_reserved_6 */
-  0x47 ,0x2e , 0x74,  /* gfmType_reserved_7 */
-  0xaa ,0x9c , 0x39,  /* gfmType_reserved_8 */
-  0xaa ,0x5d , 0x39,  /* gfmType_reserved_9 */
-  0x0e ,0x55 , 0x3c,  /* gfmType_reserved_10 */
-  0x2d ,0x16 , 0x57,  /* gfmType_reserved_11 */
+  0x99 ,0xe5 , 0x50,  /* quadtree_node       (light green) */
+  0xac ,0x32 , 0x32,  /* gfmType_object      (red) */
+  0xcb ,0xdb , 0xfc,  /* gfmType_sprite      (lightest blue) */
+  0x00 ,0x00 , 0x00,  /* gfmType_tilemap     (isn't actually drawn) */
+  0x22 ,0x20 , 0x34,  /* gfmType_group       (isn't actually drawn) */
+  0xd7 ,0x7b , 0xba,  /* gfmType_reserved_2  (pink) */
+  0x5f ,0xcd , 0xe4,  /* gfmType_reserved_3  (light blue) */
+  0x6a ,0xbe , 0x30,  /* gfmType_reserved_4  (green) */
+  0x76 ,0x42 , 0x8a,  /* gfmType_reserved_5  (purple) */
+  0xfb ,0xf2 , 0x36,  /* gfmType_reserved_6  (yellow) */
+  0xd9 ,0x57 , 0x63,  /* gfmType_reserved_7  (light red) */
+  0xee ,0xc3 , 0x9a,  /* gfmType_reserved_8  (beige) */
+  0x63 ,0x9b , 0xff,  /* gfmType_reserved_9  (blue) */
+  0x8f ,0x97 , 0x4a,  /* gfmType_reserved_10 (dirty yellow/green) */
+  0xff ,0xff , 0xff,  /* gfmType_reserved_11 (white) */
   0x80 ,0x72 , 0x15,  /* gfmType_reserved_12 */
   0x80 ,0x38 , 0x15,  /* gfmType_reserved_13 */
   0x00 ,0x39 , 0x26,  /* gfmType_reserved_14 */
   0x18 ,0x06 , 0x3a,  /* gfmType_reserved_15 */
   0x55 ,0x4a , 0x00,  /* gfmType_reserved_16 */
-  0x55 ,0x1c , 0x00,  /* gfmType_max */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_17 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_18 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_19 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_20 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_21 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_22 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_23 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_24 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_25 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_26 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_27 */
+  0x55 ,0x4a , 0x00,  /* gfmType_reserved_28 */
 };
 
 /** Quadtree node type */
@@ -1097,13 +1108,25 @@ __ret:
 }
 
 /**
- * Draw the quadtree to the screen; Colors are configured accordingly to the
- * object's type (therefore, there are 20 basic colors and a default one)
+ * Draw the quadtree to the screen.
+ *
+ * The object's type acts as index for the color. The first five colors are
+ * reserved to represent the framework's types. It loops at gfmType_max
+ * (currently 32).
+ *
+ * It's possible (and quite easy) to force different types to use the same
+ * color. The following bitmask combination can be used:
+ *
+ *   27 bits for dif. entities | 5 bits for the different types
+ * |---------------------------|-----|
+ *
+ * This way, the user may specify 27 different types, each of which may be used
+ * in any of 2^27 different entities.
  * NOTE: This functions will be most likely slow!! Be careful when calling it!
  * 
  * @param  pQt     The quadtree's root
  * @param  pCtx    The game's context
- * @param  pColors The colors to be used; Must have 21 colors, each with RGB
+ * @param  pColors The colors to be used; Must have 32 colors, each with RGB
  *                 components; The first set is for quadtree nodes, while the
  *                 others respect the types on gfmTypes.h
  * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -1190,7 +1213,7 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
                 
                 // Get the object's color
                 if (type >= gfmType_max)
-                    type = (type % gfmType_max) + 1;
+                    type = (type % gfmType_max);
                 pNodeColor = pColors + type * 3;
                 
                 // Get the object's position

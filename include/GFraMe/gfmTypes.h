@@ -27,7 +27,19 @@
 #define gfmType_reserved_14  17
 #define gfmType_reserved_15  18
 #define gfmType_reserved_16  19
-#define gfmType_max          20
+#define gfmType_reserved_17  20
+#define gfmType_reserved_18  21
+#define gfmType_reserved_19  22
+#define gfmType_reserved_20  23
+#define gfmType_reserved_21  24
+#define gfmType_reserved_22  25
+#define gfmType_reserved_23  26
+#define gfmType_reserved_24  27
+#define gfmType_reserved_25  28
+#define gfmType_reserved_26  29
+#define gfmType_reserved_27  30
+#define gfmType_reserved_28  31
+#define gfmType_max          32
 
 #endif /* __GFMTYPES_H__ */
 

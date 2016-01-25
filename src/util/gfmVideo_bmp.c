@@ -70,6 +70,8 @@ gfmRV gfmVideo_loadFileAsBmp(char **pBuf, int *pWidth, int *pHeight,
     int bytesInRow, i, irv, rowOffset;
     volatile int height, dataOffset, width;
 
+    pData = 0;
+
     /* Get the offset to the image's "data section" */
     rv = gfmFile_rewind(pFp);
     ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
