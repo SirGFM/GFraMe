@@ -274,13 +274,6 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         tileset++;
     }
 
-    /* Write a tilemap 'header' */
-    file.write("map ");
-    file.write(QByteArray::number(tileLayer->width()));
-    file.write(" ");
-    file.write(QByteArray::number(tileLayer->height()));
-    file.write("\n");
-
     /* Fix the tilemap's dimension */
     if (b.width == 0) {
         b.width = tileLayer->width() - 1;
@@ -288,6 +281,13 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
     if (b.height == 0) {
         b.height = tileLayer->height() - 1;
     }
+
+    /* Write a tilemap 'header' */
+    file.write("map ");
+    file.write(QByteArray::number(b.width));
+    file.write(" ");
+    file.write(QByteArray::number(b.height));
+    file.write("\n");
 
     /* Write the buffer data */
     for (int y = b.y; y <= b.height; y++) {
