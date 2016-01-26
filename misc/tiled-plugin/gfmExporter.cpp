@@ -284,9 +284,9 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
 
     /* Write a tilemap 'header' */
     file.write("map ");
-    file.write(QByteArray::number(b.width - b.x));
+    file.write(QByteArray::number(b.width - b.x + 1));
     file.write(" ");
-    file.write(QByteArray::number(b.height - b.y));
+    file.write(QByteArray::number(b.height - b.y + 1));
     file.write("\n");
 
     /* Write the buffer data */
