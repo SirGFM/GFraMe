@@ -788,6 +788,82 @@ __ret:
 }
 
 /**
+ * Queue an audio. If the audio system is paused, this function won't forcefully
+ * start it (in contrast to gfm_playAudio)
+ *
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx The game's context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfm_queueAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
+        double volume);
+
+/**
+ * Pause any playing audio. It will restart as soon as any audio is played or
+ * gfm_resumeAudio is called
+ *
+ * NOTE: Queueing an audio won't restart the audio system!
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_pauseAudio(gfmCtx *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_pauseSubsystem(pCtx->pAudio);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Resume playing audios. If there are no audios currently playing, nothing will
+ * happen
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_resumeAudio(gfmCtx *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_resumeSubsystem(pCtx->pAudio);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Set the game's fps resolution; This defines when will the game automatically
  * wake to update its timers and check if a new frame should be issued
  * (therefore, it's somewhat different from the stateFramerate)

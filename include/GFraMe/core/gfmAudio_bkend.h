@@ -134,6 +134,22 @@ gfmRV gfmAudio_loadAudio(int *pHandle, gfmAudioCtx *pAud, gfmCtx *pCtx,
 gfmRV gfmAudio_setRepeat(gfmAudioCtx *pCtx, int handle, int pos);
 
 /**
+ * Queue an audio and return its instance'a=s handle (so you can pause/play/stop
+ * it and change its volume)
+ *
+ * NOTE: This function doesn't automatically resume the audio subsystem
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfmAudio_queueAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+        double volume);
+
+/**
  * Play an audio and return its instance's handle (so you can pause/play/stop it
  * and change its volume)
  * 

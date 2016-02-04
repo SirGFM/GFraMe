@@ -817,7 +817,9 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was paused
-    ASSERT(!(pCtx->isPlaying), GFMRV_OK);
+    if (pCtx->isPlaying) {
+        return GFMRV_OK;
+    }
     
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
@@ -852,7 +854,9 @@ gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was playing
-    ASSERT(pCtx->isPlaying, GFMRV_OK);
+    if (!pCtx->isPlaying) {
+        return GFMRV_OK;
+    }
     
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
@@ -1078,8 +1082,10 @@ __ret:
 }
 
 /**
- * Play an audio and return its instance's handle (so you can pause/play/stop it
- * and change its volume)
+ * Queue an audio and return its instance'a=s handle (so you can pause/play/stop
+ * it and change its volume)
+ *
+ * NOTE: This function doesn't automatically resume the audio subsystem
  * 
  * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
  * @param  pCtx   The audio context
@@ -1088,7 +1094,7 @@ __ret:
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
  *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
  */
-gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+gfmRV gfmAudio_queueAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
         double volume) {
     gfmAudio *pAudio;
     gfmAudioHandle *pAudioHnd;
@@ -1145,9 +1151,6 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     // Unlock the mutex
     isLocked = 0;
     SDL_SemPost(pCtx->pSem);
-    // Unpause the device
-    rv = gfmAudio_resumeSubsystem(pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -1155,6 +1158,33 @@ __ret:
         // Unlock the mutex
         SDL_SemPost(pCtx->pSem);
     }
+    return rv;
+}
+
+/**
+ * Play an audio and return its instance's handle (so you can pause/play/stop it
+ * and change its volume)
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+        double volume) {
+    gfmRV rv;
+
+    /* Most verifications are done in this call */
+    rv = gfmAudio_queueAudio(ppHnd, pCtx, handle, volume);
+    ASSERT_NR(rv == GFMRV_OK);
+    /* Unpause the device */
+    rv = gfmAudio_resumeSubsystem(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
     return rv;
 }
 

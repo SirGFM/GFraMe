@@ -486,6 +486,40 @@ gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
         double volume);
 
 /**
+ * Queue an audio. If the audio system is paused, this function won't forcefully
+ * start it (in contrast to gfm_playAudio)
+ *
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx The game's context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfm_queueAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
+        double volume);
+
+/**
+ * Pause any playing audio. It will restart as soon as any audio is played or
+ * gfm_resumeAudio is called
+ *
+ * NOTE: Queueing an audio won't restart the audio system!
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_pauseAudio(gfmCtx *pCtx);
+
+/**
+ * Resume playing audios. If there are no audios currently playing, nothing will
+ * happen
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_resumeAudio(gfmCtx *pCtx);
+
+/**
  * Retrieve the current camera
  * 
  * @param  ppCam The camera
