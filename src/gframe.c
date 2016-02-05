@@ -2885,7 +2885,9 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
 #ifndef GFRAME_MOBILE
     gfmString_free(&(pCtx->pBinPath));
 #endif
-    (*(pCtx->videoFuncs.gfmVideo_free))(&(pCtx->pVideo));
+    if (pCtx->videoFuncs.gfmVideo_free) {
+        (*(pCtx->videoFuncs.gfmVideo_free))(&(pCtx->pVideo));
+    }
     gfmCamera_free(&(pCtx->pCamera));
     gfmGenArr_clean(pCtx->pSpritesets, gfmSpriteset_free);
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
