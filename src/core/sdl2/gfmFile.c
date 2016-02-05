@@ -238,7 +238,7 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
 
     /* There's no 'binary path on mobile, so we use the string to pass the
      * actual file path */
-#if defined(GFRAME_MOBILE)
+#if !defined(GFRAME_MOBILE)
     /* Retrieve the absolute file path (i.e., copy the 'static' string) */
     rv = gfm_getBinaryPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
