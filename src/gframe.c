@@ -2905,6 +2905,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
     gfmTimer_free(&(pCtx->pTimer));
+    gfmBackend_finalize();
     
     if (pCtx->pLog) {
         gfmLog_log(pCtx->pLog, gfmLog_info, "GFraMe finalized!");

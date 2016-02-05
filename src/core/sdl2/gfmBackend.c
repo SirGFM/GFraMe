@@ -41,6 +41,7 @@ gfmRV gfmBackend_finalize() {
     
     ASSERT(isSDLInit == 1, GFMRV_BACKEND_NOT_INITIALIZED);
     SDL_Quit();
+    isSDLInit = 0;
     
     rv = GFMRV_OK;
 __ret:
