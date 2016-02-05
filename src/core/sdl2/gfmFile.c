@@ -319,6 +319,30 @@ __ret:
 }
 
 /**
+ * Retrieve the internal file representation
+ *
+ * @param  [out]ppObj The internal file representation
+ * @param  [ in]pCtx  The 'generic' file
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
+ */
+gfmRV gfmFile_getInternalObject(void **ppObj, gfmFile *pCtx) {
+    /* GFraMe return value */
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ppObj, GFMRV_ARGUMENTS_BAD);
+    /* Check that the file is currently open */
+    ASSERT(gfmFile_isOpen(pCtx) == GFMRV_TRUE, GFMRV_FILE_NOT_OPEN);
+
+    /* Retrieve the file */
+    *ppObj = (void*)pCtx->pFp;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get the path to the currently opened file
  *
  * @param  [out]ppPath The path to the file (mustn't be dealloc'ed)

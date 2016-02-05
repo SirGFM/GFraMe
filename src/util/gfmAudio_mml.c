@@ -59,7 +59,12 @@ __ret:
  */
 gfmRV gfmAudio_loadMMLAsWave(char **ppBuf, int *pLen, int *pLoop, gfmFile *pFp,
         gfmLog *pLog, synthCtx *pCtx, synthBufMode mode) {
-    char *pBuf, *pDst, *pFilename;
+    char *pBuf, *pDst;
+#if !defined(GFRAME_MOBILE)
+    char *pFilename;
+#else
+    void *pFile;
+#endif
     gfmRV rv;
     int bufLen, doLoop, handle, loopPos, numBytes;
     synth_err srv;
@@ -77,8 +82,13 @@ gfmRV gfmAudio_loadMMLAsWave(char **ppBuf, int *pLen, int *pLoop, gfmFile *pFp,
     ASSERT_LOG(pCtx, GFMRV_ARGUMENTS_BAD, pLog);
     
     // Retrieve the song filename
+#if !defined(GFRAME_MOBILE)
     rv = gfmFile_getPath(&pFilename, pFp);
     ASSERT_NR(rv == GFMRV_OK);
+#else
+    rv = gfmFile_getInternalObject(&pFile, pFp);
+    ASSERT_NR(rv == GFMRV_OK);
+#endif
     
     // Retrieve the number of bytes
     numBytes = 1;
@@ -90,7 +100,11 @@ gfmRV gfmAudio_loadMMLAsWave(char **ppBuf, int *pLen, int *pLoop, gfmFile *pFp,
     }
     
     // Compile the song
+#if !defined(GFRAME_MOBILE)
     srv = synth_compileSongFromFile(&handle, pCtx, pFilename);
+#else
+    srv = synth_compileSongFromSDL_RWops(&handle, pCtx, pFile);
+#endif
     ASSERT(srv == SYNTH_OK, GFMRV_INTERNAL_ERROR);
     
     // Get the number of samples in the song
