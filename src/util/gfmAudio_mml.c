@@ -86,6 +86,8 @@ gfmRV gfmAudio_loadMMLAsWave(char **ppBuf, int *pLen, int *pLoop, gfmFile *pFp,
     rv = gfmFile_getPath(&pFilename, pFp);
     ASSERT_NR(rv == GFMRV_OK);
 #else
+    rv = gfmFile_rewind(pFp);
+    ASSERT_NR(rv == GFMRV_OK);
     rv = gfmFile_getInternalObject(&pFile, pFp);
     ASSERT_NR(rv == GFMRV_OK);
 #endif
