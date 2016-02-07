@@ -23,6 +23,7 @@
 
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
+#include <GFraMe_int/core/gfmLoadAsync_bkend.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,44 @@ struct stGFMCtx {
     /** Length until the current directory (i.e., position to append stuff) */
     int binPathLen;
 #endif
+    /** Audio sub-system context */
+    gfmAudioCtx *pAudio;
+    /* The video context */
+    gfmVideo *pVideo;
+    /** Current video functions */
+    gfmVideoFuncs videoFuncs;
+    /** Default camera */
+    gfmCamera *pCamera;
+    /** Accumulate when new update frames should be issued */
+    gfmAccumulator *pUpdateAcc;
+    /** Accumulate when new draw frames should be issued */
+    gfmAccumulator *pDrawAcc;
+    /** Event context */
+    gfmEvent *pEvent;
+    /** Input context */
+    gfmInput *pInput;
+    /** The logger */
+    gfmLog *pLog;
+    /** The timer */
+    gfmTimer *pTimer;
+    /** The GIF exporter */
+    gfmGifExporter *pGif;
+    /** Asynchronous loader */
+    gfmLoadAsyncCtx *pAsyncLoader;
+    /** Path where the snapshot should be saved */
+    gfmString *pSsPath;
+    /** Stores the snapshot */
+    unsigned char *pSsData;
+#if defined(DEBUG) || defined(FORCE_FPS)
+    /** FPS Counter; only enabled on debug version */
+    gfmFPSCounter *pCounter;
+#endif
+    /** Every cached spriteset */
+    gfmGenArr_var(gfmSpriteset, pSpritesets);
+#if defined(DEBUG) || defined(FORCE_FPS)
+    /** Whether the FPS counter should be displayed */
+    int showFPS;
+#endif
     /** Buffer for storing a save file's filename */
     gfmString *pSaveFilename;
     /** Length until the end of the save file's directory (i.e., position to
@@ -59,56 +98,22 @@ struct stGFMCtx {
     /** Time elapsed since the last update (great for fixed 60fps update, when
      * using vsync) */
     unsigned int lastDrawElapsed;
-    /** Audio sub-system context */
-    gfmAudioCtx *pAudio;
-    /** Current video functions */
-    gfmVideoFuncs videoFuncs;
-    /* The video context */
-    gfmVideo *pVideo;
-    /** Default camera */
-    gfmCamera *pCamera;
-    /** Every cached spriteset */
-    gfmGenArr_var(gfmSpriteset, pSpritesets);
     /** Texture that should be loaded on every gfm_drawBegin */
     int defaultTexture;
-    /** Accumulate when new update frames should be issued */
-    gfmAccumulator *pUpdateAcc;
-    /** Accumulate when new draw frames should be issued */
-    gfmAccumulator *pDrawAcc;
-    /** Event context */
-    gfmEvent *pEvent;
-    /** Input context */
-    gfmInput *pInput;
-    /** The logger */
-    gfmLog *pLog;
     /** Whether a quit event was received */
     gfmRV doQuit;
-    /** The timer */
-    gfmTimer *pTimer;
-    /** The GIF exporter */
-    gfmGifExporter *pGif;
     /** Whether a snapshot should be taken */
     int takeSnapshot;
     /** Whether is recording an animation or a single snapshot */
     int isAnimation;
     /** For how long the animation should be recorded, in milliseconds */
     int animationTime;
-    /** Path where the snapshot should be saved */
-    gfmString *pSsPath;
-    /** Stores the snapshot */
-    unsigned char *pSsData;
     /** Number of bytes on the snapshot data */
     int ssDataLen;
     /** How many update frames were accumulated */
     int updateFrames;
     /** How many draw frames were accumulated */
     int drawFrames;
-#if defined(DEBUG) || defined(FORCE_FPS)
-    /** Whether the FPS counter should be displayed */
-    int showFPS;
-    /** FPS Counter; only enabled on debug version */
-    gfmFPSCounter *pCounter;
-#endif
 };
 
 /** 'Exportable' size of gfmStruct */
@@ -857,6 +862,56 @@ gfmRV gfm_resumeAudio(gfmCtx *pCtx) {
 
     rv = gfmAudio_resumeSubsystem(pCtx->pAudio);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Load assets in a separated thread
+ *
+ * NOTE: This function is still dumb and forces the keycolor to 0xff00ff
+ *       (magenta)
+ * 
+ * @param  [out]pProgress Updated with how many assets have been loaded
+ * @param  [ in]pCtx      The lib's main context
+ * @param  [ in]pType     List of assets types to be loaded
+ * @param  [ in]ppPath    List of paths to the assets
+ * @param  [ in]ppHandles List of pointers where the loaded handles shall be
+ *                        stored
+ * @param  [ in]numAssets How many assets are there to be loaded
+ * @return                GFraMe return value
+ */
+gfmRV gfm_loadAssetsAsync(int *pProgress, gfmCtx *pCtx, gfmAssetType *pType,
+        char **ppPath, int **ppHandles, int numAssets) {
+    /** GFraMe return value */
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    ASSERT_LOG(pProgress, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pType, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(ppPath, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(ppHandles, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(numAssets > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    /* Check that there's no  other loader running (or that it has finished) */
+    ASSERT_LOG(!pCtx->pAsyncLoader ||
+            gfmLoadAsync_didFinish(pCtx->pAsyncLoader) == GFMRV_TRUE,
+            GFMRV_ASYNC_LOADER_THREAD_IS_RUNNING, pCtx->pLog);
+
+    /* Only alloc the loader once */
+    if (!pCtx->pAsyncLoader) {
+        rv = gfmLoadAsync_getNew(&(pCtx->pAsyncLoader));
+        ASSERT(rv == GFMRV_OK, rv);
+    }
+
+    rv = gfmLoadAsync_loadAssets(pProgress, pCtx->pAsyncLoader, pCtx, pType,
+        ppPath, ppHandles, numAssets);
+    ASSERT(rv == GFMRV_OK, rv);
 
     rv = GFMRV_OK;
 __ret:
@@ -2904,6 +2959,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     }
     gfmString_free(&(pCtx->pSsPath));
     gfmAudio_free(&(pCtx->pAudio));
+    gfmLoadAsync_free(&(pCtx->pAsyncLoader));
     gfmTimer_free(&(pCtx->pTimer));
     gfmBackend_finalize();
     

@@ -22,6 +22,13 @@ enum enGFMVideoBackend {
 };
 typedef enum enGFMVideoBackend gfmVideoBackend;
 
+/** 'Exports' assets types */
+enum enGFMAssetType {
+    ASSET_TEXTURE = 0,
+    ASSET_AUDIO
+};
+typedef enum enGFMAssetType gfmAssetType;
+
 #endif /* __GFRAME_STRUCT__ */
 
 #ifndef __GFRAME_H_
@@ -383,6 +390,9 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
 /**
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
+ *
+ * NOTE: This function is still dumb and forces the keycolor to 0xff00ff
+ *       (magenta)
  * 
  * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
@@ -518,6 +528,21 @@ gfmRV gfm_pauseAudio(gfmCtx *pCtx);
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
  */
 gfmRV gfm_resumeAudio(gfmCtx *pCtx);
+
+/**
+ * Load assets in a separated thread
+ *
+ * @param  [out]pProgress Updated with how many assets have been loaded
+ * @param  [ in]pCtx      The lib's main context
+ * @param  [ in]pType     List of assets types to be loaded
+ * @param  [ in]ppPath    List of paths to the assets
+ * @param  [ in]ppHandles List of pointers where the loaded handles shall be
+ *                        stored
+ * @param  [ in]numAssets How many assets are there to be loaded
+ * @return                GFraMe return value
+ */
+gfmRV gfm_loadAssetsAsync(int *pProgress, gfmCtx *pCtx, gfmAssetType *pType,
+        char **ppPath, int **ppHandles, int numAssets);
 
 /**
  * Retrieve the current camera

@@ -71,7 +71,8 @@
           $(OBJDIR)/util/gfmTrie.o \
           $(OBJDIR)/util/gfmVideo_bmp.o \
           $(OBJDIR)/util/gfmVirtualKey.o \
-          $(OBJDIR)/core/event/desktop/gfmEvent_desktop.o
+          $(OBJDIR)/core/event/desktop/gfmEvent_desktop.o \
+          $(OBJDIR)/core/loadAsync/gfmLoadAsync_SDL2.o
 # Add objects based on the current backend
   ifeq ($(USE_GL3_VIDEO), yes)
     include src/core/video/opengl3/Makefile
@@ -481,6 +482,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/core/emscript-sdl2
 	mkdir -p $(OBJDIR)/core/event/
 	mkdir -p $(OBJDIR)/core/event/desktop
+	mkdir -p $(OBJDIR)/core/loadAsync
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(OBJDIR)/core/video/sdl2
@@ -511,6 +513,7 @@ distclean: clean
 	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
 	rmdir $(OBJDIR)/core/noip
+	rmdir $(OBJDIR)/core/loadAsync
 	rmdir $(OBJDIR)/core/event/desktop
 	rmdir $(OBJDIR)/core/event/
 	rmdir $(OBJDIR)/core/emscript-sdl2

@@ -177,6 +177,10 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "ID too long to be stored", /* GFMRV_SAVE_ID_TOO_LONG */
     "Data too long to be stored", /* GFMRV_SAVE_DATA_TOO_LONG */
     "Data length doesn't match the stored", /* GFMRV_SAVE_INVALID_DATA_LEN */
+    // Asynchronous loader errors
+    "Asynchronous loading thread is running", /* GFMRV_ASYNC_LOADER_THREAD_IS_RUNNING */
+    "Another asynchronous loader is already running", /* GFMRV_ASYNC_LOADER_THREAD_ALREADY_RUNNING */
+    "Can't load the requested type asynchronously", /* GFMRV_ASYNC_LOADER_INVALID_TYPE */
     "Max error" /* GFMRV_MAX */
 };
 

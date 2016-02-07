@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
         $(LOCAL_PATH)/gfmTilemap.c \
         $(LOCAL_PATH)/gfmUtils.c \
         $(LOCAL_PATH)/gframe.c \
+        $(LOCAL_PATH)/core/loadAsync/gfmLoadAsync_SDL2.c \
         $(LOCAL_PATH)/core/noip/gfmGifExporter.c \
         $(LOCAL_PATH)/core/event/android/gfmEvent_android.c \
         $(LOCAL_PATH)/core/video/sdl2/gfmVideo_sdl2.c \
