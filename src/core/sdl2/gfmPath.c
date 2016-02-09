@@ -51,8 +51,21 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
 #if defined(__ANDROID__) && __ANDROID__
-    // Get the local path
-    pPath = SDL_AndroidGetExternalStoragePath();
+    do {
+        int mask;
+
+        /* Check if there is a external storage (e.g., SD card) */
+        mask = SDL_ANDROID_EXTERNAL_STORAGE_READ;
+        mask = SDL_ANDROID_EXTERNAL_STORAGE_WRITE;
+        if ((SDL_AndroidGetExternalStorageState() & mask) == mask) {
+            /* Get the external path */
+            pPath = SDL_AndroidGetExternalStoragePath();
+        }
+        else {
+            /* Otherwise, retrieve the path to the internal one */
+            pPath = SDL_AndroidGetInternalStoragePath();
+        }
+    } while (0);
 #else
     pOrg = 0;
     pTitle = 0;
