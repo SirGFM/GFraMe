@@ -14,6 +14,7 @@ enum enGFMParserType {
     gfmParserType_none = 0,
     gfmParserType_area,
     gfmParserType_object,
+    gfmParserType_attributes,
     gfmParserType_max
 };
 typedef enum enGFMParserType gfmParserType;
