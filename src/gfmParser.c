@@ -874,7 +874,8 @@ gfmRV gfmParser_getProperty(char **ppKey, char **pVal, gfmParser *pCtx,
             pCtx->pLog);
     
     // Check if the type has this attribute
-    ASSERT_LOG(pCtx->object.type == gfmParserType_object,
+    ASSERT_LOG(pCtx->object.type == gfmParserType_object ||
+            pCtx->object.type == gfmParserType_attributes,
             GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Check if the index is valid
     ASSERT_LOG(index < pCtx->object.propertiesLen, GFMRV_ARGUMENTS_BAD,
