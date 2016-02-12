@@ -836,7 +836,8 @@ gfmRV gfmParser_getNumProperties(int *pNum, gfmParser *pCtx) {
             pCtx->pLog);
     
     // Check if the type has this attribute
-    ASSERT_LOG(pCtx->object.type == gfmParserType_object,
+    ASSERT_LOG(pCtx->object.type == gfmParserType_object ||
+            pCtx->object.type == gfmParserType_attributes,
             GFMRV_PARSER_INVALID_OBJECT, pCtx->pLog);
     // Get the attribute
     *pNum = pCtx->object.propertiesLen;
