@@ -257,7 +257,7 @@ static void gfmAudio_mixMono16(gfmMixerData *pCtx) {
         j += 2;
 
         // Check if the song ended
-        if (i > pCtx->srcLen) {
+        if (i >= pCtx->srcLen) {
             // If it did, check if it should loop
             if (pCtx->doRepeat) {
                 i = pCtx->repeatPosition;
@@ -309,7 +309,7 @@ static void gfmAudio_mixStereo16(gfmMixerData *pCtx) {
         j += 4;
 
         // Check if the song ended
-        if (i > pCtx->srcLen) {
+        if (i >= pCtx->srcLen) {
             // If it did, check if it should loop
             if (pCtx->doRepeat) {
                 i = pCtx->repeatPosition;
