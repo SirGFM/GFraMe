@@ -204,10 +204,11 @@ gfmRV gfmAudio_setHandleVolume(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd,
 /**
  * Check whether an audio handle finished played
  * 
+ * @param  pCtx The audio context
  * @param  pHnd The instance handle
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAudio_didHandleFinish(gfmAudioHandle *pHnd);
+gfmRV gfmAudio_didHandleFinish(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd);
 
 /**
  * Whether any track may have multiple tracks; Each track should have its own
