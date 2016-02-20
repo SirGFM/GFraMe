@@ -37,6 +37,7 @@ LOCAL_SRC_FILES := \
         $(LOCAL_PATH)/core/noip/gfmGifExporter.c \
         $(LOCAL_PATH)/core/event/android/gfmEvent_android.c \
         $(LOCAL_PATH)/core/video/sdl2/gfmVideo_sdl2.c \
+        $(LOCAL_PATH)/core/video/sw_sdl2/gfmVideo_swSdl2.c \
         $(LOCAL_PATH)/core/sdl2/gfmAudio.c \
         $(LOCAL_PATH)/core/sdl2/gfmBackend.c \
         $(LOCAL_PATH)/core/sdl2/gfmFile.c \
@@ -56,7 +57,7 @@ LOCAL_SRC_FILES := \
         $(LOCAL_PATH)/util/gfmVirtualKey.c
 
 LOCAL_SHARED_LIBRARIES := SDL2 CSynth
-LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DALIGN=4 -DFORCE_FPS -DUSE_SDL2_VIDEO -DGFRAME_MOBILE
+LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DALIGN=4 -DFORCE_FPS -DUSE_SDL2_VIDEO -DUSE_SWSDL2_VIDEO -DGFRAME_MOBILE
 LOCAL_LDLIBS := -ldl -lGLESv1_CM -lGLESv2 -llog -landroid
 
 include $(BUILD_SHARED_LIBRARY)
