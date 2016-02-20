@@ -118,12 +118,12 @@ int main(int argc, char *argv[]) {
                         "\n"
                         "    --backend | -b <vbk_type>\n"
                         "        Select which video backend to be used, "
-                                "vbk_type may be either SDL2 or\n"
+                                "vbk_type may be either SW, SDL2 or\n"
                         "        OpenGL. The OpenGL backend depends on "
                                 "OpenGL 3.1, since it uses\n"
                         "        instanced rendering.\n"
                         "\n"
-                        "        vbk_type = SDL2 | OpenGL (default: SDL2)\n"
+                        "        vbk_type = SW | SDL2 | OpenGL (default: SDL2)\n"
                         "\n"
                         "    --fps | -f <FPS>\n"
                         "        Select the desired FPS (default: 60)\n"
@@ -152,6 +152,9 @@ int main(int argc, char *argv[]) {
                 }
                 else if (strcmp(argv[i + 1], "OpenGL") == 0) {
                     vbk = GFM_VIDEO_GL3;
+                }
+                else if (strcmp(argv[i + 1], "SW") == 0) {
+                    vbk = GFM_VIDEO_SWSDL2;
                 }
 
                 i++;
