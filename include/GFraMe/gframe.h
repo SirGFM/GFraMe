@@ -18,6 +18,7 @@ enum enGFMVideoBackend {
     GFM_VIDEO_GLES2,
     GFM_VIDEO_GLES3,
     GFM_VIDEO_WGL,
+    GFM_VIDEO_SWSDL2,
     GFM_VIDEO_MAX
 };
 typedef enum enGFMVideoBackend gfmVideoBackend;

@@ -80,6 +80,9 @@
   ifeq ($(USE_SDL2_VIDEO), yes)
     include src/core/video/sdl2/Makefile
   endif
+  ifeq ($(USE_SWSDL2_VIDEO), yes)
+    include src/core/video/sw_sdl2/Makefile
+  endif
 
   ifndef ($(BACKEND))
     include src/core/sdl2/Makefile
@@ -166,6 +169,9 @@
   endif
   ifeq ($(USE_SDL2_VIDEO), yes)
     CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
+  endif
+  ifeq ($(USE_SWSDL2_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_SWSDL2_VIDEO
   endif
 #==============================================================================
 
@@ -486,6 +492,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(OBJDIR)/core/video/sdl2
+	mkdir -p $(OBJDIR)/core/video/sw_sdl2
 	mkdir -p $(OBJDIR)/core/video/opengl3
 	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/util
@@ -510,6 +517,7 @@ clean:
 #==============================================================================
 distclean: clean
 	rmdir $(OBJDIR)/core/video/sdl2
+	rmdir $(OBJDIR)/core/video/sw_sdl2
 	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
 	rmdir $(OBJDIR)/core/noip

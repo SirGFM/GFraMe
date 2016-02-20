@@ -224,6 +224,12 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
             ASSERT(rv == GFMRV_OK, rv);
         } break;
 #endif /* USE_WGL_VIDEO */
+#ifdef USE_SWSDL2_VIDEO
+        case GFM_VIDEO_SWSDL2: {
+            rv = gfmVideo_SWSDL2_loadFunctions(&(pCtx->videoFuncs));
+            ASSERT(rv == GFMRV_OK, rv);
+        } break;
+#endif /* USE_SWSDL2_VIDEO */
         default: { ASSERT(0, GFMRV_FUNCTION_NOT_IMPLEMENTED); }
     }
 

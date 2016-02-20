@@ -380,5 +380,15 @@ extern gfmRV gfmVideo_GL3_loadFunctions(gfmVideoFuncs *pCtx);
  */
 extern gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx);
 
+/**
+ * Load all software video functions into the struct
+ *
+ * NOTE: SDL2 is still used for rendering to the screen
+ * 
+ * @param  [ in]pCtx The video function context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+extern gfmRV gfmVideo_SWSDL2_loadFunctions(gfmVideoFuncs *pCtx);
+
 #endif /* __GFMVIDEO_BKEND_H__ */
 
