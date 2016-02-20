@@ -59,11 +59,11 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
         mask = SDL_ANDROID_EXTERNAL_STORAGE_WRITE;
         if ((SDL_AndroidGetExternalStorageState() & mask) == mask) {
             /* Get the external path */
-            pPath = SDL_AndroidGetExternalStoragePath();
+            pPath = (char*)SDL_AndroidGetExternalStoragePath();
         }
         else {
             /* Otherwise, retrieve the path to the internal one */
-            pPath = SDL_AndroidGetInternalStoragePath();
+            pPath = (char*)SDL_AndroidGetInternalStoragePath();
         }
     } while (0);
 #else

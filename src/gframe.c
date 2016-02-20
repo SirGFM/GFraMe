@@ -28,6 +28,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(GFRAME_MOBILE)
+/** Version of the device running this; Declared on src/core/sdl2/gfmBackend.c */
+extern int androidVersion;
+#endif
+
 /** Define a texture array type */
 gfmGenArr_define(gfmTexture);
 /** Define a spriteset array type */
@@ -192,6 +197,20 @@ gfmRV gfm_setVideoBackend(gfmCtx *pCtx, gfmVideoBackend bkend) {
     ASSERT(bkend >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(bkend < GFM_VIDEO_MAX, GFMRV_ARGUMENTS_BAD);
 
+#if defined(GFRAME_MOBILE)
+    /* Older mobile devices require SW renderer */
+    if (androidVersion > 0 && androidVersion <= 10 &&
+            bkend != GFM_VIDEO_SWSDL2) {
+        if (pCtx->pLog) {
+            rv = gfmLog_log(pCtx->pLog, gfmLog_info, "NOTE: Android version "
+                    "too old (API: %i), forcing sw renderer...",
+                    androidVersion);
+            ASSERT(rv == GFMRV_OK, rv);
+        }
+        bkend = GFM_VIDEO_SWSDL2;
+    }
+#endif
+
     /* Load the lib */
     switch (bkend) {
 #ifdef USE_SDL2_VIDEO
@@ -300,6 +319,18 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Initializing GFraMe...");
     ASSERT_NR(rv == GFMRV_OK);
+
+#if defined(GFRAME_MOBILE)
+    /* Older mobile devices require SW renderer */
+    if (androidVersion > 0 && androidVersion <= 10) {
+        rv = gfmLog_log(pCtx->pLog, gfmLog_info, "NOTE: Android version too "
+                "old (API: %i), falling back to sw renderer...",
+                androidVersion);
+        ASSERT_NR(rv == GFMRV_OK);
+        rv = gfm_setVideoBackend(pCtx, GFM_VIDEO_SWSDL2);
+        ASSERT_NR(rv == GFMRV_OK);
+    }
+#endif
 
     /* Initialize the event's context */
     rv = gfmEvent_getNew(&(pCtx->pEvent));
