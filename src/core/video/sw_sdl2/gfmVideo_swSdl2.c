@@ -571,7 +571,7 @@ static gfmRV gfmVideo_SWSDL2_createWindow(gfmVideoSwSDL2 *pCtx, int width,
     ASSERT_LOG(pCtx->pSDLWindow, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     /* Select the renderer flags */
-    rFlags = SDL_RENDERER_SOFTWARE;
+    rFlags = SDL_RENDERER_ACCELERATED;
     if (vsync) {
         rFlags |= SDL_RENDERER_PRESENTVSYNC;
 
