@@ -663,6 +663,7 @@ gfmRV gfmParser_parseNext(gfmParser *pCtx) {
             // Parse the custom object
             rv = gfmParser_parseAttributes(pCtx);
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+            didParse = 1;
         }
     }
     // Make sure something was parsed
@@ -677,7 +678,7 @@ gfmRV gfmParser_parseNext(gfmParser *pCtx) {
 __ret:
     if (didPush != 0) {
         // On failure, go back to the previous position
-        rv = gfmFile_popPos(pCtx->pFile);
+        gfmFile_popPos(pCtx->pFile);
     }
     
     return rv;
