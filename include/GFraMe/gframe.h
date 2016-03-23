@@ -1023,6 +1023,19 @@ gfmRV gfm_issueFrame(gfmCtx *pCtx);
 gfmRV gfm_waitFrame(gfmCtx *pCtx);
 
 /**
+ * Reset the FPS accumulators
+ *
+ * This function should be called after sections that may lag (and therefore,
+ * messes with accumulated frames and whatnot).
+ * One example is before switching from a menu to a game state, after loading
+ * assets in background.
+ *
+ * @param  [ in]pCtx The game's context
+ * @reutnr           GFraMe return value
+ */
+gfmRV gfm_resetFPS(gfmCtx *pCtx);
+
+/**
  * Clean up a context
  * 
  * @param  pCtx The context
