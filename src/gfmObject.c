@@ -367,7 +367,6 @@ gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x) {
     // Set both the position and the previous position
     pCtx->x = x;
     pCtx->dx = (double)x;
-    pCtx->ldx = (double)x;
     // Mark the object as having moved
     pCtx->justMoved = 1;
     
@@ -394,7 +393,6 @@ gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y) {
     // Set both the position and the previous position
     pCtx->y = y;
     pCtx->dy = (double)y;
-    pCtx->ldy = (double)y;
     // Mark the object as having moved
     pCtx->justMoved = 1;
     

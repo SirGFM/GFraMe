@@ -168,6 +168,11 @@ gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx) {
     ASSERT(pAnim, GFMRV_ARGUMENTS_BAD);
     // Check that it was initialized
     ASSERT(pAnim->pData, GFMRV_ANIMATION_NOT_INITIALIZED);
+
+    // Reset these every frame
+    pAnim->justLooped = GFMRV_FALSE;
+    pAnim->justChangedFrame = GFMRV_FALSE;
+
     // Check that the animation hasn't finished
     if (!pAnim->doLoop && pAnim->loopCount > 0) {
         rv = GFMRV_ANIMATION_ALREADY_FINISHED;
@@ -180,9 +185,6 @@ gfmRV gfmAnimation_update(gfmAnimation *pAnim, gfmCtx *pCtx) {
     rv = gfm_getElapsedTime(&ms, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     
-    // Reset these every frame
-    pAnim->justLooped = GFMRV_FALSE;
-    pAnim->justChangedFrame = GFMRV_FALSE;
     // Update the timer
     pAnim->accTime += ms;
     // Update as many frames as necessary
