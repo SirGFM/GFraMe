@@ -239,40 +239,57 @@ gfmRV gfmInput_update(gfmInput *pCtx) {
     // Update every virtual key
     i = 0;
     while (i < gfmGenArr_getUsed(pCtx->pVKeys)){
-        gfmVirtualKey *pVKey;
-        
-        pVKey = gfmGenArr_getObject(pCtx->pVKeys, i);
-        
-        if ((pVKey->state & (gfmInput_justPressed << 8))
-                == (gfmInput_justPressed << 8)) {
-            // If the key was just pressed (it's set on byte 1!!)
-            pVKey->state = pVKey->state & ~(gfmInput_justPressed << 8);
-            pVKey->state = pVKey->state & ~gfmInput_curFrame;
-            pVKey->state = pVKey->state | gfmInput_justPressed;
-        }
-        else if ((pVKey->state & (gfmInput_justReleased << 8))
-                == (gfmInput_justReleased << 8)) {
-            // If the key was just released (it's set on byte 1!!)
-            pVKey->state = pVKey->state & ~(gfmInput_justReleased << 8);
-            pVKey->state = pVKey->state & ~gfmInput_curFrame;
-            pVKey->state = pVKey->state | gfmInput_justReleased;
-        }
-        else if ((pVKey->state & gfmInput_justPressed)
-                == gfmInput_justPressed) {
-            // If the key was pressed on the last frame
-            pVKey->state = pVKey->state & ~gfmInput_curFrame;
-            pVKey->state = pVKey->state | gfmInput_pressed;
-        }
-        else if ((pVKey->state & gfmInput_justReleased)
-                == gfmInput_justReleased) {
-            // If the key was released on the last frame
-            pVKey->state = pVKey->state & ~gfmInput_curFrame;
-            pVKey->state = pVKey->state | gfmInput_released;
-        }
-        
+        gfmInput_updateVKey(pCtx, i);
         i++;
     }
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Updates a single virtual key
+ *
+ * @param  [ in]pCtx The context
+ * @param  [ in]vkey The key to be updated
+ * @return      GFrame return value
+ */
+gfmRV gfmInput_updateVKey(gfmInput *pCtx, int vkey) {
+    gfmVirtualKey *pVKey;
+    gfmRV rv;
+
+    ASSERT(vkey < gfmGenArr_getUsed(pCtx->pVKeys), GFMRV_INVALID_INDEX);
+
+    pVKey = gfmGenArr_getObject(pCtx->pVKeys, vkey);
+
+    if ((pVKey->state & (gfmInput_justPressed << 8))
+            == (gfmInput_justPressed << 8)) {
+        // If the key was just pressed (it's set on byte 1!!)
+        pVKey->state = pVKey->state & ~(gfmInput_justPressed << 8);
+        pVKey->state = pVKey->state & ~gfmInput_curFrame;
+        pVKey->state = pVKey->state | gfmInput_justPressed;
+    }
+    else if ((pVKey->state & (gfmInput_justReleased << 8))
+            == (gfmInput_justReleased << 8)) {
+        // If the key was just released (it's set on byte 1!!)
+        pVKey->state = pVKey->state & ~(gfmInput_justReleased << 8);
+        pVKey->state = pVKey->state & ~gfmInput_curFrame;
+        pVKey->state = pVKey->state | gfmInput_justReleased;
+    }
+    else if ((pVKey->state & gfmInput_justPressed)
+            == gfmInput_justPressed) {
+        // If the key was pressed on the last frame
+        pVKey->state = pVKey->state & ~gfmInput_curFrame;
+        pVKey->state = pVKey->state | gfmInput_pressed;
+    }
+    else if ((pVKey->state & gfmInput_justReleased)
+            == gfmInput_justReleased) {
+        // If the key was released on the last frame
+        pVKey->state = pVKey->state & ~gfmInput_curFrame;
+        pVKey->state = pVKey->state | gfmInput_released;
+    }
+
     rv = GFMRV_OK;
 __ret:
     return rv;
