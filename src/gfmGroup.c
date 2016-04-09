@@ -1374,3 +1374,30 @@ __ret:
     return rv;
 }
 
+/**
+ * Put all sprites in this group on the recycled list
+ * 
+ * @param  pGrp The group
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_killAll(gfmGroup *pGroup) {
+    gfmRV rv;
+    gfmGroupNode *pTmp;
+
+    /* Sanitize arguments */
+    ASSERT(pGroup, GFMRV_ARGUMENTS_BAD);
+
+    /* Move all sprites on the active list to the inactive */
+    while (pGroup->pActive) {
+        pTmp = pGroup->pActive;
+        pGroup->pActive = pGroup->pActive->pNext;
+
+        pTmp->pNext = pGroup->pInactive;
+        pGroup->pInactive = pTmp;
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+

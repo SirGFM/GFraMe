@@ -378,5 +378,13 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx);
  */
 gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx);
 
+/**
+ * Put all sprites in this group on the recycled list
+ * 
+ * @param  pGrp The group
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_killAll(gfmGroup *pGroup);
+
 #endif /* __GFMGROUP_H__ */
 
