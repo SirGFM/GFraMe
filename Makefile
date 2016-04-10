@@ -192,8 +192,10 @@
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
+  LFLAGS_MIN := -lSDL2-minimal
 # Add the MML synthesizer
   LFLAGS := $(LFLAGS) -lCSynth
+  LFLAGS_MIN := $(LFLAGS_MIN) -lCSynth
 # Add OpenGL lib
  ifeq ($(USE_GL3_VIDEO), yes)
    ifeq ($(OS), Win)
@@ -424,6 +426,20 @@ else
 	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
 	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
 endif
+#==============================================================================
+
+#==============================================================================
+# Rule for building a version statically linked to SDL2 minimal
+#
+# NOTE: Since I don't think I'll ever need this on Windows, it's simply the
+# linux commands
+#==============================================================================
+$(BINDIR)/$(TARGET)-minimal.$(MNV): $(OBJS)
+	rm -f $(BINDIR)/$(TARGET)-minimal.$(MNV) $(BINDIR)/$(TARGET)-minimal.$(SO)
+	$(CC) -shared -Wl,-soname,$(TARGET)-minimal.$(MJV) -Wl,-export-dynamic \
+	    $(CFLAGS) -o $(BINDIR)/$(TARGET)-minimal.$(MNV) $(OBJS) $(LFLAGS_MIN)
+	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MNV) $(TARGET)-minimal.$(MJV)
+	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MJV) $(TARGET).$(SO)
 #==============================================================================
 
 #==============================================================================
