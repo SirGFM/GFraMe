@@ -179,6 +179,7 @@
 # Define LFLAGS (linker flags)
 #==============================================================================
   LFLAGS :=
+  LFLAGS_MIN :=
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
@@ -440,7 +441,7 @@ $(BINDIR)/$(TARGET)-minimal.$(MNV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET)-minimal.$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $(BINDIR)/$(TARGET)-minimal.$(MNV) $(OBJS) $(LFLAGS_MIN)
 	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MNV) $(TARGET)-minimal.$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MJV) $(TARGET).$(SO)
+	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MJV) $(TARGET)-minimal.$(SO)
 #==============================================================================
 
 #==============================================================================
