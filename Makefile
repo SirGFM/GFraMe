@@ -189,10 +189,11 @@
     LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
   else
     LFLAGS := $(LFLAGS) -L/usr/lib/c_synth/
+    LFLAGS_MIN := $(LFLAGS_MIN) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
-  LFLAGS_MIN := -lSDL2-minimal
+  LFLAGS_MIN := $(LFLAGS_MIN) -lSDL2-minimal
 # Add the MML synthesizer
   LFLAGS := $(LFLAGS) -lCSynth
   LFLAGS_MIN := $(LFLAGS_MIN) -lCSynth
