@@ -525,7 +525,7 @@ gfmRV gfmText_normalize(gfmText *pCtx) {
         if (c == '\n') {
             pCtx->lineCount++;
             // Skip all blank characters
-            while (pStr[i + 1] == ' ') {
+            while (pStr[i + 1] == ' ' && i < pCtx->strLen) {
                 i++;
             }
             // Set the line's starting position
@@ -536,7 +536,7 @@ gfmRV gfmText_normalize(gfmText *pCtx) {
             
             // Find the last blank character
             tmp = i - 1;
-            while (pStr[tmp] != ' ') {
+            while (pStr[tmp] != ' ' && tmp != 0) {
                 tmp--;
             }
             // Set it to a linebreak
