@@ -830,6 +830,36 @@ __ret:
 }
 
 /**
+ * Stops a currently playing audio
+ *
+ * @param  [ in]pHnd The audio instance
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, ...
+ */
+gfmRV gfm_stopAudio(gfmAudioHandle *pHnd, gfmCtx *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_stopAudio(pCtx->pAudio, &pHnd);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Queue an audio. If the audio system is paused, this function won't forcefully
  * start it (in contrast to gfm_playAudio)
  *

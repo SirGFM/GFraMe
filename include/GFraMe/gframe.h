@@ -497,6 +497,15 @@ gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
         double volume);
 
 /**
+ * Stops a currently playing audio
+ *
+ * @param  [ in]pHnd The audio instance
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, ...
+ */
+gfmRV gfm_stopAudio(gfmAudioHandle *pHnd, gfmCtx *pCtx);
+
+/**
  * Queue an audio. If the audio system is paused, this function won't forcefully
  * start it (in contrast to gfm_playAudio)
  *
