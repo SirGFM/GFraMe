@@ -146,6 +146,7 @@ struct stGFMAudioHandle {
     int isPlaying;
     /** Time elapsed in samples */
     int pos;
+    int forceStop;
 };
 
 /** Data used when mixing audio buffers; This struct deals with bytes,(and not
@@ -1166,6 +1167,9 @@ gfmRV gfmAudio_queueAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     
     // Unlock the mutex
     isLocked = 0;
+    if (ppHnd) {
+        *ppHnd = pAudioHnd;
+    }
     SDL_SemPost(pCtx->pSem);
     
     rv = GFMRV_OK;
@@ -1242,6 +1246,7 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
             // TODO Implement this
         } break;
     }
+    (*ppHnd)->forceStop = 1;
     // "Clean" the returned pointer
     *ppHnd = 0;
     // Unlock the mutex
@@ -1383,6 +1388,11 @@ gfmRV gfmAudio_didHandleFinish(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
             // Shouldn't happen
             rv = GFMRV_FALSE;
         }
+    }
+
+    if (pHnd->forceStop) {
+        pHnd->forceStop = 0;
+        rv = GFMRV_TRUE;
     }
 __ret:
     return rv;
