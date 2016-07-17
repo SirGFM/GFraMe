@@ -104,7 +104,7 @@
 #==============================================================================
 # Set OS flag
 #==============================================================================
-  OS := $(shell uname)
+  OS ?= $(shell uname)
   ifeq ($(OS), MINGW32_NT-6.1)
     OS := Win
   endif
@@ -129,7 +129,7 @@
 # Add all warnings and default include path
   CFLAGS := -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
 # Add architecture flag
-  ARCH := $(shell uname -m)
+  ARCH ?= $(shell uname -m)
   ifeq ($(OS), emscript)
     CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
   else
@@ -179,7 +179,6 @@
 # Define LFLAGS (linker flags)
 #==============================================================================
   LFLAGS :=
-  LFLAGS_MIN :=
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
@@ -190,14 +189,11 @@
     LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
   else
     LFLAGS := $(LFLAGS) -L/usr/lib/c_synth/
-    LFLAGS_MIN := $(LFLAGS_MIN) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
   LFLAGS := $(LFLAGS) -lSDL2
-  LFLAGS_MIN := $(LFLAGS_MIN) -lSDL2-minimal
 # Add the MML synthesizer
   LFLAGS := $(LFLAGS) -lCSynth
-  LFLAGS_MIN := $(LFLAGS_MIN) -lCSynth
 # Add OpenGL lib
  ifeq ($(USE_GL3_VIDEO), yes)
    ifeq ($(OS), Win)
@@ -256,7 +252,7 @@
    MJV := $(SO)
    MNV := $(SO)
  else
-   SO := so
+   SO ?= so
    MJV := $(SO).$(MAJOR_VERSION)
    MNV := $(SO).$(MAJOR_VERSION).$(MINOR_VERSION).$(REV_VERSION)
  endif
@@ -265,17 +261,17 @@
 #==============================================================================
 # Get the number of cores for fun stuff
 #==============================================================================
-  ifeq ($(OS), Win)
+ ifeq ($(OS), Win)
    CORES := 1
-  else
+ else
    CORES := $$(($(shell nproc) * 2))
-  endif
+ endif
 #==============================================================================
 
 #==============================================================================
 # Define default compilation rule
 #==============================================================================
-all: static tests
+all: static shared tests
 	date
 #==============================================================================
 
@@ -319,7 +315,7 @@ static: MAKEDIRS $(BINDIR)/$(TARGET).a
 #==============================================================================
 # Rule for building the shared libs
 #==============================================================================
-shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
+shared: MAKEDIRS $(BINDIR)/$(TARGET).$(SO)
 #==============================================================================
 
 #==============================================================================
@@ -409,39 +405,30 @@ endif
 #==============================================================================
 $(BINDIR)/$(TARGET).a: $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).a
-	ar -cvq $(BINDIR)/$(TARGET).a $(OBJS)
+	$(AR) -cvq $(BINDIR)/$(TARGET).a $(OBJS)
 #==============================================================================
 
 #==============================================================================
 # Rule for actually building the shared library
 #==============================================================================
-ifeq ($(OS), Win)
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-else
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV) $(BINDIR)/$(TARGET).$(SO)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
-endif
-#==============================================================================
+$(BINDIR)/$(TARGET).dll: $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).dll -Wl,-export-all-symbols \
+	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
 
-#==============================================================================
-# Rule for building a version statically linked to SDL2 minimal
-#
-# NOTE: Since I don't think I'll ever need this on Windows, it's simply the
-# linux commands
-#==============================================================================
-$(BINDIR)/$(TARGET)-minimal.$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET)-minimal.$(MNV) $(BINDIR)/$(TARGET)-minimal.$(SO)
-	$(CC) -shared -Wl,-soname,$(TARGET)-minimal.$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET)-minimal.$(MNV) $(OBJS) $(LFLAGS_MIN)
-	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MNV) $(TARGET)-minimal.$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET)-minimal.$(MJV) $(TARGET)-minimal.$(SO)
+$(BINDIR)/$(TARGET).so: $(BINDIR)/$(TARGET).$(MJV)
+	rm -f $@
+	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).so
+
+$(BINDIR)/$(TARGET).$(MJV): $(BINDIR)/$(TARGET).$(MNV)
+	rm -f $@
+	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
+
+$(BINDIR)/$(TARGET).$(MNV): $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+
+$(BINDIR)/$(TARGET).dylib: $(OBJS)
+	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
 #==============================================================================
 
 #==============================================================================
