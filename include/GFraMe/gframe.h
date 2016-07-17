@@ -8,8 +8,6 @@
 
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 
 /** 'Exports' the backends enum */
 enum enGFMVideoBackend {
@@ -31,6 +29,12 @@ enum enGFMAssetType {
 typedef enum enGFMAssetType gfmAssetType;
 
 #endif /* __GFRAME_STRUCT__ */
+
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+#endif /* __GFMTEXTURE_STRUCT__ */
 
 #ifndef __GFRAME_H_
 #define __GFRAME_H_

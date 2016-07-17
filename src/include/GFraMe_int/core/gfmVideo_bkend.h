@@ -13,10 +13,14 @@
 typedef struct stGFMVideoFuncs gfmVideoFuncs;
 /* The video context */
 typedef void gfmVideo;
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 
 #endif /* __GFMVIDEO_STRUCT__ */
+
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+#endif /* __GFMTEXTURE_STRUCT__ */
 
 #ifndef __GFMVIDEO_BKEND_H__
 #define __GFMVIDEO_BKEND_H__

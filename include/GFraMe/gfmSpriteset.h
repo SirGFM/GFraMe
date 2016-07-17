@@ -8,10 +8,14 @@
 
 /** 'Exports' the gfmSpriteset structure */
 typedef struct stGFMSpriteset gfmSpriteset;
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 
 #endif /* __GFMSPRITESET_STRUCT__ */
+
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+#endif /* __GFMTEXTURE_STRUCT__ */
 
 #ifndef __GFMSPRITESET_H__
 #define __GFMSPRITESET_H__

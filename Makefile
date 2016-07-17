@@ -127,7 +127,7 @@
 # Define CFLAGS (compiler flags)
 #==============================================================================
 # Add all warnings and default include path
-  CFLAGS := -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
+  CFLAGS := $(CFLAGS) -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
 # Add architecture flag
   ARCH ?= $(shell uname -m)
   ifeq ($(OS), emscript)
@@ -178,7 +178,6 @@
 #==============================================================================
 # Define LFLAGS (linker flags)
 #==============================================================================
-  LFLAGS :=
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)

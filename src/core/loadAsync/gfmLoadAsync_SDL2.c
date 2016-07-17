@@ -146,6 +146,11 @@ gfmRV gfmLoadAsync_didFinish(gfmLoadAsyncCtx *pLoader) {
         return GFMRV_FALSE;
     }
     else {
+#if defined(__APPLE__) || defined(__MACH__)
+        int ret;
+
+        SDL_WaitThread(pLoader->pThread, &ret);
+#endif
         pLoader->pThread = 0;
         return GFMRV_TRUE;
     }
@@ -201,7 +206,9 @@ gfmRV gfmLoadAsync_loadAssets(int *pProgress, gfmLoadAsyncCtx *pLoader,
     pLoader->pThread = SDL_CreateThread(_gfmLoadAsync_thread,
             "GFrame_asynchronous_loader_thread", pLoader);
     ASSERT_LOG(pLoader->pThread, GFMRV_INTERNAL_ERROR, pLog);
+#if !defined(__APPLE__) && !defined(__MACH__)
     SDL_DetachThread(pLoader->pThread);
+#endif
 
     rv = GFMRV_OK;
 __ret:
