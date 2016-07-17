@@ -6,6 +6,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/gfmUtils.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/gframe.h>
 

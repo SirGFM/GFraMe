@@ -535,7 +535,7 @@ gfmRV gfm_queryResolutions(int *pCount, gfmCtx *pCtx) {
     }
 
     /* Count how many resolutions are available */
-    (*(pCtx->videoFuncs.gfmVideo_countResolutions))(pCount, pCtx->pVideo);
+    rv = (*(pCtx->videoFuncs.gfmVideo_countResolutions))(pCount, pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
