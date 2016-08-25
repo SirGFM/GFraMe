@@ -22,7 +22,7 @@
 #==============================================================================
   TARGET := libGFraMe
   MAJOR_VERSION := 2
-  MINOR_VERSION := 0
+  MINOR_VERSION := 1
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
