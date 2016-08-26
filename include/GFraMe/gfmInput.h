@@ -228,6 +228,15 @@ gfmRV gfmInput_setAxisTrigger(gfmInput *pCtx, float val);
 gfmRV gfmInput_update(gfmInput *pCtx);
 
 /**
+ * Updates a single virtual key
+ *
+ * @param  [ in]pCtx The context
+ * @param  [ in]vkey The key to be updated
+ * @return      GFrame return value
+ */
+gfmRV gfmInput_updateVKey(gfmInput *pCtx, int vkey);
+
+/**
  * Removes every bound key, so it all can be re-created
  * 
  * @param  pCtx The context

@@ -8,8 +8,6 @@
 
 /** 'Exports' the gfmCtx structure */
 typedef struct stGFMCtx gfmCtx;
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 
 /** 'Exports' the backends enum */
 enum enGFMVideoBackend {
@@ -18,11 +16,25 @@ enum enGFMVideoBackend {
     GFM_VIDEO_GLES2,
     GFM_VIDEO_GLES3,
     GFM_VIDEO_WGL,
+    GFM_VIDEO_SWSDL2,
     GFM_VIDEO_MAX
 };
 typedef enum enGFMVideoBackend gfmVideoBackend;
 
+/** 'Exports' assets types */
+enum enGFMAssetType {
+    ASSET_TEXTURE = 0,
+    ASSET_AUDIO
+};
+typedef enum enGFMAssetType gfmAssetType;
+
 #endif /* __GFRAME_STRUCT__ */
+
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+#endif /* __GFMTEXTURE_STRUCT__ */
 
 #ifndef __GFRAME_H_
 #define __GFRAME_H_
@@ -383,6 +395,9 @@ gfmRV gfm_setBackground(gfmCtx *pCtx, int color);
 /**
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
+ *
+ * NOTE: This function is still dumb and forces the keycolor to 0xff00ff
+ *       (magenta)
  * 
  * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
@@ -484,6 +499,64 @@ gfmRV gfm_setRepeat(gfmCtx *pCtx, int handle, int pos);
  */
 gfmRV gfm_playAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
         double volume);
+
+/**
+ * Stops a currently playing audio
+ *
+ * @param  [ in]pHnd The audio instance
+ * @param  [ in]pCtx The game's context
+ * @return           GFMRV_OK, ...
+ */
+gfmRV gfm_stopAudio(gfmAudioHandle *pHnd, gfmCtx *pCtx);
+
+/**
+ * Queue an audio. If the audio system is paused, this function won't forcefully
+ * start it (in contrast to gfm_playAudio)
+ *
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx The game's context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfm_queueAudio(gfmAudioHandle **ppHnd, gfmCtx *pCtx, int handle,
+        double volume);
+
+/**
+ * Pause any playing audio. It will restart as soon as any audio is played or
+ * gfm_resumeAudio is called
+ *
+ * NOTE: Queueing an audio won't restart the audio system!
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_pauseAudio(gfmCtx *pCtx);
+
+/**
+ * Resume playing audios. If there are no audios currently playing, nothing will
+ * happen
+ *
+ * @param  [ in]pCtx The game's context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_resumeAudio(gfmCtx *pCtx);
+
+/**
+ * Load assets in a separated thread
+ *
+ * @param  [out]pProgress Updated with how many assets have been loaded
+ * @param  [ in]pCtx      The lib's main context
+ * @param  [ in]pType     List of assets types to be loaded
+ * @param  [ in]ppPath    List of paths to the assets
+ * @param  [ in]ppHandles List of pointers where the loaded handles shall be
+ *                        stored
+ * @param  [ in]numAssets How many assets are there to be loaded
+ * @return                GFraMe return value
+ */
+gfmRV gfm_loadAssetsAsync(int *pProgress, gfmCtx *pCtx, gfmAssetType *pType,
+        char **ppPath, int **ppHandles, int numAssets);
 
 /**
  * Retrieve the current camera
@@ -626,6 +699,16 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx);
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile);
+
+/**
+ * Set the position where the FPS counter is to be rendered
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setFPSCounterPos(gfmCtx *pCtx, int x, int y);
 
 /**
  * Make the FPS counter visible
@@ -951,6 +1034,19 @@ gfmRV gfm_issueFrame(gfmCtx *pCtx);
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, ...
  */
 gfmRV gfm_waitFrame(gfmCtx *pCtx);
+
+/**
+ * Reset the FPS accumulators
+ *
+ * This function should be called after sections that may lag (and therefore,
+ * messes with accumulated frames and whatnot).
+ * One example is before switching from a menu to a game state, after loading
+ * assets in background.
+ *
+ * @param  [ in]pCtx The game's context
+ * @reutnr           GFraMe return value
+ */
+gfmRV gfm_resetFPS(gfmCtx *pCtx);
 
 /**
  * Clean up a context

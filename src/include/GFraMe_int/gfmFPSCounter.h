@@ -55,6 +55,16 @@ gfmRV gfmFPSCounter_init(gfmFPSCounter *pCtx, gfmSpriteset *pSset,
         int firstTile);
 
 /**
+ * Set the position where the FPS counter is to be rendered
+ *
+ * @param  [ in]pCtx The FPS counter
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmFPSCounter_setPosition(gfmFPSCounter *pCtx, int x, int y);
+
+/**
  * Signal when an update started, to calculate how long it took
  * 
  * @param  pCtx      The FPS counter

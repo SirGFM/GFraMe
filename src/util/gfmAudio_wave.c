@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmAudio_wave.h
+ * @file src/util/gfmAudio_wave.c
  * 
  * Module to parse a WAVE audio file
  */

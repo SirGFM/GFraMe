@@ -13,20 +13,38 @@ enum {
     gfmGroup_forceKill = -4322
 };
 
+typedef struct stGFMGroupDrawNode gfmGroupDrawNode;
+
+/** All possible values used by a DrawNode */
+union unGFMGroupRenderUnion {
+    /** Vertical position (used when sorting by vertical position) */
+    int y;
+    /** Time alive (used when sorting by 'age') */
+    int timeAlive;
+    /** Next DrawNode on the stack (i.e., one that has to be rendered and
+     * traversed right) */
+    gfmGroupDrawNode *pStackNext;
+};
+typedef union unGFMGroupRenderUnion gfmGroupRenderUnion;
+
+/** Helper struct used to sort the group */
+struct stGFMGroupDrawNode {
+    /** All possible values used by a DrawNode */
+    gfmGroupRenderUnion data;
+    /** Nodes to the left of this one (i.e., will be rendered first) */
+    gfmGroupDrawNode *pLeft;
+    /** Nodes to the right of this one (i.e., will be rendered afterward) */
+    gfmGroupDrawNode *pRight;
+    /** Nodes actual sprite */
+    gfmSprite *pSelf;
+};
+
 /** The gfmGroupNode structure */
 struct stGFMGroupNode {
     /** Next pointer on the list */
     struct stGFMGroupNode *pNext;
-    /** Next visible node on the list */
-    struct stGFMGroupNode *pNextVisible;
     /** Next collideable node on the list */
     struct stGFMGroupNode *pNextCollideable;
-    /** Next visible object, to the left */
-    struct stGFMGroupNode *pDrawLeft;
-    /** Next visible object, to the right */
-    struct stGFMGroupNode *pDrawRight;
-    /** Next object on the stack */
-    struct stGFMGroupNode *pStackNext;
     /** Actualy pointer to the object */
     gfmSprite *pSelf;
     /** For how long this node may keep living; If set to gfmGroup_keepAlive,

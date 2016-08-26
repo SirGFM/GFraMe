@@ -280,8 +280,7 @@ __ret:
 }
 
 /**
- * Clear both the accumulated value and the remainder of the time; Note that the
- * current delay isn't modified
+ * Clear both the accumulated value and the remainder of the time
  * 
  * @param  pCtx The accumulator
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
@@ -293,8 +292,9 @@ gfmRV gfmAccumulator_reset(gfmAccumulator *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
     /* Clean up the frames */
-    /*pCtx->elapsed = 0;*/
     pCtx->accFrames = 0;
+    pCtx->accElapsed = -pCtx->delay;
+    pCtx->accDelays = 0;
 
     rv = GFMRV_OK;
 __ret:

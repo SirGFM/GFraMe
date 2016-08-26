@@ -1,11 +1,12 @@
 /**
- * @file src/core/commmon/gfmFile.c
- * 
+ * @file src/core/sdl2/gfmFile.c
+ *
  * Generic file interface; It should be used to abstract opening assests (which
  * might be compressed, on mobile) and opening a file (e.g., the Log) on the
  * default path (e.g., ~/.local/share/<company>/<game> or
  * %APPDATA%\<company>\<game>)
- * NOTE: This implementation shouldn't be used for mobile!
+ *
+ * NOTE: This implementation must be used for mobile!
  */
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
@@ -18,16 +19,9 @@
 #  include <GFraMe/gfmUtils.h>
 #endif
 
-#include <stdio.h>
+#include <SDL2/SDL_rwops.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* Includes for checking a file size on non-Windows */
-#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#  include <unistd.h>
-#endif
 
 #define STACK_SIZE 4
 
@@ -40,7 +34,7 @@ enum enGFMFileOp {
 
 struct stGFMFile {
     /** The currently opened file pointer */
-    FILE *pFp;
+    SDL_RWops *pFp;
     /** Path to the file */
     gfmString *pPath;
     /** Last read char */
@@ -50,16 +44,14 @@ struct stGFMFile {
     /** Type of the last executed operation */
     enum enGFMFileOp lastOp;
     /** The actual stack */
-    fpos_t stack[STACK_SIZE];
-    /** Buffer for reading stuff */
-    char pBuf[4];
+    int stack[STACK_SIZE];
     /** Mode the file was opened on */
     char pMode[4];
 };
 
 /**
  * Alloc a new gfmFile struct
- * 
+ *
  * @param  ppCtxe The alloc'ed file
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
  */
@@ -86,7 +78,7 @@ __ret:
 
 /**
  * Close and free a gfmFile
- * 
+ *
  * @param  ppCtx The file
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
@@ -128,8 +120,11 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* On mobile, pFilename will be NULL when loading assets */
+#if !defined(GFRAME_MOBILE)
     ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
     ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
+#endif
 
     /* Check that the file isn't opened */
     ASSERT(pCtx->pFp == 0, GFMRV_FILE_ALREADY_OPEN);
@@ -137,7 +132,6 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     /** Check that the mode is at most 3 characters long */
     ASSERT(strnlen(mode, 4) <= 3, GFMRV_INTERNAL_ERROR);
 
-#ifndef EMCC
     /* Retrieve the file's directory */
     rv = gfmString_getString(&pPath, pStr);
     ASSERT_NR(rv == GFMRV_OK);
@@ -145,21 +139,24 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     /* Initialize the local string with that path */
     rv = gfmString_init(pCtx->pPath, pPath, strlen(pPath), 1/*doCopy*/);
     ASSERT_NR(rv == GFMRV_OK);
-#else
-    rv = gfmString_setLength(pCtx->pPath, 0/*len*/);
-    ASSERT(rv == GFMRV_OK, rv);
-#endif
 
+#if defined(GFRAME_MOBILE)
+    /* On mobile, the path must be append if not opening an asset */
+  if (pFilename) {
+#endif
     /* Append the filename to its path */
     rv = gfmString_concat(pCtx->pPath, pFilename, filenameLen);
     ASSERT_NR(rv == GFMRV_OK);
+#if defined(GFRAME_MOBILE)
+  }
+#endif
 
     /* Retrieve the absolute path */
     rv = gfmString_getString(&pPath, pCtx->pPath);
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Open the file */
-    pCtx->pFp = fopen(pPath, mode);
+    pCtx->pFp = SDL_RWFromFile(pPath, mode);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_FOUND);
 
     /* Copy the new mode */
@@ -181,7 +178,7 @@ __ret:
  *   - android: ???
  *   - linux: ~/.local/share/<company>/<game>/
  *   - windows: %APPDATA%\<company>\<game>\
- * 
+ *
  * @param  pFile       The file struct
  * @param  pCtx        The game's context
  * @param  pFilename   The filename
@@ -221,7 +218,7 @@ __ret:
  * Open an asset file; The file is expected to be found on an 'assets'
  * directory, which must be found on the same directory as the game's binary;
  * Note that the file will be opened only for reading!
- * 
+ *
  * @param  pFile       The file struct
  * @param  pCtx        The game's context
  * @param  pFilename   The filename
@@ -239,11 +236,27 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
     ASSERT(pFile, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
+    /* There's no 'binary path on mobile, so we use the string to pass the
+     * actual file path */
+#if !defined(GFRAME_MOBILE)
     /* Retrieve the absolute file path (i.e., copy the 'static' string) */
     rv = gfm_getBinaryPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfmString_concatStatic(pStr, "assets/");
     ASSERT_NR(rv == GFMRV_OK);
+#else
+    pStr = 0;
+
+    rv = gfmString_getNew(&pStr);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmString_init(pStr, pFilename, filenameLen, 0);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* After initializing the gfmString, the path must be cleared so it isn't
+     * appended to the gfmString */
+    pFilename = 0;
+    filenameLen = 0;
+#endif
 
     /* Open the file */
     if (isText) {
@@ -261,7 +274,7 @@ __ret:
 
 /**
  * Close a file
- * 
+ *
  * @param  pCtx The file struct
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
  */
@@ -273,8 +286,9 @@ gfmRV gfmFile_close(gfmFile *pCtx) {
     /* Check that the file is actually open */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
-    fflush(pCtx->pFp);
-    fclose(pCtx->pFp);
+    /* Flush and close the file */
+    SDL_RWseek(pCtx->pFp, 0, RW_SEEK_CUR);
+    SDL_RWclose(pCtx->pFp);
     pCtx->pFp = 0;
 
     rv = GFMRV_OK;
@@ -284,7 +298,7 @@ __ret:
 
 /**
  * Check if a file is currently open
- * 
+ *
  * @param  pCtx The 'generic' file
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_TRUE, GFMRV_FALSE
  */
@@ -330,7 +344,7 @@ __ret:
 
 /**
  * Get the path to the currently opened file
- * 
+ *
  * @param  [out]ppPath The path to the file (mustn't be dealloc'ed)
  * @param  [ in]pCtx   The 'generic' file
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
@@ -355,17 +369,13 @@ __ret:
 
 /**
  * Retrieve the file's size
- * 
+ *
  * @param  pSize The file size (in bytes)
  * @param  pCtx  The file struct
  */
 gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
     gfmRV rv;
     int irv;
-#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
-    char *pPath;
-    struct stat buf;
-#endif
 
     /* Sanitize arguments */
     ASSERT(pSize, GFMRV_ARGUMENTS_BAD);
@@ -373,40 +383,13 @@ gfmRV gfmFile_getSize(int *pSize, gfmFile *pCtx) {
     /* Check that the file was opened */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
-#if !defined(EMCC) && !defined(__WIN32) && !defined(__WIN32__)
-    /* Retrieve the file path */
-    rv = gfmString_getString(&pPath, pCtx->pPath);
-    ASSERT(rv == GFMRV_OK, rv);
+    irv = (int)SDL_RWsize(pCtx->pFp);
+    ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
 
-    /* Retrieve the file status */
-    irv = stat(pPath, &buf);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-
-    /* Retrieve only the file size */
-    *pSize = (int)buf.st_size;
-#else
-    /* Store the current position on the file */
-    rv = gfmFile_pushPos(pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
-    /* Go to the file end (in a lazy and not-platform-independent way) */
-    irv = fseek(pCtx->pFp, 0, SEEK_END);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
-    /* Retrieve the length */
-    rv = gfmFile_getPos(pSize, pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
-    /* Return to the previous position */
-    rv = gfmFile_popPos(pCtx);
-    ASSERT(rv == GFMRV_OK, rv);
-#endif
+    *pSize = irv;
     rv = GFMRV_OK;
 __ret:
-#if defined(EMCC) || defined(__WIN32) || defined(__WIN32__)
-    if (rv != GFMRV_OK && rv != GFMRV_ARGUMENTS_BAD &&
-            rv != GFMRV_FILE_NOT_OPEN) {
-        /* On error, rewind the file */
-        gfmFile_rewind(pCtx);
-    }
-#endif
+
     return rv;
 }
 
@@ -428,7 +411,7 @@ gfmRV gfmFile_getPos(int *pPos, gfmFile *pCtx) {
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
     /* Retrieve its position */
-    pos = ftell(pCtx->pFp);
+    pos = (int)SDL_RWtell(pCtx->pFp);
     ASSERT(pos >= 0, GFMRV_INTERNAL_ERROR);
 
     *pPos = pos;
@@ -459,12 +442,12 @@ gfmRV gfmFile_erase(gfmFile *pCtx) {
     ASSERT(rv == GFMRV_OK, rv);
 
     /* Close the file and reopen it in 'w' mode (so it's erased) */
-    fclose(pCtx->pFp);
-    pCtx->pFp = fopen(pPath, "w");
+    SDL_RWclose(pCtx->pFp);
+    pCtx->pFp = SDL_RWFromFile(pPath, "w");
     ASSERT(pCtx->pFp, GFMRV_INTERNAL_ERROR);
     /* Close again and reopen it with its original flags */
-    fclose(pCtx->pFp);
-    pCtx->pFp = fopen(pPath, pCtx->pMode);
+    SDL_RWclose(pCtx->pFp);
+    pCtx->pFp = SDL_RWFromFile(pPath, pCtx->pMode);
     ASSERT(pCtx->pFp, GFMRV_INTERNAL_ERROR);
 
     rv = GFMRV_OK;
@@ -474,19 +457,20 @@ __ret:
 
 /**
  * Check if a file reached its end
- * 
+ *
  * @param  pCtx The 'generic' file
  * @return      GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN, GFMRV_TRUE,
  *              GFMRV_FALSE
  */
 gfmRV gfmFile_didFinish(gfmFile *pCtx) {
     gfmRV rv;
+    int irv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
-    if (feof(pCtx->pFp)) {
+    if (SDL_RWsize(pCtx->pFp) == SDL_RWtell(pCtx->pFp)) {
         rv = GFMRV_TRUE;
     }
     else {
@@ -498,7 +482,7 @@ __ret:
 
 /**
  * Rewind a file back to its start
- * 
+ *
  * @param  pCtx  The file struct
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
  */
@@ -510,7 +494,7 @@ gfmRV gfmFile_rewind(gfmFile *pCtx) {
     /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
-    rewind(pCtx->pFp);
+    SDL_RWseek(pCtx->pFp, 0, SEEK_SET);
     pCtx->lastOp = gfmFile_noop;
 
     rv = GFMRV_OK;
@@ -520,7 +504,7 @@ __ret:
 
 /**
  * Move a few bytes forward/backward from the current position
- * 
+ *
  * @param  pCtx     The file struct
  * @param  numBytes How many bytes should be seeked
  * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
@@ -535,8 +519,8 @@ gfmRV gfmFile_seek(gfmFile *pCtx, int numBytes) {
     /* Check that there's an open file */
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
 
-    irv = fseek(pCtx->pFp, numBytes, SEEK_CUR);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RWseek(pCtx->pFp, numBytes, SEEK_CUR);
+    ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
     pCtx->lastOp = gfmFile_noop;
 
     rv = GFMRV_OK;
@@ -546,7 +530,7 @@ __ret:
 
 /**
  * Flush the file
- * 
+ *
  * @param  pCtx The file struct
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
  *              GFMRV_INTERNAL_ERROR
@@ -561,8 +545,8 @@ gfmRV gfmFile_flush(gfmFile *pCtx) {
     ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
     /* TODO Check that it was open for writing */
 
-    irv = fflush(pCtx->pFp);
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
+    ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
     pCtx->lastOp = gfmFile_noop;
 
     rv = GFMRV_OK;
@@ -572,7 +556,7 @@ __ret:
 
 /**
  * Get how many 'nodes' left there are on the stack
- * 
+ *
  * @param  pNum The number of 'nodes' left
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
@@ -595,7 +579,7 @@ __ret:
 
 /**
  * Push the current position into a stack (really useful for parsing stuff)
- * 
+ *
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
  *              GFMRV_FILE_MAX_STACK_POS, GFMRV_INTERNAL_ERROR
@@ -613,8 +597,9 @@ gfmRV gfmFile_pushPos(gfmFile *pCtx) {
 
     /* Push the position into the stack */
     pCtx->curStackPos--;
-    irv = fgetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RWtell(pCtx->pFp);
+    ASSERT(irv >= 0, GFMRV_INTERNAL_ERROR);
+    pCtx->stack[pCtx->curStackPos] = irv;
     pCtx->lastOp = gfmFile_noop;
 
     rv = GFMRV_OK;
@@ -624,7 +609,7 @@ __ret:
 
 /**
  * Pop the previous position from the stack (really useful for parsing stuff)
- * 
+ *
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
  *              GFMRV_FILE_STACK_EMPTY, GFMRV_INTERNAL_ERROR
@@ -641,8 +626,8 @@ gfmRV gfmFile_popPos(gfmFile *pCtx) {
     ASSERT(pCtx->curStackPos < STACK_SIZE, GFMRV_FILE_STACK_EMPTY);
 
     /* Move the stream to the previous position */
-    irv = fsetpos(pCtx->pFp, &(pCtx->stack[pCtx->curStackPos]));
-    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+    irv = SDL_RWseek(pCtx->pFp, pCtx->stack[pCtx->curStackPos], SEEK_SET);
+    ASSERT(irv == pCtx->stack[pCtx->curStackPos], GFMRV_INTERNAL_ERROR);
     /* Pop it from the stack */
     pCtx->curStackPos++;
     pCtx->lastOp = gfmFile_noop;
@@ -655,7 +640,7 @@ __ret:
 /**
  * Move the stack a single position back, but doesn't pop it (i.e., doesn't
  * "rewind" to that position)
- * 
+ *
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
  */
@@ -678,7 +663,7 @@ __ret:
 
 /**
  * Clear the 'position stack'
- * 
+ *
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN
  */
@@ -699,7 +684,7 @@ __ret:
 
 /**
  * Read a character from the file
- * 
+ *
  * @param  pVal The character
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
@@ -716,17 +701,17 @@ gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_write) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_read;
 
     /* Read a char */
-    pCtx->lastChar = fgetc(pCtx->pFp);
-    if (pCtx->lastChar == EOF) {
+    if (SDL_RWsize(pCtx->pFp) == SDL_RWtell(pCtx->pFp)) {
         rv = GFMRV_FILE_EOF_REACHED;
         goto __ret;
     }
-    /*ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED); */
+    pCtx->lastChar = SDL_ReadU8(pCtx->pFp);
+    ASSERT(pCtx->lastChar != 0, GFMRV_INTERNAL_ERROR);
 
     *pVal = (char)pCtx->lastChar;
     rv = GFMRV_OK;
@@ -736,7 +721,7 @@ __ret:
 
 /**
  * Write a character to the file
- * 
+ *
  * @param  pVal The character
  * @param  pCtx The file
  */
@@ -751,13 +736,13 @@ gfmRV gfmFile_writeChar(gfmFile *pCtx, unsigned char val) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_read) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_write;
 
     /* Read a char */
-    irv = fputc(val, pCtx->pFp);
-    ASSERT(irv == (int)((unsigned char)val), GFMRV_FILE_WRITE_ERROR);
+    irv = SDL_WriteU8(pCtx->pFp, val);
+    ASSERT(irv == 1, GFMRV_FILE_WRITE_ERROR);
 
     rv = GFMRV_OK;
 __ret:
@@ -768,14 +753,13 @@ __ret:
  * Roll back a character (similar to stdio's ungetc); The last read character
  * (if needed) must be retrieved from the file context
  * NOTE: This function doesn't need to allow more than one unread (but it can!)
- * 
+ *
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
  *              GFMRV_FILE_CANT_UNREAD, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmFile_unreadChar(gfmFile *pCtx) {
     gfmRV rv;
-    int irv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -785,8 +769,7 @@ gfmRV gfmFile_unreadChar(gfmFile *pCtx) {
     ASSERT(pCtx->lastChar >= 0, GFMRV_FILE_CANT_UNREAD);
 
     /* Unread the character */
-    irv = ungetc(pCtx->lastChar, pCtx->pFp);
-    ASSERT(irv == pCtx->lastChar, GFMRV_INTERNAL_ERROR);
+    SDL_RWseek(pCtx->pFp, -1, SEEK_CUR);
 
     pCtx->lastChar = -1;
     rv = GFMRV_OK;
@@ -797,7 +780,7 @@ __ret:
 /**
  * Read 2 bytes (i.e., half a 32 bits word) into an integer; The value is
  * expected to be in little-endian format
- * 
+ *
  * @param  pVal The half word
  * @param  pCtx The file
  */
@@ -806,7 +789,7 @@ gfmRV gfmFile_readHalfWord(int *pVal, gfmFile *pCtx);
 /**
  * Read 2 bytes (i.e., half a 32 bits word) into an integer; The value will
  * be written in little-endian format
- * 
+ *
  * @param  pCtx The file
  * @param  val  The half word
  */
@@ -815,7 +798,7 @@ gfmRV gfmFile_writeHalfWord(gfmFile *pCtx, int val);
 /**
  * Read 4 bytes (i.e., a 32 bits integer) into an integer; The value is
  * expected to be in little-endian format
- * 
+ *
  * @param  pVal The word
  * @param  pCtx The file
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
@@ -823,7 +806,6 @@ gfmRV gfmFile_writeHalfWord(gfmFile *pCtx, int val);
  */
 gfmRV gfmFile_readWord(int *pVal, gfmFile *pCtx) {
     gfmRV rv;
-    int irv, count;
 
     /* Sanitize arguments */
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
@@ -833,19 +815,12 @@ gfmRV gfmFile_readWord(int *pVal, gfmFile *pCtx) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_write) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_read;
 
     /* Try to read a integer (i.e., 4 bytes) */
-    count = 4;
-    irv = fread(pCtx->pBuf, sizeof(char), count, pCtx->pFp);
-    ASSERT(irv == count, GFMRV_READ_ERROR);
-    /* Convert the word (the arch is expected to be little-endian) */
-    *pVal = (int)( ( ((pCtx->pBuf)[0]      ) & 0x000000ff)
-            | ( ((pCtx->pBuf)[1] << 8 ) & 0x0000ff00)
-            | ( ((pCtx->pBuf)[2] << 16) & 0x00ff0000)
-            | ( ((pCtx->pBuf)[3] << 24) & 0xff000000) );
+    *pVal = SDL_ReadLE32(pCtx->pFp);
 
     pCtx->lastChar = -1;
     rv = GFMRV_OK;
@@ -856,13 +831,13 @@ __ret:
 /**
  * Write 4 bytes (i.e., a 32 bits integer) into an integer; The value will be
  * written in little-endian format
- * 
+ *
  * @param  pCtx The file
  * @param  val  The word
  */
 gfmRV gfmFile_writeWord(gfmFile *pCtx, int val) {
     gfmRV rv;
-    int irv, count;
+    int irv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -871,19 +846,12 @@ gfmRV gfmFile_writeWord(gfmFile *pCtx, int val) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_read) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_write;
 
-    /* Try to write a integer (i.e., 4 bytes) */
-    pCtx->pBuf[0] = (char)(val & 0x000000ff);
-    pCtx->pBuf[1] = (char)((val >> 8) & 0x000000ff);
-    pCtx->pBuf[2] = (char)((val >> 16) & 0x000000ff);
-    pCtx->pBuf[3] = (char)((val >> 24) & 0x000000ff);
-
-    count = 4;
-    irv = fwrite(pCtx->pBuf, sizeof(char), count, pCtx->pFp);
-    ASSERT(irv == count, GFMRV_FILE_WRITE_ERROR);
+    irv = SDL_WriteLE32(pCtx->pFp, val);
+    ASSERT(irv == 1, GFMRV_FILE_WRITE_ERROR);
 
     rv = GFMRV_OK;
 __ret:
@@ -893,7 +861,7 @@ __ret:
 /**
  * Read a stream of bytes from the file; If the EOF is reached before reading
  * the desired number of bytes, this function must return successfuly
- * 
+ *
  * @param  pVal     A array of bytes of numBytes length
  * @param  pLen     How many bytes were actually read from the file
  * @param  pCtx     The file
@@ -914,11 +882,11 @@ gfmRV gfmFile_readBytes(char *pVal, int *pLen, gfmFile *pCtx, int numBytes) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_write) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_read;
 
-    count = fread(pVal, sizeof(char), numBytes, pCtx->pFp);
+    count = SDL_RWread(pCtx->pFp, pVal, sizeof(char), numBytes);
     ASSERT(count >= 0, GFMRV_READ_ERROR);
 
     *pLen = count;
@@ -936,7 +904,7 @@ __ret:
 /**
  * Read a stream of bytes from the file; If the EOF is reached before reading
  * the desired number of bytes, this function must return successfuly
- * 
+ *
  * @param  pCtx The file
  * @param  pVal A array of bytes of numBytes length
  * @param  len  How many bytes were actually read from the file
@@ -956,11 +924,11 @@ gfmRV gfmFile_writeBytes(gfmFile *pCtx, char *pVal, int len) {
 
     /* ANSI C requirement... */
     if (pCtx->lastOp == gfmFile_read) {
-        fseek(pCtx->pFp, 0L, SEEK_CUR);
+        SDL_RWseek(pCtx->pFp, 0, SEEK_CUR);
     }
     pCtx->lastOp = gfmFile_write;
 
-    count = fwrite(pVal, sizeof(char), len, pCtx->pFp);
+    count = SDL_RWwrite(pCtx->pFp, pVal, sizeof(char), len);
     ASSERT(count == len, GFMRV_FILE_WRITE_ERROR);
 
     rv = GFMRV_OK;

@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmAudio_vorbis.h
+ * @file src/util/gfmAudio_vorbis.c
  * 
  * Module to parse a vorbis audio file
  */

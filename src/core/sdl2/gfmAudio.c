@@ -64,28 +64,28 @@ typedef enum enGFMAudioType gfmAudioType;
 
 /** Audio sub-system context */
 struct stGFMAudioCtx {
-    /** List of available audio handles (for recycling) */
-    gfmAudioHandle *pAudioHndAvailable;
-    /** List of playing audio handles */
-    gfmAudioHandle *pAudioHndPlaying;
-    /** Which subsystems has been initialized */
-    gfmAudioState init;
+    /** Mutext to lock access to the context's resources */
+    SDL_sem *pSem;
     /** Pool of audios */
     gfmGenArr_var(gfmAudio, pAudioPool);
     /** Pool of audio handles */
     gfmGenArr_var(gfmAudioHandle, pAudioHndPool);
+    /** MML synthesizer context */
+    synthCtx *pSynthCtx;
+    /** First index on the list of available audio handles (for recylcling) */
+    int audioHndAvailable;
+    /** First index on the list of playing audio handles */
+    int audioHndPlaying;
+    /** Which subsystems has been initialized */
+    gfmAudioState init;
     /** RV from the last time the callback was executed */
     gfmRV callbackRV;
     /** Whether the subsystem is playing or was paused */
     int isPlaying;
-    /** Mutext to lock access to the context's resources */
-    SDL_sem *pSem;
     /** ID of the opened audio device */
     SDL_AudioDeviceID dev;
     /** Specs of the opened audio device */
     SDL_AudioSpec spec;
-    /** MML synthesizer context */
-    synthCtx *pSynthCtx;
     /** Bits per sample (in an easier var than fetching from the spec) */
     int bitsPerSample;
     /** Number of channels */
@@ -107,12 +107,12 @@ typedef struct stGFMAudioWave gfmAudioWave;
 
 /** Data required by a MML audio */
 struct stGFMAudioMml {
+    /** All of the tracks */
+    mmlTrack **ppTracks;
     /** 'LCD' of all tracks' lengths */
     int commonLen;
     /** How many tracks there are on this MML audio */
     int numTracks;
-    /** All of the tracks */
-    mmlTrack **ppTracks;
 };
 typedef struct stGFMAudioMml gfmAudioMml;
 
@@ -133,22 +133,29 @@ struct stGFMAudio {
 
 /** Custom audio handle; Is returned when an audio is played */
 struct stGFMAudioHandle {
+    /** Index of audio played by this node */
+    int self;
+    /** Index of next audio being played/available fo recycling */
+    int next;
+    /** Handle's index on pAudioHndPool */
+    int index;
     /** Volume at which this should be played */
     double volume;
-    /** Audio played by this node */
-    gfmAudio *pSelf;
-    /** Next audio being played/available for recycling */
-    gfmAudioHandle *pNext;
     /** Whether this instance is playing or not - only really usefull for
      *  long/looped songs and environment effects (e.g., rain) */
     int isPlaying;
     /** Time elapsed in samples */
     int pos;
+    int forceStop;
 };
 
 /** Data used when mixing audio buffers; This struct deals with bytes,(and not
  * with samples) */
 struct stGFMMixerData {
+    /** Input buffer */
+    unsigned char *pSrc;
+    /** Output buffer */
+    unsigned char *pDst;
     /** Length of the output buffer */
     int dstLen;
     /** Whether the current song should repeat */
@@ -164,10 +171,6 @@ struct stGFMMixerData {
     /** Length of the input buffer */
     int srcLen;
     double volume;
-    /** Input buffer */
-    unsigned char *pSrc;
-    /** Output buffer */
-    unsigned char *pDst;
 };
 typedef struct stGFMMixerData gfmMixerData;
 
@@ -196,15 +199,15 @@ static gfmRV gfmAudio_removeInstance(gfmAudioCtx *pCtx, gfmAudioHandle *pNode,
 
     if (pPrev == 0) {
         // Remove the first node
-        pCtx->pAudioHndPlaying = pNode->pNext;
+        pCtx->audioHndPlaying = pNode->next;
     }
     else {
         // Remove the node from the middle of the list
-        pPrev->pNext = pNode->pNext;
+        pPrev->next = pNode->next;
     }
     // Add the node to the available list
-    pNode->pNext = pCtx->pAudioHndAvailable;
-    pCtx->pAudioHndAvailable = pNode;
+    pNode->next = pCtx->audioHndAvailable;
+    pCtx->audioHndAvailable = pNode->index;
     
     rv = GFMRV_OK;
 __ret:
@@ -257,7 +260,7 @@ static void gfmAudio_mixMono16(gfmMixerData *pCtx) {
         j += 2;
 
         // Check if the song ended
-        if (i > pCtx->srcLen) {
+        if (i >= pCtx->srcLen) {
             // If it did, check if it should loop
             if (pCtx->doRepeat) {
                 i = pCtx->repeatPosition;
@@ -309,7 +312,7 @@ static void gfmAudio_mixStereo16(gfmMixerData *pCtx) {
         j += 4;
 
         // Check if the song ended
-        if (i > pCtx->srcLen) {
+        if (i >= pCtx->srcLen) {
             // If it did, check if it should loop
             if (pCtx->doRepeat) {
                 i = pCtx->repeatPosition;
@@ -333,11 +336,11 @@ static void gfmAudio_mixStereo16(gfmMixerData *pCtx) {
  */
 static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     gfmAudioCtx *pCtx;
-    gfmAudioHandle *pTmp, *pPrev;
     gfmMixerData mixer, *pMixer;
     gfmRV rv;
     int isLocked;
     int irv;
+    int curNode, prevNode;
     
     // Set default values
     isLocked = 0;
@@ -365,18 +368,22 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
     isLocked = 1;
     
     // Loop through every node
-    pTmp = pCtx->pAudioHndPlaying;
-    pPrev = 0;
-    while (pTmp) {
-        gfmAudioHandle *pNext;
+    curNode = pCtx->audioHndPlaying;
+    prevNode = -1;
+    while (curNode != -1) {
+        gfmAudioHandle *pTmp;
+        int nextNode;
         
+        pTmp = gfmGenArr_getObject(pCtx->pAudioHndPool, curNode);
         if (pTmp->isPlaying) {
+            gfmAudio *pSelf;
             
-            if (pTmp->pSelf->type == gfmAudio_wave) {
+            pSelf = gfmGenArr_getObject(pCtx->pAudioPool, pTmp->self);
+            if (pSelf->type == gfmAudio_wave) {
                 gfmAudioWave *pWave;
                 int mode;
                 
-                pWave = &(pTmp->pSelf->self.wave);
+                pWave = &(pSelf->self.wave);
                 
                 pMixer->doRepeat = pWave->doRepeat;
                 pMixer->pos = pTmp->pos;
@@ -405,27 +412,35 @@ static void gfmAudio_callback(void *pArg, Uint8 *pStream, int len) {
                 // Update the instance position
                 pTmp->pos = pMixer->pos;
             }
-            else if (pTmp->pSelf->type == gfmAudio_mml) {
+            else if (pSelf->type == gfmAudio_mml) {
                 // TODO Implement this
             }
-            else if (pTmp->pSelf->type == gfmAudio_ogg) {
+            else if (pSelf->type == gfmAudio_ogg) {
                 // TODO Implement this
             }
         }
         // Get the next node
-        pNext = pTmp->pNext;
+        nextNode = pTmp->next;
         // Remove it from the list if it finished playing
-        if (gfmAudio_didHandleFinish(pTmp) == GFMRV_TRUE) {
+        if (gfmAudio_didHandleFinish(pCtx, pTmp) == GFMRV_TRUE) {
+            gfmAudioHandle *pPrev;
+
+            if (prevNode != -1) {
+                pPrev = gfmGenArr_getObject(pCtx->pAudioHndPool, prevNode);
+            }
+            else {
+                pPrev = 0;
+            }
             // Remove it and don't modify the previous node
             rv = gfmAudio_removeInstance(pCtx, pTmp, pPrev);
             ASSERT_NR(rv == GFMRV_OK);
         }
         else {
             // Update the previous node
-            pPrev = pTmp;
+            prevNode = curNode;
         }
         // Go to the next node
-        pTmp = pNext;
+        curNode = nextNode;
     }
     // TODO Pause the device if there're no more audios
     
@@ -459,6 +474,7 @@ static gfmRV gfmAudio_getNewHandle(gfmAudioHandle **ppCtx) {
     ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
     // Clean it
     memset(*ppCtx, 0x0, sizeof(gfmAudioHandle));
+    (*ppCtx)->next = -1;
     
     rv = GFMRV_OK;
 __ret:
@@ -592,6 +608,8 @@ gfmRV gfmAudio_getNew(gfmAudioCtx **ppCtx) {
     ASSERT(ppCtx, GFMRV_ALLOC_FAILED);
     // Clean it
     memset(*ppCtx, 0x0, sizeof(gfmAudioCtx));
+    (*ppCtx)->audioHndAvailable = -1;
+    (*ppCtx)->audioHndPlaying = -1;
     
     rv = GFMRV_OK;
 __ret:
@@ -817,13 +835,15 @@ gfmRV gfmAudio_resumeSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was paused
-    ASSERT(!(pCtx->isPlaying), GFMRV_OK);
+    if (pCtx->isPlaying) {
+        return GFMRV_OK;
+    }
     
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     // Only unpause if there's anything to play
-    if (pCtx->pAudioHndPlaying) {
+    if (pCtx->audioHndPlaying != -1) {
         SDL_PauseAudioDevice(pCtx->dev, 0);
         // Set the audio as playing
         pCtx->isPlaying = 1;
@@ -852,7 +872,9 @@ gfmRV gfmAudio_pauseSubsystem(gfmAudioCtx *pCtx) {
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     // Check that it was playing
-    ASSERT(pCtx->isPlaying, GFMRV_OK);
+    if (!pCtx->isPlaying) {
+        return GFMRV_OK;
+    }
     
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
@@ -1078,8 +1100,10 @@ __ret:
 }
 
 /**
- * Play an audio and return its instance's handle (so you can pause/play/stop it
- * and change its volume)
+ * Queue an audio and return its instance'a=s handle (so you can pause/play/stop
+ * it and change its volume)
+ *
+ * NOTE: This function doesn't automatically resume the audio subsystem
  * 
  * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
  * @param  pCtx   The audio context
@@ -1088,9 +1112,8 @@ __ret:
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
  *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
  */
-gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+gfmRV gfmAudio_queueAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
         double volume) {
-    gfmAudio *pAudio;
     gfmAudioHandle *pAudioHnd;
     gfmRV rv;
     int isLocked;
@@ -1109,29 +1132,29 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     // Check that it was initialized
     ASSERT(pCtx->dev > 0, GFMRV_AUDIO_NOT_INITIALIZED);
     
-    // Retrieve the audio
-    pAudio = gfmGenArr_getObject(pCtx->pAudioPool, handle);
-    
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
     isLocked = 1;
     
     // Check if there's any handle to be recycled
-    if (pCtx->pAudioHndAvailable) {
+    if (pCtx->audioHndAvailable != -1) {
         // Recycle a handle
-        pAudioHnd = pCtx->pAudioHndAvailable;
+        pAudioHnd = gfmGenArr_getObject(pCtx->pAudioHndPool,
+                pCtx->audioHndAvailable);
         // Remove that handle from the list
-        pCtx->pAudioHndAvailable = pCtx->pAudioHndAvailable->pNext;
+        pCtx->audioHndAvailable = gfmGenArr_getObject(pCtx->pAudioHndPool,
+                pCtx->audioHndAvailable)->next;
     }
     else {
         // Otherwise, alloc a new handle
         gfmGenArr_getNextRef(gfmAudioHandle, pCtx->pAudioHndPool, 1, pAudioHnd,
                 gfmAudio_getNewHandle);
+        pAudioHnd->index = gfmGenArr_getUsed(pCtx->pAudioHndPool);
         gfmGenArr_push(pCtx->pAudioHndPool);
     }
     // Set the audio to be played
-    pAudioHnd->pSelf = pAudio;
+    pAudioHnd->self = handle;
     // Set the audio's volume
     pAudioHnd->volume = volume;
     // Set the at the audio's start
@@ -1139,15 +1162,15 @@ gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
     // Set the instance as playing
     pAudioHnd->isPlaying = 1;
     // Prepend it to the playing list
-    pAudioHnd->pNext = pCtx->pAudioHndPlaying;
-    pCtx->pAudioHndPlaying = pAudioHnd;
+    pAudioHnd->next = pCtx->audioHndPlaying;
+    pCtx->audioHndPlaying = pAudioHnd->index;
     
     // Unlock the mutex
     isLocked = 0;
+    if (ppHnd) {
+        *ppHnd = pAudioHnd;
+    }
     SDL_SemPost(pCtx->pSem);
-    // Unpause the device
-    rv = gfmAudio_resumeSubsystem(pCtx);
-    ASSERT_NR(rv == GFMRV_OK);
     
     rv = GFMRV_OK;
 __ret:
@@ -1159,6 +1182,33 @@ __ret:
 }
 
 /**
+ * Play an audio and return its instance's handle (so you can pause/play/stop it
+ * and change its volume)
+ * 
+ * @param  ppHnd  The audio instance (may be NULL, if one simply doesn't care)
+ * @param  pCtx   The audio context
+ * @param  handle The handle of the audio to be played
+ * @param  volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_INVALID_INDEX,
+ *                GFMRV_AUDIO_NOT_INITIALIZED, GFMRV_ALLOC_FAILED, 
+ */
+gfmRV gfmAudio_playAudio(gfmAudioHandle **ppHnd, gfmAudioCtx *pCtx, int handle,
+        double volume) {
+    gfmRV rv;
+
+    /* Most verifications are done in this call */
+    rv = gfmAudio_queueAudio(ppHnd, pCtx, handle, volume);
+    ASSERT_NR(rv == GFMRV_OK);
+    /* Unpause the device */
+    rv = gfmAudio_resumeSubsystem(pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Stops an audio instance
  * 
  * @param  pCtx  The audio context
@@ -1166,6 +1216,7 @@ __ret:
  * @return       GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
  */
 gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
+    gfmAudio *pSelf;
     gfmRV rv;
     int irv;
     
@@ -1179,11 +1230,14 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
     // Lock the mutex
     irv = SDL_SemWait(pCtx->pSem);
     ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    pSelf = gfmGenArr_getObject(pCtx->pAudioPool, (*ppHnd)->self);
+
     // Instead of actually removing it, put it at the buffer's end, so it will
     // be removed next time the callback is called
-    switch ((*ppHnd)->pSelf->type) {
+    switch (pSelf->type) {
         case gfmAudio_wave: {
-            (*ppHnd)->pos = (*ppHnd)->pSelf->self.wave.len;
+            (*ppHnd)->pos = pSelf->self.wave.len;
         } break;
         case gfmAudio_mml: {
             // TODO Implement this
@@ -1192,6 +1246,7 @@ gfmRV gfmAudio_stopAudio(gfmAudioCtx *pCtx, gfmAudioHandle **ppHnd) {
             // TODO Implement this
         } break;
     }
+    (*ppHnd)->forceStop = 1;
     // "Clean" the returned pointer
     *ppHnd = 0;
     // Unlock the mutex
@@ -1296,20 +1351,23 @@ __ret:
 /**
  * Check whether an audio handle finished played
  * 
+ * @param  pCtx The audio context
  * @param  pHnd The instance handle
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-gfmRV gfmAudio_didHandleFinish(gfmAudioHandle *pHnd) {
+gfmRV gfmAudio_didHandleFinish(gfmAudioCtx *pCtx, gfmAudioHandle *pHnd) {
+    gfmAudio *pSelf;
     gfmRV rv;
     
     // Sanitize arguments
     ASSERT(pHnd, GFMRV_ARGUMENTS_BAD);
-    
-    switch (pHnd->pSelf->type) {
+
+    pSelf = gfmGenArr_getObject(pCtx->pAudioPool, pHnd->self);
+    switch (pSelf->type) {
         case gfmAudio_wave: {
             gfmAudioWave *pWave;
             
-            pWave = &(pHnd->pSelf->self.wave);
+            pWave = &(pSelf->self.wave);
             
             if (pHnd->pos >= pWave->len) {
                 rv = GFMRV_TRUE;
@@ -1330,6 +1388,11 @@ gfmRV gfmAudio_didHandleFinish(gfmAudioHandle *pHnd) {
             // Shouldn't happen
             rv = GFMRV_FALSE;
         }
+    }
+
+    if (pHnd->forceStop) {
+        pHnd->forceStop = 0;
+        rv = GFMRV_TRUE;
     }
 __ret:
     return rv;

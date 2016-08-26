@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmKeyNode.h
+ * @file src/util/gfmKeyNode.c
  * 
  * Nodes of a binary tree of keys (and its bound virtual keys)
  */

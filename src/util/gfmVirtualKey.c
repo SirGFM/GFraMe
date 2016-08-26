@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmVirtualKey.h
+ * @file src/util/gfmVirtualKey.c
  * 
  * Virtual key used by gfmInput
  */

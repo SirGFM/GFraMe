@@ -6,10 +6,13 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmString.h>
+#include <GFraMe/gfmUtils.h>
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/gframe.h>
 
-#include <SDL2/SDL_filesystem.h>
+#if !defined(__APPLE__) && !defined(__MACH__)
+#  include <SDL2/SDL_filesystem.h>
+#endif
 #include <SDL2/SDL_platform.h>
 #include <SDL2/SDL_system.h>
 
@@ -51,8 +54,23 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
     
 #if defined(__ANDROID__) && __ANDROID__
-    // Get the local path
-    pPath = SDL_AndroidGetExternalStoragePath();
+    do {
+        int mask;
+
+        /* Check if there is a external storage (e.g., SD card) */
+        mask = SDL_ANDROID_EXTERNAL_STORAGE_READ;
+        mask = SDL_ANDROID_EXTERNAL_STORAGE_WRITE;
+        if ((SDL_AndroidGetExternalStorageState() & mask) == mask) {
+            /* Get the external path */
+            pPath = (char*)SDL_AndroidGetExternalStoragePath();
+        }
+        else {
+            /* Otherwise, retrieve the path to the internal one */
+            pPath = (char*)SDL_AndroidGetInternalStoragePath();
+        }
+    } while (0);
+#elif defined(__APPLE__) || defined(__MACH__)
+    pPath = "./";
 #else
     pOrg = 0;
     pTitle = 0;
@@ -82,8 +100,10 @@ gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
     
     rv = GFMRV_OK;
 __ret:
+#if !defined(__APPLE__) && !defined(__MACH__)
     if (pPath)
         SDL_free(pPath);
+#endif
     if (rv != GFMRV_ARGUMENTS_BAD && rv != GFMRV_OK)
         gfmString_free(ppStr);
     
@@ -109,7 +129,11 @@ gfmRV gfmPath_getRunningPath(gfmString **ppStr) {
     ASSERT(!(*ppStr), GFMRV_ARGUMENTS_BAD);
     
 	// Get current directory
+#if defined(__APPLE__) || defined(__MACH__)
+	pTmpPath = "./";
+#else
 	pTmpPath = SDL_GetBasePath();
+#endif
     ASSERT(pTmpPath, GFMRV_INTERNAL_ERROR);
     
     // Get the directory length
@@ -129,10 +153,12 @@ gfmRV gfmPath_getRunningPath(gfmString **ppStr) {
     rv = GFMRV_OK;
 __ret:
     // Clean up memory
+#if !defined(__APPLE__) && !defined(__MACH__)
     if (pTmpPath) {
 	    SDL_free(pTmpPath);
         pTmpPath = 0;
     }
+#endif
     if (rv != GFMRV_ARGUMENTS_BAD && rv != GFMRV_OK) {
         gfmString_free(ppStr);
     }

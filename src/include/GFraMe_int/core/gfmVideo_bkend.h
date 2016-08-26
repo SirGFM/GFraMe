@@ -13,10 +13,14 @@
 typedef struct stGFMVideoFuncs gfmVideoFuncs;
 /* The video context */
 typedef void gfmVideo;
-/** "Export" the texture structure's type */
-typedef struct stGFMTexture gfmTexture;
 
 #endif /* __GFMVIDEO_STRUCT__ */
+
+#ifndef __GFMTEXTURE_STRUCT__
+#define __GFMTEXTURE_STRUCT__
+/** "Export" the texture structure's type */
+typedef struct stGFMTexture gfmTexture;
+#endif /* __GFMTEXTURE_STRUCT__ */
 
 #ifndef __GFMVIDEO_BKEND_H__
 #define __GFMVIDEO_BKEND_H__
@@ -337,7 +341,7 @@ struct stGFMVideoFuncs {
      * @param  [ in]pFile    The texture file
      * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
      */
-    gfmRV (*gfmVideo_loadTextureBMP)(int *pTex, gfmVideo *pCtx,
+    gfmRV (*gfmVideo_loadTexture)(int *pTex, gfmVideo *pCtx,
             gfmFile *pFile, int colorKey);
 
     /**
@@ -379,6 +383,16 @@ extern gfmRV gfmVideo_GL3_loadFunctions(gfmVideoFuncs *pCtx);
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 extern gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx);
+
+/**
+ * Load all software video functions into the struct
+ *
+ * NOTE: SDL2 is still used for rendering to the screen
+ * 
+ * @param  [ in]pCtx The video function context
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+extern gfmRV gfmVideo_SWSDL2_loadFunctions(gfmVideoFuncs *pCtx);
 
 #endif /* __GFMVIDEO_BKEND_H__ */
 

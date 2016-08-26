@@ -1,28 +1,8 @@
 
 #==============================================================================
-# Select which compiler to use (either gcc or emcc)
+# Import the configurations
 #==============================================================================
-  ifneq (,$(findstring emscript, $(MAKECMDGOALS)))
-    CC := emcc
-    RELEASE := yes
-    EXPORT_GIF := no
-    BACKEND := emscript
-
-    #USE_GLES2_VIDEO := yes
-    USE_SDL2_VIDEO := yes
-  else
-    CC := gcc
-
-    ifneq ($(NO_GL), yes)
-      USE_GL3_VIDEO := yes
-    endif
-    USE_SDL2_VIDEO := yes
-
-# By default, the FPS counter is enabled
-    ifneq ($(FPS_COUNTER), no)
-      FPS_COUNTER := yes
-    endif
-  endif
+  include Makefile.conf
 #==============================================================================
 
 #==============================================================================
@@ -42,7 +22,7 @@
 #==============================================================================
   TARGET := libGFraMe
   MAJOR_VERSION := 2
-  MINOR_VERSION := 0
+  MINOR_VERSION := 1
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
@@ -60,42 +40,48 @@
 #==============================================================================
 # Define every object required by compilation
 #==============================================================================
-  OBJS =                                  \
-          $(OBJDIR)/gframe.o              \
-          $(OBJDIR)/gfmAccumulator.o      \
-          $(OBJDIR)/gfmAnimation.o        \
-          $(OBJDIR)/gfmAudio_mml.o        \
-          $(OBJDIR)/gfmAudio_vorbis.o     \
-          $(OBJDIR)/gfmAudio_wave.o       \
-          $(OBJDIR)/gfmCamera.o           \
-          $(OBJDIR)/gfmError.o            \
-          $(OBJDIR)/gfmFPSCounter.o       \
-          $(OBJDIR)/gfmGroup.o            \
-          $(OBJDIR)/gfmGroupHelpers.o     \
-          $(OBJDIR)/gfmKeyNode.o          \
-          $(OBJDIR)/gfmInput.o            \
-          $(OBJDIR)/gfmLog.o              \
-          $(OBJDIR)/gfmObject.o           \
-          $(OBJDIR)/gfmParser.o           \
-          $(OBJDIR)/gfmParserCommon.o     \
-          $(OBJDIR)/gfmQuadtree.o         \
-          $(OBJDIR)/gfmSave.o             \
-          $(OBJDIR)/gfmSprite.o           \
-          $(OBJDIR)/gfmSpriteset.o        \
-          $(OBJDIR)/gfmString.o           \
-          $(OBJDIR)/gfmText.o             \
-          $(OBJDIR)/gfmTileAnimation.o    \
-          $(OBJDIR)/gfmTilemap.o          \
-          $(OBJDIR)/gfmTileType.o         \
-          $(OBJDIR)/gfmTrie.o             \
-          $(OBJDIR)/gfmUtils.o            \
-          $(OBJDIR)/gfmVirtualKey.o       
+  OBJS = \
+          $(OBJDIR)/gframe.o \
+          $(OBJDIR)/gfmAccumulator.o \
+          $(OBJDIR)/gfmAnimation.o \
+          $(OBJDIR)/gfmCamera.o \
+          $(OBJDIR)/gfmError.o \
+          $(OBJDIR)/gfmGroup.o \
+          $(OBJDIR)/gfmInput.o \
+          $(OBJDIR)/gfmLog.o \
+          $(OBJDIR)/gfmObject.o \
+          $(OBJDIR)/gfmParser.o \
+          $(OBJDIR)/gfmQuadtree.o \
+          $(OBJDIR)/gfmSave.o \
+          $(OBJDIR)/gfmSprite.o \
+          $(OBJDIR)/gfmSpriteset.o \
+          $(OBJDIR)/gfmString.o \
+          $(OBJDIR)/gfmText.o \
+          $(OBJDIR)/gfmTilemap.o \
+          $(OBJDIR)/gfmUtils.o \
+          $(OBJDIR)/util/gfmAudio_mml.o \
+          $(OBJDIR)/util/gfmAudio_vorbis.o \
+          $(OBJDIR)/util/gfmAudio_wave.o \
+          $(OBJDIR)/util/gfmFPSCounter.o \
+          $(OBJDIR)/util/gfmGroupHelpers.o \
+          $(OBJDIR)/util/gfmKeyNode.o \
+          $(OBJDIR)/util/gfmParserCommon.o \
+          $(OBJDIR)/util/gfmTileAnimation.o \
+          $(OBJDIR)/util/gfmTileType.o \
+          $(OBJDIR)/util/gfmTrie.o \
+          $(OBJDIR)/util/gfmVideo_bmp.o \
+          $(OBJDIR)/util/gfmVirtualKey.o \
+          $(OBJDIR)/core/event/desktop/gfmEvent_desktop.o \
+          $(OBJDIR)/core/loadAsync/gfmLoadAsync_SDL2.o
 # Add objects based on the current backend
   ifeq ($(USE_GL3_VIDEO), yes)
     include src/core/video/opengl3/Makefile
   endif
   ifeq ($(USE_SDL2_VIDEO), yes)
     include src/core/video/sdl2/Makefile
+  endif
+  ifeq ($(USE_SWSDL2_VIDEO), yes)
+    include src/core/video/sw_sdl2/Makefile
   endif
 
   ifndef ($(BACKEND))
@@ -118,7 +104,7 @@
 #==============================================================================
 # Set OS flag
 #==============================================================================
-  OS := $(shell uname)
+  OS ?= $(shell uname)
   ifeq ($(OS), MINGW32_NT-6.1)
     OS := Win
   endif
@@ -141,16 +127,16 @@
 # Define CFLAGS (compiler flags)
 #==============================================================================
 # Add all warnings and default include path
-  CFLAGS := -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
+  CFLAGS := $(CFLAGS) -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
 # Add architecture flag
-  ARCH := $(shell uname -m)
+  ARCH ?= $(shell uname -m)
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32
+    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
   else
     ifeq ($(ARCH), x86_64)
-      CFLAGS := $(CFLAGS) -m64
+      CFLAGS := $(CFLAGS) -m64 -DALIGN=8
     else
-      CFLAGS := $(CFLAGS) -m32
+      CFLAGS := $(CFLAGS) -m32 -DALIGN=4
     endif
   endif
 # Add debug flags
@@ -184,12 +170,14 @@
   ifeq ($(USE_SDL2_VIDEO), yes)
     CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
   endif
+  ifeq ($(USE_SWSDL2_VIDEO), yes)
+    CFLAGS := $(CFLAGS) -DUSE_SWSDL2_VIDEO
+  endif
 #==============================================================================
 
 #==============================================================================
 # Define LFLAGS (linker flags)
 #==============================================================================
-  LFLAGS :=
 # Add libs and paths required by an especific OS
   ifeq ($(OS), Win)
     ifeq ($(ARCH), x64)
@@ -263,7 +251,7 @@
    MJV := $(SO)
    MNV := $(SO)
  else
-   SO := so
+   SO ?= so
    MJV := $(SO).$(MAJOR_VERSION)
    MNV := $(SO).$(MAJOR_VERSION).$(MINOR_VERSION).$(REV_VERSION)
  endif
@@ -272,17 +260,17 @@
 #==============================================================================
 # Get the number of cores for fun stuff
 #==============================================================================
-  ifeq ($(OS), Win)
+ ifeq ($(OS), Win)
    CORES := 1
-  else
+ else
    CORES := $$(($(shell nproc) * 2))
-  endif
+ endif
 #==============================================================================
 
 #==============================================================================
 # Define default compilation rule
 #==============================================================================
-all: static tests
+all: static shared tests
 	date
 #==============================================================================
 
@@ -294,14 +282,14 @@ release: MAKEDIRS
 	# Remove all old binaries
 	make clean
 	# Compile everything in release mode
-	make NO_GL=$(NO_GL) RELEASE=yes fast
+	make RELEASE=yes fast
 	# Remove all debug info from the binaries
 	strip $(BINDIR)/$(TARGET).a
 	strip $(BINDIR)/$(TARGET).$(MNV)
 	# Delete all .o to recompile as debug
 	rm -f $(OBJS)
 	# Recompile the lib with debug info
-	make NO_GL=$(NO_GL) DEBUG=yes fast
+	make DEBUG=yes fast
 	date
 #==============================================================================
 
@@ -326,7 +314,7 @@ static: MAKEDIRS $(BINDIR)/$(TARGET).a
 #==============================================================================
 # Rule for building the shared libs
 #==============================================================================
-shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
+shared: MAKEDIRS $(BINDIR)/$(TARGET).$(SO)
 #==============================================================================
 
 #==============================================================================
@@ -416,25 +404,30 @@ endif
 #==============================================================================
 $(BINDIR)/$(TARGET).a: $(OBJS)
 	rm -f $(BINDIR)/$(TARGET).a
-	ar -cvq $(BINDIR)/$(TARGET).a $(OBJS)
+	$(AR) -cvq $(BINDIR)/$(TARGET).a $(OBJS)
 #==============================================================================
 
 #==============================================================================
 # Rule for actually building the shared library
 #==============================================================================
-ifeq ($(OS), Win)
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-else
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV) $(BINDIR)/$(TARGET).$(SO)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
+$(BINDIR)/$(TARGET).dll: $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).dll -Wl,-export-all-symbols \
+	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+
+$(BINDIR)/$(TARGET).so: $(BINDIR)/$(TARGET).$(MJV)
+	rm -f $@
+	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).so
+
+$(BINDIR)/$(TARGET).$(MJV): $(BINDIR)/$(TARGET).$(MNV)
+	rm -f $@
 	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
-	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).$(SO)
-endif
+
+$(BINDIR)/$(TARGET).$(MNV): $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+
+$(BINDIR)/$(TARGET).dylib: $(OBJS)
+	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
 #==============================================================================
 
 #==============================================================================
@@ -477,7 +470,7 @@ tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
 # Build everything as fast as possible (and using as many cores/threads as
 # possible)
 #==============================================================================
-fast:
+fast: MAKEDIRS
 	make -j $(CORES) static shared
 #==============================================================================
 
@@ -485,7 +478,7 @@ fast:
 # Build everything as fast as possible (and using as many cores/threads as
 # possible)
 #==============================================================================
-fast_all:
+fast_all: MAKEDIRS
 	make -j $(CORES) static shared && make -j $(CORES)
 #==============================================================================
 
@@ -494,16 +487,21 @@ fast_all:
 #==============================================================================
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
-	mkdir -p $(OBJDIR)/tst
 	mkdir -p $(OBJDIR)/core
 	mkdir -p $(OBJDIR)/core/common
 	mkdir -p $(OBJDIR)/core/emscript-sdl2
+	mkdir -p $(OBJDIR)/core/event/
+	mkdir -p $(OBJDIR)/core/event/desktop
+	mkdir -p $(OBJDIR)/core/loadAsync
 	mkdir -p $(OBJDIR)/core/noip
 	mkdir -p $(OBJDIR)/core/sdl2
 	mkdir -p $(OBJDIR)/core/video/sdl2
+	mkdir -p $(OBJDIR)/core/video/sw_sdl2
 	mkdir -p $(OBJDIR)/core/video/opengl3
+	mkdir -p $(OBJDIR)/tst
+	mkdir -p $(OBJDIR)/util
 	mkdir -p $(BINDIR)
-	mkdir -p $(BINDIR)/tst
+	mkdir -p $(BINDIR)
 #==============================================================================
 
 #==============================================================================
@@ -523,15 +521,19 @@ clean:
 #==============================================================================
 distclean: clean
 	rmdir $(OBJDIR)/core/video/sdl2
+	rmdir $(OBJDIR)/core/video/sw_sdl2
 	rmdir $(OBJDIR)/core/video/opengl3
 	rmdir $(OBJDIR)/core/sdl2
 	rmdir $(OBJDIR)/core/noip
+	rmdir $(OBJDIR)/core/loadAsync
+	rmdir $(OBJDIR)/core/event/desktop
+	rmdir $(OBJDIR)/core/event/
 	rmdir $(OBJDIR)/core/emscript-sdl2
 	rmdir $(OBJDIR)/core/common
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
+	rmdir $(OBJDIR)/util
 	rmdir $(OBJDIR)
-	rmdir $(BINDIR)/tst
 	rmdir $(BINDIR)
 #==============================================================================
 

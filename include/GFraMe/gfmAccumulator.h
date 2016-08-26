@@ -93,8 +93,7 @@ gfmRV gfmAccumulator_getFrames(int *pFrames, gfmAccumulator *pCtx);
 gfmRV gfmAccumulator_getDelay(int *pDelay, gfmAccumulator *pCtx);
 
 /**
- * Clear both the accumulated value and the remainder of the time; Note that the
- * current delay isn't modified
+ * Clear both the accumulated value and the remainder of the time
  * 
  * @param  pCtx The accumulator
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD

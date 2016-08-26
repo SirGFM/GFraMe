@@ -1,5 +1,5 @@
 /**
- * @file src/include/GFraMe_int/gfmTileType.h
+ * @file src/util/gfmTileType.c
  * 
  * Simple module to be used by the tilemap; It's separated to keep that file
  * cleaner

@@ -1,5 +1,5 @@
 /**
- * @file src/gfmParserCommon.c
+ * @file src/util/gfmParserCommon.c
  * 
  * Common functions used when parsing files
  */
@@ -61,9 +61,10 @@ __ret:
  *                 GFMRV_PARSER_ERROR, GFMRV_ALLOC_FAILED
  */
 gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
+    char *pStr;
     char prevC;
     gfmRV rv;
-    int gotDelimiter, isPosSet, len;
+    int gotDelimiter, isPosSet, len, strLen;
     
     // Set default values
     isPosSet = 0;
@@ -84,6 +85,8 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
     len = 0;
     prevC = '\0';
     gotDelimiter = 0;
+    pStr = *ppStr;
+    strLen = *pStrLen;
     while (1) {
         char c;
         
@@ -127,22 +130,22 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
         }
 
         // Expand the buffer as necessary
-        if (len >= *pStrLen) {
+        if (len >= strLen - 1) {
             // Realloc the buffer with enough space for more chars and the null
-            *ppStr = (char*)realloc(*ppStr, (*pStrLen) * 2 + 1);
-            ASSERT(*ppStr, GFMRV_ALLOC_FAILED);
+            pStr = (char*)realloc(pStr, strLen * 2 + 1);
+            ASSERT(pStr, GFMRV_ALLOC_FAILED);
             // Set the new length
-            *pStrLen = *pStrLen * 2 + 1;
+            strLen = strLen * 2 + 1;
         }
         // Copy this new character into it
-        (*ppStr)[len] = (char)c;
+        pStr[len] = (char)c;
         
         prevC = c;
         len++;
     }
     ASSERT(len > 0, GFMRV_PARSER_ERROR);
     // Set the null terminator
-    (*ppStr)[len] = '\0';
+    pStr[len] = '\0';
 
     /* Must go to the next non blank */
     if (gotDelimiter) {
@@ -163,6 +166,8 @@ gfmRV gfmParser_getString(char **ppStr, int *pStrLen, gfmFile *pFp) {
     ASSERT(rv == GFMRV_OK, rv);
     isPosSet = 0;
     
+    *ppStr = pStr;
+    *pStrLen = strLen;
     rv = GFMRV_OK;
 __ret:
     // If the string wasn't parsed, return to the previous position
