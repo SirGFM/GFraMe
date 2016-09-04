@@ -46,6 +46,7 @@
           $(OBJDIR)/gfmAnimation.o \
           $(OBJDIR)/gfmCamera.o \
           $(OBJDIR)/gfmError.o \
+          $(OBJDIR)/gfmGeometry.o \
           $(OBJDIR)/gfmGroup.o \
           $(OBJDIR)/gfmInput.o \
           $(OBJDIR)/gfmLog.o \
