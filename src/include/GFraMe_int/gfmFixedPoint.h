@@ -13,6 +13,8 @@ typedef int16_t gfmFixedPoint;
 typedef int32_t gfmPromotedFixedPoint;
 /** Number of bits used to represent the fractional part */
 #define GFM_FRACTION_BITS 6
+/** Maximum error when using fixed point, as a float */
+#define GFM_FIXED_POINT_ERROR ((float)(1.0f / (1 << GFM_FRACTION_BITS)))
 
 #endif /* __GFMFIXEDPOINT_TYPE__ */
 
@@ -41,7 +43,7 @@ inline static gfmFixedPoint gfmFixedPoint_abs(gfmFixedPoint value) {
  */
 inline static gfmFixedPoint gfmFixedPoint_mul(gfmFixedPoint a,
         gfmFixedPoint b) {
-    return (gfmFixedPoint)(a * (gfmPromotedFixedPoint)b) >> GFM_FRACTION_BITS;
+    return (gfmFixedPoint)((a * (gfmPromotedFixedPoint)b) >> GFM_FRACTION_BITS);
 }
 
 /**
@@ -53,7 +55,7 @@ inline static gfmFixedPoint gfmFixedPoint_mul(gfmFixedPoint a,
  */
 inline static gfmFixedPoint gfmFixedPoint_div(gfmFixedPoint a,
         gfmFixedPoint b) {
-    gfmPromotedFixedPoint div = a << GFM_FRACTION_BITS;
+    gfmPromotedFixedPoint div = ((gfmPromotedFixedPoint)a) << GFM_FRACTION_BITS;
     return (gfmFixedPoint)(div / b);
 }
 
