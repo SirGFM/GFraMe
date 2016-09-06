@@ -89,12 +89,7 @@ inline static gfmFixedPoint gfmFixedPoint_fromFloat(float val) {
 
     integer = (gfmFixedPoint)val;
     val -= (float)integer;
-    fraction = 0;
-    while (fraction < GFM_FRACTION_BITS) {
-        val *= 2.0f;
-        fraction++;
-    }
-    fraction = (gfmFixedPoint)val;
+    fraction = (gfmFixedPoint)(val * (float)(1 << GFM_FRACTION_BITS));
 
     if (signal) {
         return -(gfmFixedPoint)((integer << GFM_FRACTION_BITS) | fraction);
