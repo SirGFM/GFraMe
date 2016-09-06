@@ -14,6 +14,9 @@
 #define LINE(lt, gt, a, b) lt, gt, a, b
 /** POINT: x = horizontal coordinate, y = vertical coordinate */
 #define POINT(x, y) x, y
+/** RECT: cx = horizontal coordinate, cy = vertical coordinate, hw = half width,
+ * hh = half height */
+#define RECT(cx, cy, hw, hh) cx, cy, hw, hh
 
 #define TEST(stmt) \
     do { \
@@ -70,6 +73,16 @@ int test_lineIntersect(int lt1, int gt1, float a1, int b1, int lt2, int gt2
     return gfmGeometry_doesLinesIntersect(&line1, &line2);
 }
 
+int test_pointRect(float cx, float cy, float hw, float hh, float x, float y) {
+    gfmPoint point = {.x = gfmFixedPoint_fromFloat(x)
+            , .y = gfmFixedPoint_fromFloat(y)};
+    gfmRect rect = {.centerX = gfmFixedPoint_fromFloat(cx),
+            .centerY = gfmFixedPoint_fromFloat(cy),
+            .halfWidth = gfmFixedPoint_fromFloat(hw),
+            .halfHeight = gfmFixedPoint_fromFloat(hh)};
+    return gfmGeometry_isPointInsideRect(&rect, &point);
+}
+
 int main(int argc, char *argv[]) {
     int success = 0, failures = 0;
 
@@ -111,8 +124,11 @@ int main(int argc, char *argv[]) {
     TEST(test_lineIntersect(LINE(-2, 3, 0.75f, 1), LINE(0, 4,  1.333f, 2)) == 0);
     TEST(test_lineIntersect(LINE(-2, 3, 0.75f, 1), LINE(-4, -2,  1.333f, 2)) == 0);
 
+    TEST(test_pointRect(RECT(0, 0, 1, 1), POINT(0, 0)) == 1);
+    TEST(test_pointRect(RECT(5, 3, 1, 1), POINT(0, 0)) == 0);
+    /* TODO Write tests for non trivial rects/points */
+
 #if 0
-int gfmGeometry_isPointInsideRect(gfmRect *pRect, gfmPoint *pPoint);
 int gfmGeometry_doesLineIntersectRect(gfmLine *pLine, gfmRect *pRect);
 int gfmGeometry_doesRectsIntersect(gfmRect *pRect1, gfmRect *pRect2);
 #endif
