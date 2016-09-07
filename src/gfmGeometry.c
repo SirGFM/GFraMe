@@ -111,6 +111,7 @@ inline gfmFixedPoint gfmGeometry_getLineY(gfmLine *pLine, gfmFixedPoint x) {
  * @return            1 if they intersect, 0 otherwise
  */
 int gfmGeometry_doesLineIntersectRect(gfmLine *pLine, gfmRect *pRect) {
+    gfmAxis vertical;
     gfmLine horizontal;
     gfmPoint point1, point2;
     gfmFixedPoint y;
@@ -121,27 +122,33 @@ int gfmGeometry_doesLineIntersectRect(gfmLine *pLine, gfmRect *pRect) {
     horizontal.x.lt = pRect->centerX - pRect->halfWidth;
     horizontal.x.gt = pRect->centerX + pRect->halfWidth;
 
-    /* Check it intersects with the upper edge */
+    /* Check it intersects with the lower edge */
     horizontal.b = pRect->centerY - pRect->halfHeight;
     if (gfmGeometry_doesLinesIntersect(pLine, &horizontal)) {
         return 1;
     }
 
-    /* Check it intersects with the lower edge */
+    /* Check it intersects with the upper edge */
     horizontal.b = pRect->centerY + pRect->halfHeight;
     if (gfmGeometry_doesLinesIntersect(pLine, &horizontal)) {
         return 1;
     }
 
+    /* Rectangle's left and right detection is checked by verifying if the
+     * edge's horizontal coordinate, when reflected onto the line, belongs to
+     * the rect's vertical range */
+    vertical.lt = pRect->centerY - pRect->halfHeight;
+    vertical.gt = pRect->centerY + pRect->halfHeight;
+
     /* Check if it intersects with the left edge */
     y = gfmGeometry_getLineY(pLine, horizontal.x.lt);
-    if (gfmGeometry_isYInLineImage(pLine, y)) {
+    if (gfmGeometry_isValueInAxis(&vertical, y)) {
         return 1;
     }
 
     /* Check if it intersects with the right edge */
     y = gfmGeometry_getLineY(pLine, horizontal.x.gt);
-    if (gfmGeometry_isYInLineImage(pLine, y)) {
+    if (gfmGeometry_isValueInAxis(&vertical, y)) {
         return 1;
     }
 

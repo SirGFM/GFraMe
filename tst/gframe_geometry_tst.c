@@ -83,6 +83,19 @@ int test_pointRect(float cx, float cy, float hw, float hh, float x, float y) {
     return gfmGeometry_isPointInsideRect(&rect, &point);
 }
 
+int test_lineRect(int lt, int gt, float a, float b, float cx, float cy, float hw
+        , float hh) {
+    gfmLine line = {.a = gfmFixedPoint_fromFloat(a)
+            , .b = gfmFixedPoint_fromFloat(b)
+            , .x = {.lt = gfmFixedPoint_fromInt(lt)
+                    , .gt = gfmFixedPoint_fromInt(gt)}};
+    gfmRect rect = {.centerX = gfmFixedPoint_fromFloat(cx),
+            .centerY = gfmFixedPoint_fromFloat(cy),
+            .halfWidth = gfmFixedPoint_fromFloat(hw),
+            .halfHeight = gfmFixedPoint_fromFloat(hh)};
+    return gfmGeometry_doesLineIntersectRect(&line, &rect);
+}
+
 int main(int argc, char *argv[]) {
     int success = 0, failures = 0;
 
@@ -129,9 +142,19 @@ int main(int argc, char *argv[]) {
     /* TODO Write tests for non trivial rects/points */
 
 #if 0
-int gfmGeometry_doesLineIntersectRect(gfmLine *pLine, gfmRect *pRect);
 int gfmGeometry_doesRectsIntersect(gfmRect *pRect1, gfmRect *pRect2);
 #endif
+
+    TEST(test_lineRect(LINE(-1, 1, /*60*/4.0f/3.0f, 0.3f), RECT(-1, 1, 1.0f, 1.0f)) == 1);
+    TEST(test_lineRect(LINE(-1, 1, /*60*/4.0f/3.0f, 0.3f), RECT(-1, 1, 0.5f, 0.5f)) == 0);
+    TEST(test_lineRect(LINE(-2, 1, /*30*/3.0f/4.0f, 0.5f), RECT(-1, 1, 1.0f, 1.0f)) == 1);
+    TEST(test_lineRect(LINE(-2, 1, /*30*/3.0f/4.0f, 0.5f), RECT(-1, 1, 0.5f, 0.5f)) == 0);
+    TEST(test_lineRect(LINE(-3, 0, /*-60*/-4.0f/3.0f, -2.4f), RECT(-1, 1, 1.0f, 1.0f)) == 1);
+    TEST(test_lineRect(LINE(-3, 0, /*-60*/-4.0f/3.0f, -2.4f), RECT(-1, 1, 0.5f, 0.5f)) == 0);
+    TEST(test_lineRect(LINE(-3, 0, /*-30*/-3.0f/4.0f, -1), RECT(-1, 1, 1.0f, 1.0f)) == 1);
+    TEST(test_lineRect(LINE(-3, 0, /*-30*/-3.0f/4.0f, -1), RECT(-1, 1, 0.5f, 0.5f)) == 0);
+    /* Line within rect */
+    TEST(test_lineRect(LINE(-1, 1, /*60*/3.0f/5.0f, 0.3f), RECT(-1, 1, 3.0f, 3.0f)) == 1);
 
     printf("--== RESULTS ==--\n");
     printf("Succeeded tests: %i\n", success);
