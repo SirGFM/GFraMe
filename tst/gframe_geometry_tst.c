@@ -96,6 +96,19 @@ int test_lineRect(int lt, int gt, float a, float b, float cx, float cy, float hw
     return gfmGeometry_doesLineIntersectRect(&line, &rect);
 }
 
+int test_rectIntersect(float cx1, float cy1, float hw1, float hh1, float cx2
+        , float cy2, float hw2, float hh2) {
+    gfmRect rect1 = {.centerX = gfmFixedPoint_fromFloat(cx1),
+            .centerY = gfmFixedPoint_fromFloat(cy1),
+            .halfWidth = gfmFixedPoint_fromFloat(hw1),
+            .halfHeight = gfmFixedPoint_fromFloat(hh1)};
+    gfmRect rect2 = {.centerX = gfmFixedPoint_fromFloat(cx2),
+            .centerY = gfmFixedPoint_fromFloat(cy2),
+            .halfWidth = gfmFixedPoint_fromFloat(hw2),
+            .halfHeight = gfmFixedPoint_fromFloat(hh2)};
+    return gfmGeometry_doesRectsIntersect(&rect1, &rect2);
+}
+
 int main(int argc, char *argv[]) {
     int success = 0, failures = 0;
 
@@ -141,10 +154,6 @@ int main(int argc, char *argv[]) {
     TEST(test_pointRect(RECT(5, 3, 1, 1), POINT(0, 0)) == 0);
     /* TODO Write tests for non trivial rects/points */
 
-#if 0
-int gfmGeometry_doesRectsIntersect(gfmRect *pRect1, gfmRect *pRect2);
-#endif
-
     TEST(test_lineRect(LINE(-1, 1, /*60*/4.0f/3.0f, 0.3f), RECT(-1, 1, 1.0f, 1.0f)) == 1);
     TEST(test_lineRect(LINE(-1, 1, /*60*/4.0f/3.0f, 0.3f), RECT(-1, 1, 0.5f, 0.5f)) == 0);
     TEST(test_lineRect(LINE(-2, 1, /*30*/3.0f/4.0f, 0.5f), RECT(-1, 1, 1.0f, 1.0f)) == 1);
@@ -155,6 +164,11 @@ int gfmGeometry_doesRectsIntersect(gfmRect *pRect1, gfmRect *pRect2);
     TEST(test_lineRect(LINE(-3, 0, /*-30*/-3.0f/4.0f, -1), RECT(-1, 1, 0.5f, 0.5f)) == 0);
     /* Line within rect */
     TEST(test_lineRect(LINE(-1, 1, /*60*/3.0f/5.0f, 0.3f), RECT(-1, 1, 3.0f, 3.0f)) == 1);
+
+    TEST(test_rectIntersect(RECT(-0.5f, -0.5f, 1, 1), RECT(0.5f, 0.5f, 1, 1)) == 1);
+    TEST(test_rectIntersect(RECT(-1, -1, 1, 1), RECT(1, 1, 1, 1)) == 1);
+    TEST(test_rectIntersect(RECT(-1.125f, -1, 1, 1), RECT(1, 1, 1, 1)) == 0);
+    /* TODO Write tests for non trivial positioning */
 
     printf("--== RESULTS ==--\n");
     printf("Succeeded tests: %i\n", success);
