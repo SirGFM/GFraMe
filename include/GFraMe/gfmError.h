@@ -181,6 +181,8 @@ enum enGFMError {
     GFMRV_ASYNC_LOADER_THREAD_IS_RUNNING,
     GFMRV_ASYNC_LOADER_THREAD_ALREADY_RUNNING,
     GFMRV_ASYNC_LOADER_INVALID_TYPE,
+    // Fixed point error
+    GFMRV_FIXED_POINT_TOO_BIG,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

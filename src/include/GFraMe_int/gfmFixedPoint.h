@@ -11,6 +11,8 @@
 typedef int16_t gfmFixedPoint;
 /** Promoted fixed point. Required on multiplication and division */
 typedef int32_t gfmPromotedFixedPoint;
+/** Maximum integer represented by a fixed point number */
+#define GFM_FRACTION_MAX_INT (1 << (16 - 1 - GFM_FRACTION_BITS))
 /** Number of bits used to represent the fractional part */
 #define GFM_FRACTION_BITS 6
 /** Maximum error when using fixed point, as a float */
