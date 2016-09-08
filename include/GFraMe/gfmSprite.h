@@ -809,5 +809,20 @@ gfmRV gfmSprite_didAnimationFinish(gfmSprite *pCtx);
  */
 gfmRV gfmSprite_setType(gfmSprite *pCtx, int type);
 
+/**
+ * Check if the sprite is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the sprite, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmSprite_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
+
 #endif /* __GFMSPRITE_H__ */
 

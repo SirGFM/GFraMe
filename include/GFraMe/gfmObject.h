@@ -579,5 +579,20 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx);
  */
 gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
 
+/**
+ * Check if the object is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the object, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
+
 #endif  /* __GFMOBJECT_H__ */
 

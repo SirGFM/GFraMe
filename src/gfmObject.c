@@ -1768,7 +1768,7 @@ gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1) {
             || (abs(x0 - x1) > GFM_FRACTION_MAX_INT)
             || (abs(oy - y0) > GFM_FRACTION_MAX_INT)
             || (abs(oy - y1) > GFM_FRACTION_MAX_INT)
-            || (abs(x0 - y1) > GFM_FRACTION_MAX_INT)) {
+            || (abs(y0 - y1) > GFM_FRACTION_MAX_INT)) {
         return GFMRV_FIXED_POINT_TOO_BIG;
     }
 
@@ -1814,7 +1814,7 @@ gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1) {
     line.x.gt = point1.x;
     line.a = gfmFixedPoint_div(gfmFixedPoint_fromInt(y1 - y0)
             , gfmFixedPoint_fromInt(x1 - x0));
-    line.b = point0.y + gfmFixedPoint_mul(point0.x, line.a);
+    line.b = point0.y - gfmFixedPoint_mul(point0.x, line.a);
 
     if (gfmGeometry_doesLineIntersectRect(&line, &object)) {
         return GFMRV_TRUE;
