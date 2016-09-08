@@ -822,7 +822,7 @@ gfmRV gfmSprite_setType(gfmSprite *pCtx, int type);
  * @param  [ in]x1   Final positional of the line (right-most)
  * @param  [ in]y1   Final positional of the line
  */
-gfmRV gfmSprite_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
+gfmRV gfmSprite_overlapLine(gfmSprite *pCtx, int x0, int y0, int x1, int y1);
 
 #endif /* __GFMSPRITE_H__ */
 
