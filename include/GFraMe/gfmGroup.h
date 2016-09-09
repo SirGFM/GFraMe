@@ -85,6 +85,10 @@ enum enGFMGroupCollision {
     gfmCollisionQuality_everyThird,
     /** Please, don't! */
     gfmCollisionQuality_collideEverything,
+    /** Collide every second object, even outside the screen */
+    gfmCollisionQuality_allEverySecond,
+    /** Collide every third object, even outside the screen */
+    gfmCollisionQuality_allEveryThird,
     /** Number of possibles collision qualities */
     gfmCollisionQuality_max
 };
