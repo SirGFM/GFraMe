@@ -12,6 +12,9 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmObject.h>
 
+#include <GFraMe_int/gfmFixedPoint.h>
+#include <GFraMe_int/gfmGeometry.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -1730,6 +1733,93 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     *pDir = pCtx->instantHit;
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if the object is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the object, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1) {
+    gfmRect object;
+    gfmLine line;
+    gfmPoint point0, point1;
+    gfmRV rv;
+    int ox, oy, minX, minY;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Normalize */
+    rv = gfmObject_getCenter(&ox, &oy, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    if ((abs(ox - x0) > GFM_FRACTION_MAX_INT)
+            || (abs(ox - x1) > GFM_FRACTION_MAX_INT)
+            || (abs(x0 - x1) > GFM_FRACTION_MAX_INT)
+            || (abs(oy - y0) > GFM_FRACTION_MAX_INT)
+            || (abs(oy - y1) > GFM_FRACTION_MAX_INT)
+            || (abs(y0 - y1) > GFM_FRACTION_MAX_INT)) {
+        return GFMRV_FIXED_POINT_TOO_BIG;
+    }
+
+#define min(X, Y) ((X) < (Y) ? (X) : (Y))
+    minX = min(ox, x0);
+    minX = min(minX, x1);
+    minY = min(oy, y0);
+    minY = min(minY, y1);
+#undef min
+
+    object.centerX = gfmFixedPoint_fromInt(ox - minX);
+    object.centerY = gfmFixedPoint_fromInt(oy - minY);
+    object.halfWidth = gfmFixedPoint_fromFloat(pCtx->halfWidth);
+    object.halfHeight = gfmFixedPoint_fromFloat(pCtx->halfHeight);
+
+    point0.x = gfmFixedPoint_fromInt(x0 - minX);
+    point0.y = gfmFixedPoint_fromInt(y0 - minY);
+    point1.x = gfmFixedPoint_fromInt(x1 - minX);
+    point1.y = gfmFixedPoint_fromInt(y1 - minY);
+
+    if (x0 == x1) {
+        gfmRect rect;
+
+        /* Vertical lines must be handled in a special case, as a "thin" (i.e.,
+         * 0 width) rectangle */
+        rect.centerX = point0.x;
+        rect.halfWidth = 0;
+        rect.halfHeight = gfmFixedPoint_fromInt(abs(y1 - y0) >> 1);
+        if (y0 < y1) {
+            rect.centerY = point0.y + (point1.y >> 1);
+        }
+        else {
+            rect.centerY = point1.y + (point0.y >> 1);
+        }
+
+        if (gfmGeometry_doesRectsIntersect(&rect, &object)) {
+            return GFMRV_TRUE;
+        }
+        return GFMRV_FALSE;
+    }
+
+    line.x.lt = point0.x;
+    line.x.gt = point1.x;
+    line.a = gfmFixedPoint_div(gfmFixedPoint_fromInt(y1 - y0)
+            , gfmFixedPoint_fromInt(x1 - x0));
+    line.b = point0.y - gfmFixedPoint_mul(point0.x, line.a);
+
+    if (gfmGeometry_doesLineIntersectRect(&line, &object)) {
+        return GFMRV_TRUE;
+    }
+    return GFMRV_FALSE;
 __ret:
     return rv;
 }

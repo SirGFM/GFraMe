@@ -1755,3 +1755,23 @@ __ret:
     return rv;
 }
 
+/**
+ * Check if the sprite is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the sprite, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmSprite_overlapLine(gfmSprite *pCtx, int x0, int y0, int x1, int y1) {
+    if (!pCtx || !pCtx->pObject) {
+        return GFMRV_ARGUMENTS_BAD;
+    }
+    return gfmObject_overlapLine(pCtx->pObject, x0, y0, x1, y1);
+}
+
