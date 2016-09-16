@@ -1191,14 +1191,16 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
             pTmp = pNode->pNodes;
             
             while (pTmp) {
-                int height, type, width, x, y;
+                unsigned int type;
+                int height, width, x, y;
                 void *pChild;
                 
                 // Get the object's child
-                rv = gfmObject_getChild(&pChild, &type, pTmp->pSelf);
+                rv = gfmObject_getChild(&pChild, (int*)&type, pTmp->pSelf);
                 ASSERT_NR(rv == GFMRV_OK);
                 if (type == gfmType_sprite) {
-                    rv = gfmSprite_getChild(&pChild, &type, (gfmSprite*)pChild);
+                    rv = gfmSprite_getChild(&pChild, (int*)&type,
+                            (gfmSprite*)pChild);
                     ASSERT_NR(rv == GFMRV_OK);
                     
                     if (type == gfmType_none) {
