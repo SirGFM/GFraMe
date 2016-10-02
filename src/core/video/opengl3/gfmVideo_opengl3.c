@@ -494,7 +494,7 @@ static gfmRV gfmVideo_GL3_getResolution(int *pWidth, int *pHeight,
     ASSERT_LOG(index < pCtx->resCount, GFMRV_INVALID_INDEX, pCtx->pLog);
 
     /* Retrieve the dimensions for the current resolution mode */
-    irv = SDL_GetDisplayMode(0 /*displayIndex*/, pCtx->curResolution, &sdlMode);
+    irv = SDL_GetDisplayMode(0 /*displayIndex*/, index, &sdlMode);
     ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Resolution %i: %i x %i @ %iHz",
