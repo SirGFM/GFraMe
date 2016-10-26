@@ -521,6 +521,18 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y);
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
 
 /**
+ * Check if two objects just started overlaping
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  pSelf  An object
+ * @param  pOther An object
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther);
+
+/**
  * Collide two objects
  * 
  * NOTE: It fails to detect if an object was inside another one and is leaving

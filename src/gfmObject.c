@@ -1300,7 +1300,7 @@ __ret:
  */
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     gfmRV rv;
-    int delta, lox, loy, lsx, lsy, maxWidth, maxHeight, ox, oy, sx, sy;
+    int delta, maxWidth, maxHeight, ox, oy, sx, sy;
     
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
@@ -1316,12 +1316,6 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT_NR(rv == GFMRV_OK);
     // Get 'the other' object's center
     rv = gfmObject_getCenter(&ox, &oy, pOther);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Get 'this' object's center on last frame
-    rv = gfmObject_getLastCenter(&lsx, &lsy, pSelf);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Get 'the other' object's center on last frame
-    rv = gfmObject_getLastCenter(&lox, &loy, pOther);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get both max distances for an overlap to happen
