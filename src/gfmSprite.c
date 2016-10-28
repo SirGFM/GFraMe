@@ -1040,6 +1040,28 @@ __ret:
 }
 
 /**
+ * Check if two sprites just started overlaping
+ * 
+ * NOTE: It fails to detect if an sprite was inside another one and is leaving
+ * 
+ * @param  pSelf  An sprite
+ * @param  pOther An sprite
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_justOverlaped(gfmSprite *pSelf, gfmSprite *pOther) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_justOverlaped(pSelf->pObject, pOther->pObject);
+__ret:
+    return rv;
+}
+
+/**
  * Collide two sprites
  * 
  * NOTE: It fails to detect if an sprite was inside another one and is leaving

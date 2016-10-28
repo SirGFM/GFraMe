@@ -512,6 +512,18 @@ gfmRV gfmSprite_isPointInside(gfmSprite *pCtx, int x, int y);
 gfmRV gfmSprite_isOverlaping(gfmSprite *pSelf, gfmSprite *pOther);
 
 /**
+ * Check if two sprites just started overlaping
+ * 
+ * NOTE: It fails to detect if an sprite was inside another one and is leaving
+ * 
+ * @param  pSelf  An sprite
+ * @param  pOther An sprite
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_justOverlaped(gfmSprite *pSelf, gfmSprite *pOther);
+
+/**
  * Collide two sprites
  * 
  * NOTE: It fails to detect if an sprite was inside another one and is leaving
