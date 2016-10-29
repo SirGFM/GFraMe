@@ -67,6 +67,87 @@ struct stGFMObject {
 const int sizeofGFMObject = (int)sizeof(gfmObject);
 
 /**
+ * Set a object's horizontal position (as double)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setHorizontalPosition(gfmObject *pCtx, double x) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set both the position and the previous position
+    pCtx->x = (int)x;
+    pCtx->dx = x;
+    // Mark the object as having moved
+    pCtx->justMoved = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set a object's vertical position (as double)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setVerticalPosition(gfmObject *pCtx, double y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set both the position and the previous position
+    pCtx->y = (int)y;
+    pCtx->dy = y;
+    // Mark the object as having moved
+    pCtx->justMoved = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+#if 0
+/**
+ * Set a object's position (as doubles)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setPosition(gfmObject *pCtx, double x, double y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the position
+    rv = _int_gfmObject_setHorizontalPosition(pCtx, x);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = _int_gfmObject_setVerticalPosition(pCtx, y);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+#endif
+
+/**
  * Alloc a new gfmObject
  * 
  * @param  ppCtx The gfmObject
@@ -1547,7 +1628,7 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = gfmObject_setHorizontalPosition(pMovable, newX);
+        rv = _int_gfmObject_setHorizontalPosition(pMovable, newX);
         ASSERT_NR(rv == GFMRV_OK);
     }
     else {
@@ -1560,16 +1641,16 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         // Push both objects
         if (pSelf->instantHit & gfmCollision_left) {
             // pSelf collided left, so it must be pushed to the right
-            rv = gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
+            rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setHorizontalPosition(pOther, pOther->dx - dist);
+            rv = _int_gfmObject_setHorizontalPosition(pOther, pOther->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
         if (pSelf->instantHit & gfmCollision_right) {
             // pSelf collided right, so it must be pushed to the left
-            rv = gfmObject_setHorizontalPosition(pSelf, pSelf->dx - dist);
+            rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setHorizontalPosition(pOther, pOther->dx + dist);
+            rv = _int_gfmObject_setHorizontalPosition(pOther, pOther->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
@@ -1633,7 +1714,7 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = gfmObject_setVerticalPosition(pMovable, newY);
+        rv = _int_gfmObject_setVerticalPosition(pMovable, newY);
         ASSERT_NR(rv == GFMRV_OK);
     }
     else {
@@ -1646,16 +1727,16 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         // Push both objects
         if (pSelf->instantHit & gfmCollision_up) {
             // pSelf collided above so it must be pushed downward
-            rv = gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
+            rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setVerticalPosition(pOther, pOther->dy - dist);
+            rv = _int_gfmObject_setVerticalPosition(pOther, pOther->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
         if (pSelf->instantHit & gfmCollision_down) {
             // pSelf collided bellow, so it must be pushed upward
-            rv = gfmObject_setVerticalPosition(pSelf, pSelf->dy - dist);
+            rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setVerticalPosition(pOther, pOther->dy + dist);
+            rv = _int_gfmObject_setVerticalPosition(pOther, pOther->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
