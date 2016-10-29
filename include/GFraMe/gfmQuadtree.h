@@ -81,6 +81,14 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
         int height, int maxDepth, int maxNodes);
 
 /**
+ * Make the quadtree static
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, GFMRV_OK
+ */
+gfmRV gfmQuadtree_setStatic(gfmQuadtreeRoot *pCtx);
+
+/**
  * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
  * colliding with every possible node
  * 

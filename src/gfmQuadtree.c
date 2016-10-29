@@ -140,6 +140,9 @@ struct stGFMQuadtreeRoot {
     int maxNodes;
     /** How many depths the quadtree can have */
     int maxDepth;
+    /** Whether this is a static quadtree (one that may be populated but
+     * colliding doesn't insert nodes */
+    int isStatic;
     /** Pool of quadtree nodes */
     gfmGenArr_var(gfmQuadtree, pQTPool);
     /** Pool of quadtree LL nodes */
@@ -657,6 +660,8 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     pCtx->pObject = 0;
     pCtx->pOther = 0;
     pCtx->pGroupList = 0;
+    /* Remove the static flag */
+    pCtx->isStatic = 0;
     
     // Check that the stack is big enough
     if (pCtx->stack.len < maxDepth * gfmQT_max) {
@@ -689,6 +694,27 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     pCtx->pSelf->halfWidth = width / 2 + (width % 2);
     pCtx->pSelf->halfHeight = height / 2 + (height % 2);
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Make the quadtree static
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return      GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED, GFMRV_OK
+ */
+gfmRV gfmQuadtree_setStatic(gfmQuadtreeRoot *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check if initialized */
+    ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
+
+    pCtx->isStatic = 1;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -1058,9 +1084,13 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
                 }
             }
             else {
-                // Check if adding the node will subdivide the tree and if it
-                // can still be subdivided
-                if (pNode->numObjects + 1 > pCtx->maxNodes &&
+                // If it's static, collide against the node's children
+                if (pCtx->isStatic) {
+                    pCtx->pColliding = pNode->pNodes;
+                }
+                // Otherwise, check if inserting the node would subdivide
+                // the node (and if there's still room for that
+                else if (pNode->numObjects + 1 > pCtx->maxNodes &&
                         pNode->depth + 1 < pCtx->maxDepth) {
                     // Subdivide the tree
                     rv = gfmQuadtree_subdivide(pCtx, pNode);
