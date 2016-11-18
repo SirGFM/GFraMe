@@ -1111,6 +1111,42 @@ __ret:
 }
 
 /**
+ * Integrate an object's components.
+ * 
+ * Currently, it's using verlet integration, i.e.:
+ *  x1 = x0 + v0*dt + 0.5*a0*t*t
+ *
+ * @param  [i/o]x       The object's position
+ * @param  [i/o]vx      The object's velocity
+ * @param  [in ]ax      The object's acceleration
+ * @param  [in ]dx      The object's drag
+ * @param  [in ]elapsed Time elapsed from the previous frame
+ */
+static inline void _gfmObject_integrate(double *x, double *vx, double ax,
+        double dx, double elapsed) {
+    *x += (*vx) * elapsed;
+    if (ax != 0.0) {
+        *x += 0.5 * ax * elapsed * elapsed;
+
+        *vx += ax * elapsed;
+    }
+    else if (dx != 0.0) {
+        *x -= 0.5 * dx * elapsed * elapsed;
+
+        /* Only slow down the velocity if it wouldn't change its direction */
+        if (*vx > dx * elapsed) {
+            *vx -= dx * elapsed;
+        }
+        else if (*vx < -dx * elapsed) {
+            *vx += dx * elapsed;
+        }
+        else {
+            *vx = 0.0;
+        }
+    }
+}
+
+/**
  * Update the object; Its last collision status is cleared and the object's
  * properties are integrated using the Euler method
  * 
@@ -1137,38 +1173,9 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     pObj->ldx = pObj->dx;
     pObj->ldy = pObj->dy;
     
-    // Update the horizontal velocity
-    if (pObj->ax != 0.0)
-        pObj->vx += pObj->ax * elapsed;
-    else if (pObj->dragX != 0.0) {
-        double delta;
-        
-        delta = pObj->dragX * elapsed;
-        if (pObj->vx > delta)
-            pObj->vx -= delta;
-        else if (pObj->vx < -delta)
-            pObj->vx += delta;
-        else
-            pObj->vx = 0.0;
-    }
-    // Update the vertical velocity
-    if (pObj->ay != 0.0)
-        pObj->vy += pObj->ay * elapsed;
-    else if (pObj->dragY != 0.0) {
-        double delta;
-        
-        delta = pObj->dragY * elapsed;
-        if (pObj->vy > delta)
-            pObj->vy -= delta;
-        else if (pObj->vy < -delta)
-            pObj->vy += delta;
-        else
-            pObj->vx = 0.0;
-    }
-    // Update the horizontal position
-    pObj->dx += pObj->vx * elapsed;
-    // Update the vertical position
-    pObj->dy += pObj->vy * elapsed;
+    // Integrate the position and velocity
+    _gfmObject_integrate(&pObj->dx, &pObj->vx, pObj->ax, pObj->dragX, elapsed);
+    _gfmObject_integrate(&pObj->dy, &pObj->vy, pObj->ay, pObj->dragY, elapsed);
     
     // Set the actual (integer) position
     pObj->x = (int)pObj->dx;
