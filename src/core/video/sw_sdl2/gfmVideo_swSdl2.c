@@ -1534,23 +1534,22 @@ __ret:
  * 
  * @param  [out]pTex     Handle to the loaded texture
  * @param  [ in]pVideo   The video context
- * @param  [ in]pFile    The texture file
+ * @param  [ in]pData    The texture's data (encoded as as 24 bits 0xRRGGBB)
+ * @param  [ in]width    The texture's width
+ * @param  [ in]height   The texture's height
  * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
  */
 static gfmRV gfmVideo_SWSDL2_loadTexture(int *pTex, gfmVideo *pVideo,
-        gfmFile *pFile, int colorKey) {
-    char *pData;
-    gfmRV rv;
+        char *pData, int width, int height, int colorKey) {
     gfmLog *pLog;
     gfmTexture *pTexture;
     gfmVideoSwSDL2 *pCtx;
-    int didLoad, height, width;
+    gfmRV rv;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoSwSDL2*)pVideo;
 
     /* Zero variable that must be cleaned on error */
-    pData = 0;
     pTexture = 0;
 
     /* Sanitize arguments */
@@ -1560,20 +1559,9 @@ static gfmRV gfmVideo_SWSDL2_loadTexture(int *pTex, gfmVideo *pVideo,
 
     ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
     ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
-    ASSERT_LOG(pFile, GFMRV_ARGUMENTS_BAD, pLog);
-
-    /*  Check the file type */
-    rv = gfmVideo_isBmp(pFile, pLog);
-    if (rv == GFMRV_TRUE) {
-        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pLog,
-                colorKey);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-        didLoad = 1;
-    }
-
-    if (!didLoad) {
-        /* TODO Check other formats */
-    }
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT(gfmUtils_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH);
+    ASSERT(gfmUtils_isPow2(height) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_HEIGHT);
 
     /* Initialize the texture  */
     gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, 1/*incRate*/, pTexture,
@@ -1616,10 +1604,6 @@ static gfmRV gfmVideo_SWSDL2_loadTexture(int *pTex, gfmVideo *pVideo,
 
     rv = GFMRV_OK;
 __ret:
-    /* Release the buffer, as it was already loaded into the texture */
-    if (pData)
-        free(pData);
-
     if (rv != GFMRV_OK) {
         if (pTexture) {
             /* On error, clean the texture and remove it from the list */

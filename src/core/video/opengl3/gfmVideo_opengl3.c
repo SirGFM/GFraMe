@@ -1842,7 +1842,9 @@ static gfmRV gfmVideo_GL3_drawRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
     gfmRV rv;
     gfmVideoGL3 *pCtx;
+#if 0
     unsigned char alpha, red, green, blue;
+#endif /* 0 */
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoGL3*)pVideo;
@@ -1866,11 +1868,13 @@ static gfmRV gfmVideo_GL3_drawRectangle(gfmVideo *pVideo, int x, int y,
         return GFMRV_OK;
     }
 
+#if 0
     /* Retrieve each color component */
     alpha = (color >> 24) & 0xff;
     red   = (color >> 16) & 0xff;
     green = (color >> 8) & 0xff;
     blue  = color & 0xff;
+#endif /* 0 */
 
     /* TODO Implement this */
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
@@ -1895,7 +1899,9 @@ static gfmRV gfmVideo_GL3_drawFillRectangle(gfmVideo *pVideo, int x, int y,
         int width, int height, int color) {
     gfmRV rv;
     gfmVideoGL3 *pCtx;
+#if 0
     unsigned char alpha, red, green, blue;
+#endif /* 0 */
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoGL3*)pVideo;
@@ -1920,10 +1926,12 @@ static gfmRV gfmVideo_GL3_drawFillRectangle(gfmVideo *pVideo, int x, int y,
     }
 
     /* Retrieve each color component */
+#if 0
     alpha = (color >> 24) & 0xff;
     red   = (color >> 16) & 0xff;
     green = (color >> 8) & 0xff;
     blue  = color & 0xff;
+#endif /* 0 */
 
     /* TODO Implement this */
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
@@ -2120,25 +2128,23 @@ __ret:
  * 
  * @param  [out]pTex     Handle to the loaded texture
  * @param  [ in]pVideo   The video context
- * @param  [ in]pFile    The texture file
+ * @param  [ in]pData    The texture's data (encoded as as 24 bits 0xRRGGBB)
+ * @param  [ in]width    The texture's width
+ * @param  [ in]height   The texture's height
  * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
  */
-static gfmRV gfmVideo_GL3_loadTexture(int *pTex, gfmVideo *pVideo,
-        gfmFile *pFile, int colorKey) {
-    char *pData;
+static gfmRV gfmVideo_GL3_loadTexture(int *pTex, gfmVideo *pVideo, char *pData,
+        int width, int height, int colorKey) {
     gfmLog *pLog;
-    gfmRV rv;
     gfmTexture *pTexture;
     gfmVideoGL3 *pCtx;
-    int didLoad, height, width;
+    gfmRV rv;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoGL3*)pVideo;
 
     /* Zero variable that must be cleaned on error */
-    pData = 0;
     pTexture = 0;
-    didLoad = 0;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -2147,20 +2153,9 @@ static gfmRV gfmVideo_GL3_loadTexture(int *pTex, gfmVideo *pVideo,
 
     ASSERT(pLog, GFMRV_ARGUMENTS_BAD);
     ASSERT_LOG(pTex, GFMRV_ARGUMENTS_BAD, pLog);
-    ASSERT_LOG(pFile, GFMRV_ARGUMENTS_BAD, pLog);
-
-    /*  Check the file type */
-    rv = gfmVideo_isBmp(pFile, pLog);
-    if (rv == GFMRV_TRUE) {
-        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pLog,
-                colorKey);
-        ASSERT_LOG(rv == GFMRV_OK, rv, pLog);
-        didLoad = 1;
-    }
-
-    if (!didLoad) {
-        /* TODO Check other formats */
-    }
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pLog);
+    ASSERT(gfmUtils_isPow2(width) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_WIDTH);
+    ASSERT(gfmUtils_isPow2(height) == GFMRV_TRUE, GFMRV_TEXTURE_INVALID_HEIGHT);
 
     /* Initialize the texture  */
     gfmGenArr_getNextRef(gfmTexture, pCtx->pTextures, 1/*incRate*/, pTexture,
@@ -2188,10 +2183,6 @@ static gfmRV gfmVideo_GL3_loadTexture(int *pTex, gfmVideo *pVideo,
 
     rv = GFMRV_OK;
 __ret:
-    /* Release the buffer, as it was already loaded into the texture */
-    if (pData)
-        free(pData);
-
     if (rv != GFMRV_OK) {
         if (pTexture) {
             /* On error, clean the texture and remove it from the list */

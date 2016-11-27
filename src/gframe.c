@@ -22,6 +22,7 @@
 #include <GFraMe/core/gfmTimer_bkend.h>
 
 #include <GFraMe_int/gfmFPSCounter.h>
+#include <GFraMe_int/gfmVideo_bmp.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
 #include <GFraMe_int/core/gfmLoadAsync_bkend.h>
 
@@ -1330,9 +1331,12 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     gfmFile *pFile;
     gfmRV rv;
     gfmTexture *pTex;
-    int width, height;
+    char *pData;
+    int didLoad, width, height;
 
     pFile = 0;
+    pData = 0;
+    didLoad = 0;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1353,9 +1357,24 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
+    /*  Check the file type */
+    rv = gfmVideo_isBmp(pFile, pCtx->pLog);
+    if (rv == GFMRV_TRUE) {
+        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pCtx->pLog,
+                colorKey);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        didLoad = 1;
+    }
+    /* TODO Support other formats */
+    ASSERT_LOG(didLoad == 1, GFMRV_TEXTURE_UNSUPPORTED, pCtx->pLog);
+
+    /* Done with file; Release its resources */
+    gfmFile_free(&pFile);
+    pFile = 0;
+
     /* Load the texture */
     rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
-        pFile, colorKey);
+        pData, width, height, colorKey);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Get the texture's dimensions */
@@ -1373,6 +1392,11 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
 
     rv = GFMRV_OK;
 __ret:
+    if (pData) {
+        /* A copy of the buffer stays loaded into the texture, so it may be
+         * freed */
+        free(pData);
+    }
     if (pFile) {
         gfmFile_free(&pFile);
     }
