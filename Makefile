@@ -458,6 +458,10 @@ MAKEDIRS: | $(OBJDIR)
 tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
 	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
 					-lm
+
+tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+					-lm
 #==============================================================================
 
 #==============================================================================
