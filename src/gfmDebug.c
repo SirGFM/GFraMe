@@ -52,12 +52,13 @@ __ret:
  * @param  [ in]y     The vertical position in screen space
  * @param  [ in]pText The text to be printed
  * @param  [ in]len   The length of the text
+ * @return            Number of printed characters
  */
-void gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
+int gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
     int i, _x;
 
     if (pCtx == 0 || pCtx->pDebugSset) {
-        return;
+        return 0;
     }
 
     i = 0;
@@ -77,6 +78,8 @@ void gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
         }
         i++;
     }
+
+    return len;
 }
 
 /**
@@ -87,17 +90,17 @@ void gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
  * @param  [ in]y    The vertical position in screen space
  * @param  [ in]val  The number to be printed
  * @param  [ in]len  Minimum number of digits (padded with 0s)
+ * @return           Number of printed characters
  */
-void gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
+int gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
     if (pCtx == 0 || pCtx->pDebugSset) {
-        return;
+        return 0;
     }
 
     if (val < 0) {
         /* Negative number, the lazy way */
         gfm_drawTile(pCtx, pCtx->pDebugSset, x, y, '-' - '!', 0);
-        gfmDebug_printInt(pCtx, x + _fontTileWidth, y, -val, len);
-        return;
+        return gfmDebug_printInt(pCtx, x + _fontTileWidth, y, -val, len) + 1;
     }
     else {
         int numLen;
@@ -124,9 +127,11 @@ void gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
         /* Print the number and add padding as necessary */
         if (numLen < len) {
             gfmDebug_printText(pCtx, x, y, buf + sizeof(buf) - len, len);
+            return len;
         }
         else {
             gfmDebug_printText(pCtx, x, y, buf + sizeof(buf) - numLen, numLen);
+            return numLen;
         }
     }
 }
@@ -139,14 +144,15 @@ void gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
  * @param  [ in]y    The vertical position in screen space
  * @param  [ in]hexa The number to be printed
  * @param  [ in]len  Minimum number of digits (padded with 0s)
+ * @return           Number of printed characters
  */
-void gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
+int gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
     /* Enough characters for 32 bits */
     char buf[8];
     int numLen;
 
     if (pCtx == 0 || pCtx->pDebugSset) {
-        return;
+        return 0;
     }
 
     /* Ensure all limits are respected */
@@ -179,9 +185,11 @@ void gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
     /* Print the number and add padding as necessary */
     if (numLen < len) {
         gfmDebug_printText(pCtx, x, y, buf + sizeof(buf) - len, len);
+        return len + 2;
     }
     else {
         gfmDebug_printText(pCtx, x, y, buf + sizeof(buf) - numLen, numLen);
+        return numLen + 2;
     }
 }
 
@@ -195,17 +203,17 @@ void gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
  * @param  [ in]...  The string's arguments (similar to printf's)
  */
 void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
-#if 0
     int i, _x;
+    va_list args;
 
     if (pCtx == 0 || pCtx->pDebugSset) {
         return;
     }
 
-	va_start(args, pFmt);
+    va_start(args, pFmt);
 
     i = 0;
-    x = _x;
+    _x = x;
     while (pFmt[i] != '\0') {
         int len;
 
@@ -215,7 +223,7 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
                 && pFmt[i + len] != '%') {
             len++;
         }
-        gfmDebug_printText(pCtx, _x, y, pFmt + i, len);
+        gfmDebug_printText(pCtx, _x, y, (char*)(pFmt + i), len);
         i += len;
 
         /* Check if a control character was reached and execute it */
@@ -228,65 +236,57 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
             }
         }
         else if (pFmt[i] == '%') {
-            /* TODO Implement formating */
-#if defined(GFMLOG_IMPLEMENTATION) /* This is only here as reference */
-                switch (c) {
+            i++;
+            /* Retrieve any supplied length (in a slightly buggy way) */
+            len = 0;
+            while (pFmt[i] >= '0' && pFmt[i] <= '9') {
+                len = len * 10 + (int)(pFmt[i] - '0');
+                i++;
+            }
+            if (pFmt[i] == '*') {
+                len = va_arg(args, int);
+                i++;
+            }
+
+            switch (pFmt[i]) {
                     case 'c': {
-                        // TODO Retrieve a character from the variadic args
-                        // TODO Print it to the log
+                        char c = (char)(va_arg(args, int) & 0xFF);
+                        gfm_drawTile(pCtx, pCtx->pDebugSset, _x, y, c - '!', 0);
+                        _x += _fontTileWidth;
                     } break;
                     case 'i':
                     case 'd': {
-                        int val;
-                        
-                        // Retrieve a integer from the variadic args
-                        val = va_arg(args, int);
-                        // Print it to the log
-                        rv = gfmLog_logInt(pCtx, val);
-                        ASSERT(rv == GFMRV_OK, rv);
+                        int val = va_arg(args, int);
+                        _x += gfmDebug_printInt(pCtx, _x, y, val, len);
                     } break;
                     case 'X':
                     case 'x': {
-                        int val;
-                        
-                        // Retrieve a integer from the variadic args
-                        val = va_arg(args, int);
-                        // Print it to the log
-                        rv = gfmLog_logHex(pCtx, val, c == 'X');
-                        ASSERT(rv == GFMRV_OK, rv);
+                        int val = va_arg(args, int);
+                        _x += gfmDebug_printHexa(pCtx, _x, y, val, len);
                     } break;
                     case 's': {
-                        char *pStr;
-                        int localStrLen;
-                        
-                        // Retrieve a string from the variadic args
-                        pStr = va_arg(args, char*);
-                        // Get its length
-                        if (strLen > 0) {
-                            localStrLen = 1;
-                            while (localStrLen < strLen &&
-                                    pStr[localStrLen] != '\0') {
-                                localStrLen++;
-                            }
+                        char *pStr = va_arg(args, char*);
+                        int tmpLen = 0;
+                        /* Limit the length to avoid overflows */
+                        if (len == 0) {
+                            len = 128;
                         }
-                        else {
-                            localStrLen = strlen(pStr);
+                        while (tmpLen < len && pStr[len] != '\0') {
+                            tmpLen++;
                         }
-                        // Print it to the log
-                        rv = gfmLog_logString(pCtx, pStr, localStrLen);
-                        ASSERT(rv == GFMRV_OK, rv);
+                        _x += gfmDebug_printText(pCtx, _x, y, pStr, tmpLen);
                     } break;
-                    // TODO Parse other types
-                    default: ASSERT(0, GFMRV_LOG_UNKNOWN_TOKEN);
-                }
-                // Go back to the previous state
-                parser = gfmLogParser_waiting;
-#endif /* defined(GFMLOG_IMPLEMENTATION) */
-        }
-    }
+                    /* TODO Parse other types */
+                    default: {
+                        /* TODO Log the error somewhere */
+                        return;
+                    }
+            } /* switch (pFmt[i]) */
+            i++;
+        } /* else if (pFmt[i] == '%') */
+    } /* while (pFmt[i] != '\0') */
 
-	va_end(args);
-#endif /* 0 */
+    va_end(args);
 }
 
 #endif /* defined(DEBUG) */
