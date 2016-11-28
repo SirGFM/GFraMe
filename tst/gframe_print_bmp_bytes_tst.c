@@ -128,7 +128,7 @@ int main(int argc, char *argv []) {
 
     printf("static const int _width = %i;\n", width);
     printf("static const int _height = %i;\n", height);
-    printf("static const char _data[%i] = {\n", width * height);
+    printf("static const char _data[%i] = {\n", width * height * 4);
     i = 0;
     while (i < width * height) {
         printf("    0x%02X, 0x%02X, 0x%02X, 0x%02X,\n"
