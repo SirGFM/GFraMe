@@ -45,6 +45,7 @@
           $(OBJDIR)/gfmAccumulator.o \
           $(OBJDIR)/gfmAnimation.o \
           $(OBJDIR)/gfmCamera.o \
+          $(OBJDIR)/gfmDebug.o \
           $(OBJDIR)/gfmError.o \
           $(OBJDIR)/gfmGeometry.o \
           $(OBJDIR)/gfmGroup.o \

@@ -78,6 +78,10 @@ struct stGFMCtx {
     /** FPS Counter; only enabled on debug version */
     gfmFPSCounter *pCounter;
 #endif
+#if defined(DEBUG)
+    /** Debug spriteset */
+    gfmSpriteset *pDebugSset;
+#endif
     /** Every cached spriteset */
     gfmGenArr_var(gfmSpriteset, pSpritesets);
 #if defined(DEBUG) || defined(FORCE_FPS)
