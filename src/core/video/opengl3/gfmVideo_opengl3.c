@@ -2131,10 +2131,9 @@ __ret:
  * @param  [ in]pData    The texture's data (encoded as as 24 bits 0xRRGGBB)
  * @param  [ in]width    The texture's width
  * @param  [ in]height   The texture's height
- * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
  */
 static gfmRV gfmVideo_GL3_loadTexture(int *pTex, gfmVideo *pVideo, char *pData,
-        int width, int height, int colorKey) {
+        int width, int height) {
     gfmLog *pLog;
     gfmTexture *pTexture;
     gfmVideoGL3 *pCtx;

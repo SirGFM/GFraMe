@@ -21,6 +21,7 @@
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 
+#include <GFraMe_int/gframe.h>
 #include <GFraMe_int/gfmCtx_struct.h>
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/gfmVideo_bmp.h>
@@ -1228,6 +1229,53 @@ __ret:
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex   The texture's index
+ * @param  pCtx     The game's contex
+ * @param  pData    The texture's data (32 bits, [0xRR, 0xGG, 0xBB, 0xAA,...])
+ * @param  width    The texture's width
+ * @param  height   The texture's height
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                  GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                  GFMRV_TEXTURE_INVALID_WIDTH,
+ *                  GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                  GFMRV_INTERNAL_ERROR
+ */
+gfmRV _gfm_loadBinTexture(int *pIndex, gfmCtx *pCtx, char *pData, int width,
+        int height) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Continue to sanitize arguments */
+    ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading texture from binary "
+            "data");
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Load the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
+        pData, width, height);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture loaded (w=%i, h=%i) at "
+            "index %i!", width, height, *pIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ *
  * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename (must be a '.bmp')
@@ -1243,7 +1291,6 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     gfmFile *pFile;
     gfmRV rv;
-    gfmTexture *pTex;
     char *pData;
     int didLoad, width, height;
 
@@ -1286,17 +1333,8 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     pFile = 0;
 
     /* Load the texture */
-    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
-        pData, width, height, colorKey);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-
-    /* Get the texture's dimensions */
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTexture))(&pTex, pCtx->pVideo,
-            *pIndex, pCtx->pLog);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(&width, &height,
-            pTex);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    rv = _gfm_loadBinTexture(pIndex, pCtx, pData, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
             "h=%i) at index %i!", filenameLen, pFilename, width, height,
