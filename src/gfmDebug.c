@@ -249,38 +249,38 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
             }
 
             switch (pFmt[i]) {
-                    case 'c': {
-                        char c = (char)(va_arg(args, int) & 0xFF);
-                        gfm_drawTile(pCtx, pCtx->pDebugSset, _x, y, c - '!', 0);
-                        _x += _fontTileWidth;
-                    } break;
-                    case 'i':
-                    case 'd': {
-                        int val = va_arg(args, int);
-                        _x += gfmDebug_printInt(pCtx, _x, y, val, len);
-                    } break;
-                    case 'X':
-                    case 'x': {
-                        int val = va_arg(args, int);
-                        _x += gfmDebug_printHexa(pCtx, _x, y, val, len);
-                    } break;
-                    case 's': {
-                        char *pStr = va_arg(args, char*);
-                        int tmpLen = 0;
-                        /* Limit the length to avoid overflows */
-                        if (len == 0) {
-                            len = 128;
-                        }
-                        while (tmpLen < len && pStr[len] != '\0') {
-                            tmpLen++;
-                        }
-                        _x += gfmDebug_printText(pCtx, _x, y, pStr, tmpLen);
-                    } break;
-                    /* TODO Parse other types */
-                    default: {
-                        /* TODO Log the error somewhere */
-                        return;
+                case 'c': {
+                    char c = (char)(va_arg(args, int) & 0xFF);
+                    gfm_drawTile(pCtx, pCtx->pDebugSset, _x, y, c - '!', 0);
+                    _x += _fontTileWidth;
+                } break;
+                case 'i':
+                case 'd': {
+                    int val = va_arg(args, int);
+                    _x += gfmDebug_printInt(pCtx, _x, y, val, len);
+                } break;
+                case 'X':
+                case 'x': {
+                    int val = va_arg(args, int);
+                    _x += gfmDebug_printHexa(pCtx, _x, y, val, len);
+                } break;
+                case 's': {
+                    char *pStr = va_arg(args, char*);
+                    int tmpLen = 0;
+                    /* Limit the length to avoid overflows */
+                    if (len == 0) {
+                        len = 128;
                     }
+                    while (tmpLen < len && pStr[len] != '\0') {
+                        tmpLen++;
+                    }
+                    _x += gfmDebug_printText(pCtx, _x, y, pStr, tmpLen);
+                } break;
+                /* TODO Parse other types */
+                default: {
+                    /* TODO Log the error somewhere */
+                    return;
+                }
             } /* switch (pFmt[i]) */
             i++;
         } /* else if (pFmt[i] == '%') */
