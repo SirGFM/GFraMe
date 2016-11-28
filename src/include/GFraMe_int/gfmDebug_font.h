@@ -2062,8 +2062,8 @@ static const char _fontDataArr[8192] = {
     0x00, 0x00, 0x00, 0x00,
 };
 
-#define _fontTileWidth (_fontWidth / 4)
-#define _fontTileHeight (_fontHeight / 8)
+#define _fontTileWidth 4
+#define _fontTileHeight 8
 static char *_fontData = (char*)_fontDataArr;
 
 #endif /* __GFRAME_INT_GFMDEBUG_FONT_H__ */

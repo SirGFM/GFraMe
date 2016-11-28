@@ -57,7 +57,7 @@ __ret:
 int gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
     int i, _x;
 
-    if (pCtx == 0 || pCtx->pDebugSset) {
+    if (pCtx == 0 || pCtx->pDebugSset == 0) {
         return 0;
     }
 
@@ -93,7 +93,7 @@ int gfmDebug_printText(gfmCtx *pCtx, int x, int y, char *pText, int len) {
  * @return           Number of printed characters
  */
 int gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
-    if (pCtx == 0 || pCtx->pDebugSset) {
+    if (pCtx == 0 || pCtx->pDebugSset == 0) {
         return 0;
     }
 
@@ -112,14 +112,14 @@ int gfmDebug_printInt(gfmCtx *pCtx, int x, int y, int val, int len) {
             len = sizeof(buf);
         }
         val = val & 0xFFFFFFFF;
-        memset(buf, '0' - '!', sizeof(buf));
+        memset(buf, '0', sizeof(buf));
 
         /* Fill the buffer with printable characters */
         numLen = sizeof(buf);
         while (val > 0) {
             int digit = val % 10;
             val /= 10;
-            buf[numLen - 1] = (char)digit + '0' - '!';
+            buf[numLen - 1] = (char)digit + '0';
             numLen--;
         }
         numLen = sizeof(buf) - numLen;
@@ -151,7 +151,7 @@ int gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
     char buf[8];
     int numLen;
 
-    if (pCtx == 0 || pCtx->pDebugSset) {
+    if (pCtx == 0 || pCtx->pDebugSset == 0) {
         return 0;
     }
 
@@ -160,7 +160,7 @@ int gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
         len = sizeof(buf);
     }
     hexa = hexa & 0xFFFFFFFF;
-    memset(buf, '0' - '!', sizeof(buf));
+    memset(buf, '0', sizeof(buf));
 
     gfm_drawTile(pCtx, pCtx->pDebugSset, x, y, '0' - '!', 0);
     gfm_drawTile(pCtx, pCtx->pDebugSset, x + _fontTileWidth, y, 'X' - '!', 0);
@@ -173,10 +173,10 @@ int gfmDebug_printHexa(gfmCtx *pCtx, int x, int y, int hexa, int len) {
         hexa >>= 4;
         if (digit > 9) {
             digit -= 10;
-            buf[numLen - 1] = (char)digit + 'A' - '!';
+            buf[numLen - 1] = (char)digit + 'A';
         }
         else {
-            buf[numLen - 1] = (char)digit + '0' - '!';
+            buf[numLen - 1] = (char)digit + '0';
         }
         numLen--;
     }
@@ -206,7 +206,7 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
     int i, _x;
     va_list args;
 
-    if (pCtx == 0 || pCtx->pDebugSset) {
+    if (pCtx == 0 || pCtx->pDebugSset == 0) {
         return;
     }
 
@@ -225,10 +225,11 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
         }
         gfmDebug_printText(pCtx, _x, y, (char*)(pFmt + i), len);
         i += len;
+        _x += len * _fontTileWidth;
 
         /* Check if a control character was reached and execute it */
         if (pFmt[i] == '\n') {
-            x = _x;
+            _x = x;
             y += _fontTileHeight;
             i++;
             if (pFmt[i] == '\r') {
@@ -256,13 +257,17 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
                 } break;
                 case 'i':
                 case 'd': {
+                    int tmpLen;
                     int val = va_arg(args, int);
-                    _x += gfmDebug_printInt(pCtx, _x, y, val, len);
+                    tmpLen = gfmDebug_printInt(pCtx, _x, y, val, len);
+                    _x += tmpLen * _fontTileWidth;
                 } break;
                 case 'X':
                 case 'x': {
+                    int tmpLen;
                     int val = va_arg(args, int);
-                    _x += gfmDebug_printHexa(pCtx, _x, y, val, len);
+                    tmpLen = gfmDebug_printHexa(pCtx, _x, y, val, len);
+                    _x += tmpLen * _fontTileWidth;
                 } break;
                 case 's': {
                     char *pStr = va_arg(args, char*);
@@ -271,10 +276,11 @@ void gfmDebug_printf(gfmCtx *pCtx, int x, int y, const char *pFmt, ...) {
                     if (len == 0) {
                         len = 128;
                     }
-                    while (tmpLen < len && pStr[len] != '\0') {
+                    while (tmpLen < len && pStr[tmpLen] != '\0') {
                         tmpLen++;
                     }
-                    _x += gfmDebug_printText(pCtx, _x, y, pStr, tmpLen);
+                    gfmDebug_printText(pCtx, _x, y, pStr, tmpLen);
+                    _x += tmpLen * _fontTileWidth;
                 } break;
                 /* TODO Parse other types */
                 default: {

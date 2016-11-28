@@ -551,6 +551,9 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
+    rv = gfmDebug_init(pCtx);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
