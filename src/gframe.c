@@ -23,6 +23,7 @@
 
 #include <GFraMe_int/gframe.h>
 #include <GFraMe_int/gfmCtx_struct.h>
+#include <GFraMe_int/gfmDebug.h>
 #include <GFraMe_int/gfmFPSCounter.h>
 #include <GFraMe_int/gfmVideo_bmp.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>

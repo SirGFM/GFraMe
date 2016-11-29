@@ -8,6 +8,8 @@
 #ifndef __GFRAME_INT_GFMDEBUG_FONT_H__
 #define __GFRAME_INT_GFMDEBUG_FONT_H__
 
+#if defined(DEBUG)
+
 #define _fontWidth 64
 #define  _fontHeight 32
 
@@ -2065,6 +2067,8 @@ static const char _fontDataArr[8192] = {
 #define _fontTileWidth 4
 #define _fontTileHeight 8
 static char *_fontData = (char*)_fontDataArr;
+
+#endif /* defined(DEBUG) */
 
 #endif /* __GFRAME_INT_GFMDEBUG_FONT_H__ */
 
