@@ -21,7 +21,11 @@
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 
+#include <GFraMe_int/gframe.h>
+#include <GFraMe_int/gfmCtx_struct.h>
+#include <GFraMe_int/gfmDebug.h>
 #include <GFraMe_int/gfmFPSCounter.h>
+#include <GFraMe_int/gfmVideo_bmp.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
 #include <GFraMe_int/core/gfmLoadAsync_bkend.h>
 
@@ -32,94 +36,6 @@
 /** Version of the device running this; Declared on src/core/sdl2/gfmBackend.c */
 extern int androidVersion;
 #endif
-
-/** Define a texture array type */
-gfmGenArr_define(gfmTexture);
-/** Define a spriteset array type */
-gfmGenArr_define(gfmSpriteset);
-
-struct stGFMCtx {
-    // TODO specify backend(?)
-    /** "Organization" name; It's used as part of paths. */
-    gfmString *pGameOrg;
-    /** Game's title; It's used as part of paths. */
-    gfmString *pGameTitle;
-#ifndef GFRAME_MOBILE
-    /** Directory where the game binary is being run from */
-    gfmString *pBinPath;
-    /** Length until the current directory (i.e., position to append stuff) */
-    int binPathLen;
-#endif
-    /** Audio sub-system context */
-    gfmAudioCtx *pAudio;
-    /* The video context */
-    gfmVideo *pVideo;
-    /** Current video functions */
-    gfmVideoFuncs videoFuncs;
-    /** Default camera */
-    gfmCamera *pCamera;
-    /** Accumulate when new update frames should be issued */
-    gfmAccumulator *pUpdateAcc;
-    /** Accumulate when new draw frames should be issued */
-    gfmAccumulator *pDrawAcc;
-    /** Event context */
-    gfmEvent *pEvent;
-    /** Input context */
-    gfmInput *pInput;
-    /** The logger */
-    gfmLog *pLog;
-    /** The timer */
-    gfmTimer *pTimer;
-    /** The GIF exporter */
-    gfmGifExporter *pGif;
-    /** Asynchronous loader */
-    gfmLoadAsyncCtx *pAsyncLoader;
-    /** Path where the snapshot should be saved */
-    gfmString *pSsPath;
-    /** Stores the snapshot */
-    unsigned char *pSsData;
-#if defined(DEBUG) || defined(FORCE_FPS)
-    /** FPS Counter; only enabled on debug version */
-    gfmFPSCounter *pCounter;
-#endif
-    /** Every cached spriteset */
-    gfmGenArr_var(gfmSpriteset, pSpritesets);
-#if defined(DEBUG) || defined(FORCE_FPS)
-    /** Whether the FPS counter should be displayed */
-    int showFPS;
-#endif
-    /** Buffer for storing a save file's filename */
-    gfmString *pSaveFilename;
-    /** Length until the end of the save file's directory (i.e., position to
-     * append stuff) */
-    int saveFilenameLen;
-    /** Whether the backend was initialized */
-    int isBackendInit;
-    /** Flag to easily disable the audio; must be set after initialized the
-     * lib */
-    int isAudioEnabled;
-    /** Moment, in milisecond, when the last draw op finished */
-    unsigned int lastDrawnTime;
-    /** Time elapsed since the last update (great for fixed 60fps update, when
-     * using vsync) */
-    unsigned int lastDrawElapsed;
-    /** Texture that should be loaded on every gfm_drawBegin */
-    int defaultTexture;
-    /** Whether a quit event was received */
-    gfmRV doQuit;
-    /** Whether a snapshot should be taken */
-    int takeSnapshot;
-    /** Whether is recording an animation or a single snapshot */
-    int isAnimation;
-    /** For how long the animation should be recorded, in milliseconds */
-    int animationTime;
-    /** Number of bytes on the snapshot data */
-    int ssDataLen;
-    /** How many update frames were accumulated */
-    int updateFrames;
-    /** How many draw frames were accumulated */
-    int drawFrames;
-};
 
 /** 'Exportable' size of gfmStruct */
 const int sizeofGFMCtx = sizeof(struct stGFMCtx);
@@ -634,6 +550,9 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = gfmDebug_init(pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
@@ -1314,6 +1233,53 @@ __ret:
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex   The texture's index
+ * @param  pCtx     The game's contex
+ * @param  pData    The texture's data (32 bits, [0xRR, 0xGG, 0xBB, 0xAA,...])
+ * @param  width    The texture's width
+ * @param  height   The texture's height
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                  GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                  GFMRV_TEXTURE_INVALID_WIDTH,
+ *                  GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                  GFMRV_INTERNAL_ERROR
+ */
+gfmRV _gfm_loadBinTexture(int *pIndex, gfmCtx *pCtx, char *pData, int width,
+        int height) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Continue to sanitize arguments */
+    ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading texture from binary "
+            "data");
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Load the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
+        pData, width, height);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture loaded (w=%i, h=%i) at "
+            "index %i!", width, height, *pIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ *
  * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename (must be a '.bmp')
@@ -1329,10 +1295,12 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     gfmFile *pFile;
     gfmRV rv;
-    gfmTexture *pTex;
-    int width, height;
+    char *pData;
+    int didLoad, width, height;
 
     pFile = 0;
+    pData = 0;
+    didLoad = 0;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1353,18 +1321,24 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
-    /* Load the texture */
-    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
-        pFile, colorKey);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /*  Check the file type */
+    rv = gfmVideo_isBmp(pFile, pCtx->pLog);
+    if (rv == GFMRV_TRUE) {
+        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pCtx->pLog,
+                colorKey);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        didLoad = 1;
+    }
+    /* TODO Support other formats */
+    ASSERT_LOG(didLoad == 1, GFMRV_TEXTURE_UNSUPPORTED, pCtx->pLog);
 
-    /* Get the texture's dimensions */
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTexture))(&pTex, pCtx->pVideo,
-            *pIndex, pCtx->pLog);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(&width, &height,
-            pTex);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /* Done with file; Release its resources */
+    gfmFile_free(&pFile);
+    pFile = 0;
+
+    /* Load the texture */
+    rv = _gfm_loadBinTexture(pIndex, pCtx, pData, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
             "h=%i) at index %i!", filenameLen, pFilename, width, height,
@@ -1373,6 +1347,11 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
 
     rv = GFMRV_OK;
 __ret:
+    if (pData) {
+        /* A copy of the buffer stays loaded into the texture, so it may be
+         * freed */
+        free(pData);
+    }
     if (pFile) {
         gfmFile_free(&pFile);
     }

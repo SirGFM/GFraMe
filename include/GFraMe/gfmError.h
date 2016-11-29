@@ -183,6 +183,8 @@ enum enGFMError {
     GFMRV_ASYNC_LOADER_INVALID_TYPE,
     // Fixed point error
     GFMRV_FIXED_POINT_TOO_BIG,
+    // Texture erro (p. 2)
+    GFMRV_TEXTURE_UNSUPPORTED,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;
