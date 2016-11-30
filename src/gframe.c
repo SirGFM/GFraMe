@@ -2819,7 +2819,9 @@ __ret:
 gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
         int firstTile) {
     gfmRV rv;
+#if defined(DEBUG)
     int batches, num;
+#endif
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -2828,6 +2830,7 @@ gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
+#if defined(DEBUG)
     /* Retrieve the info */
     rv = (*(pCtx->videoFuncs.gfmVideo_getDrawInfo))(&batches, &num,
             pCtx->pVideo);
@@ -2836,6 +2839,7 @@ gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
     gfmDebug_printf(pCtx, x, y,
             "BATCH %05i\n"
             " OBJS %05i\n", batches, num);
+#endif
 
     rv = GFMRV_OK;
 __ret:
