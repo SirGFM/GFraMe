@@ -74,7 +74,7 @@ struct stGFMCtx {
     gfmString *pSsPath;
     /** Stores the snapshot */
     unsigned char *pSsData;
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /** FPS Counter; only enabled on debug version */
     gfmFPSCounter *pCounter;
 #endif
@@ -84,7 +84,7 @@ struct stGFMCtx {
 #endif
     /** Every cached spriteset */
     gfmGenArr_var(gfmSpriteset, pSpritesets);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /** Whether the FPS counter should be displayed */
     int showFPS;
 #endif

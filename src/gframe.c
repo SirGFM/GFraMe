@@ -8,6 +8,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmDebug.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmLog.h>
@@ -211,7 +212,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the fps counter, if debug */
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     rv = gfmFPSCounter_getNew(&(pCtx->pCounter));
     ASSERT_NR(rv == GFMRV_OK);
 #endif
@@ -221,7 +222,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the logger */
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
 #else
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
@@ -1961,6 +1962,10 @@ __ret:
 /**
  * Initialize the FPS counter; On the release version, this function does
  * nothing but returns GFMRV_OK
+ *
+ * The FPS counter uses a internal bitmap font, which is only added on debug
+ * mode. Therefore, it's disable on release mode and both pSset and firstTile
+ * are ignored.
  * 
  * @param  pCtx      The game's context
  * @param  pSset     The spriteset
@@ -1970,16 +1975,13 @@ __ret:
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    ASSERT_LOG(firstTile >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Initialize the FPS counter
     rv = gfmFPSCounter_init(pCtx->pCounter, pSset, firstTile);
@@ -2008,7 +2010,7 @@ gfmRV gfm_setFPSCounterPos(gfmCtx *pCtx, int x, int y) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Check that it was initialized, on debug mode */
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     /* Set its position */
@@ -2034,7 +2036,7 @@ gfmRV gfm_showFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     // Check that it was initialized, on debug mode
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
@@ -2059,7 +2061,7 @@ gfmRV gfm_hideFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     // Check that it was initialized, on debug mode
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
@@ -2081,7 +2083,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -2378,7 +2380,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -2582,7 +2584,7 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Store when drawing was initialized */
     rv = gfmFPSCounter_initDraw(pCtx->pCounter);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -2803,6 +2805,10 @@ __ret:
  * 
  * The displayed info is the number of batched draws and the number of drawn
  * sprites
+ *
+ * This function uses an internal bitmap font, only available on debug mode.
+ * Therefore, it's disable on release mode and both pSset and firstTile are
+ * ignored.
  * 
  * @param  [ in]pCtx      The game's conext
  * @param  [ in]pSset     The spriteset
@@ -2813,41 +2819,23 @@ __ret:
 gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
         int firstTile) {
     gfmRV rv;
-    int batches, height, num, tile, width;
+    int batches, num;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
-
-    /* Get the tile dimensions */
-    rv = gfmSpriteset_getDimension(&width, &height, pSset);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     /* Retrieve the info */
     rv = (*(pCtx->videoFuncs.gfmVideo_getDrawInfo))(&batches, &num,
             pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
-    /* Draw the number of batched draws */
-    tile = 'B' - '!' + firstTile;
-    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, batches, 5/*res*/,
-            firstTile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-
-    /* Draw the number of sprites rendered */
-    y += height;
-    tile = 'N' - '!' + firstTile;
-    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, num, 5/*res*/,
-            firstTile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    gfmDebug_printf(pCtx, x, y,
+            "BATCH %05i\n"
+            " OBJS %05i\n", batches, num);
 
     rv = GFMRV_OK;
 __ret:
@@ -2870,7 +2858,7 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Display the current fps */
     if (pCtx->showFPS) {
         rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
@@ -3026,7 +3014,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
     gfmEvent_free(&(pCtx->pEvent));
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     gfmFPSCounter_free(&(pCtx->pCounter));
 #endif
     gfmInput_free(&(pCtx->pInput));
