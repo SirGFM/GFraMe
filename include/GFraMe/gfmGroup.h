@@ -365,6 +365,15 @@ gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx);
 gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx);
 
 /**
+ * Retrieve the sprite managed by the node
+ *
+ * @param  [out]ppSpr The sprite
+ * @param  [ in]pNode The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNodeSprite(gfmSprite **ppSpr, gfmGroupNode *pNode);
+
+/**
  * Iterate through every sprite and update'em
  * 
  * @param  pGrp The group
