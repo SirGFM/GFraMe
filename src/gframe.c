@@ -1622,6 +1622,32 @@ __ret:
 }
 
 /**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isObjectInsideCamera(gfmCtx *pCtx, gfmObject *pObj) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pObj, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    // Check that the camera was initialized
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Check if it's inside
+    rv = gfmCamera_isObjectInside(pCtx->pCamera, pObj);
+__ret:
+    return rv;
+}
+
+/**
  * Check if a sprite is inside the camera
  * 
  * @param  pCtx The game's context

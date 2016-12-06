@@ -588,6 +588,16 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx);
 gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
 
 /**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isObjectInsideCamera(gfmCtx *pCtx, gfmObject *pObj);
+
+/**
  * Check if a sprite is inside the camera
  * 
  * @param  pCtx The game's context
