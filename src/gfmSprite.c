@@ -447,6 +447,25 @@ __ret:
 }
 
 /**
+ * Set the sprite's central position
+ *
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setCenter(gfmSprite *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Check only the sprites */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Call the 'super-class' function */
+    rv = gfmObject_setCenter(pCtx->pObject, x, y);
+__ret:
+    return rv;
+}
+
+/**
  * Get the sprite's central position
  * 
  * @param  pX   The horizontal position

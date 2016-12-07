@@ -210,8 +210,18 @@ gfmRV gfmObject_getHorizontalPosition(int *pX, gfmObject *pCtx);
 gfmRV gfmObject_getVerticalPosition(int *pY, gfmObject *pCtx);
 
 /**
- * Get the object's central position
+ * Set the object's central position
  * 
+ * @param  [ in]pCtx The object
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_setCenter(gfmObject *pCtx, int x, int y);
+
+/**
+ * Get the object's central position
+ *
  * @param  pX   The horizontal position
  * @param  pY   The vertical position
  * @param  pCtx The object

@@ -563,6 +563,32 @@ __ret:
 }
 
 /**
+ * Set the object's central position
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_setCenter(gfmObject *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the object was initialized */
+    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Adjust the position */
+    x -= pCtx->halfWidth;
+    y -= pCtx->halfHeight;
+
+    rv = gfmObject_setPosition(pCtx, x, y);
+__ret:
+    return rv;
+}
+
+/**
  * Get the object's central position
  * 
  * @param  pX   The horizontal position

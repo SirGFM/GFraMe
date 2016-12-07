@@ -202,8 +202,18 @@ gfmRV gfmSprite_getHorizontalPosition(int *pX, gfmSprite *pCtx);
 gfmRV gfmSprite_getVerticalPosition(int *pY, gfmSprite *pCtx);
 
 /**
- * Get the sprite's central position
+ * Set the sprite's central position
  * 
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setCenter(gfmSprite *pCtx, int x, int y);
+
+/**
+ * Get the sprite's central position
+ *
  * @param  pX   The horizontal position
  * @param  pY   The vertical position
  * @param  pCtx The sprite
