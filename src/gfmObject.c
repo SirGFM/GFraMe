@@ -1509,7 +1509,13 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     //        || pOther->justMoved) {
     if (delta >= maxWidth || delta <= -maxWidth) {
         // Check their relative position and set the collision results
-        if (pSelf->x < pOther->x) {
+        delta = abs(sx - ox);
+        if (delta + pSelf->halfWidth <= pOther->halfWidth
+                || delta + pOther->halfWidth <= pSelf->halfWidth) {
+            /* One of the entities was placed inside the other. Simply ignore
+             * collision */
+        }
+        else if (pSelf->x < pOther->x) {
             // pSelf is to the left, so it collided on its right
             pSelf->instantHit |= gfmCollision_right;
             pOther->instantHit |= gfmCollision_left;
