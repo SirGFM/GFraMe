@@ -919,6 +919,27 @@ __ret:
 }
 
 /**
+ * Retrieve the sprite managed by the node
+ *
+ * @param  [out]ppSpr The sprite
+ * @param  [ in]pNode The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNodeSprite(gfmSprite **ppSpr, gfmGroupNode *pNode) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(ppSpr, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pNode, GFMRV_ARGUMENTS_BAD);
+
+    *ppSpr = pNode->pSelf;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Iterate through every sprite and update'em
  *
  * @param  pGrp The group
@@ -945,7 +966,8 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     pDrawCtx->usedElements = 0;
     /* Reset the list of collideable sprites */
     pGroup->pCollideable = 0;
-    pGroup->skippedCollision = 0;
+    /* Don't reset pGroup->skippedCollision so it cycles the starting node
+     * every few frames */
     /* Retrieve the current camera */
     rv = gfm_getCamera(&pCam, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
@@ -1040,21 +1062,27 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
         /* Add it to the collideable list */
         switch (pGroup->collisionQuality) {
             /*
-             * If you are heading this, I'm sorry... but I couldn't waste the
+             * If you are reading this, I'm sorry... but I couldn't waste the
              * chance to write this *-*
              */
+            case gfmCollisionQuality_allEveryThird:
             case gfmCollisionQuality_everyThird:
                 if (pGroup->skippedCollision < 2) {
                     pGroup->skippedCollision++;
                     break;
                 }
+            case gfmCollisionQuality_allEverySecond:
             case gfmCollisionQuality_everySecond:
                 if (pGroup->skippedCollision < 1) {
                     pGroup->skippedCollision++;
                     break;
                 }
             case gfmCollisionQuality_visibleOnly:
-                if (!isInside) {
+                if (isInside == 0
+                        && pGroup->collisionQuality
+                            != gfmCollisionQuality_allEveryThird
+                        && pGroup->collisionQuality
+                            != gfmCollisionQuality_allEverySecond) {
                     break;
                 }
             case gfmCollisionQuality_collideEverything:

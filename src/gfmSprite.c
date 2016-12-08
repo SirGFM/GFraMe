@@ -447,6 +447,25 @@ __ret:
 }
 
 /**
+ * Set the sprite's central position
+ *
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_setCenter(gfmSprite *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Check only the sprites */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Call the 'super-class' function */
+    rv = gfmObject_setCenter(pCtx->pObject, x, y);
+__ret:
+    return rv;
+}
+
+/**
  * Get the sprite's central position
  * 
  * @param  pX   The horizontal position
@@ -1035,6 +1054,28 @@ gfmRV gfmSprite_isOverlaping(gfmSprite *pSelf, gfmSprite *pOther) {
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Call the 'super-class' function
     rv = gfmObject_isOverlaping(pSelf->pObject, pOther->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Check if two sprites just started overlaping
+ * 
+ * NOTE: It fails to detect if an sprite was inside another one and is leaving
+ * 
+ * @param  pSelf  An sprite
+ * @param  pOther An sprite
+ * @return        GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *                GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmSprite_justOverlaped(gfmSprite *pSelf, gfmSprite *pOther) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_justOverlaped(pSelf->pObject, pOther->pObject);
 __ret:
     return rv;
 }
@@ -1753,5 +1794,25 @@ gfmRV gfmSprite_setType(gfmSprite *pCtx, int type) {
     rv = GFMRV_OK;
 __ret:
     return rv;
+}
+
+/**
+ * Check if the sprite is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the sprite, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The sprite
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmSprite_overlapLine(gfmSprite *pCtx, int x0, int y0, int x1, int y1) {
+    if (!pCtx || !pCtx->pObject) {
+        return GFMRV_ARGUMENTS_BAD;
+    }
+    return gfmObject_overlapLine(pCtx->pObject, x0, y0, x1, y1);
 }
 

@@ -22,7 +22,7 @@
 #==============================================================================
   TARGET := libGFraMe
   MAJOR_VERSION := 2
-  MINOR_VERSION := 1
+  MINOR_VERSION := 2
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
@@ -45,7 +45,9 @@
           $(OBJDIR)/gfmAccumulator.o \
           $(OBJDIR)/gfmAnimation.o \
           $(OBJDIR)/gfmCamera.o \
+          $(OBJDIR)/gfmDebug.o \
           $(OBJDIR)/gfmError.o \
+          $(OBJDIR)/gfmGeometry.o \
           $(OBJDIR)/gfmGroup.o \
           $(OBJDIR)/gfmInput.o \
           $(OBJDIR)/gfmLog.o \
@@ -455,6 +457,10 @@ MAKEDIRS: | $(OBJDIR)
 # There's also a small cheat for ignoring some warnings caused by macros
 #==============================================================================
 tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+					-lm
+
+tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
 	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
 					-lm
 #==============================================================================

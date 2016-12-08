@@ -375,7 +375,35 @@ __ret:
  * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
  *              GFMRV_CAMERA_NOT_INITIALIZED
  */
-gfmRV gfmCamera_isObjectInside(gfmCamera *pCtx, gfmObject *pObj);
+gfmRV gfmCamera_isObjectInside(gfmCamera *pCtx, gfmObject *pObj) {
+    gfmRV rv;
+    int width, height, x, y;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pObj, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
+
+    /* Get the needed params */
+    rv = gfmObject_getPosition(&x, &y, pObj);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmObject_getDimensions(&width, &height, pObj);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Check that it's inside the camera */
+    if ((x <= pCtx->x + pCtx->viewWidth) &&
+            (x + width >= pCtx->x) &&
+            (y <= pCtx->y + pCtx->viewHeight) &&
+            (y + height >= pCtx->y)) {
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
 
 /**
  * Check if an sprite is inside the camera

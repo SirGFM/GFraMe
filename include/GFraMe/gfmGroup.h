@@ -85,6 +85,10 @@ enum enGFMGroupCollision {
     gfmCollisionQuality_everyThird,
     /** Please, don't! */
     gfmCollisionQuality_collideEverything,
+    /** Collide every second object, even outside the screen */
+    gfmCollisionQuality_allEverySecond,
+    /** Collide every third object, even outside the screen */
+    gfmCollisionQuality_allEveryThird,
     /** Number of possibles collision qualities */
     gfmCollisionQuality_max
 };
@@ -359,6 +363,15 @@ gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx);
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx);
+
+/**
+ * Retrieve the sprite managed by the node
+ *
+ * @param  [out]ppSpr The sprite
+ * @param  [ in]pNode The node
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_getNodeSprite(gfmSprite **ppSpr, gfmGroupNode *pNode);
 
 /**
  * Iterate through every sprite and update'em

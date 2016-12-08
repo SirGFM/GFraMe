@@ -338,11 +338,12 @@ struct stGFMVideoFuncs {
      * 
      * @param  [out]ppTex    The loaded (and alloc'ed) texture
      * @param  [ in]pCtx     The video context
-     * @param  [ in]pFile    The texture file
-     * @param  [ in]colorKey 24 bits, RGB Color to be treated as transparent
+     * @param  [ in]pData    The texture's data (encoded as as 24 bits 0xRRGGBB)
+     * @param  [ in]width    The texture's width
+     * @param  [ in]height   The texture's height
      */
-    gfmRV (*gfmVideo_loadTexture)(int *pTex, gfmVideo *pCtx,
-            gfmFile *pFile, int colorKey);
+    gfmRV (*gfmVideo_loadTexture)(int *pTex, gfmVideo *pCtx, char *pData,
+            int width, int height);
 
     /**
      * Retrieve a texture's pointer from its index

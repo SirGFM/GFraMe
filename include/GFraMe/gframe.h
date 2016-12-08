@@ -588,6 +588,16 @@ gfmRV gfm_getCameraPosition(int *pX, int *pY, gfmCtx *pCtx);
 gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx);
 
 /**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isObjectInsideCamera(gfmCtx *pCtx, gfmObject *pObj);
+
+/**
  * Check if a sprite is inside the camera
  * 
  * @param  pCtx The game's context
@@ -692,6 +702,10 @@ gfmRV gfm_handleEvents(gfmCtx *pCtx);
 /**
  * Initialize the FPS counter; On the release version, this function does
  * nothing but returns GFMRV_OK
+ *
+ * The FPS counter uses a internal bitmap font, which is only added on debug
+ * mode. Therefore, it's disable on release mode and both pSset and firstTile
+ * are ignored.
  * 
  * @param  pCtx      The game's context
  * @param  pSset     The spriteset
@@ -999,6 +1013,10 @@ gfmRV gfm_drawRect(gfmCtx *pCtx, int x, int y, int width, int height,
  * 
  * The displayed info is the number of batched draws and the number of drawn
  * sprites
+ *
+ * This function uses an internal bitmap font, only available on debug mode.
+ * Therefore, it's disable on release mode and both pSset and firstTile are
+ * ignored.
  * 
  * @param  [ in]pCtx      The game's conext
  * @param  [ in]pSset     The spriteset

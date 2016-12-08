@@ -12,6 +12,9 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmObject.h>
 
+#include <GFraMe_int/gfmFixedPoint.h>
+#include <GFraMe_int/gfmGeometry.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -62,6 +65,87 @@ struct stGFMObject {
 
 /** Size of gfmObject */
 const int sizeofGFMObject = (int)sizeof(gfmObject);
+
+/**
+ * Set a object's horizontal position (as double)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setHorizontalPosition(gfmObject *pCtx, double x) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set both the position and the previous position
+    pCtx->x = (int)x;
+    pCtx->dx = x;
+    // Mark the object as having moved
+    pCtx->justMoved = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set a object's vertical position (as double)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setVerticalPosition(gfmObject *pCtx, double y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set both the position and the previous position
+    pCtx->y = (int)y;
+    pCtx->dy = y;
+    // Mark the object as having moved
+    pCtx->justMoved = 1;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+#if 0
+/**
+ * Set a object's position (as doubles)
+ * 
+ * NOTE: The anchor is the upper-left corner!
+ * 
+ * @param  pCtx The object
+ * @param  x    The horizontal position
+ * @param  y    The vertical position
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+static gfmRV _int_gfmObject_setPosition(gfmObject *pCtx, double x, double y) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the position
+    rv = _int_gfmObject_setHorizontalPosition(pCtx, x);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = _int_gfmObject_setVerticalPosition(pCtx, y);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+#endif
 
 /**
  * Alloc a new gfmObject
@@ -474,6 +558,32 @@ gfmRV gfmObject_getVerticalPosition(int *pY, gfmObject *pCtx) {
     *pY = pCtx->y;
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the object's central position
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]x    The horizontal position
+ * @param  [ in]y    The vertical position
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_OBJECT_NOT_INITIALIZED
+ */
+gfmRV gfmObject_setCenter(gfmObject *pCtx, int x, int y) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the object was initialized */
+    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Adjust the position */
+    x -= pCtx->halfWidth;
+    y -= pCtx->halfHeight;
+
+    rv = gfmObject_setPosition(pCtx, x, y);
 __ret:
     return rv;
 }
@@ -1027,6 +1137,42 @@ __ret:
 }
 
 /**
+ * Integrate an object's components.
+ * 
+ * Currently, it's using verlet integration, i.e.:
+ *  x1 = x0 + v0*dt + 0.5*a0*t*t
+ *
+ * @param  [i/o]x       The object's position
+ * @param  [i/o]vx      The object's velocity
+ * @param  [in ]ax      The object's acceleration
+ * @param  [in ]dx      The object's drag
+ * @param  [in ]elapsed Time elapsed from the previous frame
+ */
+static inline void _gfmObject_integrate(double *x, double *vx, double ax,
+        double dx, double elapsed) {
+    *x += (*vx) * elapsed;
+    if (ax != 0.0) {
+        *x += 0.5 * ax * elapsed * elapsed;
+
+        *vx += ax * elapsed;
+    }
+    else if (dx != 0.0) {
+        *x -= 0.5 * dx * elapsed * elapsed;
+
+        /* Only slow down the velocity if it wouldn't change its direction */
+        if (*vx > dx * elapsed) {
+            *vx -= dx * elapsed;
+        }
+        else if (*vx < -dx * elapsed) {
+            *vx += dx * elapsed;
+        }
+        else {
+            *vx = 0.0;
+        }
+    }
+}
+
+/**
  * Update the object; Its last collision status is cleared and the object's
  * properties are integrated using the Euler method
  * 
@@ -1053,38 +1199,9 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     pObj->ldx = pObj->dx;
     pObj->ldy = pObj->dy;
     
-    // Update the horizontal velocity
-    if (pObj->ax != 0.0)
-        pObj->vx += pObj->ax * elapsed;
-    else if (pObj->dragX != 0.0) {
-        double delta;
-        
-        delta = pObj->dragX * elapsed;
-        if (pObj->vx > delta)
-            pObj->vx -= delta;
-        else if (pObj->vx < -delta)
-            pObj->vx += delta;
-        else
-            pObj->vx = 0.0;
-    }
-    // Update the vertical velocity
-    if (pObj->ay != 0.0)
-        pObj->vy += pObj->ay * elapsed;
-    else if (pObj->dragY != 0.0) {
-        double delta;
-        
-        delta = pObj->dragY * elapsed;
-        if (pObj->vy > delta)
-            pObj->vy -= delta;
-        else if (pObj->vy < -delta)
-            pObj->vy += delta;
-        else
-            pObj->vx = 0.0;
-    }
-    // Update the horizontal position
-    pObj->dx += pObj->vx * elapsed;
-    // Update the vertical position
-    pObj->dy += pObj->vy * elapsed;
+    // Integrate the position and velocity
+    _gfmObject_integrate(&pObj->dx, &pObj->vx, pObj->ax, pObj->dragX, elapsed);
+    _gfmObject_integrate(&pObj->dy, &pObj->vy, pObj->ay, pObj->dragY, elapsed);
     
     // Set the actual (integer) position
     pObj->x = (int)pObj->dx;
@@ -1297,7 +1414,7 @@ __ret:
  */
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     gfmRV rv;
-    int delta, lox, loy, lsx, lsy, maxWidth, maxHeight, ox, oy, sx, sy;
+    int delta, maxWidth, maxHeight, ox, oy, sx, sy;
     
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
@@ -1313,12 +1430,6 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT_NR(rv == GFMRV_OK);
     // Get 'the other' object's center
     rv = gfmObject_getCenter(&ox, &oy, pOther);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Get 'this' object's center on last frame
-    rv = gfmObject_getLastCenter(&lsx, &lsy, pSelf);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Get 'the other' object's center on last frame
-    rv = gfmObject_getLastCenter(&lox, &loy, pOther);
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get both max distances for an overlap to happen
@@ -1398,7 +1509,13 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     //        || pOther->justMoved) {
     if (delta >= maxWidth || delta <= -maxWidth) {
         // Check their relative position and set the collision results
-        if (pSelf->x < pOther->x) {
+        delta = abs(sx - ox);
+        if (delta + pSelf->halfWidth <= pOther->halfWidth
+                || delta + pOther->halfWidth <= pSelf->halfWidth) {
+            /* One of the entities was placed inside the other. Simply ignore
+             * collision */
+        }
+        else if (pSelf->x < pOther->x) {
             // pSelf is to the left, so it collided on its right
             pSelf->instantHit |= gfmCollision_right;
             pOther->instantHit |= gfmCollision_left;
@@ -1550,7 +1667,7 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = gfmObject_setHorizontalPosition(pMovable, newX);
+        rv = _int_gfmObject_setHorizontalPosition(pMovable, newX);
         ASSERT_NR(rv == GFMRV_OK);
     }
     else {
@@ -1563,16 +1680,16 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         // Push both objects
         if (pSelf->instantHit & gfmCollision_left) {
             // pSelf collided left, so it must be pushed to the right
-            rv = gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
+            rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setHorizontalPosition(pOther, pOther->dx - dist);
+            rv = _int_gfmObject_setHorizontalPosition(pOther, pOther->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
         if (pSelf->instantHit & gfmCollision_right) {
             // pSelf collided right, so it must be pushed to the left
-            rv = gfmObject_setHorizontalPosition(pSelf, pSelf->dx - dist);
+            rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setHorizontalPosition(pOther, pOther->dx + dist);
+            rv = _int_gfmObject_setHorizontalPosition(pOther, pOther->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
@@ -1636,7 +1753,7 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = gfmObject_setVerticalPosition(pMovable, newY);
+        rv = _int_gfmObject_setVerticalPosition(pMovable, newY);
         ASSERT_NR(rv == GFMRV_OK);
     }
     else {
@@ -1649,16 +1766,16 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         // Push both objects
         if (pSelf->instantHit & gfmCollision_up) {
             // pSelf collided above so it must be pushed downward
-            rv = gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
+            rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setVerticalPosition(pOther, pOther->dy - dist);
+            rv = _int_gfmObject_setVerticalPosition(pOther, pOther->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
         if (pSelf->instantHit & gfmCollision_down) {
             // pSelf collided bellow, so it must be pushed upward
-            rv = gfmObject_setVerticalPosition(pSelf, pSelf->dy - dist);
+            rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmObject_setVerticalPosition(pOther, pOther->dy + dist);
+            rv = _int_gfmObject_setVerticalPosition(pOther, pOther->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
     }
@@ -1730,6 +1847,93 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     *pDir = pCtx->instantHit;
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if the object is overlaping with a line
+ *
+ * NOTE: The current implementation can't deal with lines that are too big. If
+ * the algorithm detects the line as being too far from the object, it will
+ * fail!
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]x0   Initial positional of the line (left-most)
+ * @param  [ in]y0   Initial positional of the line
+ * @param  [ in]x1   Final positional of the line (right-most)
+ * @param  [ in]y1   Final positional of the line
+ */
+gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1) {
+    gfmRect object;
+    gfmLine line;
+    gfmPoint point0, point1;
+    gfmRV rv;
+    int ox, oy, minX, minY;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    /* Normalize */
+    rv = gfmObject_getCenter(&ox, &oy, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    if ((abs(ox - x0) > GFM_FRACTION_MAX_INT)
+            || (abs(ox - x1) > GFM_FRACTION_MAX_INT)
+            || (abs(x0 - x1) > GFM_FRACTION_MAX_INT)
+            || (abs(oy - y0) > GFM_FRACTION_MAX_INT)
+            || (abs(oy - y1) > GFM_FRACTION_MAX_INT)
+            || (abs(y0 - y1) > GFM_FRACTION_MAX_INT)) {
+        return GFMRV_FIXED_POINT_TOO_BIG;
+    }
+
+#define min(X, Y) ((X) < (Y) ? (X) : (Y))
+    minX = min(ox, x0);
+    minX = min(minX, x1);
+    minY = min(oy, y0);
+    minY = min(minY, y1);
+#undef min
+
+    object.centerX = gfmFixedPoint_fromInt(ox - minX);
+    object.centerY = gfmFixedPoint_fromInt(oy - minY);
+    object.halfWidth = gfmFixedPoint_fromFloat(pCtx->halfWidth);
+    object.halfHeight = gfmFixedPoint_fromFloat(pCtx->halfHeight);
+
+    point0.x = gfmFixedPoint_fromInt(x0 - minX);
+    point0.y = gfmFixedPoint_fromInt(y0 - minY);
+    point1.x = gfmFixedPoint_fromInt(x1 - minX);
+    point1.y = gfmFixedPoint_fromInt(y1 - minY);
+
+    if (x0 == x1) {
+        gfmRect rect;
+
+        /* Vertical lines must be handled in a special case, as a "thin" (i.e.,
+         * 0 width) rectangle */
+        rect.centerX = point0.x;
+        rect.halfWidth = 0;
+        rect.halfHeight = gfmFixedPoint_fromInt(abs(y1 - y0) >> 1);
+        if (y0 < y1) {
+            rect.centerY = point0.y + (point1.y >> 1);
+        }
+        else {
+            rect.centerY = point1.y + (point0.y >> 1);
+        }
+
+        if (gfmGeometry_doesRectsIntersect(&rect, &object)) {
+            return GFMRV_TRUE;
+        }
+        return GFMRV_FALSE;
+    }
+
+    line.x.lt = point0.x;
+    line.x.gt = point1.x;
+    line.a = gfmFixedPoint_div(gfmFixedPoint_fromInt(y1 - y0)
+            , gfmFixedPoint_fromInt(x1 - x0));
+    line.b = point0.y - gfmFixedPoint_mul(point0.x, line.a);
+
+    if (gfmGeometry_doesLineIntersectRect(&line, &object)) {
+        return GFMRV_TRUE;
+    }
+    return GFMRV_FALSE;
 __ret:
     return rv;
 }

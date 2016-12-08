@@ -8,6 +8,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmCamera.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmDebug.h>
 #include <GFraMe/gfmGenericArray.h>
 #include <GFraMe/gfmInput.h>
 #include <GFraMe/gfmLog.h>
@@ -21,7 +22,11 @@
 #include <GFraMe/core/gfmPath_bkend.h>
 #include <GFraMe/core/gfmTimer_bkend.h>
 
+#include <GFraMe_int/gframe.h>
+#include <GFraMe_int/gfmCtx_struct.h>
+#include <GFraMe_int/gfmDebug.h>
 #include <GFraMe_int/gfmFPSCounter.h>
+#include <GFraMe_int/gfmVideo_bmp.h>
 #include <GFraMe_int/core/gfmVideo_bkend.h>
 #include <GFraMe_int/core/gfmLoadAsync_bkend.h>
 
@@ -32,94 +37,6 @@
 /** Version of the device running this; Declared on src/core/sdl2/gfmBackend.c */
 extern int androidVersion;
 #endif
-
-/** Define a texture array type */
-gfmGenArr_define(gfmTexture);
-/** Define a spriteset array type */
-gfmGenArr_define(gfmSpriteset);
-
-struct stGFMCtx {
-    // TODO specify backend(?)
-    /** "Organization" name; It's used as part of paths. */
-    gfmString *pGameOrg;
-    /** Game's title; It's used as part of paths. */
-    gfmString *pGameTitle;
-#ifndef GFRAME_MOBILE
-    /** Directory where the game binary is being run from */
-    gfmString *pBinPath;
-    /** Length until the current directory (i.e., position to append stuff) */
-    int binPathLen;
-#endif
-    /** Audio sub-system context */
-    gfmAudioCtx *pAudio;
-    /* The video context */
-    gfmVideo *pVideo;
-    /** Current video functions */
-    gfmVideoFuncs videoFuncs;
-    /** Default camera */
-    gfmCamera *pCamera;
-    /** Accumulate when new update frames should be issued */
-    gfmAccumulator *pUpdateAcc;
-    /** Accumulate when new draw frames should be issued */
-    gfmAccumulator *pDrawAcc;
-    /** Event context */
-    gfmEvent *pEvent;
-    /** Input context */
-    gfmInput *pInput;
-    /** The logger */
-    gfmLog *pLog;
-    /** The timer */
-    gfmTimer *pTimer;
-    /** The GIF exporter */
-    gfmGifExporter *pGif;
-    /** Asynchronous loader */
-    gfmLoadAsyncCtx *pAsyncLoader;
-    /** Path where the snapshot should be saved */
-    gfmString *pSsPath;
-    /** Stores the snapshot */
-    unsigned char *pSsData;
-#if defined(DEBUG) || defined(FORCE_FPS)
-    /** FPS Counter; only enabled on debug version */
-    gfmFPSCounter *pCounter;
-#endif
-    /** Every cached spriteset */
-    gfmGenArr_var(gfmSpriteset, pSpritesets);
-#if defined(DEBUG) || defined(FORCE_FPS)
-    /** Whether the FPS counter should be displayed */
-    int showFPS;
-#endif
-    /** Buffer for storing a save file's filename */
-    gfmString *pSaveFilename;
-    /** Length until the end of the save file's directory (i.e., position to
-     * append stuff) */
-    int saveFilenameLen;
-    /** Whether the backend was initialized */
-    int isBackendInit;
-    /** Flag to easily disable the audio; must be set after initialized the
-     * lib */
-    int isAudioEnabled;
-    /** Moment, in milisecond, when the last draw op finished */
-    unsigned int lastDrawnTime;
-    /** Time elapsed since the last update (great for fixed 60fps update, when
-     * using vsync) */
-    unsigned int lastDrawElapsed;
-    /** Texture that should be loaded on every gfm_drawBegin */
-    int defaultTexture;
-    /** Whether a quit event was received */
-    gfmRV doQuit;
-    /** Whether a snapshot should be taken */
-    int takeSnapshot;
-    /** Whether is recording an animation or a single snapshot */
-    int isAnimation;
-    /** For how long the animation should be recorded, in milliseconds */
-    int animationTime;
-    /** Number of bytes on the snapshot data */
-    int ssDataLen;
-    /** How many update frames were accumulated */
-    int updateFrames;
-    /** How many draw frames were accumulated */
-    int drawFrames;
-};
 
 /** 'Exportable' size of gfmStruct */
 const int sizeofGFMCtx = sizeof(struct stGFMCtx);
@@ -295,7 +212,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the fps counter, if debug */
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     rv = gfmFPSCounter_getNew(&(pCtx->pCounter));
     ASSERT_NR(rv == GFMRV_OK);
 #endif
@@ -305,7 +222,7 @@ gfmRV gfm_init(gfmCtx *pCtx, char *pOrg, int orgLen, char *pName, int nameLen) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Initialize the logger */
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_debug);
 #else
     rv = gfmLog_init(pCtx->pLog, pCtx, gfmLog_info);
@@ -634,6 +551,9 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = gfmDebug_init(pCtx);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
     rv = GFMRV_OK;
@@ -1314,6 +1234,53 @@ __ret:
  * Create and load a texture; the lib will keep track of it and release its
  * memory, on exit
  * 
+ * @param  pIndex   The texture's index
+ * @param  pCtx     The game's contex
+ * @param  pData    The texture's data (32 bits, [0xRR, 0xGG, 0xBB, 0xAA,...])
+ * @param  width    The texture's width
+ * @param  height   The texture's height
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_TEXTURE_NOT_BITMAP,
+ *                  GFMRV_TEXTURE_FILE_NOT_FOUND,
+ *                  GFMRV_TEXTURE_INVALID_WIDTH,
+ *                  GFMRV_TEXTURE_INVALID_HEIGHT, GFMRV_ALLOC_FAILED,
+ *                  GFMRV_INTERNAL_ERROR
+ */
+gfmRV _gfm_loadBinTexture(int *pIndex, gfmCtx *pCtx, char *pData, int width,
+        int height) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Continue to sanitize arguments */
+    ASSERT_LOG(pIndex, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(pData, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(width > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    ASSERT_LOG(height > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Loading texture from binary "
+            "data");
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Load the texture */
+    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
+        pData, width, height);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture loaded (w=%i, h=%i) at "
+            "index %i!", width, height, *pIndex);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Create and load a texture; the lib will keep track of it and release its
+ * memory, on exit
+ *
  * @param  pIndex      The texture's index
  * @param  pCtx        The game's contex
  * @param  pFilename   The image's filename (must be a '.bmp')
@@ -1329,10 +1296,12 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
         int filenameLen, int colorKey) {
     gfmFile *pFile;
     gfmRV rv;
-    gfmTexture *pTex;
-    int width, height;
+    char *pData;
+    int didLoad, width, height;
 
     pFile = 0;
+    pData = 0;
+    didLoad = 0;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1353,18 +1322,24 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
     rv = gfmFile_openAsset(pFile, pCtx, pFilename, filenameLen, 0/*isText*/);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
-    /* Load the texture */
-    rv = (*(pCtx->videoFuncs.gfmVideo_loadTexture))(pIndex, pCtx->pVideo,
-        pFile, colorKey);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /*  Check the file type */
+    rv = gfmVideo_isBmp(pFile, pCtx->pLog);
+    if (rv == GFMRV_TRUE) {
+        rv = gfmVideo_loadFileAsBmp(&pData, &width, &height, pFile, pCtx->pLog,
+                colorKey);
+        ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+        didLoad = 1;
+    }
+    /* TODO Support other formats */
+    ASSERT_LOG(didLoad == 1, GFMRV_TEXTURE_UNSUPPORTED, pCtx->pLog);
 
-    /* Get the texture's dimensions */
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTexture))(&pTex, pCtx->pVideo,
-            *pIndex, pCtx->pLog);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = (*(pCtx->videoFuncs.gfmVideo_getTextureDimensions))(&width, &height,
-            pTex);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    /* Done with file; Release its resources */
+    gfmFile_free(&pFile);
+    pFile = 0;
+
+    /* Load the texture */
+    rv = _gfm_loadBinTexture(pIndex, pCtx, pData, width, height);
+    ASSERT_NR(rv == GFMRV_OK);
 
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Texture \"%*s\" loaded (w=%i, "
             "h=%i) at index %i!", filenameLen, pFilename, width, height,
@@ -1373,6 +1348,11 @@ gfmRV gfm_loadTexture(int *pIndex, gfmCtx *pCtx, char *pFilename,
 
     rv = GFMRV_OK;
 __ret:
+    if (pData) {
+        /* A copy of the buffer stays loaded into the texture, so it may be
+         * freed */
+        free(pData);
+    }
     if (pFile) {
         gfmFile_free(&pFile);
     }
@@ -1637,6 +1617,32 @@ gfmRV gfm_getCameraDimensions(int *pWidth, int *pHeight, gfmCtx *pCtx) {
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if an object is inside the camera
+ * 
+ * @param  pCtx The game's context
+ * @param  pObj The object
+ * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD,
+ *              GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfm_isObjectInsideCamera(gfmCtx *pCtx, gfmObject *pObj) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the lib was initialized
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    // Continue to sanitize arguments
+    ASSERT_LOG(pObj, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
+    // Check that the camera was initialized
+    ASSERT_LOG(pCtx->pCamera, GFMRV_CAMERA_NOT_INITIALIZED, pCtx->pLog);
+    
+    // Check if it's inside
+    rv = gfmCamera_isObjectInside(pCtx->pCamera, pObj);
 __ret:
     return rv;
 }
@@ -1982,6 +1988,10 @@ __ret:
 /**
  * Initialize the FPS counter; On the release version, this function does
  * nothing but returns GFMRV_OK
+ *
+ * The FPS counter uses a internal bitmap font, which is only added on debug
+ * mode. Therefore, it's disable on release mode and both pSset and firstTile
+ * are ignored.
  * 
  * @param  pCtx      The game's context
  * @param  pSset     The spriteset
@@ -1991,16 +2001,13 @@ __ret:
 gfmRV gfm_initFPSCounter(gfmCtx *pCtx, gfmSpriteset *pSset, int firstTile) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    // Continue to sanitize arguments
-    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
-    ASSERT_LOG(firstTile >= 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     
     // Initialize the FPS counter
     rv = gfmFPSCounter_init(pCtx->pCounter, pSset, firstTile);
@@ -2029,7 +2036,7 @@ gfmRV gfm_setFPSCounterPos(gfmCtx *pCtx, int x, int y) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Check that it was initialized, on debug mode */
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     /* Set its position */
@@ -2055,7 +2062,7 @@ gfmRV gfm_showFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     // Check that it was initialized, on debug mode
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
@@ -2080,7 +2087,7 @@ gfmRV gfm_hideFPSCounter(gfmCtx *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the lib was initialized
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     // Check that it was initialized, on debug mode
     ASSERT_LOG(pCtx->pCounter, GFMRV_FPSCOUNTER_NOT_INITIALIZED, pCtx->pLog);
     // Enable displaying the FPS
@@ -2102,7 +2109,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateBegin(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -2399,7 +2406,7 @@ __ret:
 gfmRV gfm_fpsCounterUpdateEnd(gfmCtx *pCtx) {
     gfmRV rv;
     
-#if !defined(DEBUG) && !defined(FORCE_FPS)
+#if !defined(DEBUG)
     rv = GFMRV_OK;
 #else
     // Sanitize arguments
@@ -2603,7 +2610,7 @@ gfmRV gfm_drawBegin(gfmCtx *pCtx) {
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Store when drawing was initialized */
     rv = gfmFPSCounter_initDraw(pCtx->pCounter);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
@@ -2824,6 +2831,10 @@ __ret:
  * 
  * The displayed info is the number of batched draws and the number of drawn
  * sprites
+ *
+ * This function uses an internal bitmap font, only available on debug mode.
+ * Therefore, it's disable on release mode and both pSset and firstTile are
+ * ignored.
  * 
  * @param  [ in]pCtx      The game's conext
  * @param  [ in]pSset     The spriteset
@@ -2834,41 +2845,27 @@ __ret:
 gfmRV gfm_drawRenderInfo(gfmCtx *pCtx, gfmSpriteset *pSset, int x, int y,
         int firstTile) {
     gfmRV rv;
-    int batches, height, num, tile, width;
+#if defined(DEBUG)
+    int batches, num;
+#endif
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */
     ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
-    ASSERT_LOG(pSset, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
-    /* Get the tile dimensions */
-    rv = gfmSpriteset_getDimension(&width, &height, pSset);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-
+#if defined(DEBUG)
     /* Retrieve the info */
     rv = (*(pCtx->videoFuncs.gfmVideo_getDrawInfo))(&batches, &num,
             pCtx->pVideo);
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
-    /* Draw the number of batched draws */
-    tile = 'B' - '!' + firstTile;
-    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, batches, 5/*res*/,
-            firstTile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-
-    /* Draw the number of sprites rendered */
-    y += height;
-    tile = 'N' - '!' + firstTile;
-    rv = gfm_drawTile(pCtx, pSset, x, y, tile, 0/*flipped*/);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
-    rv = gfm_drawNumber(pCtx, pSset, x + width * 2, y, num, 5/*res*/,
-            firstTile);
-    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+    gfmDebug_printf(pCtx, x, y,
+            "BATCH %05i\n"
+            " OBJS %05i\n", batches, num);
+#endif
 
     rv = GFMRV_OK;
 __ret:
@@ -2891,7 +2888,7 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
     /* Check that the video context was initialized */
     ASSERT_LOG(pCtx->pVideo, GFMRV_BACKBUFFER_NOT_INITIALIZED, pCtx->pLog);
 
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     /* Display the current fps */
     if (pCtx->showFPS) {
         rv = gfmFPSCounter_draw(pCtx->pCounter, pCtx);
@@ -3047,7 +3044,7 @@ gfmRV gfm_clean(gfmCtx *pCtx) {
     gfmAccumulator_free(&(pCtx->pUpdateAcc));
     gfmAccumulator_free(&(pCtx->pDrawAcc));
     gfmEvent_free(&(pCtx->pEvent));
-#if defined(DEBUG) || defined(FORCE_FPS)
+#if defined(DEBUG)
     gfmFPSCounter_free(&(pCtx->pCounter));
 #endif
     gfmInput_free(&(pCtx->pInput));
