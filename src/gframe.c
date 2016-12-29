@@ -2348,6 +2348,27 @@ __ret:
 }
 
 /**
+ * Cancel a previous (incomplete) gfm_getLastPressed.
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_cancelGetLastPressed(gfmCtx *pCtx) {
+    gfmRV rv;
+    
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Check that the input system was initialized */
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
+
+    rv = gfmInput_cancelRequestLastPressed(pCtx->pInput);
+__ret:
+    return rv;
+}
+
+/**
  * Retrieve the current input context
  * 
  * @param  ppInput The input context

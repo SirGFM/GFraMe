@@ -835,6 +835,14 @@ gfmRV gfm_getLastPort(int *pPort, gfmCtx *pCtx);
 gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx);
 
 /**
+ * Cancel a previous (incomplete) gfm_getLastPressed.
+ * 
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_cancelGetLastPressed(gfmCtx *pCtx);
+
+/**
  * Retrieve the current input context
  * 
  * @param  ppInput The input context
