@@ -907,18 +907,18 @@ __ret:
 
 /**
  * Stop storing the last pressed key
- * 
+ *
  * @param  pCtx   The input context
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmInput_cancelRequestLastPressed(gfmInput *pCtx) {
     gfmRV rv;
-    
+
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    
+
     pCtx->waitingInput = 0;
-    
+
     rv = GFMRV_OK;
 __ret:
     return rv;

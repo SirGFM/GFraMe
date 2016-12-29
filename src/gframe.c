@@ -2349,13 +2349,13 @@ __ret:
 
 /**
  * Cancel a previous (incomplete) gfm_getLastPressed.
- * 
+ *
  * @param  pCtx The game's context
  * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfm_cancelGetLastPressed(gfmCtx *pCtx) {
     gfmRV rv;
-    
+
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the lib was initialized */

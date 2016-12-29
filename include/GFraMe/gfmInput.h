@@ -399,7 +399,7 @@ gfmRV gfmInput_requestLastPressed(gfmInput *pCtx);
 
 /**
  * Stop storing the last pressed key
- * 
+ *
  * @param  pCtx   The input context
  * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
