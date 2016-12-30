@@ -242,10 +242,6 @@ gfmRV gfmEvent_init(gfmEvent *pEvent, gfmCtx *pCtx) {
     // Continue to sanitize arguments
     ASSERT_LOG(pEvent, GFMRV_ARGUMENTS_BAD, pLog);
     
-    // Initialize joystick
-    irv = SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
-    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
-    
     // Initialize the time event (to be pushed)
     pEvent->accTimerEvent.type = SDL_USEREVENT;
     pEvent->accTimerEvent.user.type = SDL_USEREVENT;

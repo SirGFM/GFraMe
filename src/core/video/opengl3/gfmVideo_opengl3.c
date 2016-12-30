@@ -428,6 +428,7 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     }
 
     /* Release the video context */
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
     free(pCtx);
 
     *ppVideo = 0;

@@ -262,6 +262,7 @@ static gfmRV gfmVideo_SDL2_free(gfmVideo **ppVideo) {
     }
 
     /* Release the video context */
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
     free(pCtx);
 
     *ppVideo = 0;
