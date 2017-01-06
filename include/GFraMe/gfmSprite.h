@@ -428,6 +428,42 @@ gfmRV gfmSprite_setFixed(gfmSprite *pCtx);
 gfmRV gfmSprite_setMovable(gfmSprite *pCtx);
 
 /**
+ * Apply another sprite's translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDelta(gfmSprite *pCtx, gfmSprite *pOther);
+
+/**
+ * Apply another sprite's horizontal translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDeltaX(gfmSprite *pCtx, gfmSprite *pOther);
+
+/**
+ * Apply another sprite's vertical translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDeltaY(gfmSprite *pCtx, gfmSprite *pOther);
+
+/**
  * Update the sprite; Its last collision status is cleared and the sprite's
  * properties are integrated using the Euler method
  * 

@@ -437,6 +437,42 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx);
 gfmRV gfmObject_setMovable(gfmObject *pCtx);
 
 /**
+ * Apply another object's translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther);
+
+/**
+ * Apply another object's horizontal translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther);
+
+/**
+ * Apply another object's vertical translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther);
+
+/**
  * Update the object; Its last collision status is cleared and the object's
  * properties are integrated using the Euler method
  * 
