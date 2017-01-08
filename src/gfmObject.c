@@ -1173,6 +1173,98 @@ static inline void _gfmObject_integrate(double *x, double *vx, double ax,
 }
 
 /**
+ * Apply another object's translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther) {
+    gfmRV rv;
+
+    /* Sanitize everything */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Update its position with the other's translation */
+    pCtx->dx += pOther->dx - pOther->ldx;
+    pCtx->dy += pOther->dy - pOther->ldy;
+    pCtx->x = (int)pCtx->dx;
+    pCtx->y = (int)pCtx->dy;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Apply another object's horizontal translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther) {
+    gfmRV rv;
+
+    /* Sanitize everything */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Update its position with the other's translation */
+    pCtx->dx += pOther->dx - pOther->ldx;
+    pCtx->x = (int)pCtx->dx;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Apply another object's vertical translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther) {
+    gfmRV rv;
+
+    /* Sanitize everything */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Update its position with the other's translation */
+    pCtx->dy += pOther->dy - pOther->ldy;
+    pCtx->y = (int)pCtx->dy;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Update the object; Its last collision status is cleared and the object's
  * properties are integrated using the Euler method
  * 
