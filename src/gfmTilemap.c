@@ -1067,6 +1067,41 @@ __ret:
 }
 
 /**
+ * Retrieve the type of the tile at a give pixel position
+ *
+ * @param  [out]pType The type
+ * @param  [ in]pCtx  The tilemap
+ * @param  [ in]x     Horizontal position of the tile
+ * @param  [ in]y     Vertical position of the tile
+ */
+gfmRV gfmTilemap_getTypeAt(int *pType, gfmTilemap *pCtx, int x, int y) {
+    gfmRV rv;
+    int tileWidth, tileHeight;
+
+    /* Sanitize arguments */
+    ASSERT(pType, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pCtx->pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    x /= tileWidth;
+    y /= tileHeight;
+
+    ASSERT(x >= 0 && x < pCtx->widthInTiles, GFMRV_ARGUMENTS_BAD);
+    ASSERT(y >= 0 && y < pCtx->heightInTiles, GFMRV_ARGUMENTS_BAD);
+
+    /* Get the tile's type */
+    rv = gfmTilemap_getTileType(pType, pCtx
+            , pCtx->pData[x + y * pCtx->widthInTiles]);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Traverse the map, from a given tile, getting the biggest rectangle that
  * contains all neighboring tiles of the same type; Since the traversal is first
  * done in the horizontal and then in the vertical, area's are wider than they

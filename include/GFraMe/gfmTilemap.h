@@ -384,6 +384,16 @@ gfmRV gfmTilemap_recalculateAreas(gfmTilemap *pCtx);
 gfmRV gfmTilemap_getDimension(int *pWidth, int *pHeight, gfmTilemap *pCtx);
 
 /**
+ * Retrieve the type of the tile at a give pixel position
+ *
+ * @param  [out]pType The type
+ * @param  [ in]pCtx  The tilemap
+ * @param  [ in]x     Horizontal position of the tile
+ * @param  [ in]y     Vertical position of the tile
+ */
+gfmRV gfmTilemap_getTypeAt(int *pType, gfmTilemap *pCtx, int x, int y);
+
+/**
  * Disable batched draw; It should be used when it's desired to batch more tiles
  * at once
  * 
