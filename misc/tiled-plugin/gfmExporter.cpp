@@ -337,7 +337,7 @@ static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
         file.write(QByteArray::number((int)pObj->width()));
         file.write(" ");
         file.write(QByteArray::number((int)pObj->height()));
-        if (!pObj->cell().isEmpty() || pObj->properties().isEmpty()) {
+        if (!pObj->cell().isEmpty() || !pObj->properties().isEmpty()) {
             QMap<QString, QString>::const_iterator it;
             
             /* Output all of its properties */
