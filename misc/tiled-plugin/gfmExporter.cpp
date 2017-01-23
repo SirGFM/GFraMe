@@ -56,6 +56,9 @@
 using namespace Tiled;
 using namespace GFMExporter;
 
+/** String that constains message on error */
+static QString mError;
+
 struct stBoundary {
     int height;
     int width;

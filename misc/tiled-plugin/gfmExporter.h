@@ -52,10 +52,6 @@ public:
 protected:
     /** Return the plugin's description and file type */
     QString nameFilter() const override;
-
-private:
-    /** String that constains message on error */
-    QString mError;
 }; /** class GFMExporterPlugin */
 
 } /** namespace GFMExporter */
