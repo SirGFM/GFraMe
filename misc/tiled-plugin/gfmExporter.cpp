@@ -200,10 +200,13 @@ QString GFMExporterPlugin::nameFilter() const
 QStringList GFMExporterPlugin::outputFiles(const Tiled::Map *map, const QString &fileName) const
 {
     QStringList result;
+    QString base;
 
     /* Extract file name without extension and path */
     QFileInfo fileInfo(fileName);
-    const QString base = fileInfo.completeBaseName() + QLatin1String("_");
+    if (fileInfo.completeBaseName().length() != 0) {
+        base = fileInfo.completeBaseName() + QLatin1String("_");
+    }
     const QString path = fileInfo.path();
 
     /* Loop layers to calculate the path for the exported file */
