@@ -73,7 +73,7 @@ typedef struct stBoundary boundary;
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
+static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         boundary &b);
 
 /**
@@ -163,7 +163,9 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             /* Export it as a tilemap */
             const TileLayer *tileLayer = static_cast<const TileLayer*>(layer);
 
-            gfm_writeTilemap(file, tileLayer, b);
+            if (gfm_writeTilemap(file, tileLayer, b) == false) {
+                return false;
+            }
         }
         else {
             /* Export it as an object layer */
@@ -239,7 +241,7 @@ QString GFMExporterPlugin::errorString() const
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
+static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         boundary &b) {
     QSet<QSharedPointer<Tileset> >::iterator tileset;
     QSet<QSharedPointer<Tileset> > tilesets = tileLayer->usedTilesets();
@@ -280,9 +282,21 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
     /* Fix the tilemap's dimension */
     if (b.width == 0) {
         b.width = tileLayer->width() - 1;
+    } else if (b.width >= tileLayer->width()) {
+        mError = QString("Invalid layer width (layer:%1, max: %2, expected %3)")
+                .arg(tileLayer->name())
+                .arg(tileLayer->width() - 1)
+                .arg(b.width);
+        return false;
     }
     if (b.height == 0) {
         b.height = tileLayer->height() - 1;
+    } else if (b.height >= tileLayer->height()) {
+        mError = QString("Invalid layer height (layer:%1, max: %2, expected %3)")
+                .arg(tileLayer->name())
+                .arg(tileLayer->height() - 1)
+                .arg(b.height);
+        return false;
     }
 
     /* Write a tilemap 'header' */
@@ -310,6 +324,8 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
 
         file.write("\n", 1);
     }
+
+    return true;
 }
 
 static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
