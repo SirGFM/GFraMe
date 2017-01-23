@@ -248,12 +248,12 @@ gfmRV gfmCamera_centerAtPoint(gfmCamera *pCtx, int x, int y) {
         rv = GFMRV_CAMERA_MOVED;
     }
     // Check that it's in-bounds (vertical axis)
-    if (pCtx->y < 0) {
-        pCtx->y = 0;
+    if (pCtx->y + pCtx->viewHeight > pCtx->worldHeight) {
+        pCtx->y = pCtx->worldHeight - pCtx->viewHeight;
         rv = GFMRV_CAMERA_DIDNT_MOVE;
     }
-    else if (pCtx->y + pCtx->viewHeight > pCtx->worldHeight) {
-        pCtx->y = pCtx->worldHeight - pCtx->viewHeight;
+    if (pCtx->y < 0) {
+        pCtx->y = 0;
         rv = GFMRV_CAMERA_DIDNT_MOVE;
     }
     
@@ -267,12 +267,12 @@ gfmRV gfmCamera_centerAtPoint(gfmCamera *pCtx, int x, int y) {
         rv = GFMRV_CAMERA_MOVED;
     }
     // Check that it's in-bounds (horizontal axis)
-    if (pCtx->x < 0) {
-        pCtx->x = 0;
+    if (pCtx->x + pCtx->viewWidth > pCtx->worldWidth) {
+        pCtx->x = pCtx->worldWidth - pCtx->viewWidth;
         rv = GFMRV_CAMERA_DIDNT_MOVE;
     }
-    else if (pCtx->x + pCtx->viewWidth > pCtx->worldWidth) {
-        pCtx->x = pCtx->worldWidth - pCtx->viewWidth;
+    if (pCtx->x < 0) {
+        pCtx->x = 0;
         rv = GFMRV_CAMERA_DIDNT_MOVE;
     }
     
