@@ -1396,7 +1396,7 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // screen position
     if (camX <= pTMap->x) {
         tileX = 0;
-        screenX = pTMap->x;
+        screenX = pTMap->x - camX;
     }
     else {
         tileX = (camX - pTMap->x) / tileWidth;
@@ -1407,7 +1407,7 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // screen position
     if (camY <= pTMap->y) {
         tileY = 0;
-        screenY = pTMap->y;
+        screenY = pTMap->y - camY;
     }
     else {
         tileY = (camY - pTMap->y) / tileHeight;
