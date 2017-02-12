@@ -652,5 +652,30 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
  */
 gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
 
+/**
+ * Set the type of the sprite's child
+ *
+ * TL;DR: Use this functions only if you know what you are doing! (and if you
+ * are colliding members of a gfmGroup)
+ *
+ * To simulate inheritance, every sprite has a pointer to a child object. A
+ * 'type' is used to define how that pointer should be dereferenced. Therefore,
+ * one usually needn't modify a sprite's type after it was initialized.
+ *
+ * However, there are cases in which it might be interesting to change a sprite
+ * type. If, for example, there's a gfmGroup for object's hitbox, one could want
+ * to represent different hitboxes as different types (e.g., a type for the
+ * player's bullet, another for a sword slash and another for enemies bullets).
+ *
+ * In that case, all types would still represent the same child object (a
+ * gfmGroupNode). However, after changing its types, one could treat them
+ * differently while colliding.
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]type The object's child new type
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setType(gfmObject *pCtx, int type);
+
 #endif  /* __GFMOBJECT_H__ */
 
