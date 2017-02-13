@@ -352,62 +352,6 @@ gfmRV gfmObject_getHorizontalAcceleration(double *pAx, gfmObject *pCtx);
 gfmRV gfmObject_getVerticalAcceleration(double *pAy, gfmObject *pCtx);
 
 /**
- * Set the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pCtx The object
- * @param  dx   The horizontal drag
- * @param  dy   The vertical drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
- */
-gfmRV gfmObject_setDrag(gfmObject *pCtx, double dx, double dy);
-
-/**
- * Set the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pCtx The object
- * @param  dx   The horizontal drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
- */
-gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, double dx);
-
-/**
- * Set the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pCtx The object
- * @param  dy   The vertical drag
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
- */
-gfmRV gfmObject_setVerticalDrag(gfmObject *pCtx, double dy);
-
-/**
- * Get the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pDx  The horizontal drag
- * @param  pDy  The vertical drag
- * @param  pCtx The object
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmObject_getDrag(double *pDx, double *pDy, gfmObject *pCtx);
-
-/**
- * Get the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pDx  The horizontal drag
- * @param  pCtx The object
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmObject_getHorizontalDrag(double *pDx, gfmObject *pCtx);
-
-/**
- * Get the object's drag (i.e., how fast it will stop when there's no acc)
- * 
- * @param  pDy  The vertical drag
- * @param  pCtx The object
- * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
- */
-gfmRV gfmObject_getVerticalDrag(double *pDy, gfmObject *pCtx);
-
-/**
  * Get the object's child and type; ppChild mustn't be NULL, even if the object
  * has no "sub-class"
  * 
