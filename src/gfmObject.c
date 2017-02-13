@@ -11,6 +11,7 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmTypes.h>
 
 #include <GFraMe_int/gfmFixedPoint.h>
 #include <GFraMe_int/gfmGeometry.h>
@@ -539,7 +540,10 @@ gfmRV gfmObject_getLastCenter(int *pX, int *pY, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pX != 0);
     assert(pY != 0);
-    if (pCtx->t.hw == 0 || pCtx->t.hh == 0) {
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pCtx->t.hw == 0 || pCtx->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
 
@@ -559,6 +563,9 @@ gfmRV gfmObject_getLastCenter(int *pX, int *pY, gfmObject *pCtx) {
  */
 gfmRV gfmObject_setVelocity(gfmObject *pCtx, double vx, double vy) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.vx = _d2fp(vx);
     pCtx->pb.vy = _d2fp(vy);
@@ -575,6 +582,9 @@ gfmRV gfmObject_setVelocity(gfmObject *pCtx, double vx, double vy) {
  */
 gfmRV gfmObject_setHorizontalVelocity(gfmObject *pCtx, double vx) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.vx = _d2fp(vx);
 
@@ -590,6 +600,9 @@ gfmRV gfmObject_setHorizontalVelocity(gfmObject *pCtx, double vx) {
  */
 gfmRV gfmObject_setVerticalVelocity(gfmObject *pCtx, double vy) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.vy = _d2fp(vy);
 
@@ -608,6 +621,9 @@ gfmRV gfmObject_getVelocity(double *pVx, double *pVy, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pVx != 0);
     assert(pVy != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pVx = _fp2d(pCtx->pb.vx);
     *pVy = _fp2d(pCtx->pb.vy);
@@ -625,6 +641,9 @@ gfmRV gfmObject_getVelocity(double *pVx, double *pVy, gfmObject *pCtx) {
 gfmRV gfmObject_getHorizontalVelocity(double *pVx, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pVx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pVx = _fp2d(pCtx->pb.vx);
 
@@ -641,6 +660,9 @@ gfmRV gfmObject_getHorizontalVelocity(double *pVx, gfmObject *pCtx) {
 gfmRV gfmObject_getVerticalVelocity(double *pVy, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pVy != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pVy = _fp2d(pCtx->pb.vy);
 
@@ -657,6 +679,9 @@ gfmRV gfmObject_getVerticalVelocity(double *pVy, gfmObject *pCtx) {
  */
 gfmRV gfmObject_setAcceleration(gfmObject *pCtx, double ax, double ay) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.ax = _d2fp(ax);
     pCtx->pb.ay = _d2fp(ay);
@@ -673,6 +698,9 @@ gfmRV gfmObject_setAcceleration(gfmObject *pCtx, double ax, double ay) {
  */
 gfmRV gfmObject_setHorizontalAcceleration(gfmObject *pCtx, double ax) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.ax = _d2fp(ax);
 
@@ -688,6 +716,9 @@ gfmRV gfmObject_setHorizontalAcceleration(gfmObject *pCtx, double ax) {
  */
 gfmRV gfmObject_setVerticalAcceleration(gfmObject *pCtx, double ay) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.ay = _d2fp(ay);
 
@@ -706,6 +737,9 @@ gfmRV gfmObject_getAcceleration(double *pAx, double *pAy, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pAx != 0);
     assert(pAy != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pAx = _fp2d(pCtx->pb.ax);
     *pAy = _fp2d(pCtx->pb.ay);
@@ -723,6 +757,9 @@ gfmRV gfmObject_getAcceleration(double *pAx, double *pAy, gfmObject *pCtx) {
 gfmRV gfmObject_getHorizontalAcceleration(double *pAx, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pAx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pAx = _fp2d(pCtx->pb.ax);
 
@@ -739,6 +776,9 @@ gfmRV gfmObject_getHorizontalAcceleration(double *pAx, gfmObject *pCtx) {
 gfmRV gfmObject_getVerticalAcceleration(double *pAy, gfmObject *pCtx) {
     assert(pCtx != 0);
     assert(pAy != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pAy = _fp2d(pCtx->pb.ay);
 
@@ -848,6 +888,9 @@ gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx) {
  */
 gfmRV gfmObject_setFixed(gfmObject *pCtx) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.flags |= EPBF_FIXED;
 
@@ -862,6 +905,9 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx) {
  */
 gfmRV gfmObject_setMovable(gfmObject *pCtx) {
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     pCtx->pb.flags &= ~EPBF_FIXED;
 
@@ -907,7 +953,11 @@ gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther) {
     assert(pCtx != 0);
     assert(pOther != 0);
 
-    if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
+    if (pCtx->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -933,7 +983,11 @@ gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther) {
     assert(pCtx != 0);
     assert(pOther != 0);
 
-    if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
+    if (pCtx->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -958,7 +1012,11 @@ gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther) {
     assert(pCtx != 0);
     assert(pOther != 0);
 
-    if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
+    if (pCtx->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pCtx->t.hw == 0 || pCtx->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -983,7 +1041,10 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     assert(pObj != 0);
     assert(pCtx != 0);
 
-    if (pObj->t.hw == 0 || pObj->t.hh == 0) {
+    if (pObj->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pObj->t.hw == 0 || pObj->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
 
@@ -1213,7 +1274,11 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     assert(pSelf != 0);
     assert(pOther != 0);
 
-    if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
+    if (pSelf->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -1299,7 +1364,11 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     assert(pSelf != 0);
     assert(pOther != 0);
 
-    if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
+    if (pSelf->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -1335,7 +1404,11 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
     assert(pSelf != 0);
     assert(pOther != 0);
 
-    if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
+    if (pSelf->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -1405,7 +1478,11 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     assert(pSelf != 0);
     assert(pOther != 0);
 
-    if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
+    if (pSelf->t.innerType != gfmType_object
+            || pOther->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
+    else if (pSelf->t.hw == 0 || pSelf->t.hh == 0 || pOther->t.hw == 0
             || pOther->t.hh == 0) {
         return GFMRV_OBJECT_NOT_INITIALIZED;
     }
@@ -1471,6 +1548,9 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
 gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
     assert(pDir != 0);
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pDir = (pCtx->pb.flags & gfmCollision_cur);
 
@@ -1487,6 +1567,9 @@ gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
 gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
     assert(pDir != 0);
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pDir = (pCtx->pb.flags & gfmCollision_last) >> 4;
 
@@ -1503,6 +1586,9 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
 gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     assert(pDir != 0);
     assert(pCtx != 0);
+    if (pCtx->t.innerType != gfmType_object) {
+        return GFMRV_INVALID_TYPE;
+    }
 
     *pDir = (pCtx->pb.flags & gfmInstantCollision_mask) >> EPBF_INSTANT_SHIFT;
 
