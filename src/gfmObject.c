@@ -10,10 +10,12 @@
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmHitbox.h>
 #include <GFraMe/gfmObject.h>
 
 #include <GFraMe_int/gfmFixedPoint.h>
 #include <GFraMe_int/gfmGeometry.h>
+#include <GFraMe_int/gfmHitbox.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -27,10 +29,8 @@ enum {
 
 /** The gfmObject structure */
 struct stGFMObject {
-    /** Current horizontal position */
-    int x;
-    /** Current vertical position */
-    int y;
+    /** The object's hitbox (i.e., its transform) */
+    gfmHitbox t;
     /** Collision and fixed flags */
     uint32_t flags;
     /** Current accumulated (i.e., double) horizontal position */
@@ -49,14 +49,6 @@ struct stGFMObject {
     double ax;
     /** Vertical acceleration */
     double ay;
-    /** Object's half width; Part of its AABB */
-    double halfWidth;
-    /** Object's half height; Part of its AABB */
-    double halfHeight;
-    /** Type of the child object */
-    int type;
-    /** Pointer to the child object */
-    void *pChild;
 };
 
 /** Size of gfmObject */
@@ -78,7 +70,7 @@ static gfmRV _int_gfmObject_setHorizontalPosition(gfmObject *pCtx, double x) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Set both the position and the previous position
-    pCtx->x = (int)x;
+    pCtx->t.x = (int)x;
     pCtx->dx = x;
     
     rv = GFMRV_OK;
@@ -102,7 +94,7 @@ static gfmRV _int_gfmObject_setVerticalPosition(gfmObject *pCtx, double y) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Set both the position and the previous position
-    pCtx->y = (int)y;
+    pCtx->t.y = (int)y;
     pCtx->dy = y;
     
     rv = GFMRV_OK;
@@ -218,8 +210,8 @@ gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height,
     ASSERT_NR(rv == GFMRV_OK);
     
     // Set the object's position
-    pCtx->x = x;
-    pCtx->y = y;
+    pCtx->t.x = x;
+    pCtx->t.y = y;
     // Must also set the previous position, to avoid collision errors
     pCtx->dx = x;
     pCtx->dy = y;
@@ -227,12 +219,12 @@ gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height,
     pCtx->ldy = y;
     
     // Set the object's dimensions
-    pCtx->halfWidth = width / 2;
-    pCtx->halfHeight = height / 2;
+    pCtx->t.hw = width / 2;
+    pCtx->t.hh = height / 2;
     
     // Set the object's child
-    pCtx->pChild = pChild;
-    pCtx->type = type;
+    pCtx->t.pContext = pChild;
+    pCtx->t.type = type;
     
     rv = GFMRV_OK;
 __ret:
@@ -301,7 +293,7 @@ gfmRV gfmObject_setHorizontalDimension(gfmObject *pCtx, int width) {
     ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
     
     // Set the width
-    pCtx->halfWidth = width / 2;
+    pCtx->t.hw = width / 2;
     
     rv = GFMRV_OK;
 __ret:
@@ -323,7 +315,7 @@ gfmRV gfmObject_setVerticalDimension(gfmObject *pCtx, int height) {
     ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
     
     // Set the height
-    pCtx->halfHeight = height / 2;
+    pCtx->t.hh = height / 2;
     
     rv = GFMRV_OK;
 __ret:
@@ -370,7 +362,7 @@ gfmRV gfmObject_getWidth(int *pWidth, gfmObject *pCtx) {
     ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    *pWidth = pCtx->halfWidth * 2;
+    *pWidth = pCtx->t.hw * 2;
     
     rv = GFMRV_OK;
 __ret:
@@ -391,7 +383,7 @@ gfmRV gfmObject_getHeight(int *pHeight, gfmObject *pCtx) {
     ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    *pHeight = pCtx->halfHeight * 2;
+    *pHeight = pCtx->t.hh * 2;
     
     rv = GFMRV_OK;
 __ret:
@@ -441,7 +433,7 @@ gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Set both the position and the previous position
-    pCtx->x = x;
+    pCtx->t.x = x;
     pCtx->dx = (double)x;
     
     rv = GFMRV_OK;
@@ -465,7 +457,7 @@ gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Set both the position and the previous position
-    pCtx->y = y;
+    pCtx->t.y = y;
     pCtx->dy = (double)y;
     
     rv = GFMRV_OK;
@@ -519,7 +511,7 @@ gfmRV gfmObject_getHorizontalPosition(int *pX, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the object's horizontal position
-    *pX = pCtx->x;
+    *pX = pCtx->t.x;
     
     rv = GFMRV_OK;
 __ret:
@@ -543,7 +535,7 @@ gfmRV gfmObject_getVerticalPosition(int *pY, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the object's horizontal position
-    *pY = pCtx->y;
+    *pY = pCtx->t.y;
     
     rv = GFMRV_OK;
 __ret:
@@ -564,12 +556,12 @@ gfmRV gfmObject_setCenter(gfmObject *pCtx, int x, int y) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* Check that the object was initialized */
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     /* Adjust the position */
-    x -= pCtx->halfWidth;
-    y -= pCtx->halfHeight;
+    x -= pCtx->t.hw;
+    y -= pCtx->t.hh;
 
     rv = gfmObject_setPosition(pCtx, x, y);
 __ret:
@@ -592,8 +584,8 @@ gfmRV gfmObject_getCenter(int *pX, int *pY, gfmObject *pCtx) {
     ASSERT(pY, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Get the position
     rv = gfmObject_getHorizontalPosition(pX, pCtx);
@@ -601,8 +593,8 @@ gfmRV gfmObject_getCenter(int *pX, int *pY, gfmObject *pCtx) {
     rv = gfmObject_getVerticalPosition(pY, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
     // Offset it to the center
-    *pX += pCtx->halfWidth;
-    *pY += pCtx->halfHeight;
+    *pX += pCtx->t.hw;
+    *pY += pCtx->t.hh;
     
     rv = GFMRV_OK;
 __ret:
@@ -625,15 +617,15 @@ gfmRV gfmObject_getLastCenter(int *pX, int *pY, gfmObject *pCtx) {
     ASSERT(pY, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Get the position
     *pX = (int)pCtx->ldx;
     *pY = (int)pCtx->ldy;
     // Offset it to the center
-    *pX += pCtx->halfWidth;
-    *pY += pCtx->halfHeight;
+    *pX += pCtx->t.hw;
+    *pY += pCtx->t.hh;
     
     rv = GFMRV_OK;
 __ret:
@@ -934,8 +926,8 @@ gfmRV gfmObject_getChild(void **ppChild, int *pType, gfmObject *pCtx) {
     ASSERT(pType, GFMRV_ARGUMENTS_BAD);
     
     // Get the object's child and type
-    *ppChild = pCtx->pChild;
-    *pType = pCtx->type;
+    *ppChild = pCtx->t.pContext;
+    *pType = pCtx->t.type;
     
     rv = GFMRV_OK;
 __ret:
@@ -1019,16 +1011,16 @@ gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     /* Update its position with the other's translation */
     pCtx->dx += pOther->dx - pOther->ldx;
     pCtx->dy += pOther->dy - pOther->ldy;
-    pCtx->x = (int)pCtx->dx;
-    pCtx->y = (int)pCtx->dy;
+    pCtx->t.x = (int)pCtx->dx;
+    pCtx->t.y = (int)pCtx->dy;
 
     rv = GFMRV_OK;
 __ret:
@@ -1051,14 +1043,14 @@ gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     /* Update its position with the other's translation */
     pCtx->dx += pOther->dx - pOther->ldx;
-    pCtx->x = (int)pCtx->dx;
+    pCtx->t.x = (int)pCtx->dx;
 
     rv = GFMRV_OK;
 __ret:
@@ -1081,14 +1073,14 @@ gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     /* Update its position with the other's translation */
     pCtx->dy += pOther->dy - pOther->ldy;
-    pCtx->y = (int)pCtx->dy;
+    pCtx->t.y = (int)pCtx->dy;
 
     rv = GFMRV_OK;
 __ret:
@@ -1111,8 +1103,8 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     ASSERT(pObj, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pObj->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pObj->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pObj->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pObj->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Get the delta time
     rv = gfm_getElapsedTimed(&elapsed, pCtx);
@@ -1127,11 +1119,8 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     _gfmObject_integrate(&pObj->dy, &pObj->vy, pObj->ay, elapsed);
     
     // Set the actual (integer) position
-    pObj->x = (int)pObj->dx;
-    pObj->y = (int)pObj->dy;
-    
-    // Remove the flag (if the object was manually moved)
-    pObj->justMoved = 0;
+    pObj->t.x = (int)pObj->dx;
+    pObj->t.y = (int)pObj->dy;
     
     // Clear this frame's collisions and set the previous one
     pObj->flags &= ~gfmCollision_last;
@@ -1193,7 +1182,7 @@ gfmRV gfmObject_getHorizontalDistance(int *pDx, gfmObject *pSelf,
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     
     // Get the distance
-    *pDx = (pSelf->x + pSelf->halfWidth) - (pOther->x + pOther->halfWidth);
+    *pDx = (pSelf->t.x + pSelf->t.hw) - (pOther->t.x + pOther->t.hw);
     if (*pDx < 0)
         *pDx = -(*pDx);
     
@@ -1221,7 +1210,7 @@ gfmRV gfmObject_getVerticalDistance(int *pDy, gfmObject *pSelf,
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     
     // Get the distance
-    *pDy = (pSelf->y + pSelf->halfHeight) - (pOther->y + pOther->halfHeight);
+    *pDy = (pSelf->t.y + pSelf->t.hh) - (pOther->t.y + pOther->t.hh);
     if (*pDy < 0)
         *pDy = -(*pDy);
     
@@ -1249,7 +1238,7 @@ gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     
     // Get the distance
-    *pDx = (pSelf->dx + pSelf->halfWidth) - (pOther->dx + pOther->halfWidth);
+    *pDx = (pSelf->dx + pSelf->t.hw) - (pOther->dx + pOther->t.hw);
     if (*pDx < 0)
         *pDx = -(*pDx);
     
@@ -1277,7 +1266,7 @@ gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     
     // Get the distance
-    *pDy = (pSelf->dy + pSelf->halfHeight) - (pOther->dy + pOther->halfHeight);
+    *pDy = (pSelf->dy + pSelf->t.hh) - (pOther->dy + pOther->t.hh);
     if (*pDy < 0)
         *pDy = -(*pDy);
     
@@ -1302,8 +1291,8 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pCtx->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Get the object's central position
     rv = gfmObject_getCenter(&cx, &cy, pCtx);
@@ -1311,13 +1300,13 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y) {
     
     // Check that it's horizontally inside the object
     delta = cx - x;
-    if (delta > pCtx->halfWidth  || delta < -pCtx->halfWidth) {
+    if (delta > pCtx->t.hw  || delta < -pCtx->t.hw) {
         rv = GFMRV_FALSE;
         goto __ret;
     }
     // Check that it's vertically inside the object
     delta = cy - y;
-    if (delta > pCtx->halfHeight  || delta < -pCtx->halfHeight) {
+    if (delta > pCtx->t.hh  || delta < -pCtx->t.hh) {
         rv = GFMRV_FALSE;
         goto __ret;
     }
@@ -1345,10 +1334,10 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Get 'this' object's center
     rv = gfmObject_getCenter(&sx, &sy, pSelf);
@@ -1358,8 +1347,8 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get both max distances for an overlap to happen
-    maxWidth = pSelf->halfWidth + pOther->halfWidth;
-    maxHeight = pSelf->halfHeight + pOther->halfHeight;
+    maxWidth = pSelf->t.hw + pOther->t.hw;
+    maxHeight = pSelf->t.hh + pOther->t.hh;
     
     // Check if a horizontal overlap happened
     delta = sx - ox;
@@ -1398,10 +1387,10 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Clear the instantaneous flag
     pSelf->flags &= ~gfmCollision_inst;
@@ -1421,8 +1410,8 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Get both max distances for an overlap to happen
-    maxWidth = pSelf->halfWidth + pOther->halfWidth;
-    maxHeight = pSelf->halfHeight + pOther->halfHeight;
+    maxWidth = pSelf->t.hw + pOther->t.hw;
+    maxHeight = pSelf->t.hh + pOther->t.hh;
     
     // Check if a horizontal overlap may have happened
     delta = sx - ox;
@@ -1432,12 +1421,12 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     if (delta >= maxWidth || delta <= -maxWidth) {
         // Check their relative position and set the collision results
         delta = abs(sx - ox);
-        if (delta + pSelf->halfWidth <= pOther->halfWidth
-                || delta + pOther->halfWidth <= pSelf->halfWidth) {
+        if (delta + pSelf->t.hw <= pOther->t.hw
+                || delta + pOther->t.hw <= pSelf->t.hw) {
             /* One of the entities was placed inside the other. Simply ignore
              * collision */
         }
-        else if (pSelf->x < pOther->x) {
+        else if (pSelf->t.x < pOther->t.x) {
             // pSelf is to the left, so it collided on its right
             pSelf->flags |= gfmCollision_instRight;
             pOther->flags |= gfmCollision_instLeft;
@@ -1456,7 +1445,7 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     delta = lsy - loy;
     if (delta >= maxHeight || delta <= -maxHeight) {
         // Check their relative position and set the collision results
-        if (pSelf->y < pOther->y) {
+        if (pSelf->t.y < pOther->t.y) {
             // pSelf is above, so it collided bellow
             pSelf->flags |= gfmCollision_instDown;
             pOther->flags |= gfmCollision_instUp;
@@ -1500,10 +1489,10 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
     ASSERT(!(pSelf->flags & gfmFlags_isFixed)
             || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
@@ -1547,10 +1536,10 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
     ASSERT(!(pSelf->flags & gfmFlags_isFixed)
             || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
@@ -1575,11 +1564,11 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         
         if (pMovable->flags & gfmCollision_instLeft) {
             // pMovable collided to the left, place it at static's right
-            newX = pStatic->dx + 2 * pStatic->halfWidth + 1;
+            newX = pStatic->dx + 2 * pStatic->t.hw + 1;
         }
         else if (pMovable->flags & gfmCollision_instRight) {
             // pMovable collided to the right, place it at static's left
-            newX = pStatic->dx - 2 * pMovable->halfWidth - 1;
+            newX = pStatic->dx - 2 * pMovable->t.hw - 1;
         }
         else {
             // Never gonna happen, but avoids warning (stupid compiler!)
@@ -1633,10 +1622,10 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
     // Check that the object was initialized
-    ASSERT(pSelf->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pSelf->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
     ASSERT(!(pSelf->flags & gfmFlags_isFixed)
             || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
@@ -1662,11 +1651,11 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         // If the object was just placed inside another object, push it out
         if (pMovable->flags & gfmCollision_instUp) {
             // pMovable collided above, place it bellow static
-            newY = pStatic->dy + 2 * pStatic->halfHeight;
+            newY = pStatic->dy + 2 * pStatic->t.hh;
         }
         else if (pMovable->flags & gfmCollision_instDown) {
             // pMovable collided bellow, place it above static
-            newY = pStatic->dy - 2 * pMovable->halfHeight;
+            newY = pStatic->dy - 2 * pMovable->t.hh;
         }
         else {
             // Never gonna happen, but avoids warning (stupid compiler!)
@@ -1814,8 +1803,8 @@ gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1) {
 
     object.centerX = gfmFixedPoint_fromInt(ox - minX);
     object.centerY = gfmFixedPoint_fromInt(oy - minY);
-    object.halfWidth = gfmFixedPoint_fromFloat(pCtx->halfWidth);
-    object.halfHeight = gfmFixedPoint_fromFloat(pCtx->halfHeight);
+    object.halfWidth = gfmFixedPoint_fromInt(pCtx->t.hw);
+    object.halfHeight = gfmFixedPoint_fromInt(pCtx->t.hh);
 
     point0.x = gfmFixedPoint_fromInt(x0 - minX);
     point0.y = gfmFixedPoint_fromInt(y0 - minY);
