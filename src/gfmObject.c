@@ -18,12 +18,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+enum {
+    gfmFlags_isFixed    = 0x10000
+  , gfmFlags_currentBit = 0
+  , gfmFlags_lastBit    = 4
+  , gfmFlags_instBit    = 8
+};
+
 /** The gfmObject structure */
 struct stGFMObject {
     /** Current horizontal position */
     int x;
     /** Current vertical position */
     int y;
+    /** Collision and fixed flags */
+    uint32_t flags;
     /** Current accumulated (i.e., double) horizontal position */
     double dx;
     /** Current accumulated (i.e., double) vertical position */
@@ -44,19 +53,10 @@ struct stGFMObject {
     double halfWidth;
     /** Object's half height; Part of its AABB */
     double halfHeight;
-    /** Whether the object's position was just set */
-    int justMoved;
     /** Type of the child object */
     int type;
     /** Pointer to the child object */
     void *pChild;
-    /** Whether this object must stand still, on collision */
-    int isFixed;
-    /** Info about the latest overlap/collision (e.g.: down on the callback
-        against the floor and left on the callback against an enemy) */
-    gfmCollision instantHit;
-    /** Info about this and previous frame's collisions */
-    gfmCollision hit;
 };
 
 /** Size of gfmObject */
@@ -80,8 +80,6 @@ static gfmRV _int_gfmObject_setHorizontalPosition(gfmObject *pCtx, double x) {
     // Set both the position and the previous position
     pCtx->x = (int)x;
     pCtx->dx = x;
-    // Mark the object as having moved
-    pCtx->justMoved = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -106,8 +104,6 @@ static gfmRV _int_gfmObject_setVerticalPosition(gfmObject *pCtx, double y) {
     // Set both the position and the previous position
     pCtx->y = (int)y;
     pCtx->dy = y;
-    // Mark the object as having moved
-    pCtx->justMoved = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -447,8 +443,6 @@ gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x) {
     // Set both the position and the previous position
     pCtx->x = x;
     pCtx->dx = (double)x;
-    // Mark the object as having moved
-    pCtx->justMoved = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -473,8 +467,6 @@ gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y) {
     // Set both the position and the previous position
     pCtx->y = y;
     pCtx->dy = (double)y;
-    // Mark the object as having moved
-    pCtx->justMoved = 1;
     
     rv = GFMRV_OK;
 __ret:
@@ -964,7 +956,7 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    pCtx->isFixed = 1;
+    pCtx->flags |= gfmFlags_isFixed;
     
     rv = GFMRV_OK;
 __ret:
@@ -983,7 +975,7 @@ gfmRV gfmObject_setMovable(gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
-    pCtx->isFixed = 0;
+    pCtx->flags &= ~gfmFlags_isFixed;
     
     rv = GFMRV_OK;
 __ret:
@@ -1142,7 +1134,9 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     pObj->justMoved = 0;
     
     // Clear this frame's collisions and set the previous one
-    pObj->hit = (pObj->hit << 4) & gfmCollision_last;
+    pObj->flags &= ~gfmCollision_last;
+    pObj->flags |= (pObj->flags & gfmCollision_cur) << gfmFlags_lastBit;
+    pObj->flags &= ~gfmCollision_cur;
     
     rv = GFMRV_OK;
 __ret:
@@ -1410,8 +1404,8 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     
     // Clear the instantaneous flag
-    pSelf->instantHit = 0;
-    pOther->instantHit = 0;
+    pSelf->flags &= ~gfmCollision_inst;
+    pOther->flags &= ~gfmCollision_inst;
     
     // Get 'this' object's center
     rv = gfmObject_getCenter(&sx, &sy, pSelf);
@@ -1435,9 +1429,6 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(delta <= maxWidth && delta >= -maxWidth, GFMRV_FALSE);
     // Check that they weren't overlaping previous frame; or they just moved
     delta = lsx - lox;
-    // TODO Fix 'justMoved', as it bugs on self collision
-    //if (delta >= maxWidth || delta <= -maxWidth || pSelf->justMoved
-    //        || pOther->justMoved) {
     if (delta >= maxWidth || delta <= -maxWidth) {
         // Check their relative position and set the collision results
         delta = abs(sx - ox);
@@ -1448,13 +1439,13 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
         }
         else if (pSelf->x < pOther->x) {
             // pSelf is to the left, so it collided on its right
-            pSelf->instantHit |= gfmCollision_right;
-            pOther->instantHit |= gfmCollision_left;
+            pSelf->flags |= gfmCollision_instRight;
+            pOther->flags |= gfmCollision_instLeft;
         }
         else {
             // pSelf is to the right, so it collided on its left
-            pSelf->instantHit |= gfmCollision_left;
-            pOther->instantHit |= gfmCollision_right;
+            pSelf->flags |= gfmCollision_instLeft;
+            pOther->flags |= gfmCollision_instRight;
         }
     }
     
@@ -1463,35 +1454,29 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(delta <= maxHeight && delta >= -maxHeight, GFMRV_FALSE);
     // Check that they weren't overlaping previous frame; or they just moved
     delta = lsy - loy;
-    // TODO Fix 'justMoved', as it bugs on self collision
-    // if (delta >= maxHeight || delta <= -maxHeight || pSelf->justMoved
-    //        || pOther->justMoved) {
     if (delta >= maxHeight || delta <= -maxHeight) {
         // Check their relative position and set the collision results
         if (pSelf->y < pOther->y) {
             // pSelf is above, so it collided bellow
-            pSelf->instantHit |= gfmCollision_down;
-            pOther->instantHit |= gfmCollision_up;
+            pSelf->flags |= gfmCollision_instDown;
+            pOther->flags |= gfmCollision_instUp;
         }
         else {
             // pSelf is bellow, so it collided above
-            pSelf->instantHit |= gfmCollision_up;
-            pOther->instantHit |= gfmCollision_down;
+            pSelf->flags |= gfmCollision_instUp;
+            pOther->flags |= gfmCollision_instDown;
         }
     }
     
     // Check that they collided in any directions
-    if ((pSelf->instantHit & gfmCollision_ver) == 0 &&
-            (pSelf->instantHit & gfmCollision_hor) == 0) {
+    if ((pSelf->flags & (gfmCollision_instHor | gfmCollision_instVer)) == 0 ) {
         rv = GFMRV_FALSE;
         goto __ret;
     }
-    //ASSERT((pSelf->instantHit & gfmCollision_ver) ||
-    //        (pSelf->instantHit & gfmCollision_hor), GFMRV_FALSE);
     
     // Set overlap position definitivelly 
-    pSelf->hit |= pSelf->instantHit;
-    pOther->hit |= pOther->instantHit;
+    pSelf->flags |= (pSelf->flags & gfmCollision_inst) >> gfmFlags_instBit;
+    pOther->flags |= (pOther->flags & gfmCollision_inst) >> gfmFlags_instBit;
     
     rv = GFMRV_TRUE;
 __ret:
@@ -1520,7 +1505,8 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
-    ASSERT(!pSelf->isFixed || !pOther->isFixed, GFMRV_OBJECTS_CANT_COLLIDE);
+    ASSERT(!(pSelf->flags & gfmFlags_isFixed)
+            || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
     
     // Overlap both objects
     rv = gfmObject_justOverlaped(pSelf, pOther);
@@ -1530,12 +1516,12 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     }
     
     // If they overlapped horizontally, separate'em
-    if (pSelf->instantHit & gfmCollision_hor) {
+    if (pSelf->flags & gfmCollision_instHor) {
         rv = gfmObject_separateHorizontal(pSelf, pOther);
         ASSERT(rv == GFMRV_OK, rv);
     }
     // If they overlapped vertically, separate'em
-    if (pSelf->instantHit & gfmCollision_ver) {
+    if (pSelf->flags & gfmCollision_instVer) {
         rv = gfmObject_separateVertical(pSelf, pOther);
         ASSERT(rv == GFMRV_OK, rv);
     }
@@ -1566,16 +1552,17 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
-    ASSERT(!pSelf->isFixed || !pOther->isFixed, GFMRV_OBJECTS_CANT_COLLIDE);
+    ASSERT(!(pSelf->flags & gfmFlags_isFixed)
+            || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
     // Check that collision happened in the X axis
-    ASSERT(pSelf->instantHit & gfmCollision_hor, GFMRV_COLLISION_NOT_TRIGGERED);
+    ASSERT(pSelf->flags & gfmCollision_instHor, GFMRV_COLLISION_NOT_TRIGGERED);
     
     // If an object is static, get the other one
-    if (pOther->isFixed) {
+    if (pOther->flags & gfmFlags_isFixed) {
         pStatic = pOther;
         pMovable = pSelf;
     }
-    else if (pSelf->isFixed) {
+    else if (pSelf->flags & gfmFlags_isFixed) {
         pStatic = pSelf;
         pMovable = pOther;
     }
@@ -1586,11 +1573,11 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         double newX;
         // If one object is static
         
-        if (pMovable->instantHit & gfmCollision_left) {
+        if (pMovable->flags & gfmCollision_instLeft) {
             // pMovable collided to the left, place it at static's right
             newX = pStatic->dx + 2 * pStatic->halfWidth + 1;
         }
-        else if (pMovable->instantHit & gfmCollision_right) {
+        else if (pMovable->flags & gfmCollision_instRight) {
             // pMovable collided to the right, place it at static's left
             newX = pStatic->dx - 2 * pMovable->halfWidth - 1;
         }
@@ -1609,14 +1596,14 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         ASSERT_NR(rv == GFMRV_OK);
         dist *= 0.5;
         // Push both objects
-        if (pSelf->instantHit & gfmCollision_left) {
+        if (pSelf->flags & gfmCollision_instLeft) {
             // pSelf collided left, so it must be pushed to the right
             rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
             rv = _int_gfmObject_setHorizontalPosition(pOther, pOther->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
-        if (pSelf->instantHit & gfmCollision_right) {
+        if (pSelf->flags & gfmCollision_instRight) {
             // pSelf collided right, so it must be pushed to the left
             rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx - dist);
             ASSERT_NR(rv == GFMRV_OK);
@@ -1651,16 +1638,17 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     ASSERT(pOther->halfWidth > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->halfHeight > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     // Check that at least one isn't fixed
-    ASSERT(!pSelf->isFixed || !pOther->isFixed, GFMRV_OBJECTS_CANT_COLLIDE);
+    ASSERT(!(pSelf->flags & gfmFlags_isFixed)
+            || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
     // Check that collision happened in the X axis
-    ASSERT(pSelf->instantHit & gfmCollision_ver, GFMRV_COLLISION_NOT_TRIGGERED);
+    ASSERT(pSelf->flags & gfmCollision_instVer, GFMRV_COLLISION_NOT_TRIGGERED);
     
     // If an object is static, get the other one
-    if (pOther->isFixed) {
+    if (pOther->flags & gfmFlags_isFixed) {
         pStatic = pOther;
         pMovable = pSelf;
     }
-    else if (pSelf->isFixed) {
+    else if (pSelf->flags & gfmFlags_isFixed) {
         pStatic = pSelf;
         pMovable = pOther;
     }
@@ -1672,11 +1660,11 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         // If one object is static
         
         // If the object was just placed inside another object, push it out
-        if (pMovable->instantHit & gfmCollision_up) {
+        if (pMovable->flags & gfmCollision_instUp) {
             // pMovable collided above, place it bellow static
             newY = pStatic->dy + 2 * pStatic->halfHeight;
         }
-        else if (pMovable->instantHit & gfmCollision_down) {
+        else if (pMovable->flags & gfmCollision_instDown) {
             // pMovable collided bellow, place it above static
             newY = pStatic->dy - 2 * pMovable->halfHeight;
         }
@@ -1695,14 +1683,14 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         ASSERT_NR(rv == GFMRV_OK);
         dist *= 0.5;
         // Push both objects
-        if (pSelf->instantHit & gfmCollision_up) {
+        if (pSelf->flags & gfmCollision_instUp) {
             // pSelf collided above so it must be pushed downward
             rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
             rv = _int_gfmObject_setVerticalPosition(pOther, pOther->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
         }
-        if (pSelf->instantHit & gfmCollision_down) {
+        if (pSelf->flags & gfmCollision_instDown) {
             // pSelf collided bellow, so it must be pushed upward
             rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy - dist);
             ASSERT_NR(rv == GFMRV_OK);
@@ -1731,7 +1719,7 @@ gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the flags
-    *pDir = (pCtx->hit & gfmCollision_cur);
+    *pDir = (pCtx->flags & gfmCollision_cur);
     
     rv = GFMRV_OK;
 __ret:
@@ -1753,7 +1741,7 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the flags
-    *pDir = (pCtx->hit & gfmCollision_last) >> 4;
+    *pDir = (pCtx->flags & gfmCollision_last) >> gfmFlags_lastBit;
     
     rv = GFMRV_OK;
 __ret:
@@ -1775,7 +1763,7 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     // Get the flags
-    *pDir = pCtx->instantHit;
+    *pDir = (pCtx->flags & gfmCollision_inst) >> gfmFlags_instBit;
     
     rv = GFMRV_OK;
 __ret:
