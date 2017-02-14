@@ -1766,8 +1766,6 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
-    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
