@@ -1659,11 +1659,11 @@ gfmRV gfmObject_separateHorizontalHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
 
     if (pObj->flags & gfmCollision_instLeft) {
         /* pMovable collided to the left, place it at static's right */
-        pObj->dx = pHitbox->x + 2 * pHitbox->hw;
+        pObj->dx = pHitbox->x + 2 * pHitbox->hw + 1;
     }
     else if (pObj->flags & gfmCollision_instRight) {
         /* pMovable collided to the right, place it at static's left */
-        pObj->dx = pHitbox->x - 2 * pObj->t.hw;
+        pObj->dx = pHitbox->x - 2 * pObj->t.hw - 1;
     }
     pObj->t.x = (int)pObj->dx;
 
