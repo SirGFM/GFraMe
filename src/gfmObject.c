@@ -12,6 +12,7 @@
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmHitbox.h>
 #include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmTypes.h>
 
 #include <GFraMe_int/gfmFixedPoint.h>
 #include <GFraMe_int/gfmGeometry.h>
@@ -225,6 +226,7 @@ gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height,
     // Set the object's child
     pCtx->t.pContext = pChild;
     pCtx->t.type = type;
+    pCtx->t.innerType = gfmType_object;
     
     rv = GFMRV_OK;
 __ret:
@@ -242,6 +244,7 @@ gfmRV gfmObject_clean(gfmObject *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Clean it up
     memset(pCtx, 0x0, sizeof(gfmObject));
@@ -616,6 +619,7 @@ gfmRV gfmObject_getLastCenter(int *pX, int *pY, gfmObject *pCtx) {
     ASSERT(pX, GFMRV_ARGUMENTS_BAD);
     ASSERT(pY, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -645,6 +649,7 @@ gfmRV gfmObject_setVelocity(gfmObject *pCtx, double vx, double vy) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the velocity
     rv = gfmObject_setHorizontalVelocity(pCtx, vx);
@@ -669,6 +674,7 @@ gfmRV gfmObject_setHorizontalVelocity(gfmObject *pCtx, double vx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the velocity
     pCtx->vx = vx;
@@ -690,6 +696,7 @@ gfmRV gfmObject_setVerticalVelocity(gfmObject *pCtx, double vy) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the velocity
     pCtx->vy = vy;
@@ -714,6 +721,7 @@ gfmRV gfmObject_getVelocity(double *pVx, double *pVy, gfmObject *pCtx) {
     ASSERT(pVx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pVy, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the velocity
     rv = gfmObject_getHorizontalVelocity(pVx, pCtx);
@@ -739,6 +747,7 @@ gfmRV gfmObject_getHorizontalVelocity(double *pVx, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pVx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the velocity
     *pVx = pCtx->vx;
@@ -761,6 +770,7 @@ gfmRV gfmObject_getVerticalVelocity(double *pVy, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pVy, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the velocity
     *pVy = pCtx->vy;
@@ -783,6 +793,7 @@ gfmRV gfmObject_setAcceleration(gfmObject *pCtx, double ax, double ay) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the object's acceleration
     rv = gfmObject_setHorizontalAcceleration(pCtx, ax);
@@ -807,6 +818,7 @@ gfmRV gfmObject_setHorizontalAcceleration(gfmObject *pCtx, double ax) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the object's acceleration
     pCtx->ax = ax;
@@ -828,6 +840,7 @@ gfmRV gfmObject_setVerticalAcceleration(gfmObject *pCtx, double ay) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Set the object's acceleration
     pCtx->ay = ay;
@@ -852,6 +865,7 @@ gfmRV gfmObject_getAcceleration(double *pAx, double *pAy, gfmObject *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pAx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pAy, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the object's acceleration
     rv = gfmObject_getHorizontalAcceleration(pAx, pCtx);
@@ -877,6 +891,7 @@ gfmRV gfmObject_getHorizontalAcceleration(double *pAx, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pAx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the object's acceleration
     *pAx = pCtx->ax;
@@ -899,6 +914,7 @@ gfmRV gfmObject_getVerticalAcceleration(double *pAy, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pAy, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the object's acceleration
     *pAy = pCtx->ay;
@@ -947,6 +963,7 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     pCtx->flags |= gfmFlags_isFixed;
     
@@ -966,6 +983,7 @@ gfmRV gfmObject_setMovable(gfmObject *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     pCtx->flags &= ~gfmFlags_isFixed;
     
@@ -1011,6 +1029,8 @@ gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1043,6 +1063,8 @@ gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1073,6 +1095,8 @@ gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther) {
     /* Sanitize everything */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1102,6 +1126,7 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     // Sanitize arguments
     ASSERT(pObj, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pObj->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pObj->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pObj->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1236,6 +1261,8 @@ gfmRV gfmObject_getHorizontalDistanced(double *pDx, gfmObject *pSelf,
     ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the distance
     *pDx = (pSelf->dx + pSelf->t.hw) - (pOther->dx + pOther->t.hw);
@@ -1264,6 +1291,8 @@ gfmRV gfmObject_getVerticalDistanced(double *pDy, gfmObject *pSelf,
     ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the distance
     *pDy = (pSelf->dy + pSelf->t.hh) - (pOther->dy + pOther->t.hh);
@@ -1386,6 +1415,8 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1488,6 +1519,8 @@ gfmRV gfmObject_collide(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1535,6 +1568,8 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1621,6 +1656,8 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1706,6 +1743,7 @@ gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
     *pDir = (pCtx->flags & gfmCollision_cur);
@@ -1728,6 +1766,7 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
     *pDir = (pCtx->flags & gfmCollision_last) >> gfmFlags_lastBit;
@@ -1750,6 +1789,7 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     // Sanitize arguments
     ASSERT(pDir, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
     *pDir = (pCtx->flags & gfmCollision_inst) >> gfmFlags_instBit;
