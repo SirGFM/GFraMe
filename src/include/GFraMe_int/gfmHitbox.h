@@ -31,5 +31,15 @@ struct stGFMHitbox {
     int16_t hh;
 };
 
+/**
+ * Expand a previously alloc'ed list of hitboxes, without destroying the
+ * previous one.
+ *
+ * @param  [ in]ppCtx    The alloc'ed list
+ * @param  [ in]oldCount How many hitboxes had been alloc'ed
+ * @param  [ in]newCount How many hitboxes should be alloc'ed
+ */
+gfmRV gfmHitbox_expandList(gfmHitbox **ppCtx, int oldCount, int newCount);
+
 #endif /* __INT_GFMHITBOX_H__ */
 

@@ -34,10 +34,34 @@ __ret:
     return rv;
 }
 
+/**
+ * Expand a previously alloc'ed list of hitboxes, without destroying the
+ * previous one.
+ *
+ * @param  [ in]ppCtx    The alloc'ed list
+ * @param  [ in]oldCount How many hitboxes had been alloc'ed
+ * @param  [ in]newCount How many hitboxes should be alloc'ed
+ */
+gfmRV gfmHitbox_expandList(gfmHitbox **ppCtx, int oldCount, int newCount) {
+    gfmRV rv;
+
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+
+    *ppCtx = (gfmHitbox*)realloc(*ppCtx, sizeof(gfmHitbox) * newCount);
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    if (newCount > oldCount) {
+        memset((*ppCtx) + oldCount, 0x0, sizeof(gfmHitbox) * (newCount - oldCount));
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
 /** Free either a list or a single hitbox */
 gfmRV gfmHitbox_free(gfmHitbox **ppCtx) {
     if (ppCtx) {
-        free(ppCtx);
+        free(*ppCtx);
         *ppCtx = 0;
     }
 
