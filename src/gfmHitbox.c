@@ -1,0 +1,172 @@
+/**
+ * @file src/gfmHitbox.c
+ *
+ * Define a hitbox, which is also part of objects and may be (in some
+ * circunstances) used interchangebly as such.
+ */
+#include <GFraMe/gfmAssert.h>
+#include <GFraMe/gfmError.h>
+#include <GFraMe/gfmHitbox.h>
+#include <GFraMe/gfmObject.h>
+#include <GFraMe/gfmQuadtree.h>
+#include <GFraMe/gfmTypes.h>
+#include <GFraMe_int/gfmHitbox.h>
+#include <stdlib.h>
+#include <string.h>
+
+/** Type of a gfmType_hitbox. It could be anything as longs as it were different
+ * from gfmType_object */
+#define gfmTypes_hitbox gfmType_reserved_2
+
+/**
+ * Spawn a number of sequentially alloc'ed hitboxes
+ *
+ * @param  [ in]ppCtx The alloc'ed list
+ * @param  [ in]count How many hitboxes should be alloc'ed
+ */
+gfmRV gfmHitbox_getNewList(gfmHitbox **ppCtx, int count) {
+    gfmRV rv;
+
+    ASSERT(ppCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(!(*ppCtx), GFMRV_ARGUMENTS_BAD);
+
+    *ppCtx = (gfmHitbox*)malloc(sizeof(gfmHitbox) * count);
+    ASSERT(*ppCtx, GFMRV_ALLOC_FAILED);
+    memset(*ppCtx, 0x0, sizeof(gfmHitbox) * count);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/** Free either a list or a single hitbox */
+gfmRV gfmHitbox_free(gfmHitbox **ppCtx) {
+    if (ppCtx) {
+        free(ppCtx);
+        *ppCtx = 0;
+    }
+
+    return GFMRV_OK;
+}
+
+/**
+ * Initialize a single hitbox within a list
+ *
+ * @param  [ in]pObj   The hitbox
+ * @param  [ in]pCtx   The context to be stored within the hitbox (e.g., an
+ *                     associated object, or level data)
+ * @param  [ in]x      The hitbox's top-left corner position
+ * @param  [ in]y      The hitbox's top-left corner position
+ * @param  [ in]width  The hitbox's dimension
+ * @param  [ in]height The hitbox's dimension
+ * @param  [ in]type   The type of the hitbox's context
+ */
+gfmRV gfmHitbox_init(gfmHitbox *pObj, void *pCtx, int x, int y, int width
+        , int height, int type) {
+    gfmRV rv;
+
+    ASSERT(pObj != 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
+
+    pObj->x = x;
+    pObj->y = y;
+    pObj->hw = width / 2;
+    pObj->hh = height / 2;
+    pObj->pContext = pCtx;
+    pObj->type = type;
+    pObj->innerType = gfmTypes_hitbox;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Initialize a single hitbox within a list
+ *
+ * @param  [ in]pList  The list of hitboxes
+ * @param  [ in]pCtx   The context to be stored within the hitbox (e.g., an
+ *                     associated object, or level data)
+ * @param  [ in]x      The hitbox's top-left corner position
+ * @param  [ in]y      The hitbox's top-left corner position
+ * @param  [ in]width  The hitbox's dimension
+ * @param  [ in]height The hitbox's dimension
+ * @param  [ in]type   The type of the hitbox's context
+ * @param  [ in]index  The index of the hitbox within the list
+ */
+gfmRV gfmHitbox_initItem(gfmHitbox *pList, void *pCtx, int x, int y, int width
+        , int height, int type, int index) {
+    if (pList == 0 || index < 0) {
+        return GFMRV_ARGUMENTS_BAD;
+    }
+
+    return gfmHitbox_init(pList + index, pCtx, x, y, width, height, type);
+}
+
+/**
+ * Populate a quadtree with a list of hitboxes
+ *
+ * @param  [ in]pList The list of hitboxes
+ * @param  [ in]pRoot The quadtree
+ * @param  [ in]count How many hitboxes there are on the list
+ */
+gfmRV gfmHitbox_populateQuadtree(gfmHitbox *pList, gfmQuadtreeRoot *pRoot
+        , int count) {
+    int i;
+
+    i = 0;
+    while (i < count) {
+        gfmObject *pObj;
+        gfmRV rv;
+
+        /* Conversion from gfmHitbox to gfmObject is valid if only the first
+         * field (a gfmHitbox) from the object will be used */
+        pObj = (gfmObject*)(pList + i);
+        rv = gfmQuadtree_populateObject(pRoot, pObj);
+        if (rv != GFMRV_OK) {
+            return rv;
+        }
+
+        i++;
+    }
+
+    return GFMRV_OK;
+}
+
+/**
+ * Collide a sub-list of hitboxes with a quadtree
+ *
+ * This function should be used to collide one-frame hitboxes that were spawned
+ * after the first call to gfmHitbox_populateQuadtree was made on the same
+ * frame. It has the same return as gfmQuadtree_collideObject, which means that
+ * it will halt execution as soon as a hitbox overlaps another node.
+ *
+ * Note that similar to gfmQuadtree_collideObject, it returns
+ * GFMRV_QUADTREE_DONE when done.
+ *
+ * @param  [ in]pList The list of hitboxes
+ * @param  [ in]pRoot The quadtree
+ * @param  [ in]first Index of the first hitbox to be collided
+ * @param  [ in]last  Index of the last hitbox to be collided
+ */
+gfmRV gfmHitbox_collideSubList(gfmHitbox *pList, gfmQuadtreeRoot *pRoot
+        , int first, int last) {
+    while (first <= last) {
+        gfmObject *pObj;
+        gfmRV rv;
+
+        /* Conversion from gfmHitbox to gfmObject is valid if only the first
+         * field (a gfmHitbox) from the object will be used */
+        pObj = (gfmObject*)(pList + first);
+        rv = gfmQuadtree_collideObject(pRoot, pObj);
+        if (rv != GFMRV_QUADTREE_DONE) {
+            return rv;
+        }
+
+        first++;
+    }
+
+    return GFMRV_QUADTREE_DONE;
+}
+
