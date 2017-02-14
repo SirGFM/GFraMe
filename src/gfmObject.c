@@ -1465,7 +1465,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     lastDist -= pHitbox->x + pHitbox->hw;
     /* Overlap was only triggered this frame if they weren't overlaping on the
      * previous one */
-    if (lastDist > maxDist || lastDist < -maxDist) {
+    if (lastDist >= maxDist || lastDist <= -maxDist) {
         if (dist + pObj->t.hw <= pHitbox->hw
                 || dist + pHitbox->hw <= pObj->t.hw) {
             /* One of the entities was placed inside the other. Simply ignore */
@@ -1488,7 +1488,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     lastDist -= pHitbox->y + pHitbox->hh;
     /* Overlap was only triggered this frame if they weren't overlaping on the
      * previous one */
-    if (lastDist > maxDist || lastDist < -maxDist) {
+    if (lastDist >= maxDist || lastDist <= -maxDist) {
 #if 0
         if (dist + pObj->t.hh <= pHitbox->hh
                 || dist + pHitbox->hh <= pObj->t.hh) {
