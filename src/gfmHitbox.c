@@ -9,14 +9,9 @@
 #include <GFraMe/gfmHitbox.h>
 #include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmQuadtree.h>
-#include <GFraMe/gfmTypes.h>
 #include <GFraMe_int/gfmHitbox.h>
 #include <stdlib.h>
 #include <string.h>
-
-/** Type of a gfmType_hitbox. It could be anything as longs as it were different
- * from gfmType_object */
-#define gfmTypes_hitbox gfmType_reserved_2
 
 /**
  * Spawn a number of sequentially alloc'ed hitboxes
@@ -75,7 +70,7 @@ gfmRV gfmHitbox_init(gfmHitbox *pObj, void *pCtx, int x, int y, int width
     pObj->hh = height / 2;
     pObj->pContext = pCtx;
     pObj->type = type;
-    pObj->innerType = gfmTypes_hitbox;
+    pObj->innerType = gfmType_hitbox;
 
     rv = GFMRV_OK;
 __ret:

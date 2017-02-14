@@ -7,7 +7,12 @@
 #ifndef __INT_GFMHITBOX_H__
 #define __INT_GFMHITBOX_H__
 
+#include <GFraMe/gfmTypes.h>
 #include <stdint.h>
+
+/** Type of a gfmType_hitbox. It could be anything as longs as it were different
+ * from gfmType_object */
+#define gfmType_hitbox gfmType_reserved_2
 
 /** An area that may be used as a gfmObject to trigger events */
 struct stGFMHitbox {
