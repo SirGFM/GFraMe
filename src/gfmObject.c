@@ -244,7 +244,6 @@ gfmRV gfmObject_clean(gfmObject *pCtx) {
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Clean it up
     memset(pCtx, 0x0, sizeof(gfmObject));
