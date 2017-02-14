@@ -22,6 +22,7 @@ typedef enum enGFMCollision gfmCollision;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmHitbox.h>
 
 /** 'Exportable' size of gfmObject */
 extern const int sizeofGFMObject;
@@ -518,6 +519,14 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y);
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
 
 /**
+ * Check if an object just overlaped a hitbox
+ *
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
  * Check if two objects just started overlaping
  * 
  * NOTE: It fails to detect if an object was inside another one and is leaving
@@ -528,6 +537,32 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
  *                GFMRV_OBJECT_NOT_INITIALIZED
  */
 gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Separate an object and a hitbox in the Y axis
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_separateHorizontalHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
+ * Separate an object and a hitbox in the Y axis
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_separateVerticalHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
+ * Collide two objects
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_collideHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
 
 /**
  * Collide two objects
