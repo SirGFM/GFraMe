@@ -161,31 +161,38 @@ gfmRV gfmHitbox_populateQuadtree(gfmHitbox *pList, gfmQuadtreeRoot *pRoot
  * frame. It has the same return as gfmQuadtree_collideObject, which means that
  * it will halt execution as soon as a hitbox overlaps another node.
  *
+ * pFirst is updated with the index when the function exits.
+ *
  * Note that similar to gfmQuadtree_collideObject, it returns
  * GFMRV_QUADTREE_DONE when done.
  *
- * @param  [ in]pList The list of hitboxes
- * @param  [ in]pRoot The quadtree
- * @param  [ in]first Index of the first hitbox to be collided
- * @param  [ in]last  Index of the last hitbox to be collided
+ * @param  [in/out]pFirst Index of the first hitbox to be collided
+ * @param  [    in]pList  The list of hitboxes
+ * @param  [    in]pRoot  The quadtree
+ * @param  [    in]last   Index of the last hitbox to be collided
  */
-gfmRV gfmHitbox_collideSubList(gfmHitbox *pList, gfmQuadtreeRoot *pRoot
-        , int first, int last) {
-    while (first <= last) {
+gfmRV gfmHitbox_collideSubList(int *pFirst, gfmHitbox *pList
+        , gfmQuadtreeRoot *pRoot, int last) {
+    int i;
+
+    i = *pFirst;
+    while (i <= last) {
         gfmObject *pObj;
         gfmRV rv;
 
         /* Conversion from gfmHitbox to gfmObject is valid if only the first
          * field (a gfmHitbox) from the object will be used */
-        pObj = (gfmObject*)(pList + first);
+        pObj = (gfmObject*)(pList + i);
+        i++;
+
         rv = gfmQuadtree_collideObject(pRoot, pObj);
         if (rv != GFMRV_QUADTREE_DONE) {
+            *pFirst = i;
             return rv;
         }
-
-        first++;
     }
 
+    *pFirst = i;
     return GFMRV_QUADTREE_DONE;
 }
 
