@@ -60,6 +60,15 @@ gfmRV gfmHitbox_initItem(gfmHitbox *pList, void *pCtx, int x, int y, int width
         , int height, int type, int index);
 
 /**
+ * Retrieve a single (managed) item from the list
+ *
+ * @param  [out]ppHitbox The hitbox
+ * @param  [ in]pList    The list of hitboxes
+ * @param  [ in]index    The item's index
+ */
+gfmRV gfmHitbox_getItem(gfmHitbox **ppHitbox, gfmHitbox *pList, int index);
+
+/**
  * Populate a quadtree with a list of hitboxes
  *
  * @param  [ in]pList The list of hitboxes

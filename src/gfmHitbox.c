@@ -124,6 +124,27 @@ gfmRV gfmHitbox_initItem(gfmHitbox *pList, void *pCtx, int x, int y, int width
 }
 
 /**
+ * Retrieve a single (managed) item from the list
+ *
+ * @param  [out]ppHitbox The hitbox
+ * @param  [ in]pList    The list of hitboxes
+ * @param  [ in]index    The item's index
+ */
+gfmRV gfmHitbox_getItem(gfmHitbox **ppHitbox, gfmHitbox *pList, int index) {
+    gfmRV rv;
+
+    ASSERT(ppHitbox != 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pList != 0, GFMRV_ARGUMENTS_BAD);
+    ASSERT(index >= 0, GFMRV_ARGUMENTS_BAD);
+
+    *ppHitbox = pList + index;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Populate a quadtree with a list of hitboxes
  *
  * @param  [ in]pList The list of hitboxes
