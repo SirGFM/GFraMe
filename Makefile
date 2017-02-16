@@ -49,6 +49,7 @@
           $(OBJDIR)/gfmError.o \
           $(OBJDIR)/gfmGeometry.o \
           $(OBJDIR)/gfmGroup.o \
+          $(OBJDIR)/gfmHitbox.o \
           $(OBJDIR)/gfmInput.o \
           $(OBJDIR)/gfmLog.o \
           $(OBJDIR)/gfmObject.o \

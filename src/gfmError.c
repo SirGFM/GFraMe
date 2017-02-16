@@ -183,6 +183,7 @@ const char *gfmError_dict[GFMRV_MAX + 1] = {
     "Can't load the requested type asynchronously", /* GFMRV_ASYNC_LOADER_INVALID_TYPE */
     "Can't normalized fixed point number, as it's greater fp's limit", /* GFMRV_FIXED_POINT_TOO_BIG */
     "Unsupported texture format", /* GFMRV_TEXTURE_UNSUPPORTED */
+    "Function does not operate on the given type", /* GFMRV_INVALID_TYPE */
     "Max error" /* GFMRV_MAX */
 };
 
