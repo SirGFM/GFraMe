@@ -630,9 +630,7 @@ gfmRV gfmTilemap_getArea(gfmObject **ppObj, gfmTilemap *pCtx, int i) {
     ASSERT(i < pCtx->numAreas, GFMRV_INVALID_INDEX);
     
     // Retrieve the object
-    *ppObj = (gfmObject*)(pCtx->pAreas + i);
-    
-    rv = GFMRV_OK;
+    rv = gfmHitbox_getItem((gfmHitbox**)ppObj, pCtx->pAreas, i);
 __ret:
     return rv;
 }
@@ -1052,13 +1050,14 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
     // Iterate the array, checking every tile
     i = 0;
     while (i < pCtx->numAreas) {
-        gfmObject *pObj;
+        gfmHitbox *pObj;
         
         // Get the next tile type
-        pObj = (gfmObject*)(pCtx->pAreas + i);
+        rv = gfmHitbox_getItem(&pObj, pCtx->pAreas, i);
+        ASSERT_NR(rv == GFMRV_OK);
         
         // Check if the tiles is inside this object
-        rv = gfmObject_isPointInside(pObj, x, y);
+        rv = gfmObject_isPointInside((gfmObject*)pObj, x, y);
         // Exist on not inside, though it's not (necessarily) an error!
         if (rv != GFMRV_FALSE) {
             goto __ret;
