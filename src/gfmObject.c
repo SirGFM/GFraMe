@@ -72,7 +72,9 @@ static gfmRV _int_gfmObject_setHorizontalPosition(gfmObject *pCtx, double x) {
     
     // Set both the position and the previous position
     pCtx->t.x = (int)x;
-    pCtx->dx = x;
+    if (pCtx->t.innerType == gfmType_object) {
+        pCtx->dx = x;
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -96,7 +98,9 @@ static gfmRV _int_gfmObject_setVerticalPosition(gfmObject *pCtx, double y) {
     
     // Set both the position and the previous position
     pCtx->t.y = (int)y;
-    pCtx->dy = y;
+    if (pCtx->t.innerType == gfmType_object) {
+        pCtx->dy = y;
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -436,7 +440,9 @@ gfmRV gfmObject_setHorizontalPosition(gfmObject *pCtx, int x) {
     
     // Set both the position and the previous position
     pCtx->t.x = x;
-    pCtx->dx = (double)x;
+    if (pCtx->t.innerType == gfmType_object) {
+        pCtx->dx = (double)x;
+    }
     
     rv = GFMRV_OK;
 __ret:
@@ -460,7 +466,9 @@ gfmRV gfmObject_setVerticalPosition(gfmObject *pCtx, int y) {
     
     // Set both the position and the previous position
     pCtx->t.y = y;
-    pCtx->dy = (double)y;
+    if (pCtx->t.innerType == gfmType_object) {
+        pCtx->dy = (double)y;
+    }
     
     rv = GFMRV_OK;
 __ret:
