@@ -344,6 +344,62 @@ gfmRV gfmSprite_getHorizontalAcceleration(double *pAx, gfmSprite *pCtx);
 gfmRV gfmSprite_getVerticalAcceleration(double *pAy, gfmSprite *pCtx);
 
 /**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dx   The horizontal drag
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setDrag(gfmSprite *pCtx, double dx, double dy);
+
+/**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dx   The horizontal drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setHorizontalDrag(gfmSprite *pCtx, double dx);
+
+/**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setVerticalDrag(gfmSprite *pCtx, double dy);
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pDy  The vertical drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getDrag(double *pDx, double *pDy, gfmSprite *pCtx);
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getHorizontalDrag(double *pDx, gfmSprite *pCtx);
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDy  The vertical drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getVerticalDrag(double *pDy, gfmSprite *pCtx);
+
+/**
  * Get the sprite's child and type; ppChild mustn't be NULL, even if the sprite
  * has no "sub-class"
  * 

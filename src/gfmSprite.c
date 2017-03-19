@@ -724,6 +724,117 @@ __ret:
 }
 
 /**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dx   The horizontal drag
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setDrag(gfmSprite *pCtx, double dx, double dy) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_setDrag(pCtx->pObject, dx, dy);
+__ret:
+    return rv;
+}
+
+/**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dx   The horizontal drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setHorizontalDrag(gfmSprite *pCtx, double dx) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_setHorizontalDrag(pCtx->pObject, dx);
+__ret:
+    return rv;
+}
+
+/**
+ * Set the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The sprite
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmSprite_setVerticalDrag(gfmSprite *pCtx, double dy) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_setVerticalDrag(pCtx->pObject, dy);
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pDy  The vertical drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getDrag(double *pDx, double *pDy, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' functionSSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    rv = gfmObject_getDrag(pDx, pDy, pCtx->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getHorizontalDrag(double *pDx, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_getHorizontalDrag(pDx, pCtx->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Get the sprite's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDy  The vertical drag
+ * @param  pCtx The sprite
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_getVerticalDrag(double *pDy, gfmSprite *pCtx) {
+    gfmRV rv;
+    
+    // Check only the sprites
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Call the 'super-class' function
+    rv = gfmObject_getVerticalDrag(pDy, pCtx->pObject);
+__ret:
+    return rv;
+}
+
+/**
  * Force this sprite to stand immovable on collision
  * 
  * NOTE: An sprite can move through its physics even if fixed!

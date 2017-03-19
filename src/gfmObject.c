@@ -1,8 +1,8 @@
 /**
  * @file include/GFraMe/gfmObject.h
  * 
- * Basic physical object; It has an AABB, position, velocity, acceleration and
- * current (and previous frame) collision info;
+ * Basic physical object; It has an AABB, position, velocity, acceleration, drag
+ * and current (and previous frame) collision info;
  * Since this is the base type to be passed to the quadtree for
  * overlaping/collision, it also has info about it's "child type" (e.g., a
  * gfmSprite pointer and the type T_GFMSPRITE)
@@ -54,6 +54,10 @@ struct stGFMObject {
     double ax;
     /** Vertical acceleration */
     double ay;
+    /** Rate at which speed goed back to 0, if there's no horizontal acc */
+    double dragX;
+    /** Rate at which speed goed back to 0, if there's no vertical acc */
+    double dragY;
 };
 
 /** Size of gfmObject */
@@ -936,6 +940,148 @@ __ret:
 }
 
 /**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dx   The horizontal drag
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmObject_setDrag(gfmObject *pCtx, double dx, double dy) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    
+    // Set the object's drag
+    rv = gfmObject_setHorizontalDrag(pCtx, dx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmObject_setVerticalDrag(pCtx, dy);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dx   The horizontal drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmObject_setHorizontalDrag(gfmObject *pCtx, double dx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the drag is positive
+    ASSERT(dx >= 0, GFMRV_NEGATIVE_DRAG);
+    
+    // Set the object's drag
+    pCtx->dragX = dx;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Set the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pCtx The object
+ * @param  dy   The vertical drag
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_NEGATIVE_DRAG
+ */
+gfmRV gfmObject_setVerticalDrag(gfmObject *pCtx, double dy) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the drag is positive
+    ASSERT(dy >= 0, GFMRV_NEGATIVE_DRAG);
+    
+    // Set the object's drag
+    pCtx->dragY = dy;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pDy  The vertical drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getDrag(double *pDx, double *pDy, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the object's drag
+    rv = gfmObject_getHorizontalDrag(pDx, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmObject_getVerticalDrag(pDy, pCtx);
+    ASSERT_NR(rv == GFMRV_OK);
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDx  The horizontal drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getHorizontalDrag(double *pDx, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDx, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the object's drag
+    *pDx = pCtx->dragX;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Get the object's drag (i.e., how fast it will stop when there's no acc)
+ * 
+ * @param  pDy  The vertical drag
+ * @param  pCtx The object
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_getVerticalDrag(double *pDy, gfmObject *pCtx) {
+    gfmRV rv;
+    
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDy, GFMRV_ARGUMENTS_BAD);
+    
+    // Get the object's drag
+    *pDy = pCtx->dragY;
+    
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get the object's child and type; ppChild mustn't be NULL, even if the object
  * has no "sub-class"
  * 
@@ -1012,15 +1158,30 @@ __ret:
  * @param  [i/o]x       The object's position
  * @param  [i/o]vx      The object's velocity
  * @param  [in ]ax      The object's acceleration
+ * @param  [in ]dx      The object's drag
  * @param  [in ]elapsed Time elapsed from the previous frame
  */
 static inline void _gfmObject_integrate(double *x, double *vx, double ax,
-        double elapsed) {
+        double dx, double elapsed) {
     *x += (*vx) * elapsed;
     if (ax != 0.0) {
         *x += 0.5 * ax * elapsed * elapsed;
 
         *vx += ax * elapsed;
+    }
+    else if (dx != 0.0) {
+        *x -= 0.5 * dx * elapsed * elapsed;
+
+        /* Only slow down the velocity if it wouldn't change its direction */
+        if (*vx > dx * elapsed) {
+            *vx -= dx * elapsed;
+        }
+        else if (*vx < -dx * elapsed) {
+            *vx += dx * elapsed;
+        }
+        else {
+            *vx = 0.0;
+        }
     }
 }
 
@@ -1151,8 +1312,8 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     pObj->ldy = pObj->dy;
     
     // Integrate the position and velocity
-    _gfmObject_integrate(&pObj->dx, &pObj->vx, pObj->ax, elapsed);
-    _gfmObject_integrate(&pObj->dy, &pObj->vy, pObj->ay, elapsed);
+    _gfmObject_integrate(&pObj->dx, &pObj->vx, pObj->ax, pObj->dragX, elapsed);
+    _gfmObject_integrate(&pObj->dy, &pObj->vy, pObj->ay, pObj->dragY, elapsed);
     
     // Set the actual (integer) position
     pObj->t.x = (int)pObj->dx;
