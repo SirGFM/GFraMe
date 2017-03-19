@@ -35,6 +35,8 @@
 #include <GFraMe/gfmTilemap.h>
 #include <GFraMe/gfmTypes.h>
 
+#include <GFraMe_int/gfmHitbox.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -97,10 +99,22 @@ enum enGFMQuadtreePosition {
     gfmQT_max,
 };
 
+enum enGFMQuadtreeFlags {
+    gfmQT_isStatic      = 0x0000001
+  , gfmQT_isActive      = 0x0000002
+  , gfmQT_justOverlaped = 0x0000004
+};
+
+/** A quadtree-managed hitbox, with a user defined object */
+#define gfmType_quadtreeHitbox     0xC0000000
+/** A quadtree-managed hitbox, with static object (i.e., this object mustn't
+ * be copied) */
+#define gfmType_quadtreeRootHitbox 0xE0000000
+
 /** Index of a child relative to its parent */
 struct stGFMQuadtreeLL {
-    /** This nodes object */
-    gfmObject *pSelf;
+    /** This node's area */
+    gfmHitbox area;
     /** The next node */
     struct stGFMQuadtreeLL *pNext;
 };
@@ -121,14 +135,9 @@ struct stGFMQuadtree {
     gfmQuadtree *ppChildren[gfmQT_max];
     /** List of all objects inside this node */
     gfmQuadtreeLL *pNodes;
-    /** Center of the hitbox */
-    int centerX;
-    /** Center of the hitbox */
-    int centerY;
-    /** Half the hitbox's width */
-    int halfWidth;
-    /** Half the hitbox's height */
-    int halfHeight;
+    /** Hitboxe's area. If necessary/desired, depth and numObjects may be packed
+     * into the area's 'type' attribute. */
+    gfmHitbox area;
     /** The node's depth */
     int depth;
     /** How many objects were added to this node */
@@ -143,7 +152,7 @@ struct stGFMQuadtreeRoot {
     int maxDepth;
     /** Whether this is a static quadtree (one that may be populated but
      * colliding doesn't insert nodes */
-    int isStatic;
+    int flags;
     /** Pool of quadtree nodes */
     gfmGenArr_var(gfmQuadtree, pQTPool);
     /** Pool of quadtree LL nodes */
@@ -158,10 +167,10 @@ struct stGFMQuadtreeRoot {
     gfmQuadtreeLL *pColliding;
     /** Stack of nodes which the object must still be added to */
     gfmQuadtreeStack stack;
-    /** Object being collided */
-    gfmObject *pObject;
     /** The object that was just overlapped */
-    gfmObject *pOther;
+    gfmHitbox *pOther;
+    /** Object being collided */
+    gfmHitbox object;
 };
 
 /******************************************************************************/
@@ -275,8 +284,7 @@ static gfmRV gfmQuadtree_init(gfmQuadtree *pCtx, gfmQuadtree *pParent,
         gfmQuadtreePosition pos) {
     gfmQuadtreePosition i;
     gfmRV rv;
-    int offX;
-    int offY;
+    int h, w, x, y;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -295,34 +303,30 @@ static gfmRV gfmQuadtree_init(gfmQuadtree *pCtx, gfmQuadtree *pParent,
     pCtx->numObjects = 0;
     // Set the node's depth
     pCtx->depth = pParent->depth + 1;
-    // Set the node's dimensions (rounded up)
-    pCtx->halfWidth = pParent->halfWidth / 2 + (pParent->halfWidth % 2);
-    pCtx->halfHeight = pParent->halfHeight / 2 + (pParent->halfHeight % 2);
+    /* Retrieve the parent's position */
+    gfmObject_getDimensions(&w, &h, (gfmObject*)&pParent->area);
+    gfmObject_getPosition(&x, &y, (gfmObject*)&pParent->area);
+    /* Adjust it according to the child relative position */
     // Get the offset from the parent's position
     switch (pos) {
         case gfmQT_nw: {
-            offX = -pParent->halfWidth / 2;
-            offY = -pParent->halfHeight / 2;
+            /* Do nothing */
         } break;
         case gfmQT_ne: {
-            offX = pParent->halfWidth / 2;
-            offY = -pParent->halfHeight / 2;
+            x += w / 2;
         } break;
         case gfmQT_sw: {
-            offX = -pParent->halfWidth / 2;
-            offY = pParent->halfHeight / 2;
+            h += h / 2;
         } break;
         case gfmQT_se: {
-            offX = pParent->halfWidth / 2;
-            offY = pParent->halfHeight / 2;
+            x += w / 2;
+            h += h / 2;
         } break;
         case gfmQT_max: {
             ASSERT(0, GFMRV_INTERNAL_ERROR);
         } break;
     }
-    // Set the position
-    pCtx->centerX = pParent->centerX + offX;
-    pCtx->centerY = pParent->centerY + offY;
+    gfmHitbox_init(&pCtx->area, pCtx, x, y, w, h, gfmType_none);
     
     rv = GFMRV_OK;
 __ret:
@@ -387,6 +391,25 @@ __ret:
 }
 
 /**
+ * Convert a user-managed object to a quadtree-managed area.
+ *
+ * This area considers the full extensions of the object (so it may be longer
+ * than the object, if continuous collision is enabled).
+ */
+static gfmRV gfmQuadtree_convertObjectToHitbox(gfmHitbox *pArea,
+        gfmObject *pObj) {
+    int h, x, y, w;
+
+    /* TODO Enable continuous collision */
+    /* gfmObject_getCollisionBoundary(&x, &y, &w, &h, pObj); */
+    gfmObject_getPosition(&x, &y, pObj);
+    gfmObject_getDimensions(&w, &h, pObj);
+    gfmHitbox_init(pArea, pObj, x, y, w, h, gfmType_quadtreeHitbox);
+
+    return GFMRV_OK;
+}
+
+/**
  * Adds an object to a node
  * 
  * @param  pCtx  The quadtree root context
@@ -418,7 +441,26 @@ static gfmRV gfmQuadtree_insertObject(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode,
     }
     
     // Add the object to the LL node
-    pQTLL->pSelf = pObj;
+    do {
+        void *pVoid;
+        int type;
+
+        gfmObject_getChild(&pVoid, &type, pObj);
+        if (type == gfmType_quadtreeHitbox) {
+            /* Object has already been converted. Simply copy it */
+            memcpy(&pQTLL->area, pObj, sizeof(gfmHitbox));
+        }
+        else if (type == gfmType_quadtreeRootHitbox) {
+            /* Since we are dealing with a unique object (belonging to the
+             * quadtree's root), stores its inner object (user-managed) into the
+             * node */
+            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, (gfmObject*)pVoid);
+        }
+        else {
+            /* Convert it into the internal object */
+            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, pObj);
+        }
+    } while (0);
     // Prepend the node to the list
     pQTLL->pNext = pNode->pNodes;
     pNode->pNodes = pQTLL;
@@ -433,51 +475,12 @@ __ret:
 /**
  * Checks if a quadtree node overlaps an object
  * 
- * @param  pCtx The quadtree node
- * @param  pObj The gfmObject
- * @return      GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
+ * @param  [ in]pCtx The quadtree node
+ * @param  [ in]pObj The overlaping object
+ * @return           GFMRV_TRUE, GFMRV_FALSE, GFMRV_ARGUMENTS_BAD
  */
-static gfmRV gfmQuadtree_overlap(gfmQuadtree *pCtx, gfmObject *pObj) {
-    gfmRV rv;
-    int cX, cY, dist, hWidth, hHeight, maxDist;
-    
-    // Sanitize arguments
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pObj, GFMRV_ARGUMENTS_BAD);
-    // Get the object's dimensions
-    rv = gfmObject_getCenter(&cX, &cY, pObj);
-    ASSERT_NR(rv == GFMRV_OK);
-    rv = gfmObject_getDimensions(&hWidth, &hHeight, pObj);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Get half the dimensions (rounded up)
-    hWidth = hWidth / 2 + (hWidth % 2);
-    hHeight = hHeight / 2 + (hHeight % 2);
-    
-    // Check that they are overlaping (horizontally)
-    dist = cX - pCtx->centerX;
-    if (dist < 0) {
-        dist = -dist;
-    }
-    maxDist = hWidth + pCtx->halfWidth;
-    if (dist > maxDist) {
-        return GFMRV_FALSE;
-    }
-    //ASSERT(dist <= maxDist, GFMRV_FALSE);
-    
-    // Check vertically...
-    dist = cY - pCtx->centerY;
-    if (dist < 0) {
-        dist = -dist;
-    }
-    maxDist = hHeight + pCtx->halfHeight;
-    if (dist > maxDist) {
-        return GFMRV_FALSE;
-    }
-    //ASSERT(dist <= maxDist, GFMRV_FALSE);
-    
-    rv = GFMRV_TRUE;
-__ret:
-    return rv;
+static inline gfmRV gfmQuadtree_overlap(gfmQuadtree *pCtx, gfmObject *pObj) {
+    return gfmObject_isOverlaping((gfmObject*)&pCtx->area, pObj);
 }
 
 /**
@@ -523,10 +526,11 @@ static gfmRV gfmQuadtree_subdivide(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode) {
             // Get the current child
             pChild = pNode->ppChildren[i];
             // Check if the object collides this node
-            rv = gfmQuadtree_overlap(pChild, pTmp->pSelf);
+            rv = gfmQuadtree_overlap(pChild, (gfmObject*)&pTmp->area);
             if (rv == GFMRV_TRUE) {
                 // Add it to the child
-                rv = gfmQuadtree_insertObject(pCtx, pChild, pTmp->pSelf);
+                rv = gfmQuadtree_insertObject(pCtx, pChild,
+                        (gfmObject*)&pTmp->area);
                 ASSERT_NR(rv == GFMRV_OK);
             }
             
@@ -658,11 +662,10 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     pCtx->pAvailable = 0;
     pCtx->pColliding = 0;
     // Remove context object's
-    pCtx->pObject = 0;
     pCtx->pOther = 0;
     pCtx->pGroupList = 0;
     /* Remove the static flag */
-    pCtx->isStatic = 0;
+    pCtx->flags &= ~(gfmQT_isStatic | gfmQT_isActive);
     
     // Check that the stack is big enough
     if (pCtx->stack.len < maxDepth * gfmQT_max) {
@@ -688,12 +691,7 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     }
     pCtx->pSelf->pNodes = 0;
     pCtx->pSelf->depth = 0;
-    pCtx->pSelf->numObjects = 0;
-    pCtx->pSelf->centerX = x + width / 2;
-    pCtx->pSelf->centerY = y + height / 2;
-    // Round the dimension up
-    pCtx->pSelf->halfWidth = width / 2 + (width % 2);
-    pCtx->pSelf->halfHeight = height / 2 + (height % 2);
+    gfmHitbox_init(&pCtx->pSelf->area, pCtx, x, y, width, height, gfmType_none);
     
     rv = GFMRV_OK;
 __ret:
@@ -714,7 +712,7 @@ gfmRV gfmQuadtree_setStatic(gfmQuadtreeRoot *pCtx) {
     /* Check if initialized */
     ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
 
-    pCtx->isStatic = 1;
+    pCtx->flags |= gfmQT_isStatic;
 
     rv = GFMRV_OK;
 __ret:
@@ -750,6 +748,7 @@ gfmRV gfmQuadtree_collideGroup(gfmQuadtreeRoot *pCtx, gfmGroup *pGrp) {
         // Clear any previous overlap
         pCtx->pOther = 0;
         
+        pCtx->flags |= gfmQT_isActive;
         rv = gfmQuadtree_continue(pCtx);
     }
     else {
@@ -785,7 +784,8 @@ gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     //ASSERT(rv == GFMRV_TRUE, GFMRV_QUADTREE_DONE);
     
     // Store the object to be added
-    pCtx->pObject = pObj;
+    gfmQuadtree_convertObjectToHitbox(&pCtx->object, pObj);
+    gfmObject_setType((gfmObject*)&pCtx->object, gfmType_quadtreeRootHitbox);
     // Clear the call stack
     pCtx->stack.pushPos = 0;
     // Clear any previous overlap
@@ -796,6 +796,7 @@ gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     ASSERT_NR(rv == GFMRV_OK);
     
     // Collide it
+    pCtx->flags |= gfmQT_isActive;
     rv = gfmQuadtree_continue(pCtx);
 __ret:
     return rv;
@@ -991,17 +992,18 @@ __ret:
 gfmRV gfmQuadtree_getOverlaping(gfmObject **ppObj1, gfmObject **ppObj2,
         gfmQuadtreeRoot  *pCtx) {
     gfmRV rv;
+    int type;
     
     // Sanitize arguments
     ASSERT(ppObj1, GFMRV_ARGUMENTS_BAD);
     ASSERT(ppObj2, GFMRV_ARGUMENTS_BAD);
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that an overlap just happened
-    ASSERT(pCtx->pOther, GFMRV_QUADTREE_NO_OVERLAP);
+    ASSERT(pCtx->flags & gfmQT_justOverlaped, GFMRV_QUADTREE_NO_OVERLAP);
     
     // Return both objects
-    *ppObj1 = pCtx->pObject;
-    *ppObj2 = pCtx->pOther;
+    gfmObject_getChild((void**)ppObj1, &type, (gfmObject*)&pCtx->object);
+    gfmObject_getChild((void**)ppObj2, &type, (gfmObject*)pCtx->pOther);
     
     rv = GFMRV_OK;
 __ret:
@@ -1021,10 +1023,10 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the operation is active
-    ASSERT(pCtx->pGroupList || pCtx->pObject,
-            GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
+    ASSERT(pCtx->flags & gfmQT_isActive, GFMRV_QUADTREE_OPERATION_NOT_ACTIVE);
     
     // Continue adding the object
+    pCtx->flags &= ~gfmQT_justOverlaped;
     while (pCtx->stack.pushPos > 0 || pCtx->pColliding) {
         gfmQuadtree *pNode;
         
@@ -1037,12 +1039,14 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
             pCtx->pColliding = pCtx->pColliding->pNext;
             
             // Check if both objects overlaps
-            pCtx->pOther = pTmp->pSelf;
-            rv = gfmObject_isOverlaping(pCtx->pObject, pCtx->pOther);
+            pCtx->pOther = &pTmp->area;
+            rv = gfmObject_isOverlaping((gfmObject*)&pCtx->object,
+                    (gfmObject*)pCtx->pOther);
             
             // -- Exit point --
             // If they did overlap, return with that status
             if (rv == GFMRV_TRUE) {
+                pCtx->flags |= gfmQT_justOverlaped;
                 return GFMRV_QUADTREE_OVERLAPED;
             }
             //ASSERT(rv != GFMRV_TRUE, GFMRV_QUADTREE_OVERLAPED);
@@ -1062,7 +1066,7 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
                     // Get the current child
                     pChild = pNode->ppChildren[i];
                     // Check if the object overlaps this node
-                    rv = gfmQuadtree_overlap(pChild, pCtx->pObject);
+                    rv = gfmQuadtree_overlap(pChild, (gfmObject*)&pCtx->object);
                     if (rv == GFMRV_TRUE) {
                         // Push it (so it will collide later)
                         rv = gfmQuadtree_pushNode(pCtx, pChild);
@@ -1073,7 +1077,7 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
             }
             else {
                 // If it's static, collide against the node's children
-                if (pCtx->isStatic) {
+                if (pCtx->flags & gfmQT_isStatic) {
                     pCtx->pColliding = pNode->pNodes;
                 }
                 // Otherwise, check if inserting the node would subdivide
@@ -1092,7 +1096,8 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
                     pCtx->pColliding = pNode->pNodes;
                     // Add the object to this node 
                     // NOTE: It's added to the begin, so it won't overlap itself
-                    rv = gfmQuadtree_insertObject(pCtx, pNode, pCtx->pObject);
+                    rv = gfmQuadtree_insertObject(pCtx, pNode,
+                            (gfmObject*)&pCtx->object);
                     ASSERT_NR(rv == GFMRV_OK);
                 }
             }
@@ -1119,7 +1124,7 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx) {
     }
     
     // If the loop stoped, the operation finished
-    pCtx->pObject = 0;
+    pCtx->flags &= ~gfmQT_isActive;
     rv = GFMRV_QUADTREE_DONE;
 __ret:
     return rv;
@@ -1173,6 +1178,7 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
     while (pQt->stack.pushPos > 0 || pQt->pColliding) {
         gfmQuadtree *pNode;
         unsigned char *pNodeColor;
+        int h, w, x, y;
         
         // Pop the current node
         rv = gfmQuadtree_popNode(&pNode, pQt);
@@ -1181,9 +1187,9 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
         // Get the colors for the qt node
         pNodeColor = pColors;
         // Draw the current node
-        rv = gfm_drawRect(pCtx, pNode->centerX - pNode->halfWidth,
-                pNode->centerY - pNode->halfHeight, pNode->halfWidth * 2,
-                pNode->halfHeight * 2, pNodeColor[0], pNodeColor[1],
+        gfmObject_getPosition(&x, &y, (gfmObject*)&pNode->area);
+        gfmObject_getDimensions(&w, &h, (gfmObject*)&pNode->area);
+        rv = gfm_drawRect(pCtx, x, y, w, h, pNodeColor[0], pNodeColor[1],
                 pNodeColor[2]);
         ASSERT_NR(rv == GFMRV_OK);
         
@@ -1212,9 +1218,16 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
                 unsigned int type;
                 int height, width, x, y;
                 void *pChild;
+
+                /* The colliding object is stored within a inner object. First
+                 * retrieve the inner one and then try to retrieve the type of
+                 * the least-abstract (i.e., the user defined type'd) one. */
+                rv = gfmObject_getChild(&pChild, (int*)&type,
+                        (gfmObject*)&pTmp->area);
+                ASSERT_NR(rv == GFMRV_OK);
                 
                 // Get the object's child
-                rv = gfmObject_getChild(&pChild, (int*)&type, pTmp->pSelf);
+                rv = gfmObject_getChild(&pChild, (int*)&type, pChild);
                 ASSERT_NR(rv == GFMRV_OK);
                 if (type == gfmType_sprite) {
                     rv = gfmSprite_getChild(&pChild, (int*)&type,
@@ -1237,10 +1250,11 @@ gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
                 pNodeColor = pColors + type * 3;
                 
                 // Get the object's position
-                rv = gfmObject_getPosition(&x, &y, pTmp->pSelf);
+                rv = gfmObject_getPosition(&x, &y, (gfmObject*)&pTmp->area);
                 ASSERT_NR(rv == GFMRV_OK);
                 // Get the object's dimensions
-                rv = gfmObject_getDimensions(&width, &height, pTmp->pSelf);
+                rv = gfmObject_getDimensions(&width, &height,
+                        (gfmObject*)&pTmp->area);
                 ASSERT_NR(rv == GFMRV_OK);
                 
                 // Draw the current node
