@@ -1840,8 +1840,6 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
-    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1861,6 +1859,9 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         /* Both objects are hitboxes */
         return GFMRV_INVALID_TYPE;
     }
+
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
 
     // Check that at least one isn't fixed
     ASSERT(!(pSelf->flags & gfmFlags_isFixed)
@@ -1943,8 +1944,6 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
     // Sanitize arguments
     ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
     ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
-    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     // Check that the object was initialized
     ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
     ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
@@ -1964,6 +1963,9 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         /* Both objects are hitboxes */
         return GFMRV_INVALID_TYPE;
     }
+
+    ASSERT(pSelf->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+    ASSERT(pOther->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
 
     // Check that at least one isn't fixed
     ASSERT(!(pSelf->flags & gfmFlags_isFixed)
