@@ -53,6 +53,9 @@ struct stGFMVideoGL3 {
     GLuint bbProgram;
     GLuint bbUnfTexture;
 /* ==== OPENGL INSTANCED RENDERING FIELDS =================================== */
+    /** Position within each buffer, so fragmented draws through various
+     * textures don't corrupt each other */
+    int *bufferPosition;
     /* Texture used to access the instance data on the shader */
     GLuint instanceTex;
     /* Buffer that store the instance data */
@@ -364,6 +367,12 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
 
+    /* Delete the 'buffer offset pointer' */
+    if (pCtx->bufferPosition) {
+        free(pCtx->bufferPosition);
+        pCtx->bufferPosition = 0;
+    }
+
     /* Clean all textures */
     gfmGenArr_clean(pCtx->pTextures, gfmVideo_GL3_freeTexture);
 
@@ -428,6 +437,7 @@ static gfmRV gfmVideo_GL3_free(gfmVideo **ppVideo) {
     }
 
     /* Release the video context */
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
     free(pCtx);
 
     *ppVideo = 0;
@@ -854,6 +864,7 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     GLenum status;
     /* Maximum number of texels in a buffer texture */
     GLint maxBufTexels;
+    int i;
 
     /* Create the in-video-memory (?) backbuffer mesh */
     glGenBuffers(1, &(pCtx->bbVbo));
@@ -986,6 +997,14 @@ static gfmRV gfmVideo_GL3_createBackbuffer(gfmVideoGL3 *pCtx, int width,
     pCtx->numBuffers = 3;
     pCtx->maxObjects = 8192; /* For 8192 objects, 576KB VRAM is needed */
 
+    pCtx->bufferPosition = malloc(sizeof(int) * pCtx->numBuffers);
+    ASSERT_LOG(pCtx->bufferPosition, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    i = 0;
+    while (i < pCtx->numBuffers) {
+        pCtx->bufferPosition[i] = 0;
+        i++;
+    }
+
     /* Clamp the buffer size with the maximum */
     glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE , &maxBufTexels);
     ASSERT_GL_ERROR();
@@ -1063,6 +1082,10 @@ __ret:
         if (pCtx->instanceBuf) {
             glDeleteBuffers(1, &(pCtx->instanceBuf));
             pCtx->instanceBuf = 0;
+        }
+        if (pCtx->bufferPosition) {
+            free(pCtx->bufferPosition);
+            pCtx->bufferPosition = 0;
         }
     }
 
@@ -1614,6 +1637,7 @@ __ret:
 static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     gfmRV rv;
     gfmVideoGL3 *pCtx;
+    int i;
 
     /* Retrieve the internal video context */
     pCtx = (gfmVideoGL3*)pVideo;
@@ -1652,6 +1676,11 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     /* Clear the number of rendered objects */
     pCtx->numObjects = 0;
     pCtx->pInstanceData = 0;
+    i = 0;
+    while (i < pCtx->numBuffers) {
+        pCtx->bufferPosition[i] = 0;
+        i++;
+    }
 
     /* Update the number of rendered sprites */
     pCtx->lastNumObjects = pCtx->totalNumObjects;
@@ -1704,6 +1733,7 @@ static gfmRV gfmVideo_GL3_getInstanceData(gfmVideoGL3 *pCtx) {
     ASSERT_GL_ERROR();
 
     ASSERT_LOG(pCtx->pInstanceData, GFMRV_INTERNAL_ERROR, pCtx->pLog);
+    pCtx->pInstanceData += pCtx->bufferPosition[pCtx->curBuffer] * 2 * 3;
 
     rv = GFMRV_OK;
 __ret:
@@ -1717,6 +1747,7 @@ __ret:
  */
 static gfmRV gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
     gfmRV rv;
+    GLint offset;
 
     /** Allow the instances data to be used by the shader */
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
@@ -1727,16 +1758,25 @@ static gfmRV gfmVideo_GL3_drawInstances(gfmVideoGL3 *pCtx) {
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, pCtx->numObjects);
     ASSERT_GL_ERROR();
 
+    if (pCtx->bufferPosition[pCtx->curBuffer] + pCtx->numObjects
+            == pCtx->maxObjects) {
+        pCtx->bufferPosition[pCtx->curBuffer] = 0;
+    }
+    else {
+        pCtx->bufferPosition[pCtx->curBuffer] += pCtx->numObjects;
+    }
     pCtx->numObjects = 0;
     pCtx->batchCount++;
 
     /* Update the in use buffer */
     pCtx->curBuffer++;
-    if (pCtx->curBuffer > pCtx->numBuffers) {
+    if (pCtx->curBuffer == pCtx->numBuffers) {
         pCtx->curBuffer = 0;
     }
     /* Update the buffer position */
-    glUniform1i(pCtx->sprUnfDataOffset, pCtx->curBuffer * pCtx->maxObjects);
+    offset = pCtx->curBuffer * pCtx->maxObjects;
+    offset += pCtx->bufferPosition[pCtx->curBuffer];
+    glUniform1i(pCtx->sprUnfDataOffset, offset);
     ASSERT_GL_ERROR();
 
     rv = GFMRV_OK;
@@ -1815,7 +1855,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
     pCtx->pInstanceData[pCtx->numObjects * 6 + 5] = tile;
 
     pCtx->numObjects++;
-    if (pCtx->numObjects == pCtx->maxObjects) {
+    if (pCtx->numObjects + pCtx->bufferPosition[pCtx->curBuffer] == pCtx->maxObjects) {
         rv = gfmVideo_GL3_drawInstances(pCtx);
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }

@@ -185,6 +185,7 @@ enum enGFMError {
     GFMRV_FIXED_POINT_TOO_BIG,
     // Texture erro (p. 2)
     GFMRV_TEXTURE_UNSUPPORTED,
+    GFMRV_INVALID_TYPE,
     GFMRV_MAX
 }; /* enum enGFMError */
 typedef enum enGFMError gfmRV;

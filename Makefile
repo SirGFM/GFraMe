@@ -22,7 +22,7 @@
 #==============================================================================
   TARGET := libGFraMe
   MAJOR_VERSION := 2
-  MINOR_VERSION := 2
+  MINOR_VERSION := 3
   REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
@@ -49,6 +49,7 @@
           $(OBJDIR)/gfmError.o \
           $(OBJDIR)/gfmGeometry.o \
           $(OBJDIR)/gfmGroup.o \
+          $(OBJDIR)/gfmHitbox.o \
           $(OBJDIR)/gfmInput.o \
           $(OBJDIR)/gfmLog.o \
           $(OBJDIR)/gfmObject.o \

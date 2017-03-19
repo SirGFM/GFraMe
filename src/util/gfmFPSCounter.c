@@ -237,7 +237,7 @@ gfmRV gfmFPSCounter_draw(gfmFPSCounter *pCounter, gfmCtx *pCtx) {
     ASSERT_NR(rv == GFMRV_OK);
 
     /* Check if the fps should be updated */
-    if (curTime - pCounter->lastTime > 1000) {
+    if (curTime - pCounter->lastTime >= 1000) {
         pCounter->updateCount = pCounter->updateAcc;
         pCounter->updateAcc = 0;
         pCounter->drawCount = pCounter->drawAcc;

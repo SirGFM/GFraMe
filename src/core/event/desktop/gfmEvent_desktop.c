@@ -592,6 +592,7 @@ gfmRV gfmEvent_clean(gfmEvent *pCtx) {
     if (pCtx->pGamepadIDs) {
         free(pCtx->pGamepadIDs);
     }
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
     
     rv = GFMRV_OK;
 __ret:

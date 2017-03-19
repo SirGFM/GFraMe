@@ -19,16 +19,18 @@
 #include <GFraMe/gfmAssert.h>
 #include <GFraMe/gfmError.h>
 #include <GFraMe/gfmGenericArray.h>
+#include <GFraMe/gfmHitbox.h>
 #include <GFraMe/gfmLog.h>
-#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmSpriteset.h>
 #include <GFraMe/gfmTilemap.h>
 #include <GFraMe/gfmTypes.h>
 #include <GFraMe/core/gfmFile_bkend.h>
+#include <GFraMe_int/gfmHitbox.h>
 #include <GFraMe_int/gfmTileAnimation.h>
 #include <GFraMe_int/gfmTileType.h>
 #include <GFraMe_int/gfmParserCommon.h>
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,11 +40,10 @@ gfmGenArr_define(gfmTileType);
 gfmGenArr_define(gfmTileAnimation);
 /** Define an array for info about tile animation */
 gfmGenArr_define(gfmTileAnimationInfo);
-/** Define an array for gfmObjects */
-gfmGenArr_define(gfmObject);
 
 /** gfmTilemap structure */
 struct stGFMTilemap {
+    gfmHitbox *pAreas;
     /** The tilemap's tileset */
     gfmSpriteset *pSset;
     /** Horizontal position of the tilemap */
@@ -57,8 +58,10 @@ struct stGFMTilemap {
     int widthInTiles;
     /** How many tiles there are vertically */
     int heightInTiles;
-    /** Areas in the tilemap */
-    gfmGenArr_var(gfmObject, pAreas);
+    /** How many areas have been used */
+    uint16_t numAreas;
+    /** How many areas were alloc'ed */
+    uint16_t areaCount;
     /** Tiles and theirs respective types */
     gfmGenArr_var(gfmTileType, pTTypes);
     /** Every animation on the current map */
@@ -188,8 +191,8 @@ gfmRV gfmTilemap_init(gfmTilemap *pCtx, gfmSpriteset *pSset, int widthInTiles,
     // Set the spriteset
     pCtx->pSset = pSset;
     // Reset some buffers
-    gfmGenArr_reset(pCtx->pAreas);
     gfmGenArr_reset(pCtx->pTAnims);
+    pCtx->numAreas = 0;
     
     rv = GFMRV_OK;
 __ret:
@@ -219,10 +222,10 @@ gfmRV gfmTilemap_clean(gfmTilemap *pCtx) {
     pCtx->pSset = 0;
     
     // Free the other buffers
-    gfmGenArr_clean(pCtx->pAreas, gfmObject_free);
     gfmGenArr_clean(pCtx->pTTypes, gfmTileType_free);
     gfmGenArr_clean(pCtx->pTAnims, gfmTileAnimation_free);
     gfmGenArr_clean(pCtx->pTAnimInfos, gfmTileAnimationInfo_free);
+    gfmHitbox_free(&pCtx->pAreas);
     
     rv = GFMRV_OK;
 __ret:
@@ -549,33 +552,36 @@ __ret:
  */
 gfmRV gfmTilemap_addArea(gfmTilemap *pCtx, int x, int y, int width,
         int height, int type) {
-    gfmObject *pObj;
     gfmRV rv;
-    
-    // Sanitize arguments
+
+    /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT(x >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(y >= 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(width > 0, GFMRV_ARGUMENTS_BAD);
     ASSERT(height > 0, GFMRV_ARGUMENTS_BAD);
-    // The type must be something not used by the lib
+    /* The type must be something not used by the lib */
     ASSERT(type >= gfmType_reserved_2, GFMRV_ARGUMENTS_BAD);
-    
-    // Retrieve a gfmObject from the pool
-    gfmGenArr_getNextRef(gfmObject, pCtx->pAreas, 1/*INC*/, pObj,
-            gfmObject_getNew);
-    
-    // Initialize it with the given parameters; Since this only represents an
-    // area, the child is NULL but it has a custom subtype
-    rv = gfmObject_init(pObj, x, y, width, height, 0/*pChild*/, type);
-    ASSERT_NR(rv == GFMRV_OK);
-    // Set the area as fixed, in case the user wants to collide against it
-    rv = gfmObject_setFixed(pObj);
-    ASSERT_NR(rv == GFMRV_OK);
-    
-    // Actually push the object, now that it was initialized
-    gfmGenArr_push(pCtx->pAreas);
-    
+
+    /* Alloc or expand the buffer as necessary */
+    if (pCtx->pAreas == 0) {
+        pCtx->areaCount = 16;
+        pCtx->numAreas = 0;
+        rv = gfmHitbox_getNewList(&pCtx->pAreas, pCtx->areaCount);
+        ASSERT(rv == GFMRV_OK, rv);
+    }
+    else if (pCtx->numAreas == pCtx->areaCount) {
+        rv = gfmHitbox_expandList(&pCtx->pAreas, pCtx->areaCount
+                , pCtx->areaCount * 2);
+        ASSERT(rv == GFMRV_OK, rv);
+        pCtx->areaCount *= 2;
+    }
+
+    rv = gfmHitbox_initItem(pCtx->pAreas, 0/*child*/, x, y, width
+        , height, type, pCtx->numAreas);
+    ASSERT(rv == GFMRV_OK, rv);
+    pCtx->numAreas++;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -598,7 +604,7 @@ gfmRV gfmTilemap_getAreasLength(int *pLen, gfmTilemap *pCtx) {
     ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
     
     // Retrieve the array length
-    *pLen = gfmGenArr_getUsed(pCtx->pAreas);
+    *pLen = (int)pCtx->numAreas;
     
     rv = GFMRV_OK;
 __ret:
@@ -621,12 +627,10 @@ gfmRV gfmTilemap_getArea(gfmObject **ppObj, gfmTilemap *pCtx, int i) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     // Check that the index is valid
     ASSERT(i >= 0, GFMRV_INVALID_INDEX);
-    ASSERT(i < gfmGenArr_getUsed(pCtx->pAreas), GFMRV_INVALID_INDEX);
+    ASSERT(i < pCtx->numAreas, GFMRV_INVALID_INDEX);
     
     // Retrieve the object
-    *ppObj = gfmGenArr_getObject(pCtx->pAreas, i);
-    
-    rv = GFMRV_OK;
+    rv = gfmHitbox_getItem((gfmHitbox**)ppObj, pCtx->pAreas, i);
 __ret:
     return rv;
 }
@@ -1045,14 +1049,15 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
     
     // Iterate the array, checking every tile
     i = 0;
-    while (i < gfmGenArr_getUsed(pCtx->pAreas)) {
-        gfmObject *pObj;
+    while (i < pCtx->numAreas) {
+        gfmHitbox *pObj;
         
         // Get the next tile type
-        pObj = gfmGenArr_getObject(pCtx->pAreas, i);
+        rv = gfmHitbox_getItem(&pObj, pCtx->pAreas, i);
+        ASSERT_NR(rv == GFMRV_OK);
         
         // Check if the tiles is inside this object
-        rv = gfmObject_isPointInside(pObj, x, y);
+        rv = gfmObject_isPointInside((gfmObject*)pObj, x, y);
         // Exist on not inside, though it's not (necessarily) an error!
         if (rv != GFMRV_FALSE) {
             goto __ret;
@@ -1062,6 +1067,41 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex) {
     }
     
     rv = GFMRV_FALSE;
+__ret:
+    return rv;
+}
+
+/**
+ * Retrieve the type of the tile at a give pixel position
+ *
+ * @param  [out]pType The type
+ * @param  [ in]pCtx  The tilemap
+ * @param  [ in]x     Horizontal position of the tile
+ * @param  [ in]y     Vertical position of the tile
+ */
+gfmRV gfmTilemap_getTypeAt(int *pType, gfmTilemap *pCtx, int x, int y) {
+    gfmRV rv;
+    int tileWidth, tileHeight;
+
+    /* Sanitize arguments */
+    ASSERT(pType, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->pSset, GFMRV_TILEMAP_NOT_INITIALIZED);
+
+    rv = gfmSpriteset_getDimension(&tileWidth, &tileHeight, pCtx->pSset);
+    ASSERT_NR(rv == GFMRV_OK);
+    x /= tileWidth;
+    y /= tileHeight;
+
+    ASSERT(x >= 0 && x < pCtx->widthInTiles, GFMRV_ARGUMENTS_BAD);
+    ASSERT(y >= 0 && y < pCtx->heightInTiles, GFMRV_ARGUMENTS_BAD);
+
+    /* Get the tile's type */
+    rv = gfmTilemap_getTileType(pType, pCtx
+            , pCtx->pData[x + y * pCtx->widthInTiles]);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
 __ret:
     return rv;
 }
@@ -1190,7 +1230,7 @@ gfmRV gfmTilemap_recalculateAreas(gfmTilemap *pCtx) {
     ASSERT(gfmGenArr_getUsed(pCtx->pTTypes), GFMRV_TILEMAP_NO_TILETYPE);
     
     // Reset the previous areas
-    gfmGenArr_reset(pCtx->pAreas);
+    pCtx->numAreas = 0;
     
     // Traverse every tile
     i = -1;
@@ -1361,7 +1401,7 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // screen position
     if (camX <= pTMap->x) {
         tileX = 0;
-        screenX = pTMap->x;
+        screenX = pTMap->x - camX;
     }
     else {
         tileX = (camX - pTMap->x) / tileWidth;
@@ -1372,7 +1412,7 @@ gfmRV gfmTilemap_draw(gfmTilemap *pTMap, gfmCtx *pCtx) {
     // screen position
     if (camY <= pTMap->y) {
         tileY = 0;
-        screenY = pTMap->y;
+        screenY = pTMap->y - camY;
     }
     else {
         tileY = (camY - pTMap->y) / tileHeight;

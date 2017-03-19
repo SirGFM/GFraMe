@@ -22,25 +22,33 @@ typedef enum enGFMCollision gfmCollision;
 
 #include <GFraMe/gframe.h>
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmHitbox.h>
 
 /** 'Exportable' size of gfmObject */
 extern const int sizeofGFMObject;
 
 /** Collision directions */
 enum enGFMCollision {
-    gfmCollision_none      = 0x00,
-    gfmCollision_left      = 0x01,
-    gfmCollision_right     = 0x02,
-    gfmCollision_up        = 0x04,
-    gfmCollision_down      = 0x08,
-    gfmCollision_lastLeft  = 0x10,
-    gfmCollision_lastRight = 0x20,
-    gfmCollision_lastUp    = 0x40,
-    gfmCollision_lastDown  = 0x80,
-    gfmCollision_cur       = 0x0F,
-    gfmCollision_last      = 0xF0,
-    gfmCollision_hor       = 0x03,
-    gfmCollision_ver       = 0x0C,
+    gfmCollision_none      = 0x0000,
+    gfmCollision_left      = 0x0001,
+    gfmCollision_right     = 0x0002,
+    gfmCollision_up        = 0x0004,
+    gfmCollision_down      = 0x0008,
+    gfmCollision_lastLeft  = 0x0010,
+    gfmCollision_lastRight = 0x0020,
+    gfmCollision_lastUp    = 0x0040,
+    gfmCollision_lastDown  = 0x0080,
+    gfmCollision_instLeft  = 0x0100,
+    gfmCollision_instRight = 0x0200,
+    gfmCollision_instUp    = 0x0400,
+    gfmCollision_instDown  = 0x0800,
+    gfmCollision_cur       = 0x000F,
+    gfmCollision_last      = 0x00F0,
+    gfmCollision_inst      = 0x0F00,
+    gfmCollision_hor       = 0x0003,
+    gfmCollision_ver       = 0x000C,
+    gfmCollision_instHor   = 0x0300,
+    gfmCollision_instVer   = 0x0C00,
 };
 
 /**
@@ -437,6 +445,42 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx);
 gfmRV gfmObject_setMovable(gfmObject *pCtx);
 
 /**
+ * Apply another object's translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDelta(gfmObject *pCtx, gfmObject *pOther);
+
+/**
+ * Apply another object's horizontal translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaX(gfmObject *pCtx, gfmObject *pOther);
+
+/**
+ * Apply another object's vertical translation into this object
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The object
+ * @param  [ in]pOther The other object
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_applyDeltaY(gfmObject *pCtx, gfmObject *pOther);
+
+/**
  * Update the object; Its last collision status is cleared and the object's
  * properties are integrated using the Euler method
  * 
@@ -531,6 +575,14 @@ gfmRV gfmObject_isPointInside(gfmObject *pCtx, int x, int y);
 gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
 
 /**
+ * Check if an object just overlaped a hitbox
+ *
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
  * Check if two objects just started overlaping
  * 
  * NOTE: It fails to detect if an object was inside another one and is leaving
@@ -541,6 +593,32 @@ gfmRV gfmObject_isOverlaping(gfmObject *pSelf, gfmObject *pOther);
  *                GFMRV_OBJECT_NOT_INITIALIZED
  */
 gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Separate an object and a hitbox in the Y axis
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_separateHorizontalHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
+ * Separate an object and a hitbox in the Y axis
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_separateVerticalHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
+
+/**
+ * Collide two objects
+ * 
+ * NOTE: It fails to detect if an object was inside another one and is leaving
+ * 
+ * @param  [ in]pObj    The object
+ * @param  [ in]pHitbox The hitbox
+ */
+gfmRV gfmObject_collideHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
 
 /**
  * Collide two objects
@@ -615,6 +693,31 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx);
  * @param  [ in]y1   Final positional of the line
  */
 gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
+
+/**
+ * Set the type of the object's child
+ *
+ * TL;DR: Use this functions only if you know what you are doing! (and if you
+ * are colliding members of a gfmGroup)
+ *
+ * To simulate inheritance, every sprite has a pointer to a child object. A
+ * 'type' is used to define how that pointer should be dereferenced. Therefore,
+ * one usually needn't modify a sprite's type after it was initialized.
+ *
+ * However, there are cases in which it might be interesting to change a sprite
+ * type. If, for example, there's a gfmGroup for object's hitbox, one could want
+ * to represent different hitboxes as different types (e.g., a type for the
+ * player's bullet, another for a sword slash and another for enemies bullets).
+ *
+ * In that case, all types would still represent the same child object (a
+ * gfmGroupNode). However, after changing its types, one could treat them
+ * differently while colliding.
+ *
+ * @param  [ in]pCtx The object
+ * @param  [ in]type The object's child new type
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_setType(gfmObject *pCtx, int type);
 
 #endif  /* __GFMOBJECT_H__ */
 

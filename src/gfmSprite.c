@@ -870,6 +870,72 @@ __ret:
 }
 
 /**
+ * Apply another sprite's translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDelta(gfmSprite *pCtx, gfmSprite *pOther) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+
+    rv = gfmObject_applyDelta(pCtx->pObject, pOther->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Apply another sprite's horizontal translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDeltaX(gfmSprite *pCtx, gfmSprite *pOther) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+
+    rv = gfmObject_applyDeltaX(pCtx->pObject, pOther->pObject);
+__ret:
+    return rv;
+}
+
+/**
+ * Apply another sprite's vertical translation into this sprite
+ *
+ * This is differente from manually calculating it because it doesn't clamp the
+ * current position.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pOther The other sprite
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_applyDeltaY(gfmSprite *pCtx, gfmSprite *pOther) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+
+    rv = gfmObject_applyDeltaY(pCtx->pObject, pOther->pObject);
+__ret:
+    return rv;
+}
+
+/**
  * Update the sprite; Its last collision status is cleared and the sprite's
  * properties are integrated using the Euler method
  * 

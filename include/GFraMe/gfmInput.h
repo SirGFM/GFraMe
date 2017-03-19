@@ -397,5 +397,13 @@ gfmRV gfmInput_getLastPort(int *pPort, gfmInput *pCtx);
  */
 gfmRV gfmInput_requestLastPressed(gfmInput *pCtx);
 
+/**
+ * Stop storing the last pressed key
+ *
+ * @param  pCtx   The input context
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmInput_cancelRequestLastPressed(gfmInput *pCtx);
+
 #endif /* __GFMINPUT_H__ */
 

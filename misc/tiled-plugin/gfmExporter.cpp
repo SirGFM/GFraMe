@@ -56,6 +56,9 @@
 using namespace Tiled;
 using namespace GFMExporter;
 
+/** String that constains message on error */
+static QString mError;
+
 struct stBoundary {
     int height;
     int width;
@@ -70,7 +73,7 @@ typedef struct stBoundary boundary;
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
+static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         boundary &b);
 
 /**
@@ -160,7 +163,9 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
             /* Export it as a tilemap */
             const TileLayer *tileLayer = static_cast<const TileLayer*>(layer);
 
-            gfm_writeTilemap(file, tileLayer, b);
+            if (gfm_writeTilemap(file, tileLayer, b) == false) {
+                return false;
+            }
         }
         else {
             /* Export it as an object layer */
@@ -195,10 +200,13 @@ QString GFMExporterPlugin::nameFilter() const
 QStringList GFMExporterPlugin::outputFiles(const Tiled::Map *map, const QString &fileName) const
 {
     QStringList result;
+    QString base;
 
     /* Extract file name without extension and path */
     QFileInfo fileInfo(fileName);
-    const QString base = fileInfo.completeBaseName() + QLatin1String("_");
+    if (fileInfo.completeBaseName().length() != 0) {
+        base = fileInfo.completeBaseName() + QLatin1String("_");
+    }
     const QString path = fileInfo.path();
 
     /* Loop layers to calculate the path for the exported file */
@@ -236,7 +244,7 @@ QString GFMExporterPlugin::errorString() const
  * @param  file      The output file
  * @param  tileLayer The layer to be outputed
  */
-static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
+static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         boundary &b) {
     QSet<QSharedPointer<Tileset> >::iterator tileset;
     QSet<QSharedPointer<Tileset> > tilesets = tileLayer->usedTilesets();
@@ -277,9 +285,21 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
     /* Fix the tilemap's dimension */
     if (b.width == 0) {
         b.width = tileLayer->width() - 1;
+    } else if (b.width >= tileLayer->width()) {
+        mError = QString("Invalid layer width (layer:%1, max: %2, expected %3)")
+                .arg(tileLayer->name())
+                .arg(tileLayer->width() - 1)
+                .arg(b.width);
+        return false;
     }
     if (b.height == 0) {
         b.height = tileLayer->height() - 1;
+    } else if (b.height >= tileLayer->height()) {
+        mError = QString("Invalid layer height (layer:%1, max: %2, expected %3)")
+                .arg(tileLayer->name())
+                .arg(tileLayer->height() - 1)
+                .arg(b.height);
+        return false;
     }
 
     /* Write a tilemap 'header' */
@@ -307,6 +327,8 @@ static void gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
 
         file.write("\n", 1);
     }
+
+    return true;
 }
 
 static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
@@ -337,7 +359,7 @@ static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
         file.write(QByteArray::number((int)pObj->width()));
         file.write(" ");
         file.write(QByteArray::number((int)pObj->height()));
-        if (!pObj->cell().isEmpty() || pObj->properties().isEmpty()) {
+        if (!pObj->cell().isEmpty() || !pObj->properties().isEmpty()) {
             QMap<QString, QString>::const_iterator it;
             
             /* Output all of its properties */

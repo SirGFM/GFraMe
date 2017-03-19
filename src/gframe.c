@@ -616,6 +616,9 @@ gfmRV gfm_initGameFullScreen(gfmCtx *pCtx, int bufWidth, int bufHeight,
     rv = gfmLog_log(pCtx->pLog, gfmLog_info, "Window initialized!");
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
+    rv = gfmDebug_init(pCtx);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2343,6 +2346,27 @@ gfmRV gfm_getLastPressed(gfmInputIface *pIface, gfmCtx *pCtx) {
     
     // Return with either GFMRV_OK or GFMRV_WAITING (whichever was return by
     // the function
+__ret:
+    return rv;
+}
+
+/**
+ * Cancel a previous (incomplete) gfm_getLastPressed.
+ *
+ * @param  pCtx The game's context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_cancelGetLastPressed(gfmCtx *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Check that the input system was initialized */
+    ASSERT_LOG(pCtx->pInput, GFMRV_INPUT_NOT_INITIALIZED, pCtx->pLog);
+
+    rv = gfmInput_cancelRequestLastPressed(pCtx->pInput);
 __ret:
     return rv;
 }
