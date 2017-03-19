@@ -400,10 +400,7 @@ static gfmRV gfmQuadtree_convertObjectToHitbox(gfmHitbox *pArea,
         gfmObject *pObj) {
     int h, x, y, w;
 
-    /* TODO Enable continuous collision */
-    /* gfmObject_getCollisionBoundary(&x, &y, &w, &h, pObj); */
-    gfmObject_getPosition(&x, &y, pObj);
-    gfmObject_getDimensions(&w, &h, pObj);
+    gfmObject_getCollisionBoundary(&x, &y, &w, &h, pObj);
     gfmHitbox_init(pArea, pObj, x, y, w, h, gfmType_quadtreeHitbox);
 
     return GFMRV_OK;

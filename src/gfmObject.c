@@ -22,10 +22,14 @@
 #include <string.h>
 
 enum {
-    gfmFlags_isFixed    = 0x10000
-  , gfmFlags_currentBit = 0
-  , gfmFlags_lastBit    = 4
-  , gfmFlags_instBit    = 8
+    gfmFlags_isFixed             = 0x10000
+  , gfmFlags_continuousCollision = 0x20000
+  , gfmFlags_currentMask         = 0x0000f
+  , gfmFlags_lastMask            = 0x000f0
+  , gfmFlags_instantaneousMask   = 0x00f00
+  , gfmFlags_currentBit          = 0
+  , gfmFlags_lastBit             = 4
+  , gfmFlags_instBit             = 8
 };
 
 /** The gfmObject structure */
@@ -2215,5 +2219,67 @@ gfmRV gfmObject_setType(gfmObject *pCtx, int type) {
     pCtx->t.type = type;
 
     return GFMRV_OK;
+}
+
+/**
+ * Retrieve an object's boundary. If continous collision is enabled for the
+ * object, the entire area it may have occupied from the previous frame to this
+ * one is returned.
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx) {
+    gfmRV rv;
+    int h, w, x, y;
+
+    /* Sanitize arguments */
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    gfmObject_getPosition(&x, &y, pCtx);
+    gfmObject_getDimensions(&w, &h, pCtx);
+    if (pCtx->t.innerType != gfmType_hitbox
+            && (pCtx->flags & gfmFlags_continuousCollision)) {
+        int lx, ly;
+
+        /* Expand the area to enclosed any space possibly occupied by the
+         * object */
+        lx = (int)pCtx->ldx;
+        ly = (int)pCtx->ldy;
+
+        if (lx < x) {
+            w += x - lx;
+            x = lx;
+        }
+        else {
+            w += lx - x;
+        }
+
+        if (ly < y) {
+            h += y - ly;
+            y = ly;
+        }
+        else {
+            h += ly - y;
+        }
+    }
+
+    *pX = x;
+    *pY = y;
+    *pWidth = w;
+    *pHeight = h;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 

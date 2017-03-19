@@ -663,5 +663,19 @@ gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
  */
 gfmRV gfmObject_setType(gfmObject *pCtx, int type);
 
+/**
+ * Retrieve an object's boundary. If continous collision is enabled for the
+ * object, the entire area it may have occupied from the previous frame to this
+ * one is returned.
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx);
+
 #endif  /* __GFMOBJECT_H__ */
 
