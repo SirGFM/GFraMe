@@ -22,13 +22,17 @@
 typedef struct stGFMInput gfmInput;
 
 enum enGFMInputState {
-    gfmInput_released     = 0x01,
-    gfmInput_pressed      = 0x02,
-    gfmInput_justPressed  = 0x06,
-    gfmInput_justReleased = 0x09,
-    gfmInput_stateMask    = 0x03,
-    gfmInput_justMask     = 0x0C,
-    gfmInput_curFrame     = 0x0F
+    gfmInput_released     = 0x001,
+    gfmInput_pressed      = 0x002,
+    gfmInput_justPressed  = 0x006,
+    gfmInput_justReleased = 0x009,
+    gfmInput_stateMask    = 0x003,
+    gfmInput_justMask     = 0x00C,
+    gfmInput_curFrame     = 0x00F,
+    gfmInput_nextFrame    = 0x0F0,
+    gfmInput_forceFrame   = 0xF00,
+    gfmInput_nextBits     = 4,
+    gfmInput_forceBits    = 8
 };
 typedef enum enGFMInputState gfmInputState;
 

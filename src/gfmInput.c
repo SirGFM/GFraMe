@@ -263,31 +263,30 @@ gfmRV gfmInput_updateVKey(gfmInput *pCtx, int vkey) {
 
     pVKey = gfmGenArr_getObject(pCtx->pVKeys, vkey);
 
-    if ((pVKey->state & (gfmInput_justPressed << 8))
-            == (gfmInput_justPressed << 8)) {
-        // If the key was just pressed (it's set on byte 1!!)
-        pVKey->state = pVKey->state & ~(gfmInput_justPressed << 8);
-        pVKey->state = pVKey->state & ~gfmInput_curFrame;
-        pVKey->state = pVKey->state | gfmInput_justPressed;
+#define CHECK(test) \
+    ((pVKey->state & (test)) == (test))
+
+    if (CHECK(gfmInput_justPressed << gfmInput_forceBits)) {
+        /* Force the next state to be pressed */
+        pVKey->state &= ~(gfmInput_forceFrame | gfmInput_curFrame);
+        pVKey->state |= gfmInput_justPressed;
+        /* If the next state is pressed, clear it (since it was already set) */
+        if (CHECK(gfmInput_justPressed << gfmInput_nextBits)) {
+            pVKey->state &= ~gfmInput_nextFrame;
+        }
     }
-    else if ((pVKey->state & (gfmInput_justReleased << 8))
-            == (gfmInput_justReleased << 8)) {
-        // If the key was just released (it's set on byte 1!!)
-        pVKey->state = pVKey->state & ~(gfmInput_justReleased << 8);
-        pVKey->state = pVKey->state & ~gfmInput_curFrame;
-        pVKey->state = pVKey->state | gfmInput_justReleased;
+    else if (pVKey->state & gfmInput_nextFrame) {
+        gfmInputState next;
+
+        /* Switch the state to whatever was set */
+        next = (pVKey->state & gfmInput_nextFrame) >> gfmInput_nextBits;
+
+        pVKey->state &= ~(gfmInput_nextFrame | gfmInput_curFrame);
+        pVKey->state |= next;
     }
-    else if ((pVKey->state & gfmInput_justPressed)
-            == gfmInput_justPressed) {
-        // If the key was pressed on the last frame
-        pVKey->state = pVKey->state & ~gfmInput_curFrame;
-        pVKey->state = pVKey->state | gfmInput_pressed;
-    }
-    else if ((pVKey->state & gfmInput_justReleased)
-            == gfmInput_justReleased) {
-        // If the key was released on the last frame
-        pVKey->state = pVKey->state & ~gfmInput_curFrame;
-        pVKey->state = pVKey->state | gfmInput_released;
+    else if (pVKey->state & gfmInput_justMask) {
+        /* After 1 frame with the just* bit set, clear it */
+        pVKey->state &= ~gfmInput_justMask;
     }
 
     rv = GFMRV_OK;
@@ -685,27 +684,60 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     rv = gfmKeyNode_getVirtualKey(&pVKey, pCtx->pTree, key);
     ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
     
-    /* If the input is bound and this isn't a repeated 'press' (NOTE: repeated
-    * 'release' is OK!).
-    *
-    * This does generate an annoying "feature" that multi presses shall only be
-    * detected if there is 1 frame between them. */
-    if (rv == GFMRV_OK && ((state & gfmInput_released) != 0
-            || (pVKey->state & gfmInput_pressed) == 0)) {
-        // Set the next state on byte 1
-        pVKey->state |= state << 8;
-        
-        // Check for multi-press
-        if ((state & gfmInput_pressed) == gfmInput_pressed) {
-            if (time - pVKey->lastPress <= pCtx->multiDelay) {
-                pVKey->num++;
-            }
-            else {
-                pVKey->num = 1;
-            }
-            // Update the time
-            pVKey->lastPress = time;
+    if (rv == GFMRV_OK) {
+#define CASE(cur, next, received) \
+    case (cur | (next << 4) | (received << 8))
+
+        /* Try to neatly organize which case was detected:
+         *
+         * Bits   0-3: Current state
+         * Bits   4-7: Next state
+         * Bits  8-11: Following state
+         * Bits 12-15: Detected state
+         *
+         * The following state is used to allow switching states in place (e.g.,
+         * in a single frame, allowing events like press-release-press; or,
+         * considering a previous 'pressed' state, a release-press event */
+        switch ((pVKey->state &
+                (gfmInput_stateMask | (gfmInput_stateMask << gfmInput_nextBits)))
+                | ((state & gfmInput_stateMask) << 8)) {
+            CASE(gfmInput_pressed, 0, gfmInput_pressed):
+            CASE(gfmInput_released, 0, gfmInput_released):
+            CASE(gfmInput_pressed, gfmInput_pressed, gfmInput_pressed):
+            CASE(gfmInput_pressed, gfmInput_released, gfmInput_released):
+            CASE(gfmInput_released, gfmInput_pressed, gfmInput_pressed):
+            CASE(gfmInput_released, gfmInput_released, gfmInput_released):
+                /* Received a repeated event */
+                break;
+            CASE(gfmInput_pressed, gfmInput_released, gfmInput_pressed):
+            CASE(gfmInput_released, gfmInput_released, gfmInput_pressed):
+            CASE(gfmInput_released, 0, gfmInput_pressed):
+            CASE(0, 0, gfmInput_pressed):
+                /* Force the input to be pressed on the next frame */
+                pVKey->state &= ~gfmInput_forceFrame;
+                pVKey->state |= (state << gfmInput_forceBits);
+
+                if (time - pVKey->lastPress <= pCtx->multiDelay) {
+                    pVKey->num++;
+                }
+                else {
+                    pVKey->num = 1;
+                }
+                pVKey->lastPress = time;
+                /* NOTE: Fallthrough */
+            CASE(gfmInput_pressed, gfmInput_pressed, gfmInput_released):
+            CASE(gfmInput_released, gfmInput_pressed, gfmInput_released):
+            CASE(gfmInput_pressed, 0, gfmInput_released):
+            CASE(0, 0, gfmInput_released):
+                /* Set the next frame with whatever was received (though it may
+                 * be overriden) */
+
+                pVKey->state &= ~gfmInput_nextFrame;
+                pVKey->state |= (state << gfmInput_nextBits);
+                break;
+            default: { /* Shouldn't happen */ }
         }
+#undef CASE
     }
     
     // Store the last pressed key, if the operation is active
