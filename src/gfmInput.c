@@ -685,8 +685,13 @@ gfmRV gfmInput_setKeyState(gfmInput *pCtx, gfmInputIface key,
     rv = gfmKeyNode_getVirtualKey(&pVKey, pCtx->pTree, key);
     ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_INPUT_NOT_BOUND);
     
-    // If the input is bound and this isn't a repeated press
-    if (rv == GFMRV_OK && ((pVKey->state & state) & gfmInput_stateMask) == 0) {
+    /* If the input is bound and this isn't a repeated 'press' (NOTE: repeated
+    * 'release' is OK!).
+    *
+    * This does generate an annoying "feature" that multi presses shall only be
+    * detected if there is 1 frame between them. */
+    if (rv == GFMRV_OK && ((state & gfmInput_released) != 0
+            || (pVKey->state & gfmInput_pressed) == 0)) {
         // Set the next state on byte 1
         pVKey->state |= state << 8;
         
