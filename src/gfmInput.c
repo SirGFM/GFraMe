@@ -289,6 +289,8 @@ gfmRV gfmInput_updateVKey(gfmInput *pCtx, int vkey) {
         pVKey->state &= ~gfmInput_justMask;
     }
 
+#undef CHECK(test)
+
     rv = GFMRV_OK;
 __ret:
     return rv;
