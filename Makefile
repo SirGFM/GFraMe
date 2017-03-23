@@ -14,8 +14,10 @@
 #==============================================================================
 # Define all targets that doesn't match its generated file
 #==============================================================================
-.PHONY: emscript fast fast_all release install install_win install_x \
-        uninstall uninstall_win uninstall_x clean emscript_clean distclean
+.PHONY: emscript fast fast_all install install_shared install_static \
+        install_shared_win install_shared_x install_static_win \
+        install_static_x uninstall uninstall_win uninstall_x clean \
+        emscript_clean distclean
 #==============================================================================
 
 #==============================================================================
@@ -268,6 +270,14 @@
 #==============================================================================
 
 #==============================================================================
+# Ensure debug build isn't stripped
+#==============================================================================
+  ifneq ($(RELEASE), yes)
+    STRIP := touch
+  endif
+#==============================================================================
+
+#==============================================================================
 # Get the number of cores for fun stuff
 #==============================================================================
  ifeq ($(UNAME), Win)
@@ -281,25 +291,6 @@
 # Define default compilation rule
 #==============================================================================
 all: static shared tests
-	date
-#==============================================================================
-
-#==============================================================================
-# Define the release rule, to compile everything on RELEASE mode (it's done in
-# quite an ugly way.... =/)
-#==============================================================================
-release: MAKEDIRS
-	# Remove all old binaries
-	make clean
-	# Compile everything in release mode
-	make RELEASE=yes fast
-	# Remove all debug info from the binaries
-	strip $(BINDIR)/$(TARGET).a
-	strip $(BINDIR)/$(TARGET).$(MNV)
-	# Delete all .o to recompile as debug
-	rm -f $(OBJS)
-	# Recompile the lib with debug info
-	make DEBUG=yes fast
 	date
 #==============================================================================
 
@@ -336,47 +327,63 @@ tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 # Rule for installing the library
 #==============================================================================
-ifeq ($(OS), Win)
-install: install_win
+ifeq ($(UNAME), Win)
+install: install_shared_win install_static_win
+install_shared: install_shared_win
+install_static: install_static_win
 else
-install: install_x
+install: install_shared_x install_static_x
+install_shared: install_shared_x
+install_static: install_static_x
 endif
 
-install_win: release
+install_shared_win: shared
 	# Create destiny directories
 	mkdir -p /c/GFraMe/lib/
 	mkdir -p /c/GFraMe/include/GFrame
-	# Copy every shared lib (normal and debug)
-	cp -f $(BINDIR)/$(TARGET)*.$(MNV) /c/GFraMe/lib
-	# -P = don't follow sym-link
-	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
-	cp -fP $(BINDIR)/$(TARGET)*.$(SO) /c/GFraMe/lib
 	# Copy the headers
 	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
+	# Copy the static lib
+	cp -f $(BINDIR)/$(TARGET).a /c/GFraMe/lib
 
-install_x: release
+install_static_win: static
+	# Create destiny directories
+	mkdir -p /c/GFraMe/lib/
+	mkdir -p /c/GFraMe/include/GFrame
+	# Copy the headers
+	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
+	# Copy the shared lib
+	cp -f $(BINDIR)/$(TARGET).dll /c/GFraMe/lib
+
+install_shared_x: shared
 	# Create destiny directories
 	mkdir -p $(LIBPATH)
 	mkdir -p $(HEADERPATH)
+	# Copy the headers
+	cp -rf ./include/GFraMe/* $(HEADERPATH)
 	# Copy every shared lib (normal and debug)
 	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)
 	# -P = don't follow sym-link
 	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)
 	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)
-	# Copy the static lib
-	cp -f $(BINDIR)/$(TARGET).a $(LIBPATH)
-	# Copy the headers
-	cp -rf ./include/GFraMe/* $(HEADERPATH)
 	# Make the lib be automatically found
 	echo "$(LIBPATH)" > /etc/ld.so.conf.d/gframe.conf
-	# Update the paths
 	ldconfig
+
+install_static_x: static
+	# Create destiny directories
+	mkdir -p $(LIBPATH)
+	mkdir -p $(HEADERPATH)
+	# Copy the headers
+	cp -rf ./include/GFraMe/* $(HEADERPATH)
+	# Copy the static lib
+	cp -f $(BINDIR)/$(TARGET).a $(LIBPATH)
 #==============================================================================
 
 #==============================================================================
 # Rule for uninstalling the library
 #==============================================================================
-ifeq ($(OS), Win)
+ifeq ($(UNAME), Win)
 uninstall: uninstall_win
 else
 uninstall: uninstall_x
@@ -432,6 +439,7 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 $(BINDIR)/$(TARGET).dll: $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).dll -Wl,-export-all-symbols \
 	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
 
 # Linux
 $(BINDIR)/$(TARGET).so: $(BINDIR)/$(TARGET).$(MJV)
@@ -448,11 +456,13 @@ ifneq ($(SO), $(MNV))
 $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
 endif
 
 # Mac OS X
 $(BINDIR)/$(TARGET).dylib: $(OBJS)
 	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
 #==============================================================================
 
 #==============================================================================
