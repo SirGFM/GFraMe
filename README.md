@@ -210,3 +210,18 @@ beforehand makes sure that 'fast_all' will re-compile the library in debug mode.
 Also, the rules 'fast' and 'fast_all' will use as spawn many jobs to build
 everything (hopefully) faster.
 
+
+## Cross-compiling for Windows
+
+For some reason, when cross-compiling for Windows from Linux, the compiler
+complains about a `glActiveTexture` redefinition. If you try to remove it from
+`src/core/video/opengl3/gfmVideo_opengl3_glFuncs.*`, the linker will complain
+that `glActiveTexture` isn't defined.
+
+The hacky solution I found to overcome that was to remove that definition from
+SDL2's header.
+
+For SDL2 2.0.5, that function's definition can be found on `SDL2/SDL_opengl.h`,
+on line 1871. Enclose it between `#if !defined(_WIN32) && !defined(_WIN64)` and
+`#endif`.
+
