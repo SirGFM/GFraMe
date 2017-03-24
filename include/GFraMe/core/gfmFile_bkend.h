@@ -272,6 +272,16 @@ gfmRV gfmFile_writeChar(gfmFile *pCtx, unsigned char val);
 gfmRV gfmFile_unreadChar(gfmFile *pCtx);
 
 /**
+ * Lookup the next character on the file, but don't move the current pointer.
+ *
+ * @param  [out]pVal The character
+ * @param  [ in]pCtx The file
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                   GFMRV_FILE_EOF_REACHED
+ */
+gfmRV gfmFile_peekChar(char *pVal, gfmFile *pCtx);
+
+/**
  * Read 2 bytes (i.e., half a 32 bits word) into an integer; The value is
  * expected to be in little-endian format
  * 

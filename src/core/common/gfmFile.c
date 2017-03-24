@@ -707,6 +707,7 @@ __ret:
  */
 gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
     gfmRV rv;
+    int irv;
 
     /* Sanitize arguents */
     ASSERT(pVal, GFMRV_ARGUMENTS_BAD);
@@ -721,14 +722,20 @@ gfmRV gfmFile_readChar(char *pVal, gfmFile *pCtx) {
     pCtx->lastOp = gfmFile_read;
 
     /* Read a char */
-    pCtx->lastChar = fgetc(pCtx->pFp);
+    irv = fread(pVal, sizeof(char), 1, pCtx->pFp);
+    if (irv != 1) {
+        ASSERT(feof(pCtx->pFp), GFMRV_READ_ERROR);
+        pCtx->lastChar = EOF;
+    }
+    else {
+        pCtx->lastChar = (int)*pVal;
+    }
+
     if (pCtx->lastChar == EOF) {
         rv = GFMRV_FILE_EOF_REACHED;
         goto __ret;
     }
-    /*ASSERT(pCtx->lastChar != EOF, GFMRV_FILE_EOF_REACHED); */
 
-    *pVal = (char)pCtx->lastChar;
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -789,6 +796,36 @@ gfmRV gfmFile_unreadChar(gfmFile *pCtx) {
     ASSERT(irv == pCtx->lastChar, GFMRV_INTERNAL_ERROR);
 
     pCtx->lastChar = -1;
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Lookup the next character on the file, but don't move the current pointer.
+ *
+ * @param  [out]pVal The character
+ * @param  [ in]pCtx The file
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_FILE_NOT_OPEN,
+ *                   GFMRV_FILE_EOF_REACHED
+ */
+gfmRV gfmFile_peekChar(char *pVal, gfmFile *pCtx) {
+    gfmRV rv;
+    int irv;
+    fpos_t pos;
+
+    irv = fgetpos(pCtx->pFp, &pos);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
+    rv = gfmFile_readChar(pVal, pCtx);
+    if (rv != GFMRV_OK) {
+        /* Most likely an EOF, so simply return it to the caller */
+        goto __ret;
+    }
+
+    irv = fsetpos(pCtx->pFp, &pos);
+    ASSERT(irv == 0, GFMRV_INTERNAL_ERROR);
+
     rv = GFMRV_OK;
 __ret:
     return rv;
