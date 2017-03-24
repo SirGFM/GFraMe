@@ -27,7 +27,10 @@ gfmRV gfmParser_ignoreBlank(gfmFile *pFp) {
         char c;
 
         rv = gfmFile_peekChar(&c, pFp);
-        ASSERT_NR(rv == GFMRV_OK);
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
+        if (rv == GFMRV_FILE_EOF_REACHED) {
+            break;
+        }
 
         // Stop if it's not a blank char
         if (!gfmParser_isBlank(c)) {

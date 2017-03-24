@@ -20,6 +20,7 @@
 #endif
 
 #include <SDL2/SDL_rwops.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -464,7 +465,6 @@ __ret:
  */
 gfmRV gfmFile_didFinish(gfmFile *pCtx) {
     gfmRV rv;
-    int irv;
 
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -786,6 +786,29 @@ __ret:
  *                   GFMRV_FILE_EOF_REACHED
  */
 gfmRV gfmFile_peekChar(char *pVal, gfmFile *pCtx) {
+    gfmRV rv;
+    int irv, pos;
+
+    /* Sanitize arguents */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that there's an open file */
+    ASSERT(pCtx->pFp, GFMRV_FILE_NOT_OPEN);
+
+    pos = SDL_RWtell(pCtx->pFp);
+    ASSERT(pos >= 0, GFMRV_INTERNAL_ERROR);
+
+    rv = gfmFile_readChar(pVal, pCtx);
+    if (rv != GFMRV_OK) {
+        /* Most likely EOF */
+        goto __ret;
+    }
+
+    irv = SDL_RWseek(pCtx->pFp, pos, SEEK_SET);
+    ASSERT(irv == pos, GFMRV_INTERNAL_ERROR);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**

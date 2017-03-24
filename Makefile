@@ -97,7 +97,12 @@
     include src/core/emscript-sdl2/Makefile
   endif
 # Use the stdio file interface on desktops
-  OBJS += $(OBJDIR)/core/common/gfmFile.o
+  ifneq ($(OS), Win)
+    OBJS += $(OBJDIR)/core/common/gfmFile.o
+  else
+    # Except on Windows, because cross-compiling seems buggy
+    OBJS += $(OBJDIR)/core/sdl2/gfmFile.o
+  endif
 # Add GIF exporter, by default
   ifneq ($(EXPORT_GIF), no)
     OBJS += $(OBJDIR)/core/common/gfmGifExporter.o
