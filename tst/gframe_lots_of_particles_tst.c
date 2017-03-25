@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
 
             rv = gfmInput_getKeyState(&kquit, &nquit, pInput, quit);
             ASSERT_NR(rv == GFMRV_OK);
-            if (kquit & gfmInput_justReleased) {
+            if ((kquit & gfmInput_justReleased) == gfmInput_justReleased) {
                 rv = gfm_setQuitFlag(pCtx);
                 ASSERT_NR(rv == GFMRV_OK);
             }
