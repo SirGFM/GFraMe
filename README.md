@@ -176,7 +176,8 @@ libCSynth must be downloaded and compiled:
 ```
 $ git clone git@github.com:SirGFM/c_synth.git
 $ cd c_synth
-$ sudo make install
+$ sudo make install DEBUG=yes
+$ sudo make install RELEASE=yes
 ```
 
 
@@ -185,13 +186,15 @@ $ sudo make install
 Simply run make:
 
 ```
-$ sudo make install
+sudo make install DEBUG=yes
+sudo make install RELEASE=yes
 ```
 
 If you would like to install GFraMe without OpenGL, set NO_GL to yes:
 
 ```
-$ sudo make install NO_GL=yes
+sudo make install DEBUG=yes NO_GL=yes
+sudo make install RELEASE=yes NO_GL=yes
 ```
 
 
@@ -224,4 +227,7 @@ SDL2's header.
 For SDL2 2.0.5, that function's definition can be found on `SDL2/SDL_opengl.h`,
 on line 1871. Enclose it between `#if !defined(_WIN32) && !defined(_WIN64)` and
 `#endif`.
+
+[MXE](https://github.com/mxe/mxe) is highly advised for cross compiling for
+Windows from Linux!
 

@@ -3,6 +3,11 @@
 # Import the configurations
 #==============================================================================
   include Makefile.conf
+# Set DEBUG as the default mode
+  ifneq ($(RELEASE), yes)
+    RELEASE := no
+    DEBUG := yes
+  endif
 #==============================================================================
 
 #==============================================================================
@@ -232,8 +237,13 @@
 #==============================================================================
  VPATH := src:tst
  TESTDIR := tst
- OBJDIR := obj/$(OS)
- BINDIR := bin/$(OS)
+ ifeq ($(DEBUG), yes)
+   OBJDIR := obj/debug/$(OS)
+   BINDIR := bin/debug/$(OS)
+ else
+   OBJDIR := obj/release/$(OS)
+   BINDIR := bin/release/$(OS)
+ endif
  WDATADIR := $(OBJDIR)/wavtodata
 
  PREFIX ?= /usr
@@ -558,15 +568,10 @@ clean:
 	rm -f $(BINDIR)/$(TARGET)*.$(MNV)
 	rm -f $(BINDIR)/$(TARGET)*.$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
-#==============================================================================
-
-#==============================================================================
-# Remove all built objects and target directories
-#==============================================================================
-distclean: clean
 	rmdir $(OBJDIR)/core/video/sdl2
 	rmdir $(OBJDIR)/core/video/sw_sdl2
 	rmdir $(OBJDIR)/core/video/opengl3
+	rmdir $(OBJDIR)/core/video
 	rmdir $(OBJDIR)/core/sdl2
 	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/loadAsync
@@ -577,7 +582,15 @@ distclean: clean
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
 	rmdir $(OBJDIR)/util
-	rmdir $(OBJDIR)
-	rmdir $(BINDIR)
+	rm -rf $(OBJDIR)
+	rm -rf $(BINDIR)
+#==============================================================================
+
+#==============================================================================
+# Remove all built objects and target directories
+#==============================================================================
+distclean:
+	make clean DEBUG=yes
+	make clean RELEASE=yes
 #==============================================================================
 
