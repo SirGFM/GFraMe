@@ -80,7 +80,7 @@ struct stGfmRect {
  * @param  [ in]value The value
  * @return            1 if it belongs, 0 otherwise
  */
-inline int gfmGeometry_isValueInAxis(gfmAxis *pAxis, gfmFixedPoint value);
+int gfmGeometry_isValueInAxis(gfmAxis *pAxis, gfmFixedPoint value);
 
 /**
  * Check if two axes intersect
@@ -89,7 +89,7 @@ inline int gfmGeometry_isValueInAxis(gfmAxis *pAxis, gfmFixedPoint value);
  * @param  [ in]pAxis2 Another axis
  * @return            1 if they intersect, 0 otherwise
  */
-inline int gfmGeometry_doesAxesIntersect(gfmAxis *pAxis1, gfmAxis *pAxis2);
+int gfmGeometry_doesAxesIntersect(gfmAxis *pAxis1, gfmAxis *pAxis2);
 
 /**
  * Check if a given value belongs to the image of a line segment
@@ -116,7 +116,7 @@ int gfmGeometry_doesLinesIntersect(gfmLine *pLine1, gfmLine *pLine2);
  * @param  [ in]x     The horizontal coordinate of the point
  * @return            The vertical coordinate of the given horizontal one
  */
-inline gfmFixedPoint gfmGeometry_getLineY(gfmLine *pLine, gfmFixedPoint x);
+gfmFixedPoint gfmGeometry_getLineY(gfmLine *pLine, gfmFixedPoint x);
 
 /**
  * Check if a line intersect with a rectangle

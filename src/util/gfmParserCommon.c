@@ -25,20 +25,22 @@ gfmRV gfmParser_ignoreBlank(gfmFile *pFp) {
     // Loop through all characters
     while (1) {
         char c;
-        
-        // Read the current character
-        rv = gfmFile_readChar(&c, pFp);
+
+        rv = gfmFile_peekChar(&c, pFp);
         ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
         if (rv == GFMRV_FILE_EOF_REACHED) {
             break;
         }
-        
+
         // Stop if it's not a blank char
         if (!gfmParser_isBlank(c)) {
-            // 'Unread' the character
-            rv = gfmFile_unreadChar(pFp);
-            ASSERT_NR(rv == GFMRV_OK);
-            // and stop
+            break;
+        }
+
+        // Read the current character
+        rv = gfmFile_readChar(&c, pFp);
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_FILE_EOF_REACHED);
+        if (rv == GFMRV_FILE_EOF_REACHED) {
             break;
         }
     }
@@ -223,15 +225,13 @@ gfmRV gfmParser_parseString(gfmFile *pFp, char *pStr, int strLen) {
             rv = GFMRV_FALSE;
             goto __ret;
         }
-        //ASSERT(pStr[i] == c, GFMRV_FALSE);
         
         i++;
     }
     // Check that the next character would be blank
-    rv = gfmFile_readChar(&c, pFp);
+    rv = gfmFile_peekChar(&c, pFp);
     ASSERT_NR(rv == GFMRV_OK);
     ASSERT(gfmParser_isBlank(c), GFMRV_FALSE);
-    rv = gfmFile_unreadChar(pFp);
     
     // Ignore all blank spaces so we are on the next token
     rv = gfmParser_ignoreBlank(pFp);

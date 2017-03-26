@@ -3,6 +3,11 @@
 # Import the configurations
 #==============================================================================
   include Makefile.conf
+# Set DEBUG as the default mode
+  ifneq ($(RELEASE), yes)
+    RELEASE := no
+    DEBUG := yes
+  endif
 #==============================================================================
 
 #==============================================================================
@@ -14,7 +19,10 @@
 #==============================================================================
 # Define all targets that doesn't match its generated file
 #==============================================================================
-.PHONY: emscript fast fast_all release install clean emscript_clean distclean
+.PHONY: emscript fast fast_all install install_shared install_static \
+        install_shared_win install_shared_x install_static_win \
+        install_static_x uninstall uninstall_win uninstall_x clean \
+        emscript_clean distclean
 #==============================================================================
 
 #==============================================================================
@@ -22,8 +30,8 @@
 #==============================================================================
   TARGET := libGFraMe
   MAJOR_VERSION := 2
-  MINOR_VERSION := 3
-  REV_VERSION := 3
+  MINOR_VERSION := 4
+  REV_VERSION := 0
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
   ifeq ($(DEBUG), yes)
@@ -94,7 +102,12 @@
     include src/core/emscript-sdl2/Makefile
   endif
 # Use the stdio file interface on desktops
-  OBJS += $(OBJDIR)/core/common/gfmFile.o
+  ifneq ($(OS), Win)
+    OBJS += $(OBJDIR)/core/common/gfmFile.o
+  else
+    # Except on Windows, because cross-compiling seems buggy
+    OBJS += $(OBJDIR)/core/sdl2/gfmFile.o
+  endif
 # Add GIF exporter, by default
   ifneq ($(EXPORT_GIF), no)
     OBJS += $(OBJDIR)/core/common/gfmGifExporter.o
@@ -107,9 +120,19 @@
 #==============================================================================
 # Set OS flag
 #==============================================================================
-  OS ?= $(shell uname)
-  ifeq ($(OS), MINGW32_NT-6.1)
+  UNAME := $(shell uname)
+  OS ?= $(UNAME)
+  ifneq (, $(findstring Windows_NT, $(UNAME)))
     OS := Win
+    UNAME := Win
+  endif
+  ifneq (, $(findstring MINGW, $(UNAME)))
+    OS := Win
+    UNAME := Win
+  endif
+  ifneq (, $(findstring MSYS, $(UNAME)))
+    OS := Win
+    UNAME := Win
   endif
   ifeq ($(CC), emcc)
     OS := emscript
@@ -157,9 +180,10 @@
     CFLAGS := $(CFLAGS) -DFORCE_FPS
   endif
 # Set flags required by OS
-  ifeq ($(OS), Win)
+  ifeq ($(UNAME), Win)
     CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include" -I"/c/c_synth/include/"
-  else
+  endif
+  ifneq ($(OS), Win)
     CFLAGS := $(CFLAGS) -fPIC
   endif
 # Set the current compiler
@@ -179,29 +203,31 @@
 #==============================================================================
 
 #==============================================================================
-# Define LFLAGS (linker flags)
+# Define LDFLAGS (linker flags)
 #==============================================================================
 # Add libs and paths required by an especific OS
-  ifeq ($(OS), Win)
+  ifeq ($(UNAME), Win)
     ifeq ($(ARCH), x64)
-      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
+      LDFLAGS := $(LDFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
     else
-      LFLAGS := $(LFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
+      LDFLAGS := $(LDFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
     endif
-    LFLAGS := $(LFLAGS) -lmingw32 -lSDL2main
+  endif
+  ifeq ($(OS), Win)
+    LDFLAGS := $(LDFLAGS) -lmingw32 -lSDL2main
   else
-    LFLAGS := $(LFLAGS) -L/usr/lib/c_synth/
+    LDFLAGS := $(LDFLAGS) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
-  LFLAGS := $(LFLAGS) -lSDL2
+  LDFLAGS := $(LDFLAGS) -lSDL2
 # Add the MML synthesizer
-  LFLAGS := $(LFLAGS) -lCSynth
+  LDFLAGS := $(LDFLAGS) -lCSynth
 # Add OpenGL lib
  ifeq ($(USE_GL3_VIDEO), yes)
    ifeq ($(OS), Win)
-     LFLAGS := $(LFLAGS) -lopengl32
+     LDFLAGS := $(LDFLAGS) -lopengl32
    else
-     LFLAGS := $(LFLAGS) -lGL
+     LDFLAGS := $(LDFLAGS) -lGL
    endif
  endif
 #==============================================================================
@@ -211,20 +237,18 @@
 #==============================================================================
  VPATH := src:tst
  TESTDIR := tst
- OBJDIR := obj/$(OS)
- BINDIR := bin/$(OS)
- WDATADIR := $(OBJDIR)/wavtodata
- ifeq ($(OS), Win)
-    ifeq ($(ARCH), x64)
-      LIBPATH := /d/windows/mingw/lib
-    else
-      LIBPATH := /d/windows/mingw/mingw32/lib
-    endif
-    HEADERPATH := /d/windows/mingw/include
+ ifeq ($(DEBUG), yes)
+   OBJDIR := obj/debug/$(OS)
+   BINDIR := bin/debug/$(OS)
  else
-   LIBPATH := /usr/lib
-   HEADERPATH := /usr/include
+   OBJDIR := obj/release/$(OS)
+   BINDIR := bin/release/$(OS)
  endif
+ WDATADIR := $(OBJDIR)/wavtodata
+
+ PREFIX ?= /usr
+ LIBPATH := $(PREFIX)/lib/GFraMe
+ HEADERPATH := $(PREFIX)/include/GFraMe
 #==============================================================================
 
 #==============================================================================
@@ -261,9 +285,17 @@
 #==============================================================================
 
 #==============================================================================
+# Ensure debug build isn't stripped
+#==============================================================================
+  ifneq ($(RELEASE), yes)
+    STRIP := touch
+  endif
+#==============================================================================
+
+#==============================================================================
 # Get the number of cores for fun stuff
 #==============================================================================
- ifeq ($(OS), Win)
+ ifeq ($(UNAME), Win)
    CORES := 1
  else
    CORES := $$(($(shell nproc) * 2))
@@ -274,25 +306,6 @@
 # Define default compilation rule
 #==============================================================================
 all: static shared tests
-	date
-#==============================================================================
-
-#==============================================================================
-# Define the release rule, to compile everything on RELEASE mode (it's done in
-# quite an ugly way.... =/)
-#==============================================================================
-release: MAKEDIRS
-	# Remove all old binaries
-	make clean
-	# Compile everything in release mode
-	make RELEASE=yes fast
-	# Remove all debug info from the binaries
-	strip $(BINDIR)/$(TARGET).a
-	strip $(BINDIR)/$(TARGET).$(MNV)
-	# Delete all .o to recompile as debug
-	rm -f $(OBJS)
-	# Recompile the lib with debug info
-	make DEBUG=yes fast
 	date
 #==============================================================================
 
@@ -329,44 +342,69 @@ tests: MAKEDIRS static $(TEST_BIN)
 #==============================================================================
 # Rule for installing the library
 #==============================================================================
-ifeq ($(OS), Win)
-  install: release
+ifeq ($(UNAME), Win)
+install: install_shared_win install_static_win
+install_shared: install_shared_win
+install_static: install_static_win
+else
+install: install_shared_x install_static_x
+install_shared: install_shared_x
+install_static: install_static_x
+endif
+
+install_shared_win: shared
 	# Create destiny directories
 	mkdir -p /c/GFraMe/lib/
 	mkdir -p /c/GFraMe/include/GFrame
-	# Copy every shared lib (normal and debug)
-	cp -f $(BINDIR)/$(TARGET)*.$(MNV) /c/GFraMe/lib
-	# -P = don't follow sym-link
-	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) /c/GFraMe/lib
-	cp -fP $(BINDIR)/$(TARGET)*.$(SO) /c/GFraMe/lib
 	# Copy the headers
 	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
-else
-  install: release
-	# Create destiny directories
-	mkdir -p $(LIBPATH)/GFraMe
-	mkdir -p $(HEADERPATH)/GFraMe
-	# Copy every shared lib (normal and debug)
-	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)/GFraMe
-	# -P = don't follow sym-link
-	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)/GFraMe
-	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)/GFraMe
 	# Copy the static lib
-	cp -f $(BINDIR)/$(TARGET).a $(LIBPATH)/GFraMe
+	cp -f $(BINDIR)/$(TARGET).a /c/GFraMe/lib
+
+install_static_win: static
+	# Create destiny directories
+	mkdir -p /c/GFraMe/lib/
+	mkdir -p /c/GFraMe/include/GFrame
 	# Copy the headers
-	cp -rf ./include/GFraMe/* $(HEADERPATH)/GFraMe
+	cp -rf ./include/GFraMe/* /c/GFraMe/include/GFrame
+	# Copy the shared lib
+	cp -f $(BINDIR)/$(TARGET).dll /c/GFraMe/lib
+
+install_shared_x: shared
+	# Create destiny directories
+	mkdir -p $(LIBPATH)
+	mkdir -p $(HEADERPATH)
+	# Copy the headers
+	cp -rf ./include/GFraMe/* $(HEADERPATH)
+	# Copy every shared lib (normal and debug)
+	cp -f $(BINDIR)/$(TARGET)*.$(MNV) $(LIBPATH)
+	# -P = don't follow sym-link
+	cp -fP $(BINDIR)/$(TARGET)*.$(MJV) $(LIBPATH)
+	cp -fP $(BINDIR)/$(TARGET)*.$(SO) $(LIBPATH)
 	# Make the lib be automatically found
-	echo "$(LIBPATH)/GFraMe" > /etc/ld.so.conf.d/gframe.conf
-	# Update the paths
+	echo "$(LIBPATH)" > /etc/ld.so.conf.d/gframe.conf
 	ldconfig
-endif
+
+install_static_x: static
+	# Create destiny directories
+	mkdir -p $(LIBPATH)
+	mkdir -p $(HEADERPATH)
+	# Copy the headers
+	cp -rf ./include/GFraMe/* $(HEADERPATH)
+	# Copy the static lib
+	cp -f $(BINDIR)/$(TARGET).a $(LIBPATH)
 #==============================================================================
 
 #==============================================================================
 # Rule for uninstalling the library
 #==============================================================================
-ifeq ($(OS), Win)
-  uninstall:
+ifeq ($(UNAME), Win)
+uninstall: uninstall_win
+else
+uninstall: uninstall_x
+endif
+
+uninstall:
 	# Remove the libraries
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MNV)
 	rm -f /c/GFraMe/lib/$(TARGET)_dbg.$(MJV)
@@ -380,26 +418,25 @@ ifeq ($(OS), Win)
 	rmdir /c/GFraMe/lib/
 	rmdir /c/GFraMe/include/
 	rmdir /c/GFraMe/
-else
-  uninstall:
+
+uninstall_x:
 	# Remove the libraries
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MNV)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(MJV)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET)_dbg.$(SO)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MNV)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(MJV)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET).$(SO)
-	rm -f $(LIBPATH)/GFraMe/$(TARGET).a
+	rm -f $(LIBPATH)/$(TARGET)_dbg.$(MNV)
+	rm -f $(LIBPATH)/$(TARGET)_dbg.$(MJV)
+	rm -f $(LIBPATH)/$(TARGET)_dbg.$(SO)
+	rm -f $(LIBPATH)/$(TARGET).$(MNV)
+	rm -f $(LIBPATH)/$(TARGET).$(MJV)
+	rm -f $(LIBPATH)/$(TARGET).$(SO)
+	rm -f $(LIBPATH)/$(TARGET).a
 	# Remove the headers
-	rm -rf $(HEADERPATH)/GFraMe/*
+	rm -rf $(HEADERPATH)/*
 	# Remove its directories
-	rmdir $(LIBPATH)/GFraMe
-	rmdir $(HEADERPATH)/GFraMe
+	rmdir $(LIBPATH)
+	rmdir $(HEADERPATH)
 	# Remove the lib from the default path
 	rm /etc/ld.so.conf.d/gframe.conf
 	# Update the paths
 	ldconfig
-endif
 #==============================================================================
 
 #==============================================================================
@@ -413,24 +450,34 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 #==============================================================================
 # Rule for actually building the shared library
 #==============================================================================
+# Win
 $(BINDIR)/$(TARGET).dll: $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).dll -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
 
+# Linux
 $(BINDIR)/$(TARGET).so: $(BINDIR)/$(TARGET).$(MJV)
 	rm -f $@
 	cd $(BINDIR); ln -f -s $(TARGET).$(MJV) $(TARGET).so
 
+ifneq ($(SO), $(MJV))
 $(BINDIR)/$(TARGET).$(MJV): $(BINDIR)/$(TARGET).$(MNV)
 	rm -f $@
 	cd $(BINDIR); ln -f -s $(TARGET).$(MNV) $(TARGET).$(MJV)
+endif
 
+ifneq ($(SO), $(MNV))
 $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
+endif
 
+# Mac OS X
 $(BINDIR)/$(TARGET).dylib: $(OBJS)
-	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(STRIP) $@
 #==============================================================================
 
 #==============================================================================
@@ -458,11 +505,11 @@ MAKEDIRS: | $(OBJDIR)
 # There's also a small cheat for ignoring some warnings caused by macros
 #==============================================================================
 tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
-	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS) \
 					-lm
 
 tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
-	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS) \
+	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS) \
 					-lm
 #==============================================================================
 
@@ -470,7 +517,7 @@ tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
 # Rule for compiling every test (must be suffixed by _tst)
 #==============================================================================
 %_tst$(BIN_EXT): %_tst.c
-	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LFLAGS)
+	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS)
 #==============================================================================
 
 #==============================================================================
@@ -521,15 +568,10 @@ clean:
 	rm -f $(BINDIR)/$(TARGET)*.$(MNV)
 	rm -f $(BINDIR)/$(TARGET)*.$(SO)
 	rm -f $(BINDIR)/$(TARGET)*
-#==============================================================================
-
-#==============================================================================
-# Remove all built objects and target directories
-#==============================================================================
-distclean: clean
 	rmdir $(OBJDIR)/core/video/sdl2
 	rmdir $(OBJDIR)/core/video/sw_sdl2
 	rmdir $(OBJDIR)/core/video/opengl3
+	rmdir $(OBJDIR)/core/video
 	rmdir $(OBJDIR)/core/sdl2
 	rmdir $(OBJDIR)/core/noip
 	rmdir $(OBJDIR)/core/loadAsync
@@ -540,7 +582,15 @@ distclean: clean
 	rmdir $(OBJDIR)/core
 	rmdir $(OBJDIR)/tst
 	rmdir $(OBJDIR)/util
-	rmdir $(OBJDIR)
-	rmdir $(BINDIR)
+	rm -rf $(OBJDIR)
+	rm -rf $(BINDIR)
+#==============================================================================
+
+#==============================================================================
+# Remove all built objects and target directories
+#==============================================================================
+distclean:
+	make clean DEBUG=yes
+	make clean RELEASE=yes
 #==============================================================================
 
