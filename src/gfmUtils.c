@@ -36,7 +36,8 @@ __ret:
     return rv;
 }
 
-#if defined(__WIN32) || defined(__WIN32__) || defined(__APPLE__) || defined(__MACH__)
+#if !defined(DISABLE_CUSTOM_STRNLEN)
+#  if defined(__WIN32) || defined(__WIN32__) || defined(__APPLE__) || defined(__MACH__)
 /**
  * Count how many characters are in a string, up to a limit
  *
@@ -54,4 +55,6 @@ int strnlen(const char *pStr, int maxLen) {
 
     return len;
 }
-#endif
+#  endif /* defined(__WIN32) || defined(__WIN32__) || defined(__APPLE__) || defined(__MACH__) */
+#endif /* !defined(DISABLE_CUSTOM_STRNLEN) */
+
