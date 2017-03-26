@@ -31,7 +31,7 @@
   TARGET := libGFraMe
   MAJOR_VERSION := 2
   MINOR_VERSION := 4
-  REV_VERSION := 0
+  REV_VERSION := 1
 # If the DEBUG flag was set, generate another binary (so it doesn't collide
 # with the release one)
   ifeq ($(DEBUG), yes)
@@ -299,6 +299,17 @@
    CORES := 1
  else
    CORES := $$(($(shell nproc) * 2))
+ endif
+#==============================================================================
+
+#==============================================================================
+# Set flag if it seems like we are cross-compiling
+#==============================================================================
+ ifneq ($(UNAME), Win)
+   ifeq ($(OS), Win)
+# If cross-compiling for windows, disable the custom strnlen
+     CFLAGS := $(CFLAGS) -DDISABLE_CUSTOM_STRNLEN
+   endif
  endif
 #==============================================================================
 
