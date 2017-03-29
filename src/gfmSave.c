@@ -265,6 +265,7 @@ gfmRV gfmSave_findId(gfmSave *pCtx, char *pId, int len) {
     int didLoop, loopPos, pos, size;
 
     /* Sanitize arguments */
+    pTuple = 0;
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     ASSERT_LOG(pId, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
     ASSERT_LOG(len > 0, GFMRV_ARGUMENTS_BAD, pCtx->pLog);
@@ -363,7 +364,7 @@ gfmRV gfmSave_findId(gfmSave *pCtx, char *pId, int len) {
     }
 
 __ret:
-    if (rv != GFMRV_OK) {
+    if (rv != GFMRV_OK && pTuple) {
         /* Clear the current tuple, as it's invalid */
         memset(pTuple, 0x0, sizeof(gfmSaveTuple));
     }

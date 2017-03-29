@@ -176,7 +176,8 @@ libCSynth must be downloaded and compiled:
 ```
 $ git clone git@github.com:SirGFM/c_synth.git
 $ cd c_synth
-$ sudo make install
+$ sudo make install DEBUG=yes
+$ sudo make install RELEASE=yes
 ```
 
 
@@ -185,13 +186,15 @@ $ sudo make install
 Simply run make:
 
 ```
-$ sudo make install
+sudo make install DEBUG=yes
+sudo make install RELEASE=yes
 ```
 
 If you would like to install GFraMe without OpenGL, set NO_GL to yes:
 
 ```
-$ sudo make install NO_GL=yes
+sudo make install DEBUG=yes NO_GL=yes
+sudo make install RELEASE=yes NO_GL=yes
 ```
 
 
@@ -209,4 +212,22 @@ For some dumb reason, all demos are statically linked. Cleaning everything
 beforehand makes sure that 'fast_all' will re-compile the library in debug mode.
 Also, the rules 'fast' and 'fast_all' will use as spawn many jobs to build
 everything (hopefully) faster.
+
+
+## Cross-compiling for Windows
+
+For some reason, when cross-compiling for Windows from Linux, the compiler
+complains about a `glActiveTexture` redefinition. If you try to remove it from
+`src/core/video/opengl3/gfmVideo_opengl3_glFuncs.*`, the linker will complain
+that `glActiveTexture` isn't defined.
+
+The hacky solution I found to overcome that was to remove that definition from
+SDL2's header.
+
+For SDL2 2.0.5, that function's definition can be found on `SDL2/SDL_opengl.h`,
+on line 1871. Enclose it between `#if !defined(_WIN32) && !defined(_WIN64)` and
+`#endif`.
+
+[MXE](https://github.com/mxe/mxe) is highly advised for cross compiling for
+Windows from Linux!
 

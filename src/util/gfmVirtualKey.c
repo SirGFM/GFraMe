@@ -69,6 +69,7 @@ gfmRV gfmVirtualKey_init(gfmVirtualKey *pCtx) {
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     
     memset(pCtx, 0x0, sizeof(gfmVirtualKey));
+    pCtx->state = gfmInput_released;
     
     rv = GFMRV_OK;
 __ret:

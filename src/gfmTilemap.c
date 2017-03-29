@@ -358,9 +358,6 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
         ASSERT_LOG(rv == GFMRV_TRUE || rv == GFMRV_FALSE, rv, pLog);
         if (rv == GFMRV_TRUE) {
             int i, height, width, x, y;
-            rv = gfmLog_log(pLog, gfmLog_info, "Got an 'area' token but "
-                    "can't handle it, yet");
-            ASSERT_NR(rv == GFMRV_OK);
             
             // Read the current type
             rv = gfmParser_getString(&pTypeStr, &typeStrLen, pFp);
