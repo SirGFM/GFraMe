@@ -17,6 +17,7 @@
 #include <GFraMe_int/gfmFixedPoint.h>
 #include <GFraMe_int/gfmGeometry.h>
 #include <GFraMe_int/gfmHitbox.h>
+#include <GFraMe_int/gfmObject.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -1144,6 +1145,26 @@ gfmRV gfmObject_setMovable(gfmObject *pCtx) {
     
     pCtx->flags &= ~gfmFlags_isFixed;
     
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Enable continous collision for the given object.
+ *
+ * @param  [ in]pCtx The object
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_enableContinousCollision(gfmObject *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+
+    pCtx->flags |= gfmFlags_continuousCollision;
+
     rv = GFMRV_OK;
 __ret:
     return rv;
@@ -2385,9 +2406,10 @@ gfmRV gfmObject_setType(gfmObject *pCtx, int type) {
 }
 
 /**
- * Retrieve an object's boundary. If continous collision is enabled for the
- * object, the entire area it may have occupied from the previous frame to this
- * one is returned.
+ * Get an object's collision boundary as if continous collision was enabled for
+ * it.
+ *
+ * Should only be internally called, therefore it skips some checks...
  *
  * @param  [out]pX      Object's position
  * @param  [out]pY      Object's position
@@ -2395,24 +2417,13 @@ gfmRV gfmObject_setType(gfmObject *pCtx, int type) {
  * @param  [out]pHeight Object's dimensions
  * @param  [ in]pCtx    The object
  */
-gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+void _gfmObject_getContinousCollisionBoundary(int *pX, int *pY, int *pWidth
        , int *pHeight, gfmObject *pCtx) {
-    gfmRV rv;
     int h, w, x, y;
-
-    /* Sanitize arguments */
-    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
-    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
-    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     gfmObject_getPosition(&x, &y, pCtx);
     gfmObject_getDimensions(&w, &h, pCtx);
-    if (pCtx->t.innerType != gfmType_hitbox
-            && (pCtx->flags & gfmFlags_continuousCollision)) {
+    if (pCtx->t.innerType != gfmType_hitbox) {
         int lx, ly;
 
         /* Expand the area to enclosed any space possibly occupied by the
@@ -2441,6 +2452,41 @@ gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
     *pY = y;
     *pWidth = w;
     *pHeight = h;
+}
+
+/**
+ * Retrieve an object's boundary. If continous collision is enabled for the
+ * object, the entire area it may have occupied from the previous frame to this
+ * one is returned.
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    if (pCtx->t.innerType != gfmType_hitbox
+            && (pCtx->flags & gfmFlags_continuousCollision)) {
+        _gfmObject_getContinousCollisionBoundary(pX, pY, pWidth, pHeight, pCtx);
+    }
+    else {
+        gfmObject_getPosition(pX, pY, pCtx);
+        gfmObject_getDimensions(pWidth, pHeight, pCtx);
+    }
+
     rv = GFMRV_OK;
 __ret:
     return rv;

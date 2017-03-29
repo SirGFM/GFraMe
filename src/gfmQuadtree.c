@@ -36,6 +36,7 @@
 #include <GFraMe/gfmTypes.h>
 
 #include <GFraMe_int/gfmHitbox.h>
+#include <GFraMe_int/gfmObject.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -100,9 +101,10 @@ enum enGFMQuadtreePosition {
 };
 
 enum enGFMQuadtreeFlags {
-    gfmQT_isStatic      = 0x0000001
-  , gfmQT_isActive      = 0x0000002
-  , gfmQT_justOverlaped = 0x0000004
+    gfmQT_isStatic           = 0x0000001
+  , gfmQT_isActive           = 0x0000002
+  , gfmQT_justOverlaped      = 0x0000004
+  , gfmQT_continousCollision = 0x0000008
 };
 
 /** A quadtree-managed hitbox, with a user defined object */
@@ -395,15 +397,23 @@ __ret:
  *
  * This area considers the full extensions of the object (so it may be longer
  * than the object, if continuous collision is enabled).
+ *
+ * @param  [out]pArea Area to be initialized with the collision boundary
+ * @param  [ in]pCtx  The quadtree's root
+ * @param  [ in]pObj  The object
  */
-static gfmRV gfmQuadtree_convertObjectToHitbox(gfmHitbox *pArea,
-        gfmObject *pObj) {
+static void gfmQuadtree_convertObjectToHitbox(gfmHitbox *pArea
+        , gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     int h, x, y, w;
 
-    gfmObject_getCollisionBoundary(&x, &y, &w, &h, pObj);
-    gfmHitbox_init(pArea, pObj, x, y, w, h, gfmType_quadtreeHitbox);
+    if (pCtx->flags & gfmQT_continousCollision) {
+        _gfmObject_getContinousCollisionBoundary(&x, &y, &w, &h, pObj);
+    }
+    else {
+        gfmObject_getCollisionBoundary(&x, &y, &w, &h, pObj);
+    }
 
-    return GFMRV_OK;
+    gfmHitbox_init(pArea, pObj, x, y, w, h, gfmType_quadtreeHitbox);
 }
 
 /**
@@ -451,11 +461,12 @@ static gfmRV gfmQuadtree_insertObject(gfmQuadtreeRoot *pCtx, gfmQuadtree *pNode,
             /* Since we are dealing with a unique object (belonging to the
              * quadtree's root), stores its inner object (user-managed) into the
              * node */
-            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, (gfmObject*)pVoid);
+            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, pCtx
+                    , (gfmObject*)pVoid);
         }
         else {
             /* Convert it into the internal object */
-            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, pObj);
+            gfmQuadtree_convertObjectToHitbox(&pQTLL->area, pCtx, pObj);
         }
     } while (0);
     // Prepend the node to the list
@@ -717,6 +728,28 @@ __ret:
 }
 
 /**
+ * Enable continous collision for every object
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ *                   , GFMRV_OK
+ */
+gfmRV gfmQuadtree_enableContinuosCollision(gfmQuadtreeRoot *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check if initialized */
+    ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
+
+    pCtx->flags |= gfmQT_continousCollision;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
  * colliding with every possible node
  * 
@@ -781,7 +814,7 @@ gfmRV gfmQuadtree_collideObject(gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     //ASSERT(rv == GFMRV_TRUE, GFMRV_QUADTREE_DONE);
     
     // Store the object to be added
-    gfmQuadtree_convertObjectToHitbox(&pCtx->object, pObj);
+    gfmQuadtree_convertObjectToHitbox(&pCtx->object, pCtx, pObj);
     gfmObject_setType((gfmObject*)&pCtx->object, gfmType_quadtreeRootHitbox);
     // Clear the call stack
     pCtx->stack.pushPos = 0;

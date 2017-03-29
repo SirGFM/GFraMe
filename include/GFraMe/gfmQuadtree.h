@@ -89,6 +89,15 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
 gfmRV gfmQuadtree_setStatic(gfmQuadtreeRoot *pCtx);
 
 /**
+ * Enable continous collision for every object
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ *                   , GFMRV_OK
+ */
+gfmRV gfmQuadtree_enableContinuosCollision(gfmQuadtreeRoot *pCtx);
+
+/**
  * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
  * colliding with every possible node
  * 

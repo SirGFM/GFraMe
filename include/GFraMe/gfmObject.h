@@ -445,6 +445,14 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx);
 gfmRV gfmObject_setMovable(gfmObject *pCtx);
 
 /**
+ * Enable continous collision for the given object.
+ *
+ * @param  [ in]pCtx The object
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_enableContinousCollision(gfmObject *pCtx);
+
+/**
  * Apply another object's translation into this object
  *
  * This is differente from manually calculating it because it doesn't clamp the
