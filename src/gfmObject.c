@@ -1664,7 +1664,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
                 || dist + pHitbox->hw <= pObj->t.hw) {
             /* One of the entities was placed inside the other. Simply ignore */
         }
-        else if (pObj->t.x < pHitbox->x) {
+        else if (pObj->ldx < pHitbox->x) {
             pObj->flags |= gfmCollision_instRight;
         }
         else {
@@ -1690,7 +1690,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
         }
         else
 #endif
-        if (pObj->t.y < pHitbox->y) {
+        if (pObj->ldy < pHitbox->y) {
             pObj->flags |= gfmCollision_instDown;
         }
         else {
@@ -1781,7 +1781,7 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
             /* One of the entities was placed inside the other. Simply ignore
              * collision */
         }
-        else if (pSelf->t.x < pOther->t.x) {
+        else if (pSelf->ldx < pOther->ldx) {
             // pSelf is to the left, so it collided on its right
             pSelf->flags |= gfmCollision_instRight;
             pOther->flags |= gfmCollision_instLeft;
@@ -1800,7 +1800,7 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     delta = lsy - loy;
     if (delta >= maxHeight || delta <= -maxHeight) {
         // Check their relative position and set the collision results
-        if (pSelf->t.y < pOther->t.y) {
+        if (pSelf->ldy < pOther->ldy) {
             // pSelf is above, so it collided bellow
             pSelf->flags |= gfmCollision_instDown;
             pOther->flags |= gfmCollision_instUp;
