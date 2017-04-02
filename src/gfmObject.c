@@ -2631,10 +2631,12 @@ gfmRV gfmObject_sweepJustOverlaped(gfmObject *pSelf, gfmObject *pOther) {
         if (pSelf->t.innerType == gfmType_object) {
             pSelf->flags &= ~gfmCollision_inst;
             pSelf->flags |= selfFlags;
+            pSelf->flags |= selfFlags >> gfmFlags_instBit;
         }
         if (pOther->t.innerType == gfmType_object) {
             pOther->flags &= ~gfmCollision_inst;
-            pOther->flags |= selfFlags;
+            pOther->flags |= otherFlags;
+            pOther->flags |= otherFlags >> gfmFlags_instBit;
         }
 
         rv = GFMRV_TRUE;
