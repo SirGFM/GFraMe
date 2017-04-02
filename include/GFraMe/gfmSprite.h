@@ -882,5 +882,39 @@ gfmRV gfmSprite_setType(gfmSprite *pCtx, int type);
  */
 gfmRV gfmSprite_overlapLine(gfmSprite *pCtx, int x0, int y0, int x1, int y1);
 
+/**
+ * Check if two sprites overlaped each other since the last frame, even if they
+ * fully passed through each other.
+ *
+ * Somewhat based on this:
+ *   http://www.gamasutra.com/view/feature/131790/simple_intersection_tests_for_games.php?page=3
+ *
+ * NOTE: This function doesn't require continous collision to be enabled on
+ * sprites.
+ *
+ * @param  [ in]pSelf  One of the sprites
+ * @param  [ in]pOther The other sprite
+ */
+gfmRV gfmSprite_sweepJustOverlaped(gfmSprite *pSelf, gfmSprite *pOther);
+
+/**
+ * Try to collide two sprites, even if they fully passed each other since the
+ * last frame.
+ *
+ * For this test, one of the sprites must be considered the reference for the
+ * collision. If a collision is detected, this sprite will be moved normally,
+ * but the other sprite's position will be displaced to respect the reference's
+ * movement.
+ *
+ * NOTE 1: gfmSprite_sweepJustOverlaped must have been called before hand
+ * NOTE 2: This function doesn't require continous collision to be enabled on
+ * sprites.
+ *
+ * @param  [ in]pRef   The reference sprite
+ * @param  [ in]pOther The other sprite (that may be pushed)
+ */
+gfmRV gfmSprite_sweepCollision(gfmSprite *pRef, gfmSprite *pOther);
+
+
 #endif /* __GFMSPRITE_H__ */
 
