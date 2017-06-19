@@ -310,19 +310,21 @@ static gfmRV gfmQuadtree_init(gfmQuadtree *pCtx, gfmQuadtree *pParent,
     gfmObject_getPosition(&x, &y, (gfmObject*)&pParent->area);
     /* Adjust it according to the child relative position */
     // Get the offset from the parent's position
+    w /= 2;
+    h /= 2;
     switch (pos) {
         case gfmQT_nw: {
             /* Do nothing */
         } break;
         case gfmQT_ne: {
-            x += w / 2;
+            x += w;
         } break;
         case gfmQT_sw: {
-            h += h / 2;
+            y += h;
         } break;
         case gfmQT_se: {
-            x += w / 2;
-            h += h / 2;
+            x += w;
+            y += h;
         } break;
         case gfmQT_max: {
             ASSERT(0, GFMRV_INTERNAL_ERROR);
@@ -699,6 +701,7 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
     }
     pCtx->pSelf->pNodes = 0;
     pCtx->pSelf->depth = 0;
+    pCtx->pSelf->numObjects = 0;
     gfmHitbox_init(&pCtx->pSelf->area, pCtx, x, y, width, height, gfmType_none);
     
     rv = GFMRV_OK;
