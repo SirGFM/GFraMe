@@ -753,6 +753,28 @@ __ret:
 }
 
 /**
+ * Disable continuous collision for every object
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ *                   , GFMRV_OK
+ */
+gfmRV gfmQuadtree_disableContinuosCollision(gfmQuadtreeRoot *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check if initialized */
+    ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
+
+    pCtx->flags &= ~gfmQT_continuousCollision;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
  * colliding with every possible node
  * 
