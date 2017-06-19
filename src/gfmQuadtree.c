@@ -1327,3 +1327,85 @@ __ret:
     return rv;
 }
 
+/**
+ * List how many nodes and buckets there currently are in a quadtree
+ *
+ * @param  [out]pNodes   The number of nodes in all buckets (i.e., QT nodes)
+ * @param  [out]pBuckets The number of sub-quadtrees
+ * @param  [ in]pQt      The quadtree
+ * @return               The number of nodes found
+ */
+int gfmQuadtree_getNumNodes(int *pNodes, int *pBuckets, gfmQuadtreeRoot *pQt) {
+    gfmRV rv;
+    int nodes = 0, buckets = 0;
+
+    if (pQt == 0) {
+        goto end;
+    }
+
+    // Clear the call stack
+    pQt->stack.pushPos = 0;
+
+    // Push the root node to start colliding
+    rv = gfmQuadtree_pushNode(pQt, pQt->pSelf);
+    if (rv != GFMRV_OK) {
+        nodes = -1;
+        goto end;
+    }
+
+    // Iterate through all nodes
+    nodes = 0;
+    buckets = 0;
+    while (pQt->stack.pushPos > 0 || pQt->pColliding) {
+        gfmQuadtree *pNode;
+
+        // Pop the current node
+        rv = gfmQuadtree_popNode(&pNode, pQt);
+        if (rv != GFMRV_OK) {
+            nodes = -1;
+            goto end;
+        }
+
+        // If it has children, push its children
+        if (pNode->ppChildren[gfmQT_nw]) {
+            gfmQuadtreePosition i;
+            gfmQuadtree *pChild;
+
+            i = gfmQT_nw;
+            while (i < gfmQT_max) {
+                // Get the current child
+                pChild = pNode->ppChildren[i];
+                // Push it (so it will be drawn later)
+                rv = gfmQuadtree_pushNode(pQt, pChild);
+                if (rv != GFMRV_OK) {
+                    nodes = -1;
+                    goto end;
+                }
+                i++;
+            }
+        }
+        else {
+            gfmQuadtreeLL *pTmp;
+
+            /* Otherwise, count the number of nodes */
+            pTmp = pNode->pNodes;
+            while (pTmp) {
+                nodes++;
+                pTmp = pTmp->pNext;
+            }
+        }
+
+        buckets++;
+    }
+
+end:
+    if (pNodes) {
+        *pNodes = nodes;
+    }
+    if (pBuckets) {
+        *pBuckets = buckets;
+    }
+
+    return nodes;
+}
+
