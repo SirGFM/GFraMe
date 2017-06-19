@@ -104,7 +104,7 @@ enum enGFMQuadtreeFlags {
     gfmQT_isStatic           = 0x0000001
   , gfmQT_isActive           = 0x0000002
   , gfmQT_justOverlaped      = 0x0000004
-  , gfmQT_continousCollision = 0x0000008
+  , gfmQT_continuousCollision = 0x0000008
 };
 
 /** A quadtree-managed hitbox, with a user defined object */
@@ -408,7 +408,7 @@ static void gfmQuadtree_convertObjectToHitbox(gfmHitbox *pArea
         , gfmQuadtreeRoot *pCtx, gfmObject *pObj) {
     int h, x, y, w;
 
-    if (pCtx->flags & gfmQT_continousCollision) {
+    if (pCtx->flags & gfmQT_continuousCollision) {
         _gfmObject_getContinousCollisionBoundary(&x, &y, &w, &h, pObj);
     }
     else {
@@ -731,7 +731,7 @@ __ret:
 }
 
 /**
- * Enable continous collision for every object
+ * Enable continuous collision for every object
  *
  * @param  [ in]pCtx The quadtree's root
  * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
@@ -745,7 +745,7 @@ gfmRV gfmQuadtree_enableContinuosCollision(gfmQuadtreeRoot *pCtx) {
     /* Check if initialized */
     ASSERT(pCtx->maxDepth > 0, GFMRV_QUADTREE_NOT_INITIALIZED);
 
-    pCtx->flags |= gfmQT_continousCollision;
+    pCtx->flags |= gfmQT_continuousCollision;
 
     rv = GFMRV_OK;
 __ret:
