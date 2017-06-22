@@ -89,6 +89,24 @@ gfmRV gfmQuadtree_initRoot(gfmQuadtreeRoot *pCtx, int x, int y, int width,
 gfmRV gfmQuadtree_setStatic(gfmQuadtreeRoot *pCtx);
 
 /**
+ * Enable continous collision for every object
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ *                   , GFMRV_OK
+ */
+gfmRV gfmQuadtree_enableContinuosCollision(gfmQuadtreeRoot *pCtx);
+
+/**
+ * Disable continuous collision for every object
+ *
+ * @param  [ in]pCtx The quadtree's root
+ * @return           GFMRV_ARGUMENTS_BAD, GFMRV_QUADTREE_NOT_INITIALIZED
+ *                   , GFMRV_OK
+ */
+gfmRV gfmQuadtree_disableContinuosCollision(gfmQuadtreeRoot *pCtx);
+
+/**
  * Adds a new gfmGroup to the quadtree, subdividing it as necessary and
  * colliding with every possible node
  * 
@@ -214,6 +232,16 @@ gfmRV gfmQuadtree_continue(gfmQuadtreeRoot *pCtx);
  */
 gfmRV gfmQuadtree_drawBounds(gfmQuadtreeRoot *pQt, gfmCtx *pCtx,
         unsigned char *pColors);
+
+/**
+ * List how many nodes and buckets there currently are in a quadtree
+ *
+ * @param  [out]pNodes   The number of nodes in all buckets (i.e., QT nodes)
+ * @param  [out]pBuckets The number of sub-quadtrees
+ * @param  [ in]pQt      The quadtree
+ * @return               The number of nodes found
+ */
+int gfmQuadtree_getNumNodes(int *pNodes, int *pBuckets, gfmQuadtreeRoot *pQt);
 
 #endif /* __GFMQUADTREE_H__ */
 

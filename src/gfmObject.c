@@ -17,15 +17,20 @@
 #include <GFraMe_int/gfmFixedPoint.h>
 #include <GFraMe_int/gfmGeometry.h>
 #include <GFraMe_int/gfmHitbox.h>
+#include <GFraMe_int/gfmObject.h>
 
 #include <stdlib.h>
 #include <string.h>
 
 enum {
-    gfmFlags_isFixed    = 0x10000
-  , gfmFlags_currentBit = 0
-  , gfmFlags_lastBit    = 4
-  , gfmFlags_instBit    = 8
+    gfmFlags_isFixed             = 0x10000
+  , gfmFlags_continuousCollision = 0x20000
+  , gfmFlags_currentMask         = 0x0000f
+  , gfmFlags_lastMask            = 0x000f0
+  , gfmFlags_instantaneousMask   = 0x00f00
+  , gfmFlags_currentBit          = 0
+  , gfmFlags_lastBit             = 4
+  , gfmFlags_instBit             = 8
 };
 
 /** The gfmObject structure */
@@ -1146,6 +1151,26 @@ __ret:
 }
 
 /**
+ * Enable continous collision for the given object.
+ *
+ * @param  [ in]pCtx The object
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_enableContinousCollision(gfmObject *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
+
+    pCtx->flags |= gfmFlags_continuousCollision;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Integrate an object's components.
  * 
  * Currently, it's using verlet integration, i.e.:
@@ -1639,7 +1664,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
                 || dist + pHitbox->hw <= pObj->t.hw) {
             /* One of the entities was placed inside the other. Simply ignore */
         }
-        else if (pObj->t.x < pHitbox->x) {
+        else if (pObj->ldx < pHitbox->x) {
             pObj->flags |= gfmCollision_instRight;
         }
         else {
@@ -1665,7 +1690,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
         }
         else
 #endif
-        if (pObj->t.y < pHitbox->y) {
+        if (pObj->ldy < pHitbox->y) {
             pObj->flags |= gfmCollision_instDown;
         }
         else {
@@ -1756,7 +1781,7 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
             /* One of the entities was placed inside the other. Simply ignore
              * collision */
         }
-        else if (pSelf->t.x < pOther->t.x) {
+        else if (pSelf->ldx < pOther->ldx) {
             // pSelf is to the left, so it collided on its right
             pSelf->flags |= gfmCollision_instRight;
             pOther->flags |= gfmCollision_instLeft;
@@ -1775,7 +1800,7 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     delta = lsy - loy;
     if (delta >= maxHeight || delta <= -maxHeight) {
         // Check their relative position and set the collision results
-        if (pSelf->t.y < pOther->t.y) {
+        if (pSelf->ldy < pOther->ldy) {
             // pSelf is above, so it collided bellow
             pSelf->flags |= gfmCollision_instDown;
             pOther->flags |= gfmCollision_instUp;
@@ -1803,7 +1828,7 @@ __ret:
 }
 
 /**
- * Separate an object and a hitbox in the Y axis
+ * Separate an object and a hitbox in the X axis
  * 
  * @param  [ in]pObj    The object
  * @param  [ in]pHitbox The hitbox
@@ -2378,5 +2403,308 @@ gfmRV gfmObject_setType(gfmObject *pCtx, int type) {
     pCtx->t.type = type;
 
     return GFMRV_OK;
+}
+
+/**
+ * Get an object's collision boundary as if continous collision was enabled for
+ * it.
+ *
+ * Should only be internally called, therefore it skips some checks...
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+void _gfmObject_getContinousCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx) {
+    int h, w, x, y;
+
+    gfmObject_getPosition(&x, &y, pCtx);
+    gfmObject_getDimensions(&w, &h, pCtx);
+    if (pCtx->t.innerType != gfmType_hitbox) {
+        int lx, ly;
+
+        /* Expand the area to enclosed any space possibly occupied by the
+         * object */
+        lx = (int)pCtx->ldx;
+        ly = (int)pCtx->ldy;
+
+        if (lx < x) {
+            w += x - lx;
+            x = lx;
+        }
+        else {
+            w += lx - x;
+        }
+
+        if (ly < y) {
+            h += y - ly;
+            y = ly;
+        }
+        else {
+            h += ly - y;
+        }
+    }
+
+    *pX = x;
+    *pY = y;
+    *pWidth = w;
+    *pHeight = h;
+}
+
+/**
+ * Retrieve an object's boundary. If continous collision is enabled for the
+ * object, the entire area it may have occupied from the previous frame to this
+ * one is returned.
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pX, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pY, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pWidth, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pHeight, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pCtx->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pCtx->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    if (pCtx->t.innerType != gfmType_hitbox
+            && (pCtx->flags & gfmFlags_continuousCollision)) {
+        _gfmObject_getContinousCollisionBoundary(pX, pY, pWidth, pHeight, pCtx);
+    }
+    else {
+        gfmObject_getPosition(pX, pY, pCtx);
+        gfmObject_getDimensions(pWidth, pHeight, pCtx);
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Check if two objects overlaped each other since the last frame, even if they
+ * fully passed through each other.
+ *
+ * Somewhat based on this:
+ *   http://www.gamasutra.com/view/feature/131790/simple_intersection_tests_for_games.php?page=3
+ *
+ * NOTE: This function doesn't require continous collision to be enabled on
+ * objects.
+ *
+ * @param  [ in]pSelf  One of the objects
+ * @param  [ in]pOther The other object
+ */
+gfmRV gfmObject_sweepJustOverlaped(gfmObject *pSelf, gfmObject *pOther) {
+    /* Times when overlap may have started/ended for both axis */
+    float time_x0, time_x1, time_y0, time_y1, t0, t1;
+    gfmRV rv;
+    int delta, dx, dy, maxDelta, ox, oy, sx, sy;
+
+    /* Sanitize arguments */
+    ASSERT(pSelf, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    /* Check that at least one object isn't a hitbox */
+    ASSERT(pSelf->t.innerType != gfmType_hitbox
+            || pOther->t.innerType != gfmType_hitbox, GFMRV_ARGUMENTS_BAD);
+    /* Check that the object was initialized */
+    ASSERT(pSelf->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pSelf->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    /* Get the object's current centers */
+    rv = gfmObject_getCenter(&sx, &sy, pSelf);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmObject_getCenter(&ox, &oy, pOther);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    /* Calculate other's displacement from self's perspective. Since self is
+     * considered to be standing still, its displacement must be inverted!
+     *
+     * Also, replace the stored position by the last position */
+    if (pSelf->t.innerType == gfmType_object) {
+        /* delta = self.last_pos - self.cur_pos
+         *
+         * Pay attention to the inverted order of the terms! */
+        dx = -sx;
+        dy = -sy;
+        rv = gfmObject_getLastCenter(&sx, &sy, pSelf);
+        ASSERT_NR(rv == GFMRV_OK);
+        dx += sx;
+        dy += sy;
+    }
+    else {
+        dx = 0;
+        dy = 0;
+    }
+    if (pOther->t.innerType == gfmType_object) {
+        /* delta += other.cur_pos - other.last_pos */
+        dx += ox;
+        dy += oy;
+        rv = gfmObject_getLastCenter(&ox, &oy, pOther);
+        ASSERT_NR(rv == GFMRV_OK);
+        dx -= ox;
+        dy -= oy;
+    }
+
+    /* Check the horizontal intersection */
+    maxDelta = pSelf->t.hw + pOther->t.hw;
+    delta = sx - ox;
+    if (dx == 0) {
+        time_x0 = -2;
+        time_x1 = 2;
+    }
+    else if (sx < ox) {
+        /* Self is to the left of other */
+        time_x0 = (float)(delta + maxDelta) / (float)dx;
+        time_x1 = (float)(delta - maxDelta) / (float)dx;
+    }
+    else {
+        /* Self is to the right of other */
+        time_x0 = (float)(delta - maxDelta) / (float)dx;
+        time_x1 = (float)(delta + maxDelta) / (float)dx;
+    }
+
+    /* Check the vertical intersection */
+    maxDelta = pSelf->t.hh + pOther->t.hh;
+    delta = sy - oy;
+    if (dy == 0) {
+        time_y0 = -2;
+        time_y1 = 2;
+    }
+    else if (sy < oy) {
+        /* Self is above the other */
+        time_y0 = (float)(delta + maxDelta) / (float)dy;
+        time_y1 = (float)(delta - maxDelta) / (float)dy;
+    }
+    else {
+        /* Self is bellow the other */
+        time_y0 = (float)(delta - maxDelta) / (float)dy;
+        time_y1 = (float)(delta + maxDelta) / (float)dy;
+    }
+
+    /* Initial time must be the lastest, but end time must be the earliest */
+    t0 = (time_x0 > time_y0) ? time_x0 : time_y0;
+    t1 = (time_x1 < time_y1) ? time_x1 : time_y1;
+
+    if (t0 >= 0 && t1 <= 1 && t0 < t1) {
+        uint32_t selfFlags, otherFlags;
+
+        selfFlags = 0;
+        otherFlags = 0;
+        if (time_x0 >= 0 && time_x1 <= 1 && time_x0 < time_x1) {
+            if (sx < ox) {
+                /* Self is to the left of other */
+                selfFlags = gfmCollision_instRight;
+                otherFlags = gfmCollision_instLeft;
+            }
+            else {
+                /* Self is to the right of other */
+                selfFlags = gfmCollision_instLeft;
+                otherFlags = gfmCollision_instRight;
+            }
+        }
+        if (time_y0 >= 0 && time_y1 <= 1 && time_y0 < time_y1) {
+            if (sy < oy) {
+                /* Self is above the other */
+                selfFlags |= gfmCollision_instDown;
+                otherFlags |= gfmCollision_instUp;
+            }
+            else {
+                /* Self is bellow the other */
+                selfFlags |= gfmCollision_instUp;
+                otherFlags |= gfmCollision_instDown;
+            }
+        }
+
+        if (pSelf->t.innerType == gfmType_object) {
+            pSelf->flags &= ~gfmCollision_inst;
+            pSelf->flags |= selfFlags;
+            pSelf->flags |= selfFlags >> gfmFlags_instBit;
+        }
+        if (pOther->t.innerType == gfmType_object) {
+            pOther->flags &= ~gfmCollision_inst;
+            pOther->flags |= otherFlags;
+            pOther->flags |= otherFlags >> gfmFlags_instBit;
+        }
+
+        rv = GFMRV_TRUE;
+    }
+    else {
+        rv = GFMRV_FALSE;
+    }
+__ret:
+    return rv;
+}
+
+/**
+ * Try to collide two objects, even if they fully passed each other since the
+ * last frame.
+ *
+ * For this test, one of the objects must be considered the reference for the
+ * collision. If a collision is detected, this object will be moved normally,
+ * but the other object's position will be displaced to respect the reference's
+ * movement.
+ *
+ * NOTE 1: gfmObject_sweepJustOverlaped must have been called before hand
+ * NOTE 2: This function doesn't require continous collision to be enabled on
+ * objects.
+ *
+ * @param  [ in]pRef   The reference object
+ * @param  [ in]pOther The other object (that may be pushed)
+ */
+gfmRV gfmObject_sweepCollision(gfmObject *pRef, gfmObject *pOther) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pRef, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pOther, GFMRV_ARGUMENTS_BAD);
+    /* Check that at least one object isn't a hitbox */
+    ASSERT(pRef->t.innerType != gfmType_hitbox
+            || pOther->t.innerType != gfmType_hitbox, GFMRV_ARGUMENTS_BAD);
+    /* Check that at least one isn't fixed */
+    ASSERT(!(pRef->flags & gfmFlags_isFixed)
+            || !(pOther->flags & gfmFlags_isFixed), GFMRV_OBJECTS_CANT_COLLIDE);
+    /* Check that the object was initialized */
+    ASSERT(pRef->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pRef->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hw > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+    ASSERT(pOther->t.hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
+
+    if (pRef->t.innerType == gfmType_hitbox) {
+        gfmObject_separateHorizontalHitbox(pOther, (gfmHitbox*)pRef);
+        gfmObject_separateVerticalHitbox(pOther, (gfmHitbox*)pRef);
+    }
+    else if (pOther->t.innerType == gfmType_hitbox) {
+        gfmObject_separateHorizontalHitbox(pRef, (gfmHitbox*)pOther);
+        gfmObject_separateVerticalHitbox(pRef, (gfmHitbox*)pOther);
+    }
+    else {
+        uint32_t flags;
+
+        /*Store ref's flags so it may be later recovered, but set it as fixed */
+        flags = pRef->flags;
+        pRef->flags |= gfmFlags_isFixed;
+
+        gfmObject_separateHorizontal(pRef, pOther);
+        gfmObject_separateVertical(pRef, pOther);
+
+        pRef->flags = flags;
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 

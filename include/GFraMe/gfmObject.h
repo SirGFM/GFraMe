@@ -445,6 +445,14 @@ gfmRV gfmObject_setFixed(gfmObject *pCtx);
 gfmRV gfmObject_setMovable(gfmObject *pCtx);
 
 /**
+ * Enable continous collision for the given object.
+ *
+ * @param  [ in]pCtx The object
+ * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmObject_enableContinousCollision(gfmObject *pCtx);
+
+/**
  * Apply another object's translation into this object
  *
  * This is differente from manually calculating it because it doesn't clamp the
@@ -595,7 +603,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox);
 gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther);
 
 /**
- * Separate an object and a hitbox in the Y axis
+ * Separate an object and a hitbox in the X axis
  * 
  * @param  [ in]pObj    The object
  * @param  [ in]pHitbox The hitbox
@@ -718,6 +726,53 @@ gfmRV gfmObject_overlapLine(gfmObject *pCtx, int x0, int y0, int x1, int y1);
  * @return           GFMRV_OK, GFMRV_ARGUMENTS_BAD
  */
 gfmRV gfmObject_setType(gfmObject *pCtx, int type);
+
+/**
+ * Retrieve an object's boundary. If continous collision is enabled for the
+ * object, the entire area it may have occupied from the previous frame to this
+ * one is returned.
+ *
+ * @param  [out]pX      Object's position
+ * @param  [out]pY      Object's position
+ * @param  [out]pWidth  Object's dimensions
+ * @param  [out]pHeight Object's dimensions
+ * @param  [ in]pCtx    The object
+ */
+gfmRV gfmObject_getCollisionBoundary(int *pX, int *pY, int *pWidth
+       , int *pHeight, gfmObject *pCtx);
+
+/**
+ * Check if two objects overlaped each other since the last frame, even if they
+ * fully passed through each other.
+ *
+ * Somewhat based on this:
+ *   http://www.gamasutra.com/view/feature/131790/simple_intersection_tests_for_games.php?page=3
+ *
+ * NOTE: This function doesn't require continous collision to be enabled on
+ * objects.
+ *
+ * @param  [ in]pSelf  One of the objects
+ * @param  [ in]pOther The other object
+ */
+gfmRV gfmObject_sweepJustOverlaped(gfmObject *pSelf, gfmObject *pOther);
+
+/**
+ * Try to collide two objects, even if they fully passed each other since the
+ * last frame.
+ *
+ * For this test, one of the objects must be considered the reference for the
+ * collision. If a collision is detected, this object will be moved normally,
+ * but the other object's position will be displaced to respect the reference's
+ * movement.
+ *
+ * NOTE 1: gfmObject_sweepJustOverlaped must have been called before hand
+ * NOTE 2: This function doesn't require continous collision to be enabled on
+ * objects.
+ *
+ * @param  [ in]pRef   The reference object
+ * @param  [ in]pOther The other object (that may be pushed)
+ */
+gfmRV gfmObject_sweepCollision(gfmObject *pRef, gfmObject *pOther);
 
 #endif  /* __GFMOBJECT_H__ */
 
