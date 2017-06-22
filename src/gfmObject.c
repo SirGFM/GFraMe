@@ -1828,11 +1828,11 @@ gfmRV gfmObject_separateHorizontalHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
 
     if (pObj->flags & gfmCollision_instLeft) {
         /* pMovable collided to the left, place it at static's right */
-        pObj->dx = pHitbox->x + 2 * pHitbox->hw + 1;
+        pObj->dx = pHitbox->x + 2 * pHitbox->hw;
     }
     else if (pObj->flags & gfmCollision_instRight) {
         /* pMovable collided to the right, place it at static's left */
-        pObj->dx = pHitbox->x - 2 * pObj->t.hw - 1;
+        pObj->dx = pHitbox->x - 2 * pObj->t.hw;
     }
     pObj->t.x = (int)pObj->dx;
 
@@ -2044,11 +2044,11 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         
         if (pMovable->flags & gfmCollision_instLeft) {
             // pMovable collided to the left, place it at static's right
-            newX = pStatic->dx + 2 * pStatic->t.hw + 1;
+            newX = pStatic->dx + 2 * pStatic->t.hw;
         }
         else if (pMovable->flags & gfmCollision_instRight) {
             // pMovable collided to the right, place it at static's left
-            newX = pStatic->dx - 2 * pMovable->t.hw - 1;
+            newX = pStatic->dx - 2 * pMovable->t.hw;
         }
         else {
             // Never gonna happen, but avoids warning (stupid compiler!)
