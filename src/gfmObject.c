@@ -30,6 +30,7 @@ enum {
   , gfmFlags_currentMask          = 0x0000F
   , gfmFlags_lastMask             = 0x000F0
   , gfmFlags_instantaneousMask    = 0x00F00
+  , gfmFlags_conerCasesMask       = 0xC0000
   , gfmFlags_currentBit           = 0
   , gfmFlags_lastBit              = 4
   , gfmFlags_instBit              = 8
@@ -1650,6 +1651,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
 
     /* Clear the instantaneous flag */
     pObj->flags &= ~gfmFlags_instantaneousMask;
+    pObj->flags &= ~gfmFlags_conerCasesMask;
 
     /* Check horizontal collision */
     dist = _getHorizontalDistance(pObj, (gfmObject*)pHitbox);
@@ -1671,6 +1673,13 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
         }
         else {
             pObj->flags |= gfmCollision_instLeft;
+        }
+
+        if (dist == maxDist || dist == -maxDist) {
+            /* If the objects are barely touching, separating them would reset
+             * any accumulated movement. This flag signals that so separate may
+             * work properly */
+            pObj->flags |= gfmFlags_horizontalCornerCase;
         }
     }
 
@@ -1697,6 +1706,13 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
         }
         else {
             pObj->flags |= gfmCollision_instUp;
+        }
+
+        if (dist == maxDist || dist == -maxDist) {
+            /* If the objects are barely touching, separating them would reset
+             * any accumulated movement. This flag signals that so separate may
+             * work properly */
+            pObj->flags |= gfmFlags_verticalCornerCase;
         }
     }
 
@@ -1752,7 +1768,9 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     
     // Clear the instantaneous flag
     pSelf->flags &= ~gfmFlags_instantaneousMask;
+    pSelf->flags &= ~gfmFlags_conerCasesMask;
     pOther->flags &= ~gfmFlags_instantaneousMask;
+    pOther->flags &= ~gfmFlags_conerCasesMask;
     
     // Get 'this' object's center
     rv = gfmObject_getCenter(&sx, &sy, pSelf);
@@ -1794,6 +1812,14 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
             pSelf->flags |= gfmCollision_instLeft;
             pOther->flags |= gfmCollision_instRight;
         }
+
+        if (delta == maxWidth || delta == -maxWidth) {
+            /* If the objects are barely touching, separating them would reset
+             * any accumulated movement. This flag signals that so separate may
+             * work properly */
+            pSelf->flags |= gfmFlags_horizontalCornerCase;
+            pOther->flags |= gfmFlags_horizontalCornerCase;
+        }
     }
     
     // Check if a vertical overlap may have happened
@@ -1812,6 +1838,15 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
             // pSelf is bellow, so it collided above
             pSelf->flags |= gfmCollision_instUp;
             pOther->flags |= gfmCollision_instDown;
+        }
+
+        delta = sy - oy;
+        if (delta == maxHeight || delta == -maxHeight) {
+            /* If the objects are barely touching, separating them would reset
+             * any accumulated movement. This flag signals that so separate may
+             * work properly */
+            pSelf->flags |= gfmFlags_verticalCornerCase;
+            pOther->flags |= gfmFlags_verticalCornerCase;
         }
     }
     
@@ -1856,7 +1891,10 @@ gfmRV gfmObject_separateHorizontalHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     /* Check that collision happened in the X axis */
     ASSERT(pObj->flags & gfmCollision_instHor, GFMRV_COLLISION_NOT_TRIGGERED);
 
-    if (pObj->flags & gfmCollision_instLeft) {
+    if (pObj->flags & gfmFlags_horizontalCornerCase) {
+        /* Objects barely touching. No need to move them */
+    }
+    else if (pObj->flags & gfmCollision_instLeft) {
         /* pMovable collided to the left, place it at static's right */
         pObj->dx = pHitbox->x + 2 * pHitbox->hw;
     }
@@ -1895,7 +1933,10 @@ gfmRV gfmObject_separateVerticalHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     /* Check that collision happened in the Y axis */
     ASSERT(pObj->flags & gfmCollision_instVer, GFMRV_COLLISION_NOT_TRIGGERED);
 
-    if (pObj->flags & gfmCollision_instUp) {
+    if (pObj->flags & gfmFlags_verticalCornerCase) {
+        /* Objects barely touching. No need to move them */
+    }
+    else if (pObj->flags & gfmCollision_instUp) {
         /* pMovable collided above, place it bellow static */
         pObj->dy = pHitbox->y + 2 * pHitbox->hh;
     }
@@ -2084,8 +2125,12 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = _int_gfmObject_setHorizontalPosition(pMovable, newX);
-        ASSERT_NR(rv == GFMRV_OK);
+
+        if (!(pMovable->flags & gfmFlags_horizontalCornerCase)) {
+            /* If objects are barely touching, there's no need to move them */
+            rv = _int_gfmObject_setHorizontalPosition(pMovable, newX);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
     }
     else {
         double dist;
@@ -2095,7 +2140,10 @@ gfmRV gfmObject_separateHorizontal(gfmObject *pSelf, gfmObject *pOther) {
         ASSERT_NR(rv == GFMRV_OK);
         dist *= 0.5;
         // Push both objects
-        if (pSelf->flags & gfmCollision_instLeft) {
+        if (pSelf->flags & gfmFlags_horizontalCornerCase) {
+            /* Objects barely touching. No need to move them */
+        }
+        else if (pSelf->flags & gfmCollision_instLeft) {
             // pSelf collided left, so it must be pushed to the right
             rv = _int_gfmObject_setHorizontalPosition(pSelf, pSelf->dx + dist);
             ASSERT_NR(rv == GFMRV_OK);
@@ -2189,8 +2237,12 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
             // Never gonna happen, but avoids warning (stupid compiler!)
             ASSERT(0, GFMRV_FUNCTION_FAILED);
         }
-        rv = _int_gfmObject_setVerticalPosition(pMovable, newY);
-        ASSERT_NR(rv == GFMRV_OK);
+
+        if (!(pMovable->flags & gfmFlags_verticalCornerCase)) {
+            /* If objects are barely touching, there's no need to move them */
+            rv = _int_gfmObject_setVerticalPosition(pMovable, newY);
+            ASSERT_NR(rv == GFMRV_OK);
+        }
     }
     else {
         double dist;
@@ -2200,7 +2252,10 @@ gfmRV gfmObject_separateVertical(gfmObject *pSelf, gfmObject *pOther) {
         ASSERT_NR(rv == GFMRV_OK);
         dist *= 0.5;
         // Push both objects
-        if (pSelf->flags & gfmCollision_instUp) {
+        if (pSelf->flags & gfmFlags_verticalCornerCase) {
+            /* Objects barely touching. No need to move them */
+        }
+        else if (pSelf->flags & gfmCollision_instUp) {
             // pSelf collided above so it must be pushed downward
             rv = _int_gfmObject_setVerticalPosition(pSelf, pSelf->dy + dist);
             ASSERT_NR(rv == GFMRV_OK);
