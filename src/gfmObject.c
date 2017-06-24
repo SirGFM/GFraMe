@@ -23,14 +23,16 @@
 #include <string.h>
 
 enum {
-    gfmFlags_isFixed             = 0x10000
-  , gfmFlags_continuousCollision = 0x20000
-  , gfmFlags_currentMask         = 0x0000f
-  , gfmFlags_lastMask            = 0x000f0
-  , gfmFlags_instantaneousMask   = 0x00f00
-  , gfmFlags_currentBit          = 0
-  , gfmFlags_lastBit             = 4
-  , gfmFlags_instBit             = 8
+    gfmFlags_isFixed              = 0x10000
+  , gfmFlags_continuousCollision  = 0x20000
+  , gfmFlags_horizontalCornerCase = 0x40000
+  , gfmFlags_verticalCornerCase   = 0x80000
+  , gfmFlags_currentMask          = 0x0000F
+  , gfmFlags_lastMask             = 0x000F0
+  , gfmFlags_instantaneousMask    = 0x00F00
+  , gfmFlags_currentBit           = 0
+  , gfmFlags_lastBit              = 4
+  , gfmFlags_instBit              = 8
 };
 
 /** The gfmObject structure */
@@ -1341,9 +1343,9 @@ gfmRV gfmObject_update(gfmObject *pObj, gfmCtx *pCtx) {
     pObj->t.y = (int)pObj->dy;
     
     // Clear this frame's collisions and set the previous one
-    pObj->flags &= ~gfmCollision_last;
-    pObj->flags |= (pObj->flags & gfmCollision_cur) << gfmFlags_lastBit;
-    pObj->flags &= ~gfmCollision_cur;
+    pObj->flags &= ~gfmFlags_lastMask;
+    pObj->flags |= (pObj->flags & gfmFlags_currentMask) << gfmFlags_lastBit;
+    pObj->flags &= ~gfmFlags_currentMask;
     
     rv = GFMRV_OK;
 __ret:
@@ -1647,7 +1649,7 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     ASSERT(pHitbox->hh > 0, GFMRV_OBJECT_NOT_INITIALIZED);
 
     /* Clear the instantaneous flag */
-    pObj->flags &= ~gfmCollision_inst;
+    pObj->flags &= ~gfmFlags_instantaneousMask;
 
     /* Check horizontal collision */
     dist = _getHorizontalDistance(pObj, (gfmObject*)pHitbox);
@@ -1704,7 +1706,8 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
     }
 
     /* Set overlap position definitivelly */
-    pObj->flags |= (pObj->flags & gfmCollision_inst) >> gfmFlags_instBit;
+    pObj->flags |= (pObj->flags & gfmFlags_instantaneousMask)
+            >> gfmFlags_instBit;
     rv = GFMRV_TRUE;
 __ret:
     return rv;
@@ -1748,8 +1751,8 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     }
     
     // Clear the instantaneous flag
-    pSelf->flags &= ~gfmCollision_inst;
-    pOther->flags &= ~gfmCollision_inst;
+    pSelf->flags &= ~gfmFlags_instantaneousMask;
+    pOther->flags &= ~gfmFlags_instantaneousMask;
     
     // Get 'this' object's center
     rv = gfmObject_getCenter(&sx, &sy, pSelf);
@@ -1819,8 +1822,10 @@ gfmRV gfmObject_justOverlaped(gfmObject *pSelf, gfmObject *pOther) {
     }
     
     // Set overlap position definitivelly 
-    pSelf->flags |= (pSelf->flags & gfmCollision_inst) >> gfmFlags_instBit;
-    pOther->flags |= (pOther->flags & gfmCollision_inst) >> gfmFlags_instBit;
+    pSelf->flags |= (pSelf->flags & gfmFlags_instantaneousMask)
+            >> gfmFlags_instBit;
+    pOther->flags |= (pOther->flags & gfmFlags_instantaneousMask)
+            >> gfmFlags_instBit;
     
     rv = GFMRV_TRUE;
 __ret:
@@ -2232,7 +2237,7 @@ gfmRV gfmObject_getCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
-    *pDir = (pCtx->flags & gfmCollision_cur);
+    *pDir = (pCtx->flags & gfmFlags_currentMask);
     
     rv = GFMRV_OK;
 __ret:
@@ -2255,7 +2260,7 @@ gfmRV gfmObject_getLastCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
-    *pDir = (pCtx->flags & gfmCollision_last) >> gfmFlags_lastBit;
+    *pDir = (pCtx->flags & gfmFlags_lastMask) >> gfmFlags_lastBit;
     
     rv = GFMRV_OK;
 __ret:
@@ -2278,7 +2283,7 @@ gfmRV gfmObject_getCurrentCollision(gfmCollision *pDir, gfmObject *pCtx) {
     ASSERT(pCtx->t.innerType == gfmType_object, GFMRV_INVALID_TYPE);
     
     // Get the flags
-    *pDir = (pCtx->flags & gfmCollision_inst) >> gfmFlags_instBit;
+    *pDir = (pCtx->flags & gfmFlags_instantaneousMask) >> gfmFlags_instBit;
     
     rv = GFMRV_OK;
 __ret:
@@ -2629,12 +2634,12 @@ gfmRV gfmObject_sweepJustOverlaped(gfmObject *pSelf, gfmObject *pOther) {
         }
 
         if (pSelf->t.innerType == gfmType_object) {
-            pSelf->flags &= ~gfmCollision_inst;
+            pSelf->flags &= ~gfmFlags_instantaneousMask;
             pSelf->flags |= selfFlags;
             pSelf->flags |= selfFlags >> gfmFlags_instBit;
         }
         if (pOther->t.innerType == gfmType_object) {
-            pOther->flags &= ~gfmCollision_inst;
+            pOther->flags &= ~gfmFlags_instantaneousMask;
             pOther->flags |= otherFlags;
             pOther->flags |= otherFlags >> gfmFlags_instBit;
         }
