@@ -25,6 +25,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Includes for checking a file size on non-Windows */
+#if !defined(__WIN32) && !defined(__WIN32__)
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <unistd.h>
+#endif
+
 /**
  * SDL already considers assets on a mobile device to be on a 'assets/'
  * folder, so this function removes it (if it was compiled for mobile)
@@ -142,10 +149,16 @@ _ret:
 }
 
 GFraMe_ret GFraMe_assets_buffer_audio(char *filename, char **buf, int *len) {
-	GFraMe_ret rv = GFraMe_ret_ok;
+#if !defined(__WIN32) && !defined(__WIN32__)
+	struct stat fstat;
+#endif
 	char *samples = NULL;
 	SDL_RWops *fp = NULL;
+	GFraMe_ret rv = GFraMe_ret_ok;
 	int flen, flen2, tmp;
+#if !defined(__WIN32) && !defined(__WIN32__)
+	int irv;
+#endif
 	char name[GFraMe_max_path_len];
 	
 	memset(name, 0x0, GFraMe_max_path_len);
@@ -187,16 +200,27 @@ GFraMe_ret GFraMe_assets_buffer_audio(char *filename, char **buf, int *len) {
 		GFraMe_assertRet(rv == 0, "Failed to create raw audio", _ret);
 	}
 	
+#if !defined(__WIN32) && !defined(__WIN32__)
+	// Get the file's length (linux)
+	irv = stat(name, &fstat);
+	GFraMe_assertRV(irv == 0, "Failed to get the file's length (linux)",
+		rv = GFraMe_ret_failed, _ret);
+	
+	*len = (int)fstat.st_size;
+#endif
+	
 	// Load the file into the buffer
 	fp = SDL_RWFromFile(name, "r");
 	GFraMe_SDLassertRV(fp != NULL, "Failed to open file",
 		rv = GFraMe_ret_failed, _ret);
 	
-	// Get the file's length
+#if defined(__WIN32) || defined(__WIN32__)
+	// Get the file's length (windows)
 	*len = SDL_RWseek(fp, 0, RW_SEEK_END);
-	GFraMe_SDLassertRV(*len > 0, "Failed to the file's length", 
+	GFraMe_SDLassertRV(*len > 0, "Failed to the file's length (windows)", 
 		rv = GFraMe_ret_failed, _ret);
 	SDL_RWseek(fp, 0, RW_SEEK_SET);
+#endif
 	
 	// Then simply read its content into the buffer
 	samples = (char*)malloc(*len);
