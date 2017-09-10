@@ -122,7 +122,7 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     /* Sanitize arguments */
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
     /* On mobile, pFilename will be NULL when loading assets */
-#if !defined(GFRAME_MOBILE)
+#if !defined(GFRAME_MOBILE) && !defined(EMCC)
     ASSERT(pFilename, GFMRV_ARGUMENTS_BAD);
     ASSERT(filenameLen > 0, GFMRV_ARGUMENTS_BAD);
 #endif
@@ -141,14 +141,14 @@ static gfmRV gfmFile_openFile(gfmFile *pCtx, char *pFilename, int filenameLen,
     rv = gfmString_init(pCtx->pPath, pPath, strlen(pPath), 1/*doCopy*/);
     ASSERT_NR(rv == GFMRV_OK);
 
-#if defined(GFRAME_MOBILE)
+#if defined(GFRAME_MOBILE) || defined(EMCC)
     /* On mobile, the path must be append if not opening an asset */
   if (pFilename) {
 #endif
     /* Append the filename to its path */
     rv = gfmString_concat(pCtx->pPath, pFilename, filenameLen);
     ASSERT_NR(rv == GFMRV_OK);
-#if defined(GFRAME_MOBILE)
+#if defined(GFRAME_MOBILE) || defined(EMCC)
   }
 #endif
 
@@ -239,7 +239,7 @@ gfmRV gfmFile_openAsset(gfmFile *pFile, gfmCtx *pCtx, char *pFilename,
 
     /* There's no 'binary path on mobile, so we use the string to pass the
      * actual file path */
-#if !defined(GFRAME_MOBILE)
+#if !defined(GFRAME_MOBILE) && !defined(EMCC)
     /* Retrieve the absolute file path (i.e., copy the 'static' string) */
     rv = gfm_getBinaryPath(&pStr, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
