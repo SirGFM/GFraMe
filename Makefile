@@ -101,7 +101,7 @@
     include src/core/emscript-sdl2/Makefile
   endif
 # Use the stdio file interface on desktops
-  ifneq ($(OS), Win)
+  ifeq ($(OS), Linux)
     OBJS += $(OBJDIR)/core/common/gfmFile.o
   else
     # Except on Windows, because cross-compiling seems buggy
