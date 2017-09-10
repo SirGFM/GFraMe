@@ -192,8 +192,10 @@ static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
     /* Get the device's default resolution */
     irv = SDL_GetDisplayMode(0 /*displayIndex*/, 0/*defResolution*/, &sdlMode);
     ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
-    pCtx->devWidth = sdlMode.w;
-    pCtx->devHeight = sdlMode.h;
+    //pCtx->devWidth = sdlMode.w;
+    //pCtx->devHeight = sdlMode.h;
+    pCtx->devWidth = 640;
+    pCtx->devHeight = 480;
 
     gfmLog_log(pCtx->pLog, gfmLog_info, "Main display dimensions: %i x %i",
             pCtx->devWidth, pCtx->devHeight);
