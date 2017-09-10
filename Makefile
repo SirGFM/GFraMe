@@ -82,7 +82,6 @@
           $(OBJDIR)/util/gfmTrie.o \
           $(OBJDIR)/util/gfmVideo_bmp.o \
           $(OBJDIR)/util/gfmVirtualKey.o \
-          $(OBJDIR)/core/event/desktop/gfmEvent_desktop.o \
           $(OBJDIR)/core/loadAsync/gfmLoadAsync_SDL2.o
 # Add objects based on the current backend
   ifeq ($(USE_GL3_VIDEO), yes)
@@ -95,7 +94,7 @@
     include src/core/video/sw_sdl2/Makefile
   endif
 
-  ifndef ($(BACKEND))
+  ifeq ($(BACKEND), )
     include src/core/sdl2/Makefile
   endif
   ifeq ($(BACKEND), emscript)
@@ -323,7 +322,7 @@ all: static shared tests
 #==============================================================================
 # Rule for building a object file for emscript
 #==============================================================================
-emscript: bin/emscript/$(TARGET).bc
+emscript: $(BINDIR)/$(TARGET).bc
 #==============================================================================
 
 #==============================================================================
@@ -489,6 +488,10 @@ endif
 $(BINDIR)/$(TARGET).dylib: $(OBJS)
 	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 	$(STRIP) $@
+
+# Web (emscript)
+$(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
+	$(CC) -o $@ $(CFLAGS) $(OBJS)
 #==============================================================================
 
 #==============================================================================
@@ -496,13 +499,6 @@ $(BINDIR)/$(TARGET).dylib: $(OBJS)
 #==============================================================================
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
-#==============================================================================
-
-#==============================================================================
-# Build a emscript (LLVM) binary, to be used when compiling for HTML5
-#==============================================================================
-$(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
-	$(CC) -o $@ $(CFLAGS) $(OBJS)
 #==============================================================================
 
 #==============================================================================
