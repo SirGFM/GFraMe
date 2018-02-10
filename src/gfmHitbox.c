@@ -95,6 +95,7 @@ gfmRV gfmHitbox_init(gfmHitbox *pObj, void *pCtx, int x, int y, int width
     pObj->pContext = pCtx;
     pObj->type = type;
     pObj->innerType = gfmType_hitbox;
+    pObj->hitFlags = (gfmCollision_hor | gfmCollision_ver);
 
     rv = GFMRV_OK;
 __ret:
@@ -217,3 +218,38 @@ gfmRV gfmHitbox_collideSubList(int *pFirst, gfmHitbox *pList
     return GFMRV_QUADTREE_DONE;
 }
 
+/**
+ * Set which directions trigger a collision for the hitbox.
+ *
+ * Note that this function cannot be used to disable collision!
+ *
+ * @param  [in]pObj     The hitbox
+ * @param  [in]hitFlags Bitmask with the directions that trigger collision
+ */
+gfmRV gfmHitbox_setHitFlag(gfmHitbox *pObj, gfmCollision hitFlags) {
+    if (pObj == 0 || (hitFlags & (gfmCollision_hor | gfmCollision_ver)) == 0) {
+        return GFMRV_ARGUMENTS_BAD;
+    }
+
+    pObj->hitFlags = hitFlags & (gfmCollision_hor | gfmCollision_ver);
+
+    return GFMRV_OK;
+}
+
+/**
+ * Set which directions trigger a collision for the hitbox.
+ *
+ * Note that this function cannot be used to disable collision!
+ *
+ * @param  [in]pList    The list of hitboxes
+ * @param  [in]hitFlags Bitmask with the directions that trigger collision
+ * @param  [in]index    Bitmask with the directions that trigger collision
+ */
+gfmRV gfmHitbox_setItemHitFlag(gfmHitbox *pList, gfmCollision hitFlags
+        , int index) {
+    if (pList == 0 || index < 0) {
+        return GFMRV_ARGUMENTS_BAD;
+    }
+
+    return gfmHitbox_setHitFlag(pList + index, hitFlags);
+}

@@ -15,6 +15,7 @@ typedef struct stGFMHitbox gfmHitbox;
 #define __GFMHITBOX_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmQuadtree.h>
 
 /**
