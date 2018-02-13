@@ -1233,12 +1233,77 @@ __ret:
  *             4.2.1. If so, repeat 3.2.1 but searching to the left
  *
  * @param  pCtx       The tilemap
- * @param  type       Type of tile to be searched for
+ * @param  areaType   Type of tile to be searched for
  * @param  leftCorner Position of the top-left corner of this polygon
  */
-gfmRV _gfmTilemap_calculateRectangleSides(gfmTilemap *pCtx, int type
-    , int leftCorner) {
+static gfmRV _gfmTilemap_calculateRectangleSides(gfmTilemap *pCtx, int areaType
+        , int leftCorner) {
+    gfmRV rv;
+    gfmCollision upperHitFlags;
+    int i, tile, type, w, x, y;
+
+    // No need to sanitize things since this is called only internally
+    x = leftCorner % pCtx->widthInTiles;
+    y = leftCorner / pCtx->widthInTiles;
+    upperHitFlags = gfmCollision_up;
+
+    // Detect the upper rectangle (1.)
+    for (w = 1; x + w < pCtx->widthInTiles; w++) {
+        tile = pCtx->pData[leftCorner + w];
+
+        rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
+        ASSERT_NR(rv == GFMRV_OK);
+        if (type != areaType) {
+            // Found a tile of a different type
+            break;
+        }
+        else if (y > 0) {
+            // If the tile above is of the same type, it's a corner (i.e. _|)
+            tile = pCtx->pData[leftCorner + w - pCtx->widthInTiles];
+
+            rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
+            ASSERT_NR(rv == GFMRV_OK);
+            if (type == areaType) {
+                break;
+            }
+        }
+    }
+
+    // Detect and create the left rectangle (3.)
+    for (h = 1; y + h < pCtx->heightInTiles; h++) {
+        tile = pCtx->pData[leftCorner + h * pCtx->widthInTiles];
+
+        rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
+        ASSERT_NR(rv == GFMRV_OK);
+        if (type != areaType) {
+            // Found a tile of a different type
+            break;
+        }
+        else if (x > 0) {
+            // If the tile to the left is of the same type, it's a corner (i.e. _|)
+            tile = pCtx->pData[leftCorner - 1 + h * pCtx->widthInTiles];
+
+            rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
+            ASSERT_NR(rv == GFMRV_OK);
+            if (type == areaType) {
+                break;
+            }
+        }
+    }
+
+    if (h == 1) {
+        // Corner case: tile is 1 tile height. Therfore, simply set both flags
+        upperHitFlags |= gfmCollision_left;
+    }
+    else {
+        // Otherwise, add this new hitbox
+    }
+
     return GFMRV_FUNCTION_NOT_IMPLEMENTED;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
 }
 
 /**
