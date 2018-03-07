@@ -1274,16 +1274,19 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
     do { \
         tile = pCtx->pData[index]; \
         rv = gfmTilemap_getTileType(&type, pCtx, tile); \
-        ASSERT_NR(rv == GFMRV_OK); \
+        ASSERT_NR(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE); \
     } while (0)
 
     gfmRV rv;
-    int dir, pos, prev, tile;
+    int dir, first, pos, prev, tile;
 
-    /* TODO Set pos and inc based on the first valid move */
-
+    /* Since dectection always starts on the top-left corner, the first
+     * iteration should always go right. */
+    pos = leftCorner;
     prev = leftCorner;
-    while (pos != leftCorner) {
+    dir = RIGHT;
+    first = 1;
+    do {
         gfmCollision hitFlag;
 
         switch (dir) {
@@ -1294,7 +1297,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     /* Detect a "non-natural" turn (i.e., > __| ^ ) */
                     if (pos >= pCtx->widthInTiles) {
                         _getType(pos - pCtx->widthInTiles);
-                        if (tile == areaType) {
+                        if (rv != GFMRV_TILEMAP_NO_TILETYPE || tile == areaType) {
                             dir = UP;
                             break;
                         }
@@ -1306,7 +1309,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     }
                     /* Check if the next tile is still of the same type */
                     _getType(pos + 1);
-                    if (tile != areaType) {
+                    if (rv == GFMRV_TILEMAP_NO_TILETYPE || tile != areaType) {
                         /* Simply moving outside the current polygon */
                         dir = DOWN;
                         break;
@@ -1321,7 +1324,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     /* Detect a "non-natural" turn (i.e., v |-- > ) */
                     if ((pos % pCtx->widthInTiles) + 1 < pCtx->widthInTiles) {
                         _getType(pos + 1);
-                        if (tile == areaType) {
+                        if (rv != GFMRV_TILEMAP_NO_TILETYPE || tile == areaType) {
                             dir = RIGHT;
                             break;
                         }
@@ -1333,7 +1336,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     }
                     /* Check if the next tile is still of the same type */
                     _getType(pos + pCtx->widthInTiles);
-                    if (tile != areaType) {
+                    if (rv == GFMRV_TILEMAP_NO_TILETYPE || tile != areaType) {
                         /* Simply moving outside the current polygon */
                         dir = LEFT;
                         break;
@@ -1348,7 +1351,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     /* Detect a "non-natural" turn (i.e., v |-- < ) */
                     if ((pos / pCtx->widthInTiles) + 1 < pCtx->heightInTiles) {
                         _getType(pos + pCtx->widthInTiles);
-                        if (tile == areaType) {
+                        if (rv != GFMRV_TILEMAP_NO_TILETYPE || tile == areaType) {
                             dir = DOWN;
                             break;
                         }
@@ -1360,7 +1363,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     }
                     /* Check if the next tile is still of the same type */
                     _getType(pos - 1);
-                    if (tile != areaType) {
+                    if (rv == GFMRV_TILEMAP_NO_TILETYPE || tile != areaType) {
                         /* Simply moving outside the current polygon */
                         dir = UP;
                         break;
@@ -1375,7 +1378,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     /* Detect a "non-natural" turn (i.e., < --| ^ ) */
                     if ((pos % pCtx->widthInTiles) - 1 >= 0) {
                         _getType(pos - 1);
-                        if (tile == areaType) {
+                        if (rv != GFMRV_TILEMAP_NO_TILETYPE || tile == areaType) {
                             dir = LEFT;
                             break;
                         }
@@ -1387,7 +1390,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
                     }
                     /* Check if the next tile is still of the same type */
                     _getType(pos - pCtx->widthInTiles);
-                    if (tile != areaType) {
+                    if (rv == GFMRV_TILEMAP_NO_TILETYPE || tile != areaType) {
                         /* Simply moving outside the current polygon */
                         dir = RIGHT;
                         break;
@@ -1399,7 +1402,18 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
 
         /* TODO Spawn the newly found rectangle (but check if already
          * contained by another rectangle) */
-    }
+
+        /* Corner case: Single tiles (or single top-left tiles) would cause
+         * pos == leftCorner on the first iteration and the loop would get
+         * skipped. To avoid that, count to 4 if pos == leftCorner, since that
+         * allows the algorithm to run all passes on single tiles. */
+        if (first > 0 && pos == leftCorner) {
+            first++;
+        }
+        else {
+            first = 0;
+        }
+    } while ((first > 0 && first < 5) || pos != leftCorner);
 
     rv = GFMRV_OK;
 __ret:
