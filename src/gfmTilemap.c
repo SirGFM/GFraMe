@@ -1209,6 +1209,210 @@ __ret:
 }
 
 /**
+ * There are two main types of turns: "natural" and "unnatural". "Natural" turns
+ * happens when traversing a rectangle (traversing the polygon formed by the o):
+ *   -----------
+ *   --ooooooo--
+ *   --ooooooo--
+ *   --ooooooo--
+ *   --ooooooo--
+ *   -----------
+ * Starting from the top left and moving by simply adding/subtracting one to a
+ * direction until a different tile is found, the edges are easily traversed:
+ *   -----------
+ *   --0>>>>>1--
+ *   --^ooooov--
+ *   --^ooooov--
+ *   --3<<<<<2--
+ *   -----------
+ * The numbered edges would be reached in that order, quite trivially.
+ *
+ * An "unnatural" turn, on the other hand, must be detected and forcefully
+ * followed:
+ *   -----------------
+ *   --ooooooo--------
+ *   --ooooooo--------
+ *   --ooooooo--------
+ *   --ooooooooooooo--
+ *   --ooooooooooooo--
+ *   --ooooooooooooo--
+ *   --ooooooooooooo--
+ *   -----------------
+ * If this polygon's edges were followed the same trivial way, some of its edges
+ * would be ignored:
+ *   -----------------
+ *   --0>>>>>1--------
+ *   --^ooooov--------
+ *   --^ooooov--------
+ *   --^ooooovoooooo--
+ *   --^ooooovoooooo--
+ *   --^ooooovoooooo--
+ *   --3<<<<<2oooooo--
+ *   -----------------
+ * However, the following was expected:
+ *   -----------------
+ *   --0>>>>>1--------
+ *   --^ooooov--------
+ *   --^ooooov--------
+ *   --^ooooo2>>>>>3--
+ *   --^ooooooooooov--
+ *   --^ooooooooooov--
+ *   --5<<<<<<<<<<<4--
+ *   -----------------
+ * Therefore, "unnatural" turns must be checked whenever a new tile is reached.
+ *
+ * For this algorithm, "natural" turns are clockwise while "unnatural" ones are
+ * counter-clockwise.
+ */
+static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
+        , int leftCorner) {
+#define RIGHT   1
+#define DOWN    2
+#define LEFT    3
+#define UP      4
+#define _getType(index) \
+    do { \
+        tile = pCtx->pData[index]; \
+        rv = gfmTilemap_getTileType(&type, pCtx, tile); \
+        ASSERT_NR(rv == GFMRV_OK); \
+    } while (0)
+
+    gfmRV rv;
+    int dir, pos, prev, tile;
+
+    /* TODO Set pos and inc based on the first valid move */
+
+    prev = leftCorner;
+    while (pos != leftCorner) {
+        gfmCollision hitFlag;
+
+        switch (dir) {
+            case RIGHT: {
+                /* Calculate a top edge (moving right) */
+                hitFlag = gfmCollision_up;
+                do {
+                    /* Detect a "non-natural" turn (i.e., > __| ^ ) */
+                    if (pos >= pCtx->widthInTiles) {
+                        _getType(pos - pCtx->widthInTiles);
+                        if (tile == areaType) {
+                            dir = UP;
+                            break;
+                        }
+                    }
+                    /* Detect the end of a contiguos region */
+                    else if ((pos % pCtx->widthInTiles) + 1 >= pCtx->widthInTiles) {
+                        dir = DOWN;
+                        break;
+                    }
+                    /* Check if the next tile is still of the same type */
+                    _getType(pos + 1);
+                    if (tile != areaType) {
+                        /* Simply moving outside the current polygon */
+                        dir = DOWN;
+                        break;
+                    }
+                    pos++;
+                } while (1);
+            } break;
+            case DOWN: {
+                /* Calculate a right edge (moving downward) */
+                hitFlag = gfmCollision_right;
+                do {
+                    /* Detect a "non-natural" turn (i.e., v |-- > ) */
+                    if ((pos % pCtx->widthInTiles) + 1 < pCtx->widthInTiles) {
+                        _getType(pos + 1);
+                        if (tile == areaType) {
+                            dir = RIGHT;
+                            break;
+                        }
+                    }
+                    /* Detect the end of a contiguos region */
+                    else if ((pos / pCtx->widthInTiles) + 1 >= pCtx->heightInTiles) {
+                        dir = LEFT;
+                        break;
+                    }
+                    /* Check if the next tile is still of the same type */
+                    _getType(pos + pCtx->widthInTiles);
+                    if (tile != areaType) {
+                        /* Simply moving outside the current polygon */
+                        dir = LEFT;
+                        break;
+                    }
+                    pos += pCtx->widthInTiles;
+                } while (1);
+            } break;
+            case LEFT: {
+                /* Calculate a bottom edge (moving left) */
+                hitFlag = gfmCollision_down;
+                do {
+                    /* Detect a "non-natural" turn (i.e., v |-- < ) */
+                    if ((pos / pCtx->widthInTiles) + 1 < pCtx->heightInTiles) {
+                        _getType(pos + pCtx->widthInTiles);
+                        if (tile == areaType) {
+                            dir = DOWN;
+                            break;
+                        }
+                    }
+                    /* Detect the end of a contiguos region */
+                    else if ((pos % pCtx->widthInTiles) - 1 < 0) {
+                        dir = UP;
+                        break;
+                    }
+                    /* Check if the next tile is still of the same type */
+                    _getType(pos - 1);
+                    if (tile != areaType) {
+                        /* Simply moving outside the current polygon */
+                        dir = UP;
+                        break;
+                    }
+                    pos--;
+                } while (1);
+            } break;
+            case UP: {
+                /* Calculate a left edge (moving upward) */
+                hitFlag = gfmCollision_left;
+                do {
+                    /* Detect a "non-natural" turn (i.e., < --| ^ ) */
+                    if ((pos % pCtx->widthInTiles) - 1 >= 0) {
+                        _getType(pos - 1);
+                        if (tile == areaType) {
+                            dir = LEFT;
+                            break;
+                        }
+                    }
+                    /* Detect the end of a contiguos region */
+                    else if (pos < pCtx->widthInTiles) {
+                        dir = RIGHT;
+                        break;
+                    }
+                    /* Check if the next tile is still of the same type */
+                    _getType(pos - pCtx->widthInTiles);
+                    if (tile != areaType) {
+                        /* Simply moving outside the current polygon */
+                        dir = RIGHT;
+                        break;
+                    }
+                    pos -= pCtx->widthInTiles;
+                } while (1);
+            } break;
+        }
+
+        /* TODO Spawn the newly found rectangle (but check if already
+         * contained by another rectangle) */
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+
+#undef RIGHT
+#undef DOWN
+#undef LEFT
+#undef UP
+#undef _getType
+}
+
+/**
  * Generates areas for the sides of a polygon.
  *
  * Given that the tilemap is traversed from top-left to top-right, the following
