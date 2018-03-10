@@ -319,6 +319,28 @@ __ret:
  */
 gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
         int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen) {
+    return gfmTilemap_newLoadf(pTMap, pCtx, pFilename, filenameLen, pDictNames
+            , pDictTypes, dictLen, 0, 0);
+}
+
+/**
+ * Similar to gfmTilemap_loadf, but uses 'gfmTilemap_newRecalculateAreas' to
+ * automatically generate the collision data.
+ *
+ * @param  [ in]pTMap       The tilemap
+ * @param  [ in]pCtx        The game`s context
+ * @param  [ in]pFilename   The file where the tile data is stored
+ * @param  [ in]filenameLen How many characters there are in the filename
+ * @param  [ in]pDictNames  Dictionary with the types' names
+ * @param  [ in]pDictTypes  Dictionary with the types's values
+ * @param  [ in]dictLen     How many entries there are in the dictionary
+ * @param  [ in]pSidedTypes Types that should be converted into polygons sides.
+ * @param  [ in]sidedLen    Number of entries in pSidedTypes.
+ * @return                  The operation result.
+ */
+gfmRV gfmTilemap_newLoadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename
+        , int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen
+        , int *pSidedTypes, int sidedLen) {
     char *pTypeStr;
     gfmFile *pFp;
     gfmLog *pLog;
@@ -471,7 +493,12 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
             }
             
             // Recalculate all areas that belong to the map
-            rv = gfmTilemap_recalculateAreas(pTMap);
+            if (pSidedTypes == 0 || sidedLen == 0) {
+                rv = gfmTilemap_recalculateAreas(pTMap);
+            }
+            else {
+                rv = gfmTilemap_newRecalculateAreas(pTMap, pSidedTypes, sidedLen);
+            }
             ASSERT_LOG(rv == GFMRV_OK || rv == GFMRV_TILEMAP_NO_TILETYPE, rv, pLog);
             
             didParseTilemap = 1;

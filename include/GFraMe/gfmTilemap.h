@@ -134,6 +134,25 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
         int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen);
 
 /**
+ * Similar to gfmTilemap_loadf, but uses 'gfmTilemap_newRecalculateAreas' to
+ * automatically generate the collision data.
+ *
+ * @param  [ in]pTMap       The tilemap
+ * @param  [ in]pCtx        The game`s context
+ * @param  [ in]pFilename   The file where the tile data is stored
+ * @param  [ in]filenameLen How many characters there are in the filename
+ * @param  [ in]pDictNames  Dictionary with the types' names
+ * @param  [ in]pDictTypes  Dictionary with the types's values
+ * @param  [ in]dictLen     How many entries there are in the dictionary
+ * @param  [ in]pSidedTypes Types that should be converted into polygons sides.
+ * @param  [ in]sidedLen    Number of entries in pSidedTypes.
+ * @return                  The operation result.
+ */
+gfmRV gfmTilemap_newLoadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename
+        , int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen
+        , int *pSidedTypes, int sidedLen);
+
+/**
  * Modify a tilemap position
  * 
  * @param  pCtx   The tilemap
