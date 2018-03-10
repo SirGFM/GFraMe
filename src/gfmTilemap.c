@@ -1440,6 +1440,9 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
 
             rv = gfmTilemap_addArea(pCtx, x, y, w, h, type);
             ASSERT_NR(rv == GFMRV_OK);
+            rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, hitFlag
+                    , pCtx->numAreas - 1);
+            ASSERT_NR(rv == GFMRV_OK);
         } while (0);
 
         /* Corner case: stopped because of unnatural turn. Increment to the next
