@@ -41,6 +41,19 @@ gfmGenArr_define(gfmTileAnimation);
 /** Define an array for info about tile animation */
 gfmGenArr_define(gfmTileAnimationInfo);
 
+/** Used the check neighbouring tiles */
+enum enNeighbour {
+    neighbour_none  = 0x00,
+    neighbour_left  = 0x01,
+    neighbour_right = 0x02,
+    neighbour_down  = 0x04,
+    neighbour_up    = 0x08,
+    /* The following flag is a short-cut used to check whether a tile belongs to
+     * an inner (or outer) corner. */
+    neighbour_checkCorner = neighbour_left | neighbour_up,
+};
+typedef enum enNeighbour neighbour;
+
 /** gfmTilemap structure */
 struct stGFMTilemap {
     gfmHitbox *pAreas;
@@ -1018,6 +1031,75 @@ __ret:
 }
 
 /**
+ * Query the requested neighbouring tiles for their type and returns which
+ * directions where of the same type.
+ *
+ * NOTE: The tilemap must have been properly loaded before calling this
+ * function!
+ *
+ * @param  [ in]pCtx  The tilemap
+ * @param  [ in]type  The desired type for the neighbours.
+ * @param  [ in]index Index of the tile whose neighbours should be checked.
+ * @param  [ in]mask  Bitmask with the neighbours to be checked.
+ * @return            Which neighbours did match the requested type.
+ */
+static neighbour _gfmTilemap_checkTiles(gfmTilemap *pCtx, int type, int index
+        , neighbour mask) {
+    neighbour rv, bit;
+    int x, y;
+
+    /* Cache the index's position in (hopefully) a single DIV operation */
+    y = index / pCtx->widthInTiles;
+    x = index % pCtx->widthInTiles;
+
+    /* Query every marked position */
+    bit = 1;
+    while (mask != 0) {
+        int tile;
+
+        /* Retrieve the tile of the current direction */
+        tile = -1;
+        switch (mask & bit) {
+            case neighbour_left: {
+                if (x - 1 >= 0) {
+                    tile = pCtx->pData[index - 1];
+                }
+            } break;
+            case neighbour_right: {
+                if (x + 1 < pCtx->widthInTiles) {
+                    tile = pCtx->pData[index + 1];
+                }
+            } break;
+            case neighbour_down: {
+                if (y + 1 < pCtx->heightInTiles) {
+                    tile = pCtx->pData[index + pCtx->widthInTiles];
+                }
+            } break;
+            case neighbour_up: {
+                if (y - 1 >= 0) {
+                    tile = pCtx->pData[index - pCtx->widthInTiles];
+                }
+            } break;
+        }
+        if (tile != -1) {
+            gfmRV grv;
+            int tileType;
+
+            grv = gfmTilemap_getTileType(&tileType, pCtx, tile);
+            if (grv == GFMRV_OK && tileType == type) {
+                /* If a match was found, store the current direction */
+                rv |= bit;
+            }
+        }
+
+        mask = mask & ~bit;
+        bit <<= 1;
+    }
+
+    return rv;
+}
+
+/**
  * Check if the indexed tile is already inside any of the areas
  * 
  * @param  pCtx      The tilemap
@@ -1278,7 +1360,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
     } while (0)
 
     gfmRV rv;
-    int dir, first, pos, prev, tile;
+    int dir, first, pos, prev, tile, type;
 
     /* Since dectection always starts on the top-left corner, the first
      * iteration should always go right. */
@@ -1411,9 +1493,9 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int areaType
             first++;
         }
         else {
-            first = 0;
+            first = 5;
         }
-    } while ((first > 0 && first < 5) || pos != leftCorner);
+    } while (first < 5 || pos != leftCorner);
 
     rv = GFMRV_OK;
 __ret:
@@ -1424,104 +1506,6 @@ __ret:
 #undef LEFT
 #undef UP
 #undef _getType
-}
-
-/**
- * Generates areas for the sides of a polygon.
- *
- * Given that the tilemap is traversed from top-left to top-right, the following
- * algorithm is applied:
- *     NOTE: Whenever looking for the rectangle's bounds and the next tile would
- *           be inside the polygon (i.e., all 4 sides have the same type), stop
- *           the search.
- *
- *     1. Create a rectangle spawning over this top side of the polygon
- *        (searching to the right)
- *     2. Store the position of the right side of the polygon
- *     3. Check if the left most tile is a corner
- *         3.1. If so, create a rectangle spawning over this left side of the
- *              polygon (searching donward)
- *         3.2. Check if the bottom-left tile is a corner
- *             3.2.1. If so, create a rectangle spawning over the bottom side of
- *                    the polygon (searching to the right)
- *     4. Check if the right most tile is a corner
- *         4.1. If so, repeat 3.1 for this right side
- *         4.2. Check if the bottom-right tile is a corner, and if it's not
- *              contained by any other areas.
- *             4.2.1. If so, repeat 3.2.1 but searching to the left
- *
- * @param  pCtx       The tilemap
- * @param  areaType   Type of tile to be searched for
- * @param  leftCorner Position of the top-left corner of this polygon
- */
-static gfmRV _gfmTilemap_calculateRectangleSides(gfmTilemap *pCtx, int areaType
-        , int leftCorner) {
-    gfmRV rv;
-    gfmCollision upperHitFlags;
-    int i, tile, type, w, x, y;
-
-    // No need to sanitize things since this is called only internally
-    x = leftCorner % pCtx->widthInTiles;
-    y = leftCorner / pCtx->widthInTiles;
-    upperHitFlags = gfmCollision_up;
-
-    // Detect the upper rectangle (1.)
-    for (w = 1; x + w < pCtx->widthInTiles; w++) {
-        tile = pCtx->pData[leftCorner + w];
-
-        rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
-        ASSERT_NR(rv == GFMRV_OK);
-        if (type != areaType) {
-            // Found a tile of a different type
-            break;
-        }
-        else if (y > 0) {
-            // If the tile above is of the same type, it's a corner (i.e. _|)
-            tile = pCtx->pData[leftCorner + w - pCtx->widthInTiles];
-
-            rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
-            ASSERT_NR(rv == GFMRV_OK);
-            if (type == areaType) {
-                break;
-            }
-        }
-    }
-
-    // Detect and create the left rectangle (3.)
-    for (h = 1; y + h < pCtx->heightInTiles; h++) {
-        tile = pCtx->pData[leftCorner + h * pCtx->widthInTiles];
-
-        rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
-        ASSERT_NR(rv == GFMRV_OK);
-        if (type != areaType) {
-            // Found a tile of a different type
-            break;
-        }
-        else if (x > 0) {
-            // If the tile to the left is of the same type, it's a corner (i.e. _|)
-            tile = pCtx->pData[leftCorner - 1 + h * pCtx->widthInTiles];
-
-            rv = gfmTilemap_getTileType(&areaType, pCtx, tile);
-            ASSERT_NR(rv == GFMRV_OK);
-            if (type == areaType) {
-                break;
-            }
-        }
-    }
-
-    if (h == 1) {
-        // Corner case: tile is 1 tile height. Therfore, simply set both flags
-        upperHitFlags |= gfmCollision_left;
-    }
-    else {
-        // Otherwise, add this new hitbox
-    }
-
-    return GFMRV_FUNCTION_NOT_IMPLEMENTED;
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
 }
 
 /**
@@ -1572,8 +1556,23 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
         // different algorithm to detect (and store) its sides.
         for (j = 0; j < dictLen; j++) {
             if (type == pSidedTypes[j]) {
-                // Traverse the polygon and add most of its bounding boxes.
-                rv = _gfmTilemap_calculateRectangleSides(pCtx, type, i);
+                neighbour same;
+
+                same = _gfmTilemap_checkTiles(pCtx, type, i
+                    , neighbour_checkCorner);
+                if ((same & neighbour_checkCorner) == neighbour_up) {
+                    /* TODO If only the upper tile is of the same type, this is
+                     * part of an inner border */
+                     rv = GFMRV_FUNCTION_NOT_IMPLEMENTED;
+                }
+                else if ((same & neighbour_checkCorner) == neighbour_none) {
+                    /* If only the current tile (and possibly its right
+                     * neighbour or the one bellow) are of the same type, this
+                     * is part of an outer border */
+                    rv = _gfmTilemap_calculateOuterBorder(pCtx, type, i);
+                }
+                /* Otherwise, this is the middle of a polygon, so simply skip */
+                ASSERT_NR(rv == GFMRV_OK);
                 break;
             }
         }
