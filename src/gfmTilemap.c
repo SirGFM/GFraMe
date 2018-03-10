@@ -1365,7 +1365,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
         switch (dir) {
             case neighbour_right: {
                 /* Calculate a top edge (moving right) */
-                hitFlag = gfmCollision_up;
+                hitFlag = gfmCollision_up | gfmCollision_hor;
                 /* "Non-natural" turn: > __| ^^^ |___ */
                 mask = neighbour_right | neighbour_up;
                 next = neighbour_down;
@@ -1373,7 +1373,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
             } break;
             case neighbour_down: {
                 /* Calculate a top edge (moving downward) */
-                hitFlag = gfmCollision_right;
+                hitFlag = gfmCollision_right | gfmCollision_ver;
                 /* "Non-natural" turn: v |-- > */
                 mask = neighbour_down | neighbour_right;
                 next = neighbour_left;
@@ -1381,7 +1381,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
             } break;
             case neighbour_left: {
                 /* Calculate a bottom edge (moving left) */
-                hitFlag = gfmCollision_down;
+                hitFlag = gfmCollision_down | gfmCollision_hor;
                 /* "Non-natural" turn: --| vvv |-- < */
                 mask = neighbour_left | neighbour_down;
                 next = neighbour_up;
@@ -1389,7 +1389,7 @@ static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
             } break;
             case neighbour_up: {
                 /* Calculate a left edge (moving upward) */
-                hitFlag = gfmCollision_left;
+                hitFlag = gfmCollision_left | gfmCollision_ver;
                 /* "Non-natural" turn: < --| ^ */
                 mask = neighbour_up | neighbour_left;
                 next = neighbour_right;

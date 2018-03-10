@@ -365,6 +365,19 @@ gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
         gfmTilemap *pCtx, int tileIndex);
 
 /**
+ * Automatically generates all areas in the tilemap. This version creates one
+ * rectangle per side of the supplied types. Otherwise, the old algorithm is
+ * used.
+ * 
+ * @param  pCtx        The tilemap
+ * @param  pSidedTypes Types that should be converted into polygons sides.
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE
+ */
+gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes
+        , int dictLen);
+
+/**
  * Automatically generates all areas in the tilemap
  * 
  * @param  pCtx The tilemap
