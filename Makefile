@@ -122,13 +122,13 @@ win64_debug: bin/win64_debug/$(TARGET).dll bin/win64_debug/$(TARGET).a
 #=========================================================================
 # Build targets for Linux
 bin/$(TGTDIR)/$(TARGET).so: bin/$(TGTDIR)/$(TARGET).so.$(MAJOR)
-	cd bin/$(TGTDIR)/; ln -s $@ $<
+	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MAJOR) $(TARGET).so
 
 bin/$(TGTDIR)/$(TARGET).so.$(MAJOR): bin/$(TGTDIR)/$(TARGET).so.$(MINOR)
-	cd bin/$(TGTDIR)/; ln -s $@ $<
+	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MINOR) $(TARGET).so.$(MAJOR)
 
 bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
-	cd bin/$(TGTDIR)/; ln -s $@ $<
+	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(REV) $(TARGET).so.$(MINOR)
 
 bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
