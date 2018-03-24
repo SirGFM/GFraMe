@@ -19,19 +19,19 @@ CC ?= gcc
 
 #=========================================================================
 # Parse the configuration from the target goal
-ifneq (, $(filter %_debug, $(MAKECMDGOALS)))
+ifneq (, $(findstring _debug, $(MAKECMDGOALS)))
     MODE := debug
     STRIP := touch
 else
     MODE := release
 endif
-ifneq (, $(filter linux%, $(MAKECMDGOALS)))
+ifneq (, $(findstring linux, $(MAKECMDGOALS)))
     OS := linux
     ifndef $(DEBUG)
         STRIP := strip
     endif
 endif
-ifneq (, $(filter win%, $(MAKECMDGOALS)))
+ifneq (, $(findstring win, $(MAKECMDGOALS)))
     ifdef $(OS)
         ifeq ($(OS), linux)
             $(error More than a single OS target was specified)
@@ -39,10 +39,10 @@ ifneq (, $(filter win%, $(MAKECMDGOALS)))
     endif
     OS := win
 endif
-ifneq (, $(filter %32, $(MAKECMDGOALS)))
+ifneq (, $(findstring 32, $(MAKECMDGOALS)))
     ARCH := 32
 endif
-ifneq (, $(filter %64, $(MAKECMDGOALS)))
+ifneq (, $(findstring 64, $(MAKECMDGOALS)))
     ifdef $(ARCH)
         ifneq ($(ARCH), 32)
             $(error More than a single target architecture was specified)
