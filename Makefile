@@ -136,7 +136,7 @@ bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
 bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $@ $< $(LDFLAGS)
+	    $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@ echo "[STP] $@"
 	@ $(STRIP) $@
 
@@ -145,7 +145,7 @@ bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $@ $< $(LDFLAGS)
+	    $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@ echo "[STP] $@"
 	@ $(STRIP) $@
 
@@ -153,7 +153,7 @@ bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
 # Common build targets
 bin/$(TGTDIR)/$(TARGET).a: $(OBJS)
 	@ echo "[ AR] $@"
-	@ $(AR) -cq $@ $<
+	@ $(AR) -cq $@ $^
 
 obj/$(TGTDIR)/%.o: %.c
 	@ echo "[ CC] $< -> $@"
