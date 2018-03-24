@@ -169,16 +169,8 @@ GFraMe_ret GFraMe_assets_buffer_audio(char *filename, char **buf, int *len) {
 		rv = GFraMe_ret_failed, _ret);
 	
 	// Check if the .dat file exists and, if not, create it from a .bmp
-#ifdef GFRAME_MOBILE
-	int fuck_android = GFraMe_util_strlen(name);
-	name[fuck_android + 0] = '.';
-	name[fuck_android + 1] = 'd';
-	name[fuck_android + 2] = 'a';
-	name[fuck_android + 3] = 't';
-	name[fuck_android + 4] = '\0';
-#else
+    flen2 = flen;
 	GFraMe_util_strcat(name + GFraMe_max_path_len - flen, ".dat", &flen2);
-#endif
 	
 	if (GFraMe_assets_check_file(name) != GFraMe_ret_ok) {
 		char wavfile[GFraMe_max_path_len];
