@@ -55,12 +55,12 @@ endif
 # Setup CFLAGS and LDFLAGS
 CFLAGS := $(CFLAGS) -Wall -I"./include/" -DHAVE_OPENGL
 ifeq ($(OS), win)
-    LDFLAGS := $(LDFLAGS) -lmingw32
+    LDFLAGS := $(LDFLAGS) -lmingw32 -lSDL2main
 else
     LDFLAGS := $(LDFLAGS) -lm
     CFLAGS := $(CFLAGS) -fPIC
 endif
-LDFLAGS := $(LDFLAGS) -lSDL2main -lSDL2
+LDFLAGS := $(LDFLAGS) -lSDL2
 
 ifeq ($(ARCH), 64)
     CFLAGS := $(CFLAGS) -m64
