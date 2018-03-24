@@ -14,6 +14,10 @@ MINOR := $(MAJOR).4
 REV := $(MINOR).1
 
 #=========================================================================
+# Run make using bash, so syntax for conditionals works as expected
+SHELL := /bin/bash
+
+#=========================================================================
 # Set the default CC (may be overriden into something like mingw)
 CC ?= gcc
 
@@ -21,15 +25,12 @@ CC ?= gcc
 # Parse the configuration from the target goal
 ifneq (, $(findstring _debug, $(MAKECMDGOALS)))
     MODE := debug
-    STRIP := touch
 else
     MODE := release
 endif
 ifneq (, $(findstring linux, $(MAKECMDGOALS)))
     OS := linux
-    ifndef $(DEBUG)
-        STRIP := strip
-    endif
+    STRIP := strip
 endif
 ifneq (, $(findstring win, $(MAKECMDGOALS)))
     ifdef $(OS)
@@ -121,15 +122,15 @@ win64_debug: bin/win64_debug/$(TARGET).dll bin/win64_debug/$(TARGET).a
 
 #=========================================================================
 # Build targets for Linux
-bin/$(TGTDIR)/$(TARGET).so: bin/$(TGTDIR)/$(TARGET).so.$(MAJOR)
+bin/$(TGTDIR)/$(TARGET).so: | bin/$(TGTDIR)/$(TARGET).so.$(MAJOR)
 	@ echo "[LNK] $@"
 	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MAJOR) $(TARGET).so
 
-bin/$(TGTDIR)/$(TARGET).so.$(MAJOR): bin/$(TGTDIR)/$(TARGET).so.$(MINOR)
+bin/$(TGTDIR)/$(TARGET).so.$(MAJOR): | bin/$(TGTDIR)/$(TARGET).so.$(MINOR)
 	@ echo "[LNK] $@"
 	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MINOR) $(TARGET).so.$(MAJOR)
 
-bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
+bin/$(TGTDIR)/$(TARGET).so.$(MINOR): | bin/$(TGTDIR)/$(TARGET).so.$(REV)
 	@ echo "[LNK] $@"
 	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(REV) $(TARGET).so.$(MINOR)
 
@@ -137,8 +138,8 @@ bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(myCFLAGS) -o $@ $^ $(myLDFLAGS)
-	@ echo "[STP] $@"
-	@ $(STRIP) $@
+	@ if [ "$(MODE)" == "release" ]; then echo "[STP] $@"; fi
+	@ if [ "$(MODE)" == "release" ]; then $(STRIP) $@; fi
 
 #=========================================================================
 # Build target for Windows
@@ -146,8 +147,8 @@ bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
 	    $(myCFLAGS) -o $@ $^ $(myLDFLAGS)
-	@ echo "[STP] $@"
-	@ $(STRIP) $@
+	@ if [ "$(MODE)" == "release" ]; then echo "[STP] $@"; fi
+	@ if [ "$(MODE)" == "release" ]; then $(STRIP) $@; fi
 
 #=========================================================================
 # Common build targets
