@@ -53,23 +53,23 @@ endif
 
 #=========================================================================
 # Setup CFLAGS and LDFLAGS
-CFLAGS := $(CFLAGS) -Wall -I"./include/" -DHAVE_OPENGL
+myCFLAGS := $(CFLAGS) -Wall -I"./include/" -DHAVE_OPENGL
 ifeq ($(OS), win)
-    LDFLAGS := $(LDFLAGS) -lmingw32 -lSDL2main
+    myLDFLAGS := $(LDFLAGS) -lmingw32 -lSDL2main
 else
-    LDFLAGS := $(LDFLAGS) -lm
-    CFLAGS := $(CFLAGS) -fPIC
+    myLDFLAGS := $(LDFLAGS) -lm
+    myCFLAGS := $(myCFLAGS) -fPIC
 endif
-LDFLAGS := $(LDFLAGS) -lSDL2
+myLDFLAGS := $(myLDFLAGS) -lSDL2
 
 ifeq ($(ARCH), 64)
-    CFLAGS := $(CFLAGS) -m64
+    myCFLAGS := $(myCFLAGS) -m64
 else
-    CFLAGS := $(CFLAGS) -m32
+    myCFLAGS := $(myCFLAGS) -m32
 endif
 
 ifeq ($(MODE), debug)
-    CFLAGS += -DGFRAME_DEBUG -O0 -g
+    myCFLAGS += -DGFRAME_DEBUG -O0 -g
 endif
 
 #=========================================================================
@@ -136,7 +136,7 @@ bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
 bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	    $(myCFLAGS) -o $@ $^ $(myLDFLAGS)
 	@ echo "[STP] $@"
 	@ $(STRIP) $@
 
@@ -145,7 +145,7 @@ bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
 	@ echo "[ CC] $@"
 	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	    $(myCFLAGS) -o $@ $^ $(myLDFLAGS)
 	@ echo "[STP] $@"
 	@ $(STRIP) $@
 
