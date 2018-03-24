@@ -122,45 +122,58 @@ win64_debug: bin/win64_debug/$(TARGET).dll bin/win64_debug/$(TARGET).a
 #=========================================================================
 # Build targets for Linux
 bin/$(TGTDIR)/$(TARGET).so: bin/$(TGTDIR)/$(TARGET).so.$(MAJOR)
-	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MAJOR) $(TARGET).so
+	@ echo "[LNK] $@"
+	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MAJOR) $(TARGET).so
 
 bin/$(TGTDIR)/$(TARGET).so.$(MAJOR): bin/$(TGTDIR)/$(TARGET).so.$(MINOR)
-	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MINOR) $(TARGET).so.$(MAJOR)
+	@ echo "[LNK] $@"
+	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(MINOR) $(TARGET).so.$(MAJOR)
 
 bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
-	cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(REV) $(TARGET).so.$(MINOR)
+	@ echo "[LNK] $@"
+	@ cd bin/$(TGTDIR)/; ln -s $(TARGET).so.$(REV) $(TARGET).so.$(MINOR)
 
 bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	@ echo "[ CC] $@"
+	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
+	@ echo "[STP] $@"
+	@ $(STRIP) $@
 
 #=========================================================================
 # Build target for Windows
 bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
-	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
+	@ echo "[ CC] $@"
+	@ $(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
 	    $(CFLAGS) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
+	@ echo "[STP] $@"
+	@ $(STRIP) $@
 
 #=========================================================================
 # Common build targets
 bin/$(TGTDIR)/$(TARGET).a: $(OBJS)
-	$(AR) -cvq $@ $<
+	@ echo "[ AR] $@"
+	@ $(AR) -cq $@ $<
 
 obj/$(TGTDIR)/%.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	@ echo "[ CC] $< -> $@"
+	@ $(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJS): | obj/$(TGTDIR) $(WDATADIR) $(BINDIR)
 
 obj/$(TGTDIR):
-	mkdir -p obj/$(TGTDIR) obj/$(TGTDIR)/opengl $(WDATADIR) $(BINDIR)
+	@ echo "[MKD] $@"
+	@ mkdir -p obj/$(TGTDIR) obj/$(TGTDIR)/opengl
 
 $(WDATADIR):
-	mkdir -p $(WDATADIR)
+	@ echo "[MKD] $@"
+	@ mkdir -p $(WDATADIR)
 
 $(BINDIR):
-	mkdir -p $(BINDIR)
+	@ echo "[MKD] $@"
+	@ mkdir -p $(BINDIR)
 
 clean:
-	rm -rf obj/
-	rm -rf bin/
+	@ echo "[ RM] .*"
+	@ rm -rf obj/
+	@ rm -rf bin/
