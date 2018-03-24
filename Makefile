@@ -15,15 +15,13 @@ REV := $(MINOR).1
 
 #=========================================================================
 # Set the default CC (may be overriden into something like mingw)
-ifndef $(CC)
-    CC := gcc
-endif
+CC ?= gcc
 
 #=========================================================================
 # Parse the configuration from the target goal
 ifneq (, $(filter %_debug, $(MAKECMDGOALS)))
     MODE := debug
-    STRIP :=
+    STRIP := touch
 else
     MODE := release
 endif
@@ -135,14 +133,14 @@ bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
 bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
 	    $(CFLAGS) -o $@ $< $(LDFLAGS)
-	$(STRIP)
+	$(STRIP) $@
 
 #=========================================================================
 # Build target for Windows
 bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
 	    $(CFLAGS) -o $@ $< $(LDFLAGS)
-	$(STRIP)
+	$(STRIP) $@
 
 #=========================================================================
 # Common build targets
