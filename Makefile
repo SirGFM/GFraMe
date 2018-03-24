@@ -69,7 +69,7 @@ else
 endif
 
 ifeq ($(MODE), debug)
-    myCFLAGS += -DGFRAME_DEBUG -O0 -g
+    myCFLAGS := $(myCFLAGS) -DGFRAME_DEBUG -O0 -g
 endif
 
 #=========================================================================
@@ -157,7 +157,7 @@ bin/$(TGTDIR)/$(TARGET).a: $(OBJS)
 
 obj/$(TGTDIR)/%.o: %.c
 	@ echo "[ CC] $< -> $@"
-	@ $(CC) $(CFLAGS) -o $@ -c $<
+	@ $(CC) $(myCFLAGS) -o $@ -c $<
 
 $(OBJS): | obj/$(TGTDIR) $(WDATADIR) $(BINDIR)
 
