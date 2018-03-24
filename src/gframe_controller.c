@@ -8,6 +8,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct stGFraMe_controller GFraMe_controller;
 
@@ -61,14 +62,18 @@ void GFraMe_controller_bind() {
     i = 0;
     while (i < num) {
         SDL_GameController *c;
+#if 0
         SDL_JoystickGUID guid;
         char *mapping;
+#endif
         
         c = SDL_GameControllerOpen(i);
         if (c)
             sdl_controllers[i] = c;
+#if 0
         guid = SDL_JoystickGetDeviceGUID(i);
         mapping = SDL_GameControllerMappingForGUID(guid);
+#endif
         
         i++;
     }
@@ -202,11 +207,13 @@ void GFraMe_controller_printStates() {
     
     i = 0;
     while (i < GFraMe_controller_max) {
+#if defined(DGFRAME_DEBUG)
         GFraMe_controller *c;
         #define PRINT_PRESSED(att) \
             ((c->att)?"pressed":"not pressed")
         
         c = &(GFraMe_controllers[i]);
+#endif
         
         GFraMe_new_log("-----------------------------------------");
         GFraMe_new_log("  Controller %02d:", i);

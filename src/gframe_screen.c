@@ -615,6 +615,7 @@ char* GFraMe_screen_print_pixelformat(Uint32 pfmt) {
 	}
 }
 
+#  if defined(DGFRAME_DEBUG)
 static char* GFraMe_screen_print_access(int access) {
 	switch (access) {
 		case SDL_TEXTUREACCESS_STATIC: return "static";
@@ -623,6 +624,7 @@ static char* GFraMe_screen_print_access(int access) {
 		default: return "unknown";
 	}
 }
+#  endif
 #endif
 
 static void GFraMe_screen_log_format() {

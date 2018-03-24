@@ -3,6 +3,7 @@
  */
 #include <GFraMe/GFraMe_keys.h>
 #include <SDL2/SDL_events.h>
+#include <string.h>
 
 struct stGFraMe_key GFraMe_keys;
 

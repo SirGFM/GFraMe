@@ -1,140 +1,168 @@
+#=========================================================================
+# This Makefile have the following targets:
+#   - linux32
+#   - linux64
+#   - win32
+#   - win64
+#   - *_debug
 
-CC = gcc
-.SUFFIXES=.c .o
+#=========================================================================
+# Set the target and the lib's version
+TARGET := libGFraMe
+MAJOR := 0
+MINOR := $(MAJOR).4
+REV := $(MINOR).1
 
-TARGET = libGFraMe
-
-ifndef $(ARCH)
-    ARCH=$(shell uname -m)
-    ifeq ($(ARCH), x86_64)
-        ARCH=x64
-    else
-        ARCH=x86
-    endif
+#=========================================================================
+# Set the default CC (may be overriden into something like mingw)
+ifndef $(CC)
+    CC := gcc
 endif
-ifndef $(OS)
-    OS=$(shell uname)
-    ifeq ($(OS), MINGW32_NT-6.1)
-        OS=Win
-    endif
-endif
 
-SO = 
-CFLAGS = -Wall -I"./include/" -DHAVE_OPENGL
-LFLAGS = 
-ifeq ($(OS), Win)
-    ifeq ($(ARCH), x64)
-        LFLAGS += -L"/d/windows/mingw/lib/"
-    else
-        LFLAGS += -L"/d/windows/mingw/mingw32/lib/"
-    endif
-    LFLAGS += -lmingw32
-    CFLAGS += -I"/d/windows/mingw/include"
-    SO = dll
-    MJV = $(SO)
-    MNV = $(SO)
+#=========================================================================
+# Parse the configuration from the target goal
+ifneq (, $(filter %_debug, $(MAKECMDGOALS)))
+    MODE := debug
+    STRIP :=
 else
-    LFLAGS += -lm
-    CFLAGS += -fPIC
-    SO = so
-    MJV = $(SO).1
-    MNV = $(SO).1.0.0
+    MODE := release
 endif
-LFLAGS += -lSDL2main -lSDL2
+ifneq (, $(filter linux%, $(MAKECMDGOALS)))
+    OS := linux
+    ifndef $(DEBUG)
+        STRIP := strip
+    endif
+endif
+ifneq (, $(filter win%, $(MAKECMDGOALS)))
+    ifdef $(OS)
+        ifeq ($(OS), linux)
+            $(error More than a single OS target was specified)
+        endif
+    endif
+    OS := win
+endif
+ifneq (, $(filter %32, $(MAKECMDGOALS)))
+    ARCH := 32
+endif
+ifneq (, $(filter %64, $(MAKECMDGOALS)))
+    ifdef $(ARCH)
+        ifneq ($(ARCH), 32)
+            $(error More than a single target architecture was specified)
+        endif
+    endif
+    ARCH := 64
+endif
 
-ifeq ($(ARCH), x64)
-    CFLAGS += -m64
+#=========================================================================
+# Setup CFLAGS and LDFLAGS
+CFLAGS := $(CFLAGS) -Wall -I"./include/" -DHAVE_OPENGL
+ifeq ($(OS), win)
+    LDFLAGS := $(LDFLAGS) -lmingw32
 else
-    CFLAGS += -m32
+    LDFLAGS := $(LDFLAGS) -lm
+    CFLAGS := $(CFLAGS) -fPIC
+endif
+LDFLAGS := $(LDFLAGS) -lSDL2main -lSDL2
+
+ifeq ($(ARCH), 64)
+    CFLAGS := $(CFLAGS) -m64
+else
+    CFLAGS := $(CFLAGS) -m32
 endif
 
-ifneq ($(RELEASE), yes)
+ifeq ($(MODE), debug)
     CFLAGS += -DGFRAME_DEBUG -O0 -g
-else
-    #CFLAGS += -Winline -O1
 endif
 
-VPATH = src/:tst/
-SRCDIR = src
-BOBJDIR = obj
-OBJDIR = $(BOBJDIR)/$(OS)
-WDATADIR = $(OBJDIR)/wavtodata
-BINDIR = bin/$(OS)
+#=========================================================================
+# Paths and objects
+VPATH := src/:tst/
+TGTDIR := $(OS)$(ARCH)_$(MODE)
+OBJDIR := obj/$(TGTDIR)
+WDATADIR := $(OBJDIR)/wavtodata
+BINDIR := bin/$(TGTDIR)
 
 OBJS = $(OBJDIR)/gframe_accumulator.o $(OBJDIR)/gframe_animation.o \
-       $(OBJDIR)/gframe_assets.o $(OBJDIR)/gframe_object.o \
-       $(OBJDIR)/gframe_screen.o $(OBJDIR)/gframe_sprite.o \
-       $(OBJDIR)/gframe_spriteset.o $(OBJDIR)/gframe_texture.o \
-       $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o \
-       $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
-       $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o \
-	   $(OBJDIR)/gframe_save.o $(OBJDIR)/gframe_hitbox.o \
-	   $(OBJDIR)/gframe_tween.o $(OBJDIR)/gframe_pointer.o \
-       $(OBJDIR)/gframe_keys.o $(OBJDIR)/gframe_controller.o \
-	   $(OBJDIR)/gframe.o $(OBJDIR)/gframe_log.o \
-	   $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
+    $(OBJDIR)/gframe_assets.o $(OBJDIR)/gframe_object.o \
+    $(OBJDIR)/gframe_screen.o $(OBJDIR)/gframe_sprite.o \
+    $(OBJDIR)/gframe_spriteset.o $(OBJDIR)/gframe_texture.o \
+    $(OBJDIR)/gframe_timer.o $(OBJDIR)/gframe_util.o \
+    $(OBJDIR)/gframe_tilemap.o $(OBJDIR)/gframe_audio.o \
+    $(OBJDIR)/gframe_audio_player.o $(OBJDIR)/gframe_messagebox.o \
+    $(OBJDIR)/gframe_save.o $(OBJDIR)/gframe_hitbox.o \
+    $(OBJDIR)/gframe_tween.o $(OBJDIR)/gframe_pointer.o \
+    $(OBJDIR)/gframe_keys.o $(OBJDIR)/gframe_controller.o \
+    $(OBJDIR)/gframe.o $(OBJDIR)/gframe_log.o \
+    $(WDATADIR)/chunk.o $(WDATADIR)/fmt.o $(WDATADIR)/wavtodata.o
 
-ifeq ($(USE_OPENGL), yes)
-    CFLAGS += -DGFRAME_OPENGL
-    ifeq ($(OS), Win)
-        LFLAGS += -lopengl32
-    else
-        LFLAGS += -lGL
-    endif
-    
-    OBJS += $(OBJDIR)/gframe_opengl.o $(OBJDIR)/opengl/opengl_wrapper.o
-endif
+#=========================================================================
+# Helper build targets
+.PHONY: help linux32 linux64 linux32_debug linux64_debug win32 win64 \
+    win32_debug win64_debug clean
 
-all: static shared tests
+help:
+	@ echo "Build targets:"
+	@ echo "  linux32"
+	@ echo "  linux64"
+	@ echo "  linux32_debug"
+	@ echo "  linux64_debug"
+	@ echo "  win32"
+	@ echo "  win64"
+	@ echo "  win32_debug"
+	@ echo "  win64_debug"
+	@ echo "  clean"
 
-static: MAKEDIRS $(BINDIR)/$(TARGET).a
+linux32: bin/linux32_release/$(TARGET).so bin/linux32_release/$(TARGET).a
+linux32_debug: bin/linux32_debug/$(TARGET).so bin/linux32_debug/$(TARGET).a
+linux64: bin/linux64_release/$(TARGET).so bin/linux64_release/$(TARGET).a
+linux64_debug: bin/linux64_debug/$(TARGET).so bin/linux64_debug/$(TARGET).a
+win32: bin/win32_release/$(TARGET).dll bin/win32_release/$(TARGET).a
+win32_debug: bin/win32_debug/$(TARGET).dll bin/win32_debug/$(TARGET).a
+win64: bin/win64_release/$(TARGET).dll bin/win64_release/$(TARGET).a
+win64_debug: bin/win64_debug/$(TARGET).dll bin/win64_debug/$(TARGET).a
 
-shared: MAKEDIRS $(BINDIR)/$(TARGET).$(MNV)
+#=========================================================================
+# Build targets for Linux
+bin/$(TGTDIR)/$(TARGET).so: bin/$(TGTDIR)/$(TARGET).so.$(MAJOR)
+	cd bin/$(TGTDIR)/; ln -s $@ $<
 
-tests: MAKEDIRS static $(BINDIR)/test_controller $(BINDIR)/test_collision \
-       $(BINDIR)/test_animation
+bin/$(TGTDIR)/$(TARGET).so.$(MAJOR): bin/$(TGTDIR)/$(TARGET).so.$(MINOR)
+	cd bin/$(TGTDIR)/; ln -s $@ $<
 
-$(BINDIR)/$(TARGET).a: $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).a
-	ar -cvq $(BINDIR)/$(TARGET).a $(OBJS)
+bin/$(TGTDIR)/$(TARGET).so.$(MINOR): bin/$(TGTDIR)/$(TARGET).so.$(REV)
+	cd bin/$(TGTDIR)/; ln -s $@ $<
 
-ifeq ($(OS), Win)
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-else
-  $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
-	rm -f $(BINDIR)/$(TARGET).$(MNV) $(TARGET).$(SO)
-	gcc -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $(BINDIR)/$(TARGET).$(MNV) $(OBJS) $(LFLAGS)
-	ldconfig -n $(BINDIR)
-	cd $(BINDIR); ln -s $(TARGET).$(MJV) $(TARGET).$(SO)
-endif
+bin/$(TGTDIR)/$(TARGET).so.$(REV): $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
+	    $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(STRIP)
 
-$(OBJDIR)/%.o: %.c
+#=========================================================================
+# Build target for Windows
+bin/$(TGTDIR)/$(TARGET).dll: $(OBJS)
+	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-all-symbols \
+	    $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(STRIP)
+
+#=========================================================================
+# Common build targets
+bin/$(TGTDIR)/$(TARGET).a: $(OBJS)
+	$(AR) -cvq $@ $<
+
+obj/$(TGTDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-MAKEDIRS: | $(OBJDIR) $(WDATADIR) $(BINDIR)
+$(OBJS): | obj/$(TGTDIR) $(WDATADIR) $(BINDIR)
 
-$(BINDIR)/test_controller: $(OBJDIR)/gframe_test_controller.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_controller $(OBJDIR)/gframe_test_controller.o $(BINDIR)/$(TARGET).a $(LFLAGS)
+obj/$(TGTDIR):
+	mkdir -p obj/$(TGTDIR) obj/$(TGTDIR)/opengl $(WDATADIR) $(BINDIR)
 
-$(BINDIR)/test_collision: $(OBJDIR)/gframe_test_collision.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_collision $(OBJDIR)/gframe_test_collision.o $(BINDIR)/$(TARGET).a $(LFLAGS)
-
-$(BINDIR)/test_animation: $(OBJDIR)/gframe_test_animation.o
-	gcc $(CFLAGS) -DGFRAME_DEBUG -O0 -g -o $(BINDIR)/test_animation $(OBJDIR)/gframe_test_animation.o $(BINDIR)/$(TARGET).a $(LFLAGS)
-
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-	mkdir -p $(OBJDIR)/opengl
+$(WDATADIR):
 	mkdir -p $(WDATADIR)
+
+$(BINDIR):
 	mkdir -p $(BINDIR)
 
-.PHONY: clean mostlyclean
 clean:
-	rm -f $(OBJECTS) $(BINDIR)/$(TARGET)* $(BINDIR)/test_*
-	rm -rf $(OBJDIR)
-	rm -rf $(BINDIR)
-
+	rm -rf obj/
+	rm -rf bin/

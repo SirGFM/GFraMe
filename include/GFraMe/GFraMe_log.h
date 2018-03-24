@@ -10,13 +10,15 @@ void GFraMe_log_init(int append);
 void GFraMe_log_close();
 void GFraMe_log_private(char * fmt, ...);
 
-#define GFraMe_new_log(message, ...) 
-#define GFraMe_error_log(message, ...) 
-//#define GFraMe_new_log(message, ...) \
-//  GFraMe_log_private(" "message"\n", ##__VA_ARGS__)
-
-//#define GFraMe_error_log(message, ...) \
-//  GFraMe_log_private("@%s:%d - "message"\n",__FILE__,__LINE__, ##__VA_ARGS__)
+#if defined(DGFRAME_DEBUG)
+#  define GFraMe_new_log(message, ...) \
+     GFraMe_log_private(" "message"\n", ##__VA_ARGS__)
+#  define GFraMe_error_log(message, ...) \
+     GFraMe_log_private("@%s:%d - "message"\n",__FILE__,__LINE__, ##__VA_ARGS__)
+#else
+#  define GFraMe_new_log(message, ...)
+#  define GFraMe_error_log(message, ...)
+#endif
 
 #endif
 
