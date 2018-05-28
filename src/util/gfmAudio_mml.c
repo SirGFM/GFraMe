@@ -37,7 +37,8 @@ gfmRV gfmAudio_isMml(gfmFile *pFp) {
     ASSERT_NR(rv == GFMRV_OK);
     ASSERT(count == 3, GFMRV_READ_ERROR);
     // Check what was obtained
-    ASSERT(pBuf[0] == 'M' && pBuf[1] == 'M' && pBuf[2] == 'L', GFMRV_FALSE);
+    ASSERT((pBuf[0] == 'M' && pBuf[1] == 'M' && pBuf[2] == 'L') ||
+            (pBuf[0] == 'm' && pBuf[1] == 'm' && pBuf[2] == 'l'), GFMRV_FALSE);
     
     rv = GFMRV_TRUE;
 __ret:
