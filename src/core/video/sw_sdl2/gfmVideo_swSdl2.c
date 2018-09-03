@@ -1128,12 +1128,11 @@ static gfmRV gfmVideo_SWSDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
 
         /* Retrieve the initial position on the destination and source
          * buffers */
+        pDst = pCtx->pBackbufferData + dstX * 3 + dstY * pCtx->bbufWidthInBytes;
         if (isFlipped) {
             maskInc = -1;
             pixelInc = -3;
 
-            pDst = pCtx->pBackbufferData + (dstX + srcW - 1) * 3 +
-                    dstY * pCtx->bbufWidthInBytes;
             pSrc = pTex->pData + (srcX + srcW - 1) * 3 +
                     srcY * pTex->widthInBytes;
             pMask = pTex->pMask + srcX + srcW - 1 + srcY * pTex->width;
@@ -1142,7 +1141,6 @@ static gfmRV gfmVideo_SWSDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
             maskInc = 1;
             pixelInc = 3;
 
-            pDst = pCtx->pBackbufferData + dstX * 3 + dstY * pCtx->bbufWidthInBytes;
             pSrc = pTex->pData + srcX * 3 + srcY * pTex->widthInBytes;
             pMask = pTex->pMask + srcX + srcY * pTex->width;
         }
@@ -1167,7 +1165,7 @@ static gfmRV gfmVideo_SWSDL2_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
                 pTmpDst[1] |= pTmpSrc[1];
                 pTmpDst[2] |= pTmpSrc[2];
 
-                pTmpDst += pixelInc;
+                pTmpDst += 3;
                 pTmpSrc += pixelInc;
                 pTmpMask += maskInc;
                 i++;

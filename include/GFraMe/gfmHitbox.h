@@ -15,6 +15,7 @@ typedef struct stGFMHitbox gfmHitbox;
 #define __GFMHITBOX_H__
 
 #include <GFraMe/gfmError.h>
+#include <GFraMe/gfmObject.h>
 #include <GFraMe/gfmQuadtree.h>
 
 /**
@@ -99,5 +100,26 @@ gfmRV gfmHitbox_populateQuadtree(gfmHitbox *pList, gfmQuadtreeRoot *pRoot
 gfmRV gfmHitbox_collideSubList(int *pFirst, gfmHitbox *pList
         , gfmQuadtreeRoot *pRoot, int last);
 
-#endif /* __GFMHITBOX_H__ */
+/**
+ * Set which directions trigger a collision for the hitbox.
+ *
+ * Note that this function cannot be used to disable collision!
+ *
+ * @param  [in]pObj     The hitbox
+ * @param  [in]hitFlags Bitmask with the directions that trigger collision
+ */
+gfmRV gfmHitbox_setHitFlag(gfmHitbox *pObj, gfmCollision hitFlags);
 
+/**
+ * Set which directions trigger a collision for the hitbox.
+ *
+ * Note that this function cannot be used to disable collision!
+ *
+ * @param  [in]pList    The list of hitboxes
+ * @param  [in]hitFlags Bitmask with the directions that trigger collision
+ * @param  [in]index    Bitmask with the directions that trigger collision
+ */
+gfmRV gfmHitbox_setItemHitFlag(gfmHitbox *pList, gfmCollision hitFlags
+        , int index);
+
+#endif /* __GFMHITBOX_H__ */

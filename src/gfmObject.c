@@ -243,6 +243,7 @@ gfmRV gfmObject_init(gfmObject *pCtx, int x, int y, int width, int height,
     pCtx->t.pContext = pChild;
     pCtx->t.type = type;
     pCtx->t.innerType = gfmType_object;
+    pCtx->t.hitFlags = (gfmCollision_hor | gfmCollision_ver);
     
     rv = GFMRV_OK;
 __ret:
@@ -1668,10 +1669,14 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
                 || dist + pHitbox->hw <= pObj->t.hw) {
             /* One of the entities was placed inside the other. Simply ignore */
         }
-        else if (pObj->ldx < pHitbox->x) {
+        else if ((pObj->ldx < pHitbox->x)
+                && (pObj->t.hitFlags & gfmCollision_right)
+                && (pHitbox->hitFlags & gfmCollision_left)) {
             pObj->flags |= gfmCollision_instRight;
         }
-        else {
+        else if ((pObj->ldx > pHitbox->x)
+                && (pObj->t.hitFlags & gfmCollision_left)
+                && (pHitbox->hitFlags & gfmCollision_right)) {
             pObj->flags |= gfmCollision_instLeft;
         }
 
@@ -1701,10 +1706,14 @@ gfmRV gfmObject_justOverlapedHitbox(gfmObject *pObj, gfmHitbox *pHitbox) {
         }
         else
 #endif
-        if (pObj->ldy < pHitbox->y) {
+        if ((pObj->ldy < pHitbox->y)
+                && (pObj->t.hitFlags & gfmCollision_down)
+                && (pHitbox->hitFlags & gfmCollision_up)) {
             pObj->flags |= gfmCollision_instDown;
         }
-        else {
+        else if ((pObj->ldy > pHitbox->y)
+                && (pObj->t.hitFlags & gfmCollision_up)
+                && (pHitbox->hitFlags & gfmCollision_down)) {
             pObj->flags |= gfmCollision_instUp;
         }
 

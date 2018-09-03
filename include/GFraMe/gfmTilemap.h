@@ -134,6 +134,25 @@ gfmRV gfmTilemap_loadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename,
         int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen);
 
 /**
+ * Similar to gfmTilemap_loadf, but uses 'gfmTilemap_newRecalculateAreas' to
+ * automatically generate the collision data.
+ *
+ * @param  [ in]pTMap       The tilemap
+ * @param  [ in]pCtx        The game`s context
+ * @param  [ in]pFilename   The file where the tile data is stored
+ * @param  [ in]filenameLen How many characters there are in the filename
+ * @param  [ in]pDictNames  Dictionary with the types' names
+ * @param  [ in]pDictTypes  Dictionary with the types's values
+ * @param  [ in]dictLen     How many entries there are in the dictionary
+ * @param  [ in]pSidedTypes Types that should be converted into polygons sides.
+ * @param  [ in]sidedLen    Number of entries in pSidedTypes.
+ * @return                  The operation result.
+ */
+gfmRV gfmTilemap_newLoadf(gfmTilemap *pTMap, gfmCtx *pCtx, char *pFilename
+        , int filenameLen, char *pDictNames[], int pDictTypes [], int dictLen
+        , int *pSidedTypes, int sidedLen);
+
+/**
  * Modify a tilemap position
  * 
  * @param  pCtx   The tilemap
@@ -363,6 +382,19 @@ gfmRV gfmTilemap_isTileInAnyArea(gfmTilemap *pCtx, int tileIndex);
  */
 gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
         gfmTilemap *pCtx, int tileIndex);
+
+/**
+ * Automatically generates all areas in the tilemap. This version creates one
+ * rectangle per side of the supplied types. Otherwise, the old algorithm is
+ * used.
+ * 
+ * @param  pCtx        The tilemap
+ * @param  pSidedTypes Types that should be converted into polygons sides.
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
+ *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE
+ */
+gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes
+        , int dictLen);
 
 /**
  * Automatically generates all areas in the tilemap
