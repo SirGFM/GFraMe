@@ -34,14 +34,23 @@ gfmGenArr_define(gfmVirtualKey);
 /** Creates the nodes array type */
 gfmGenArr_define(gfmKeyNode);
 
+enum enAxisButton {
+    neg = -1,
+    neutral = 0,
+    pos = 1
+};
+
 /** All axis of a gamepad */
+struct stGFMSingleGamepadAxis {
+    float x;
+    float y;
+    float trigger;
+    enum enAxisButton hor;
+    enum enAxisButton ver;
+};
 struct stGFMGamepadAxis {
-    float leftX;
-    float leftY;
-    float rightX;
-    float rightY;
-    float leftTrigger;
-    float rightTrigger;
+    struct stGFMSingleGamepadAxis left;
+    struct stGFMSingleGamepadAxis right;
 };
 typedef struct stGFMGamepadAxis gfmGamepadAxis;
 
@@ -532,20 +541,20 @@ gfmRV gfmInput_getGamepadAnalog(float *pX, float *pY, gfmInput *pCtx, int port,
         // Retrieve the value from the requested axis
         switch (analog) {
             case gfmController_leftAnalog: {
-                *pX = pCtx->pAxis[port].leftX;
-                *pY = pCtx->pAxis[port].leftY;
+                *pX = pCtx->pAxis[port].left.x;
+                *pY = pCtx->pAxis[port].left.y;
             } break;
             case gfmController_rightAnalog: {
-                *pX = pCtx->pAxis[port].rightX;
-                *pY = pCtx->pAxis[port].rightY;
+                *pX = pCtx->pAxis[port].right.x;
+                *pY = pCtx->pAxis[port].right.y;
             } break;
             case gfmController_leftTrigger: {
-                *pX = pCtx->pAxis[port].leftTrigger;
-                *pY = pCtx->pAxis[port].leftTrigger;
+                *pX = pCtx->pAxis[port].left.trigger;
+                *pY = pCtx->pAxis[port].left.trigger;
             } break;
             case gfmController_rightTrigger: {
-                *pX = pCtx->pAxis[port].rightTrigger;
-                *pY = pCtx->pAxis[port].rightTrigger;
+                *pX = pCtx->pAxis[port].right.trigger;
+                *pY = pCtx->pAxis[port].right.trigger;
             } break;
             default: {}
         }
@@ -570,7 +579,7 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
         gfmInputIface analogAxis, double val, unsigned int time) {
     gfmRV rv;
     gfmInputIface posBt, negBt;
-    gfmInputState posSt, negSt;
+    enum enAxisButton lastState, curState;
     
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -595,32 +604,36 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
         case gfmController_leftAnalogX: {
             posBt = gfmController_laxis_right;
             negBt = gfmController_laxis_left;
-            pCtx->pAxis[port].leftX = val;
+            lastState = pCtx->pAxis[port].left.hor;
+            pCtx->pAxis[port].left.x = val;
         } break;
         case gfmController_leftAnalogY: {
             posBt = gfmController_laxis_down;
             negBt = gfmController_laxis_up;
-            pCtx->pAxis[port].leftY = val;
+            lastState = pCtx->pAxis[port].left.ver;
+            pCtx->pAxis[port].left.y = val;
         } break;
         case gfmController_rightAnalogX: {
             posBt = gfmController_raxis_right;
             negBt = gfmController_raxis_left;
-            pCtx->pAxis[port].rightX = val;
+            lastState = pCtx->pAxis[port].right.hor;
+            pCtx->pAxis[port].right.x = val;
         } break;
         case gfmController_rightAnalogY: {
             posBt = gfmController_raxis_down;
             negBt = gfmController_raxis_up;
-            pCtx->pAxis[port].rightY = val;
+            lastState = pCtx->pAxis[port].right.ver;
+            pCtx->pAxis[port].right.y = val;
         } break;
         case gfmController_leftTrigger: {
             posBt = gfmController_l2;
             negBt = gfmIface_none;
-            pCtx->pAxis[port].leftTrigger = val;
+            pCtx->pAxis[port].left.trigger = val;
         } break;
         case gfmController_rightTrigger: {
             posBt = gfmController_r2;
             negBt = gfmIface_none;
-            pCtx->pAxis[port].rightTrigger = val;
+            pCtx->pAxis[port].right.trigger = val;
         } break;
         default: {}
     }
@@ -633,23 +646,56 @@ gfmRV gfmInput_setGamepadAxis(gfmInput *pCtx, int port,
     
     // Set each direction's state
     if (val > pCtx->axisTriggerVal) {
-        posSt = gfmInput_justPressed;
-        negSt = gfmInput_justReleased;
+        curState = pos;
     }
     else if (val < -pCtx->axisTriggerVal) {
-        posSt = gfmInput_justReleased;
-        negSt = gfmInput_justPressed;
+        curState = neg;
     }
     else {
-        posSt = gfmInput_justReleased;
-        negSt = gfmInput_justReleased;
+        curState = neutral;
     }
     
     // Set both direction's values
-    rv = gfmInput_setButtonState(pCtx, posBt, port, posSt, time);
-    ASSERT(rv == GFMRV_OK, rv);
-    // Ignore the return on the negative direction
-    gfmInput_setButtonState(pCtx, negBt, port, negSt, time);
+    if (negBt == gfmIface_none || lastState != curState) {
+        gfmInputState posSt, negSt;
+
+        switch (curState) {
+        case neg:
+            posSt = gfmInput_justReleased;
+            negSt = gfmInput_justPressed;
+            break;
+        case neutral:
+            posSt = gfmInput_justReleased;
+            negSt = gfmInput_justReleased;
+            break;
+        case pos:
+            posSt = gfmInput_justPressed;
+            negSt = gfmInput_justReleased;
+            break;
+        }
+
+        rv = gfmInput_setButtonState(pCtx, posBt, port, posSt, time);
+        ASSERT(rv == GFMRV_OK, rv);
+
+        // Ignore the return on the negative direction
+        gfmInput_setButtonState(pCtx, negBt, port, negSt, time);
+
+        switch (negBt) {
+        case gfmController_laxis_left:
+            pCtx->pAxis[port].left.hor = curState;
+            break;
+        case gfmController_laxis_up:
+            pCtx->pAxis[port].left.ver = curState;
+            break;
+        case gfmController_raxis_left:
+            pCtx->pAxis[port].right.hor = curState;
+            break;
+        case gfmController_raxis_up:
+            pCtx->pAxis[port].right.ver = curState;
+            break;
+        default: { /* Do nothing; Just pressed a trigger */ }
+        }
+    }
     
     rv = GFMRV_OK;
 __ret:
