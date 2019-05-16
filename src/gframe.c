@@ -858,6 +858,75 @@ __ret:
     return rv;
 }
 
+gfmRV gfm_setAudioVolume(gfmCtx *pCtx, gfmAudioHandle *pHnd, double volume) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_setHandleVolume(pCtx->pAudio, pHnd, volume);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+gfmRV gfm_pauseAudioHandle(gfmCtx *pCtx, gfmAudioHandle *pHnd) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_pauseAudio(pCtx->pAudio, pHnd);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+gfmRV gfm_resumeAudioHandle(gfmCtx *pCtx, gfmAudioHandle *pHnd) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    /* Check that the lib was initialized */
+    ASSERT(pCtx->pLog, GFMRV_NOT_INITIALIZED);
+    /* Sanitize the other arguments on the actual call */
+
+    /* Check that audio is enabled */
+    if (pCtx->isAudioEnabled != 1) {
+        rv = GFMRV_OK;
+        goto __ret;
+    }
+
+    rv = gfmAudio_resumeAudio(pCtx->pAudio, pHnd);
+    ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
 /**
  * Load assets in a separated thread
  *

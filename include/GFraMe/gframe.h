@@ -544,6 +544,34 @@ gfmRV gfm_pauseAudio(gfmCtx *pCtx);
 gfmRV gfm_resumeAudio(gfmCtx *pCtx);
 
 /**
+ * Change an audio's volume
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]pHnd  The audio instanc
+ * @param  [ in]volume How loud should the audio be played (in the range (0.0, 1.0])
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_setAudioVolume(gfmCtx *pCtx, gfmAudioHandle *pHnd, double volume);
+
+/**
+ * Pause a single playing audio until gfm_resumeAudioHandle is called.
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]pHnd The audio that will pause playing
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_pauseAudioHandle(gfmCtx *pCtx, gfmAudioHandle *pHnd);
+
+/**
+ * Resume playing an audio previously paused by gfm_pauseAudioHandle
+ *
+ * @param  [ in]pCtx The game's context
+ * @param  [ in]pHnd The audio that will pause playing
+ * @return        GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_AUDIO_NOT_INITIALIZED
+ */
+gfmRV gfm_resumeAudioHandle(gfmCtx *pCtx, gfmAudioHandle *pHnd);
+
+/**
  * Load assets in a separated thread
  *
  * @param  [out]pProgress Updated with how many assets have been loaded
