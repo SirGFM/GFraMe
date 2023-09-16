@@ -150,18 +150,19 @@ static void gfmVideo_SDL2_freeTexture(gfmTexture **ppCtx) {
 
 
 /**
- * Initializes a new gfmVideo
- * 
- * @param  [out]ppCtx The alloc'ed gfmVideo context
- * @param  [ in]pLog  The logger facility, so it's possible to log whatever
- *                    happens in this module
- * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
+ * Initializes a new gfmVideo, supplying a fixed default resolution.
+ *
+ * @param  [out]ppCtx   The alloc'ed gfmVideo context
+ * @param  [ in]pLog    The logger facility, so it's possible to log whatever
+ *                      happens in this module
+ * @param  [ in]width   The device's default width
+ * @param  [ in]height  The device's default height
+ * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
  */
-static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
+static gfmRV gfmVideo_SDL2_initWithDimensions(gfmVideo **ppCtx, gfmLog *pLog, int width, int height) {
     gfmRV rv;
     gfmVideoSDL2 *pCtx;
     int didInit, irv;
-    SDL_DisplayMode sdlMode;
 
     didInit = 0;
     pCtx = 0;
@@ -189,11 +190,8 @@ static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
     /* Mark SDL2 as initialized, in case anything happens */
     didInit = 1;
 
-    /* Get the device's default resolution */
-    irv = SDL_GetDisplayMode(0 /*displayIndex*/, 0/*defResolution*/, &sdlMode);
-    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pCtx->pLog);
-    pCtx->devWidth = sdlMode.w;
-    pCtx->devHeight = sdlMode.h;
+    pCtx->devWidth = width;
+    pCtx->devHeight = height;
 
     gfmLog_log(pCtx->pLog, gfmLog_info, "Main display dimensions: %i x %i",
             pCtx->devWidth, pCtx->devHeight);
@@ -224,6 +222,45 @@ __ret:
 
     return rv;
 }
+
+
+/**
+ * Initializes a new gfmVideo
+ *
+ * @param  [out]ppCtx The alloc'ed gfmVideo context
+ * @param  [ in]pLog  The logger facility, so it's possible to log whatever
+ *                    happens in this module
+ * @return            GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
+ */
+static gfmRV gfmVideo_SDL2_init(gfmVideo **ppCtx, gfmLog *pLog) {
+    gfmRV rv;
+    SDL_DisplayMode sdlMode;
+    int didInit, irv;
+
+    didInit = 0;
+
+    /* Temporarily initialize the SDL2 video subsystem,
+     * to get the device's resolution */
+    irv = SDL_InitSubSystem(SDL_INIT_VIDEO);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
+    /* Release the subsystem on exit */
+    didInit = 1;
+
+    /* Get the device's default resolution */
+    irv = SDL_GetDisplayMode(0 /*displayIndex*/, 0/*defResolution*/, &sdlMode);
+    ASSERT_LOG(irv == 0, GFMRV_INTERNAL_ERROR, pLog);
+
+    rv = gfmVideo_SDL2_initWithDimensions(ppCtx, pLog, sdlMode.w, sdlMode.h);
+
+__ret:
+    /* Decrease the subsystem's refcount from this function. */
+    if (didInit) {
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    }
+
+    return rv;
+}
+
 
 /**
  * Releases a previously alloc'ed/initialized gfmVideo
@@ -1574,6 +1611,7 @@ gfmRV gfmVideo_SDL2_loadFunctions(gfmVideoFuncs *pCtx) {
 
     /* Simply copy all function pointer */
     pCtx->gfmVideo_init = gfmVideo_SDL2_init;
+    pCtx->gfmVideo_initWithDimensions = gfmVideo_SDL2_initWithDimensions;
     pCtx->gfmVideo_free = gfmVideo_SDL2_free;
     pCtx->gfmVideo_countResolutions = gfmVideo_SDL2_countResolutions;
     pCtx->gfmVideo_getResolution = gfmVideo_SDL2_getResolution;

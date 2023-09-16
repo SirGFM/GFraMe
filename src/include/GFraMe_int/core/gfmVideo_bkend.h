@@ -44,6 +44,21 @@ struct stGFMVideoFuncs {
     gfmRV (*gfmVideo_init)(gfmVideo **ppCtx, gfmLog *pLog);
 
     /**
+     * Initializes a new gfmVideo, supplying a fixed default resolution.
+     *
+     * This should only be set in environments in which SDL_GetDisplayMode wouldn't work
+     * (as when compiling with EMCC).
+     *
+     * @param  [out]ppCtx   The alloc'ed gfmVideo context
+     * @param  [ in]pLog    The logger facility, so it's possible to log whatever
+     *                      happens in this module
+     * @param  [ in]width   The device's default width
+     * @param  [ in]height  The device's default height
+     * @return              GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED, ...
+     */
+    gfmRV (*gfmVideo_initWithDimensions)(gfmVideo **ppCtx, gfmLog *pLog, int width, int height);
+
+    /**
      * Releases a previously alloc'ed/initialized gfmVideo
      * 
      * @param  [out]ppCtx The gfmVideo context

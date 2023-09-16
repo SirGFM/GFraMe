@@ -536,7 +536,17 @@ gfmRV gfm_initGameWindow(gfmCtx *pCtx, int bufWidth, int bufHeight,
 
     /* Alloc the video context */
     if (!pCtx->pVideo) {
+#if defined(GFRAME_MOBILE) || defined(EMCC)
+        if (pCtx->videoFuncs.gfmVideo_initWithDimensions) {
+            rv = (*(pCtx->videoFuncs.gfmVideo_initWithDimensions))(&(pCtx->pVideo), pCtx->pLog,
+                    wndWidth, wndHeight);
+        }
+        else {
+            rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo), pCtx->pLog);
+        }
+#else
         rv = (*(pCtx->videoFuncs.gfmVideo_init))(&(pCtx->pVideo), pCtx->pLog);
+#endif
         ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     }
     /* Initialize the window */
