@@ -31,12 +31,8 @@
  *               GFMRV_TITLE_NOT_SET, GFMRV_INTERNAL_ERROR
  */
 gfmRV gfmPath_getLocalPath(gfmString **ppStr, gfmCtx *pCtx) {
-    char *pPath;
     gfmRV rv;
     int doCopy;
-    
-    // Initialize variable that may be cleaned
-    pPath = 0;
     
     // Sanitize the arguments
     ASSERT(ppStr, GFMRV_ARGUMENTS_BAD);
