@@ -156,7 +156,7 @@
 # Add architecture flag
   ARCH ?= $(shell uname -m)
   ifeq ($(OS), emscript)
-    _CFLAGS := $(_CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
+    _CFLAGS := $(_CFLAGS) -I"$(EMSDK)/system/include/" -m32 -DALIGN=4
   else
     ifeq ($(ARCH), x86_64)
       _CFLAGS := $(_CFLAGS) -m64 -DALIGN=8
