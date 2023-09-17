@@ -152,52 +152,52 @@
 # Define CFLAGS (compiler flags)
 #==============================================================================
 # Add all warnings and default include path
-  CFLAGS := $(CFLAGS) -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
+  _CFLAGS := $(CFLAGS) -Wall -I"./include/" -I"./src/include" -DHAVE_OPENGL
 # Add architecture flag
   ARCH ?= $(shell uname -m)
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
+    _CFLAGS := $(_CFLAGS) -I"$(EMSCRIPTEN)/system/include/" -m32 -DALIGN=4
   else
     ifeq ($(ARCH), x86_64)
-      CFLAGS := $(CFLAGS) -m64 -DALIGN=8
+      _CFLAGS := $(_CFLAGS) -m64 -DALIGN=8
     else
-      CFLAGS := $(CFLAGS) -m32 -DALIGN=4
+      _CFLAGS := $(_CFLAGS) -m32 -DALIGN=4
     endif
   endif
 # Add debug flags
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -O2
+    _CFLAGS := $(_CFLAGS) -O2
   else
     ifneq ($(RELEASE), yes)
-      CFLAGS := $(CFLAGS) -g -O0 -DDEBUG
+      _CFLAGS := $(_CFLAGS) -g -O0 -DDEBUG
     else
-      CFLAGS := $(CFLAGS) -O3
+      _CFLAGS := $(_CFLAGS) -O3
     endif
   endif
 # Force fps counter, if requested
   ifeq ($(FPS_COUNTER), yes)
-    CFLAGS := $(CFLAGS) -DFORCE_FPS
+    _CFLAGS := $(_CFLAGS) -DFORCE_FPS
   endif
 # Set flags required by OS
   ifeq ($(UNAME), Win)
-    CFLAGS := $(CFLAGS) -I"/d/windows/mingw/include" -I"/c/c_synth/include/"
+    _CFLAGS := $(_CFLAGS) -I"/d/windows/mingw/include" -I"/c/c_synth/include/"
   endif
   ifneq ($(OS), Win)
-    CFLAGS := $(CFLAGS) -fPIC
+    _CFLAGS := $(_CFLAGS) -fPIC
   endif
 # Set the current compiler
   ifeq ($(OS), emscript)
-    CFLAGS := $(CFLAGS) -DEMCC -s USE_SDL=2
+    _CFLAGS := $(_CFLAGS) -DEMCC -s USE_SDL=2
   endif
 
   ifeq ($(USE_GL3_VIDEO), yes)
-    CFLAGS := $(CFLAGS) -DUSE_GL3_VIDEO
+    _CFLAGS := $(_CFLAGS) -DUSE_GL3_VIDEO
   endif
   ifeq ($(USE_SDL2_VIDEO), yes)
-    CFLAGS := $(CFLAGS) -DUSE_SDL2_VIDEO
+    _CFLAGS := $(_CFLAGS) -DUSE_SDL2_VIDEO
   endif
   ifeq ($(USE_SWSDL2_VIDEO), yes)
-    CFLAGS := $(CFLAGS) -DUSE_SWSDL2_VIDEO
+    _CFLAGS := $(_CFLAGS) -DUSE_SWSDL2_VIDEO
   endif
 #==============================================================================
 
@@ -205,28 +205,29 @@
 # Define LDFLAGS (linker flags)
 #==============================================================================
 # Add libs and paths required by an especific OS
+  _LDFLAGS := $(LDFLAGS)
   ifeq ($(UNAME), Win)
     ifeq ($(ARCH), x64)
-      LDFLAGS := $(LDFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
+      _LDFLAGS := $(_LDFLAGS) -L"/d/windows/mingw/lib" -L"/c/c_synth/lib/"
     else
-      LDFLAGS := $(LDFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
+      _LDFLAGS := $(_LDFLAGS) -L"/d/windows/mingw/mingw32/lib" -L"/c/c_synth/lib/"
     endif
   endif
   ifeq ($(OS), Win)
-    LDFLAGS := $(LDFLAGS) -lmingw32 -lSDL2main
+    _LDFLAGS := $(_LDFLAGS) -lmingw32 -lSDL2main
   else
-    LDFLAGS := $(LDFLAGS) -L/usr/lib/c_synth/
+    _LDFLAGS := $(_LDFLAGS) -L/usr/lib/c_synth/
   endif
 # Add SDL2 lib
-  LDFLAGS := $(LDFLAGS) -lSDL2
+  _LDFLAGS := $(_LDFLAGS) -lSDL2
 # Add the MML synthesizer
-  LDFLAGS := $(LDFLAGS) -lCSynth
+  _LDFLAGS := $(_LDFLAGS) -lCSynth
 # Add OpenGL lib
  ifeq ($(USE_GL3_VIDEO), yes)
    ifeq ($(OS), Win)
-     LDFLAGS := $(LDFLAGS) -lopengl32
+     _LDFLAGS := $(_LDFLAGS) -lopengl32
    else
-     LDFLAGS := $(LDFLAGS) -lGL
+     _LDFLAGS := $(_LDFLAGS) -lGL
    endif
  endif
 #==============================================================================
@@ -307,7 +308,7 @@
  ifneq ($(UNAME), Win)
    ifeq ($(OS), Win)
 # If cross-compiling for windows, disable the custom strnlen
-     CFLAGS := $(CFLAGS) -DDISABLE_CUSTOM_STRNLEN
+     _CFLAGS := $(_CFLAGS) -DDISABLE_CUSTOM_STRNLEN
    endif
  endif
 #==============================================================================
@@ -463,7 +464,7 @@ $(BINDIR)/$(TARGET).a: $(OBJS)
 # Win
 $(BINDIR)/$(TARGET).dll: $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).dll -Wl,-export-all-symbols \
-	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	    $(_CFLAGS) -o $@ $(OBJS) $(_LDFLAGS)
 	$(STRIP) $@
 
 # Linux
@@ -480,25 +481,25 @@ endif
 ifneq ($(SO), $(MNV))
 $(BINDIR)/$(TARGET).$(MNV): $(OBJS)
 	$(CC) -shared -Wl,-soname,$(TARGET).$(MJV) -Wl,-export-dynamic \
-	    $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	    $(_CFLAGS) -o $@ $(OBJS) $(_LDFLAGS)
 	$(STRIP) $@
 endif
 
 # Mac OS X
 $(BINDIR)/$(TARGET).dylib: $(OBJS)
-	$(CC) -dynamiclib $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) -dynamiclib $(_CFLAGS) -o $@ $(OBJS) $(_LDFLAGS)
 	$(STRIP) $@
 
 # Web (emscript)
 $(BINDIR)/$(TARGET).bc: MAKEDIRS $(OBJS)
-	$(CC) -o $@ $(CFLAGS) $(OBJS)
+	$(CC) -o $@ $(_CFLAGS) $(OBJS)
 #==============================================================================
 
 #==============================================================================
 # Rule for compiling any .c in its object
 #==============================================================================
 $(OBJDIR)/%.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(_CFLAGS) -o $@ -c $<
 #==============================================================================
 
 #==============================================================================
@@ -512,11 +513,11 @@ MAKEDIRS: | $(OBJDIR)
 # There's also a small cheat for ignoring some warnings caused by macros
 #==============================================================================
 tst/gframe_lots_of_particles_tst$(BIN_EXT): tst/gframe_lots_of_particles_tst.c
-	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS) \
+	$(CC) $(_CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(_LDFLAGS) \
 					-lm
 
 tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
-	$(CC) $(CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS) \
+	$(CC) $(_CFLAGS) -Wno-parentheses -o $@ $< $(BINDIR)/$(TARGET).a $(_LDFLAGS) \
 					-lm
 #==============================================================================
 
@@ -524,7 +525,7 @@ tst/gframe_print_bmp_bytes_tst$(BIN_EXT): tst/gframe_print_bmp_bytes_tst.c
 # Rule for compiling every test (must be suffixed by _tst)
 #==============================================================================
 %_tst$(BIN_EXT): %_tst.c
-	$(CC) $(CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(LDFLAGS)
+	$(CC) $(_CFLAGS) -o $@ $< $(BINDIR)/$(TARGET).a $(_LDFLAGS)
 #==============================================================================
 
 #==============================================================================
