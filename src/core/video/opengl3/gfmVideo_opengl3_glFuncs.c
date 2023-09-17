@@ -19,7 +19,7 @@ PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
 PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
 #if defined(_WIN32) || defined(_WIN64)
-PFNGLACTIVETEXTUREPROC glActiveTexture;
+PFNGLACTIVETEXTUREPROC _glActiveTexture;
 #endif
 PFNGLDELETEPROGRAMPROC glDeleteProgram;
 PFNGLBINDBUFFERPROC glBindBuffer;
@@ -73,7 +73,8 @@ gfmRV gfmVideo_GL3_glLoadFunctions() {
     LOAD_PROC(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer);
     LOAD_PROC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
 #if defined(_WIN32) || defined(_WIN64)
-    LOAD_PROC(PFNGLACTIVETEXTUREPROC, glActiveTexture);
+    _glActiveTexture = (PFNGLACTIVETEXTUREPROC) SDL_GL_GetProcAddress("glActiveTexture");
+    ASSERT(_glActiveTexture, GFMRV_INTERNAL_ERROR);
 #endif
     LOAD_PROC(PFNGLDELETEPROGRAMPROC, glDeleteProgram);
     LOAD_PROC(PFNGLBINDBUFFERPROC, glBindBuffer);

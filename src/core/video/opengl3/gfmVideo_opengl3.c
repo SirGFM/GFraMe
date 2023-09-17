@@ -1691,7 +1691,7 @@ static gfmRV gfmVideo_GL3_drawBegin(gfmVideo *pVideo) {
     pCtx->batchCount = 0;
 
     /* Bind the texture to the sampler */
-    glActiveTexture(GL_TEXTURE0 + 1);
+    FN_GL_ACTIVE_TEXTURE(GL_TEXTURE0 + 1);
     ASSERT_GL_ERROR();
     glBindBuffer(GL_TEXTURE_BUFFER, pCtx->instanceBuf);
     ASSERT_GL_ERROR();
@@ -1829,7 +1829,7 @@ static gfmRV gfmVideo_GL3_drawTile(gfmVideo *pVideo, gfmSpriteset *pSset,
                 (float)pTex->height);
         ASSERT_GL_ERROR();
         /* Bind the texture */
-        glActiveTexture(GL_TEXTURE0);
+        FN_GL_ACTIVE_TEXTURE(GL_TEXTURE0);
         ASSERT_GL_ERROR();
         glBindTexture(GL_TEXTURE_2D, pTex->texture);
         ASSERT_GL_ERROR();
@@ -2048,7 +2048,7 @@ static gfmRV gfmVideo_GL3_drawEnd(gfmVideo *pVideo) {
     glViewport(pCtx->scrPosX, pCtx->scrPosY, pCtx->scrWidth, pCtx->scrHeight);
     ASSERT_GL_ERROR();
     /* Set the backbuffer as the input texture */
-    glActiveTexture(GL_TEXTURE0);
+    FN_GL_ACTIVE_TEXTURE(GL_TEXTURE0);
     ASSERT_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, pCtx->bbTex);
     ASSERT_GL_ERROR();

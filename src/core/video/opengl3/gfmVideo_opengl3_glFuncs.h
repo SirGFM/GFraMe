@@ -23,7 +23,10 @@ extern PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 extern PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
 extern PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
 #if defined(_WIN32) || defined(_WIN64)
-extern PFNGLACTIVETEXTUREPROC glActiveTexture;
+extern PFNGLACTIVETEXTUREPROC _glActiveTexture;
+#    define FN_GL_ACTIVE_TEXTURE _glActiveTexture
+#else
+#    define FN_GL_ACTIVE_TEXTURE glActiveTexture
 #endif
 extern PFNGLDELETEPROGRAMPROC glDeleteProgram;
 extern PFNGLBINDBUFFERPROC glBindBuffer;
