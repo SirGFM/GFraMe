@@ -14,6 +14,7 @@
 
 #if defined(__EMSCRIPTEN__) || defined(EMSCRIPTEN) || defined(EMCC)
 #  include <emscripten.h>
+#  include <stdio.h>
 #  define GOTO(rv, label) \
     do { \
       printf("[%s - %s (%d)] - Something broke here!\n", __FILE__, \
