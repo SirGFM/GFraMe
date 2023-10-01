@@ -15,8 +15,9 @@ fi
 
 if [ "${OS}" == "emscript" ]; then
 	export CC=emcc
-	export CFLAGS=-I/gframe-dev/linux/i686/include
-	export LDFLAGS=-L/gframe-dev/emscript
+	export CFLAGS=-I/gframe-dev/linux/i686/include -DEMCC
+	export LIB_DIR=/gframe-dev/emscript
+	export LDFLAGS=-L${LIB_DIR}
 else
 	if [ "${OS}" == "win" ]; then
 		export TOOL_PREFIX=${ARCH}-w64-mingw32-
