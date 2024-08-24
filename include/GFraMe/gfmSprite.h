@@ -868,6 +868,19 @@ gfmRV gfmSprite_didAnimationFinish(gfmSprite *pCtx);
 gfmRV gfmSprite_setType(gfmSprite *pCtx, int type);
 
 /**
+ * Change the sprite's specialized object.
+ *
+ * This function is only intended to be used
+ * if the sprite is initialized to a temporary, stack-allocated object.
+ *
+ * @param  [ in]pCtx   The sprite
+ * @param  [ in]pChild The sprite's "sub-class" (e.g., a player)
+ * @param  [ in]type   The sprite's child new type
+ * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmSprite_setChild(gfmSprite *pCtx, void *pChild, int type);
+
+/**
  * Check if the sprite is overlaping with a line
  *
  * NOTE: The current implementation can't deal with lines that are too big. If
