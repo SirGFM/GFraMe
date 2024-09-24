@@ -99,6 +99,26 @@ gfmRV gfmCamera_centerAtPoint(gfmCamera *pCtx, int x, int y);
 gfmRV gfmCamera_screenToWorld(int *pX, int *pY, gfmCamera *pCtx);
 
 /**
+ * Sets the camera position ignoring the world's dimensions.
+ *
+ * @param pCtx The camera
+ * @param x    The horizontal position
+ * @param y    The vertical position
+ * @return     GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_setPositionUnrestricted(gfmCamera *pCtx, int x, int y);
+
+/**
+ * Sets the camera position, ensuring its within the world's dimensions.
+ *
+ * @param pCtx The camera
+ * @param x    The horizontal position
+ * @param y    The vertical position
+ * @return     GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_setPosition(gfmCamera *pCtx, int x, int y);
+
+/**
  * Get the camera's current position
  * 
  * @param  pX   The current horizontal position

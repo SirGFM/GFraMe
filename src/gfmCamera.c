@@ -316,6 +316,66 @@ __ret:
 }
 
 /**
+ * Sets the camera position ignoring the world's dimensions.
+ *
+ * @param pCtx The camera
+ * @param x    The horizontal position
+ * @param y    The vertical position
+ * @return     GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_setPositionUnrestricted(gfmCamera *pCtx, int x, int y) {
+    gfmRV rv;
+
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
+
+    pCtx->x = x;
+    pCtx->y = y;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
+ * Sets the camera position, ensuring its within the world's dimensions.
+ *
+ * @param pCtx The camera
+ * @param x    The horizontal position
+ * @param y    The vertical position
+ * @return     GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_CAMERA_NOT_INITIALIZED
+ */
+gfmRV gfmCamera_setPosition(gfmCamera *pCtx, int x, int y) {
+    gfmRV rv;
+
+    // Sanitize arguments
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    // Check that the camera was initialized
+    ASSERT(pCtx->viewWidth > 0, GFMRV_CAMERA_NOT_INITIALIZED);
+
+    // Enforce a position within the world's dimensions.
+    if (x < 0) {
+        pCtx->x = 0;
+    }
+    else if (x + pCtx->viewWidth > pCtx->worldWidth) {
+        pCtx->x = pCtx->worldWidth - pCtx->viewWidth;
+    }
+
+    if (y < 0) {
+        pCtx->y = 0;
+    }
+    else if (y + pCtx->viewHeight > pCtx->worldHeight) {
+        pCtx->y = pCtx->worldHeight - pCtx->viewHeight;
+    }
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get the camera's current position
  * 
  * @param  pX   The current horizontal position
