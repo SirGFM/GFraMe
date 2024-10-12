@@ -1058,76 +1058,6 @@ __ret:
 }
 
 /**
- * Query the requested neighbouring tiles for their type and returns which
- * directions where of the same type.
- *
- * NOTE: The tilemap must have been properly loaded before calling this
- * function!
- *
- * @param  [ in]pCtx  The tilemap
- * @param  [ in]type  The desired type for the neighbours.
- * @param  [ in]index Index of the tile whose neighbours should be checked.
- * @param  [ in]mask  Bitmask with the neighbours to be checked.
- * @return            Which neighbours did match the requested type.
- */
-static neighbour _gfmTilemap_checkTiles(gfmTilemap *pCtx, int type, int index
-        , neighbour mask) {
-    neighbour rv, bit;
-    int x, y;
-
-    /* Cache the index's position in (hopefully) a single DIV operation */
-    y = index / pCtx->widthInTiles;
-    x = index % pCtx->widthInTiles;
-
-    /* Query every marked position */
-    bit = 1;
-    rv = 0;
-    while (mask != 0) {
-        int tile;
-
-        /* Retrieve the tile of the current direction */
-        tile = -1;
-        switch (mask & bit) {
-            case neighbour_left: {
-                if (x - 1 >= 0) {
-                    tile = pCtx->pData[index - 1];
-                }
-            } break;
-            case neighbour_right: {
-                if (x + 1 < pCtx->widthInTiles) {
-                    tile = pCtx->pData[index + 1];
-                }
-            } break;
-            case neighbour_down: {
-                if (y + 1 < pCtx->heightInTiles) {
-                    tile = pCtx->pData[index + pCtx->widthInTiles];
-                }
-            } break;
-            case neighbour_up: {
-                if (y - 1 >= 0) {
-                    tile = pCtx->pData[index - pCtx->widthInTiles];
-                }
-            } break;
-        }
-        if (tile != -1) {
-            gfmRV grv;
-            int tileType;
-
-            grv = gfmTilemap_getTileType(&tileType, pCtx, tile);
-            if (grv == GFMRV_OK && tileType == type) {
-                /* If a match was found, store the current direction */
-                rv |= bit;
-            }
-        }
-
-        mask = mask & ~bit;
-        bit <<= 1;
-    }
-
-    return rv;
-}
-
-/**
  * Check if the indexed tile is already inside any of the areas
  * 
  * @param  pCtx      The tilemap
@@ -1319,197 +1249,6 @@ __ret:
 }
 
 /**
- * There are two main types of turns: "natural" and "unnatural". "Natural" turns
- * happens when traversing a rectangle (traversing the polygon formed by the o):
- *   -----------
- *   --ooooooo--
- *   --ooooooo--
- *   --ooooooo--
- *   --ooooooo--
- *   -----------
- * Starting from the top left and moving by simply adding/subtracting one to a
- * direction until a different tile is found, the edges are easily traversed:
- *   -----------
- *   --0>>>>>1--
- *   --^ooooov--
- *   --^ooooov--
- *   --3<<<<<2--
- *   -----------
- * The numbered edges would be reached in that order, quite trivially.
- *
- * An "unnatural" turn, on the other hand, must be detected and forcefully
- * followed:
- *   -----------------
- *   --ooooooo--------
- *   --ooooooo--------
- *   --ooooooo--------
- *   --ooooooooooooo--
- *   --ooooooooooooo--
- *   --ooooooooooooo--
- *   --ooooooooooooo--
- *   -----------------
- * If this polygon's edges were followed the same trivial way, some of its edges
- * would be ignored:
- *   -----------------
- *   --0>>>>>1--------
- *   --^ooooov--------
- *   --^ooooov--------
- *   --^ooooovoooooo--
- *   --^ooooovoooooo--
- *   --^ooooovoooooo--
- *   --3<<<<<2oooooo--
- *   -----------------
- * However, the following was expected:
- *   -----------------
- *   --0>>>>>1--------
- *   --^ooooov--------
- *   --^ooooov--------
- *   --^ooooo2>>>>>3--
- *   --^ooooooooooov--
- *   --^ooooooooooov--
- *   --5<<<<<<<<<<<4--
- *   -----------------
- * Therefore, "unnatural" turns must be checked whenever a new tile is reached.
- *
- * For this algorithm, "natural" turns are clockwise while "unnatural" ones are
- * counter-clockwise.
- */
-static gfmRV _gfmTilemap_calculateOuterBorder(gfmTilemap *pCtx, int type
-        , int leftCorner) {
-    gfmRV rv;
-    gfmCollision hitFlag;
-    neighbour dir, mask, next, sides;
-    int first, inc, pos, prev;
-
-    /* Since dectection always starts on the top-left corner, the first
-     * iteration should always go right. */
-    pos = leftCorner;
-    dir = neighbour_right;
-    first = 0;
-    do {
-        prev = pos;
-
-        switch (dir) {
-            case neighbour_right: {
-                /* Calculate a top edge (moving right) */
-                hitFlag = gfmCollision_up | gfmCollision_hor;
-                /* "Non-natural" turn: > __| ^^^ |___ */
-                mask = neighbour_right | neighbour_up;
-                next = neighbour_down;
-                inc = 1;
-            } break;
-            case neighbour_down: {
-                /* Calculate a top edge (moving downward) */
-                hitFlag = gfmCollision_right | gfmCollision_ver;
-                /* "Non-natural" turn: v |-- > */
-                mask = neighbour_down | neighbour_right;
-                next = neighbour_left;
-                inc = pCtx->widthInTiles;
-            } break;
-            case neighbour_left: {
-                /* Calculate a bottom edge (moving left) */
-                hitFlag = gfmCollision_down | gfmCollision_hor;
-                /* "Non-natural" turn: --| vvv |-- < */
-                mask = neighbour_left | neighbour_down;
-                next = neighbour_up;
-                inc = -1;
-            } break;
-            case neighbour_up: {
-                /* Calculate a left edge (moving upward) */
-                hitFlag = gfmCollision_left | gfmCollision_ver;
-                /* "Non-natural" turn: < --| ^ */
-                mask = neighbour_up | neighbour_left;
-                next = neighbour_right;
-                inc = -pCtx->widthInTiles;
-            } break;
-            default: { /* Will never happen, but avoids a warning */ }
-        }
-
-        /* Detect the extent of the rectangle */
-        do {
-            sides = _gfmTilemap_checkTiles(pCtx, type, pos, mask);
-            if ((sides & ~dir) != 0) {
-                /* Detected a non-natural turn */
-                dir = (mask & ~dir);
-                break;
-            }
-            else if ((sides & dir) != dir) {
-                /* Detected the end of a contiguos region */
-                dir = next;
-                break;
-            }
-            pos += inc;
-        } while (1);
-
-        /* Spawn the newly found rectangle */
-        do {
-            int h, w, x, y;
-
-            if (prev < pos) {
-                x = prev % pCtx->widthInTiles;
-                y = prev / pCtx->widthInTiles;
-                w = pos % pCtx->widthInTiles;
-                h = pos / pCtx->widthInTiles;
-            }
-            else {
-                x = pos % pCtx->widthInTiles;
-                y = pos / pCtx->widthInTiles;
-                w = prev % pCtx->widthInTiles;
-                h = prev / pCtx->widthInTiles;
-            }
-            w = w - x + 1;
-            h = h - y + 1;
-
-            x *= 8;
-            y *= 8;
-            w *= 8;
-            h *= 8;
-
-            rv = gfmTilemap_addArea(pCtx, x, y, w, h, type);
-            ASSERT_NR(rv == GFMRV_OK);
-            rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, hitFlag
-                    , pCtx->numAreas - 1);
-            ASSERT_NR(rv == GFMRV_OK);
-        } while (0);
-
-        /* Corner case: stopped because of unnatural turn. Increment to the next
-         * position, as anything else would cause an endless loop. */
-        if (dir != next) {
-            switch (dir) {
-                case neighbour_right: {
-                    pos++;
-                } break;
-                case neighbour_down: {
-                    pos += pCtx->widthInTiles;
-                } break;
-                case neighbour_left: {
-                    pos--;
-                } break;
-                case neighbour_up: {
-                    pos -= pCtx->widthInTiles;
-                } break;
-                default: { /* Will never happen, but avoids a warning */ }
-            }
-        }
-
-        /* Corner case: Single tiles (or single top-left tiles) would cause
-         * pos == leftCorner on the first iteration and the loop would get
-         * skipped. To avoid that, count to 4 if pos == leftCorner, since that
-         * allows the algorithm to run all passes on single tiles. */
-        if (first < 4 && pos == leftCorner) {
-            first++;
-        }
-        else {
-            first = 4;
-        }
-    } while (first < 4 || pos != leftCorner);
-
-    rv = GFMRV_OK;
-__ret:
-    return rv;
-}
-
-/**
  * Automatically generates all areas in the tilemap. This version creates one
  * rectangle per side of the supplied types. Otherwise, the old algorithm is
  * used.
@@ -1517,11 +1256,13 @@ __ret:
  * @param  pCtx        The tilemap
  * @param  pSidedTypes Types that should be converted into polygons sides.
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE
+ *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE,
+ *                     GFMRV_ALLOC_FAILED
  */
 gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dictLen) {
+    int *left = 0, *right = 0;
     gfmRV rv;
-    int i;
+    int y;
 
     // Sanitize arguments
     ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
@@ -1531,75 +1272,160 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
     // Check that there is at least one tile type
     ASSERT(gfmGenArr_getUsed(pCtx->pTTypes), GFMRV_TILEMAP_NO_TILETYPE);
 
+    // Prepare a temporary list of items to calculate vertical colliders in a single pass.
+    left = (int*)malloc(sizeof(int) * pCtx->widthInTiles);
+    ASSERT(left, GFMRV_ALLOC_FAILED);
+    memset(left, -1, sizeof(int) * pCtx->widthInTiles);
+
+    right = (int*)malloc(sizeof(int) * pCtx->widthInTiles);
+    ASSERT(right, GFMRV_ALLOC_FAILED);
+    memset(right, -1, sizeof(int) * pCtx->widthInTiles);
+
     // Reset the previous areas
     pCtx->numAreas = 0;
 
-    // Traverse every tile
-    i = -1;
-    while (++i < pCtx->widthInTiles * pCtx->heightInTiles) {
-        int height, j, tile, type, width, x, y;
+    // Traverse every tile, looking around it to detect edges.
+    for (y = 0; y < pCtx->heightInTiles; y++) {
+        int xTop = -1, xBot = -1;
+        int x;
 
-        // Get the current tile
-        tile = pCtx->pData[i];
+        for (x = 0; x < pCtx->widthInTiles; x++) {
+            int isSame[9];
+            int j, curType;
 
-        // Check if the tile is a valid area
-        rv = gfmTilemap_getTileType(&type, pCtx, tile);
-        if (rv == GFMRV_TILEMAP_NO_TILETYPE) {
-            continue;
-        }
-        // Check if the tile is already inside an area
-        rv = gfmTilemap_isTileInAnyArea(pCtx, i);
-        if (rv == GFMRV_TRUE) {
-            continue;
-        }
+            memset(isSame, 0, sizeof(isSame));
 
-        // If the tile should be converted into the side of a rectangle, run a
-        // different algorithm to detect (and store) its sides.
-        for (j = 0; j < dictLen; j++) {
-            if (type == pSidedTypes[j]) {
-                neighbour same;
+            j = pCtx->pData[x + y * pCtx->widthInTiles];
+            rv = gfmTilemap_getTileType(&curType, pCtx, j);
+            if (rv == GFMRV_TILEMAP_NO_TILETYPE) {
+                continue;
+            }
 
-                same = _gfmTilemap_checkTiles(pCtx, type, i
-                    , neighbour_checkCorner);
-                if ((same & neighbour_checkCorner) == neighbour_up) {
-                    /* TODO If only the upper tile is of the same type, this is
-                     * part of an inner border */
-                     rv = GFMRV_FUNCTION_NOT_IMPLEMENTED;
+            // Inspect the surroudings for tiles that
+            // are of the same type of the current tile.
+            for (j = 0; j < 3; j++) {
+                int i, convY;
+
+                convY = y + j - 1;
+                if (convY < 0 || convY >= pCtx->heightInTiles) {
+                    continue;
                 }
-                else if ((same & neighbour_checkCorner) == neighbour_none) {
-                    /* If only the current tile (and possibly its right
-                     * neighbour or the one bellow) are of the same type, this
-                     * is part of an outer border */
-                    rv = _gfmTilemap_calculateOuterBorder(pCtx, type, i);
+
+                for (i = 0; i < 3; i++) {
+                    int type;
+                    int tile, convX;
+
+                    convX = x + i - 1;
+                    if (convX < 0 || convX >= pCtx->widthInTiles) {
+                        continue;
+                    }
+
+                    tile = pCtx->pData[convX + convY * pCtx->widthInTiles];
+
+                    rv = gfmTilemap_getTileType(&type, pCtx, tile);
+                    isSame[i + j * 3] = (rv == GFMRV_OK && type == curType);
                 }
-                else {
-                    /* Otherwise, this is the middle of a polygon, so simply skip */
-                    rv = GFMRV_OK;
+            }
+
+            if (!isSame[1] && (!isSame[3] || isSame[0])) {
+                // Top begin.
+                xTop = x;
+            }
+            if (!isSame[1] && (isSame[2] || !isSame[5])) {
+                int w, h;
+
+                // Top end.
+                if (xTop == -1) {
+                    xTop = x;
                 }
+
+                w = (1 + x - xTop) * 8;
+                h = 8;
+                rv = gfmTilemap_addArea(pCtx, xTop * 8, y * 8, w, h, curType);
                 ASSERT_NR(rv == GFMRV_OK);
-                break;
+                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_up
+                        , pCtx->numAreas - 1);
+
+                xTop = -1;
+            }
+
+            if (!isSame[7] && (!isSame[3] || isSame[6])) {
+                // Bottom begin.
+                xBot = x;
+            }
+            if (!isSame[7] && (isSame[8] || !isSame[5])) {
+                int w, h;
+
+                // Bottom end.
+                if (xBot == -1) {
+                    xBot = x;
+                }
+
+                w = (1 + x - xBot) * 8;
+                h = 8;
+                rv = gfmTilemap_addArea(pCtx, xBot * 8, y * 8, w, h, curType);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_down
+                        , pCtx->numAreas - 1);
+
+                xBot = -1;
+            }
+
+            if (!isSame[3] && (!isSame[1] || isSame[0])) {
+                // Left begin.
+                left[x] = y;
+            }
+            if (!isSame[3] && (isSame[6] || !isSame[7])) {
+                int w, h;
+
+                // Left end.
+                if (left[x] == -1) {
+                    left[x] = y;
+                }
+
+                w = 8;
+                h = (1 + y - left[x]) * 8;
+                rv = gfmTilemap_addArea(pCtx, x * 8, left[x] * 8, w, h, curType);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_left
+                        , pCtx->numAreas - 1);
+
+                left[x] = -1;
+            }
+
+            if (!isSame[5] && (!isSame[1] || isSame[2])) {
+                // Right begin.
+                right[x] = y;
+            }
+            if (!isSame[5] && (isSame[8] || !isSame[7])) {
+                int w, h;
+
+                // Right end.
+                if (right[x] == -1) {
+                    right[x] = y;
+                }
+
+                w = 8;
+                h = (1 + y - right[x]) * 8;
+                rv = gfmTilemap_addArea(pCtx, x * 8, right[x] * 8, w, h, curType);
+                ASSERT_NR(rv == GFMRV_OK);
+                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_right
+                        , pCtx->numAreas - 1);
+
+                right[x] = -1;
             }
         }
-        if (j < dictLen) {
-            // Area transformed into the sides of rectangle... Nothing else to
-            // be done with it.
-            continue;
-        }
-
-        // Old strategy: calculate the widest rectangle that contains all
-        // connected tiles of this type.
-
-        // Then, get this area's bounds
-        rv = gfmTilemap_getAreaBounds(&x, &y, &width, &height, pCtx, i);
-        ASSERT_NR(rv == GFMRV_OK);
-
-        // And add it to the tilemap
-        rv = gfmTilemap_addArea(pCtx, x, y, width, height, type);
-        ASSERT_NR(rv == GFMRV_OK);
     }
 
     rv = GFMRV_OK;
 __ret:
+    if (right) {
+        free(right);
+    }
+    if (left) {
+        free(left);
+    }
+
     return rv;
 }
 

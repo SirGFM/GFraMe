@@ -391,7 +391,8 @@ gfmRV gfmTilemap_getAreaBounds(int *pX, int *pY, int *pWidth, int *pHeight,
  * @param  pCtx        The tilemap
  * @param  pSidedTypes Types that should be converted into polygons sides.
  * @return             GFMRV_OK, GFMRV_ARGUMENTS_BAD,
- *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE
+ *                     GFMRV_TILEMAP_NOT_INITIALIZED, GFMRV_TILEMAP_NO_TILETYPE,
+ *                     GFMRV_ALLOC_FAILED
  */
 gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes
         , int dictLen);
