@@ -625,6 +625,33 @@ __ret:
 }
 
 /**
+ * Adds a single rectangular area of a given type; Every object is set as fixed,
+ * but if collision is not desired, simply don't call gfmObject_separate*
+ *
+ * @param  pCtx     The tilemap
+ * @param  x        The area top-left position
+ * @param  y        The area to-left position
+ * @param  width    The area width
+ * @param  height   The area height
+ * @param  type     The area type (i.e., the gfmObject's child type)
+ * @param  hitFlags Bitmask with the directions that trigger collision
+ * @return          GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ALLOC_FAILED
+ */
+static gfmRV gfmTilemap_addSidedArea(gfmTilemap *pCtx, int x, int y, int width,
+        int height, int type, gfmCollision hitFlags) {
+    gfmRV rv;
+
+    rv = gfmTilemap_addArea(pCtx, x, y, width, height, type);
+    ASSERT_NR(rv == GFMRV_OK);
+    rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, hitFlags, pCtx->numAreas - 1);
+    ASSERT_NR(rv == GFMRV_OK);
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Get how many areas there are in the tilemap
  * 
  * @param  pLen The number of areas
@@ -1341,10 +1368,9 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
 
                 w = (1 + x - xTop) * 8;
                 h = 8;
-                rv = gfmTilemap_addArea(pCtx, xTop * 8, y * 8, w, h, curType);
+                rv = gfmTilemap_addSidedArea(pCtx, xTop * 8, y * 8, w, h
+                        , curType, gfmCollision_up);
                 ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_up
-                        , pCtx->numAreas - 1);
 
                 xTop = -1;
             }
@@ -1363,10 +1389,9 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
 
                 w = (1 + x - xBot) * 8;
                 h = 8;
-                rv = gfmTilemap_addArea(pCtx, xBot * 8, y * 8, w, h, curType);
+                rv = gfmTilemap_addSidedArea(pCtx, xBot * 8, y * 8, w, h
+                        , curType, gfmCollision_down);
                 ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_down
-                        , pCtx->numAreas - 1);
 
                 xBot = -1;
             }
@@ -1385,10 +1410,9 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
 
                 w = 8;
                 h = (1 + y - left[x]) * 8;
-                rv = gfmTilemap_addArea(pCtx, x * 8, left[x] * 8, w, h, curType);
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, left[x] * 8, w, h
+                        , curType, gfmCollision_left);
                 ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_left
-                        , pCtx->numAreas - 1);
 
                 left[x] = -1;
             }
@@ -1407,10 +1431,9 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
 
                 w = 8;
                 h = (1 + y - right[x]) * 8;
-                rv = gfmTilemap_addArea(pCtx, x * 8, right[x] * 8, w, h, curType);
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, right[x] * 8, w, h
+                        , curType, gfmCollision_right);
                 ASSERT_NR(rv == GFMRV_OK);
-                rv = gfmHitbox_setItemHitFlag(pCtx->pAreas, gfmCollision_right
-                        , pCtx->numAreas - 1);
 
                 right[x] = -1;
             }
