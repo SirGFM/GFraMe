@@ -1354,6 +1354,63 @@ gfmRV gfmTilemap_newRecalculateAreas(gfmTilemap *pCtx, int *pSidedTypes, int dic
                 }
             }
 
+            // Generate corner tiles to fix potential issues.
+            if (!isSame[3] && !isSame[1] && !isSame[7] && !isSame[5]) {
+                // Single tile.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_down | gfmCollision_left | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+                continue;
+            }
+            else if (!isSame[3] && !isSame[1] && !isSame[5]) {
+                // Individual top tile.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_left | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[3] && !isSame[7] && !isSame[5]) {
+                // Individual bottom tile.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_down | gfmCollision_left | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[3] && !isSame[1] && !isSame[7]) {
+                // Individual left tile.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_down | gfmCollision_left);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[3] && !isSame[1]) {
+                // Top left corner.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_left);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[3] && !isSame[7]) {
+                // Bottom left corner.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_down | gfmCollision_left);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[5] && !isSame[1] && !isSame[7]) {
+                // Individual right tile.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_down | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[5] && !isSame[1]) {
+                // Top right corner.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_up | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+            else if (!isSame[5] && !isSame[7]) {
+                // Bottom right corner.
+                rv = gfmTilemap_addSidedArea(pCtx, x * 8, y * 8, 8, 8, curType,
+                        gfmCollision_down | gfmCollision_right);
+                ASSERT_NR(rv == GFMRV_OK);
+            }
+
             if (!isSame[1] && (!isSame[3] || isSame[0])) {
                 // Top begin.
                 xTop = x;
