@@ -119,6 +119,10 @@ struct stGFMCtx {
     int updateFrames;
     /** How many draw frames were accumulated */
     int drawFrames;
+    /** Whether the time elapsed between frames should always be the same,
+     * or whether it may follow a varying pattern
+     * (e.g., 16, 16, 17, 16, 16, 17, ...). */
+    int stableElapsed;
 };
 
 #endif /* __GFRAME_INT_GFMCTX_STRUCT_H__ */

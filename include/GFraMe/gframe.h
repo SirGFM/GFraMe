@@ -1110,5 +1110,13 @@ gfmRV gfm_resetFPS(gfmCtx *pCtx);
  */
 gfmRV gfm_clean(gfmCtx *pCtx);
 
+/**
+ * Ensure the returned elapsed time is always the same.
+ *
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setStableElapsed(gfmCtx *pCtx);
+
 #endif /* __GFRAME_H_ */
 

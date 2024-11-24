@@ -1924,7 +1924,12 @@ gfmRV gfm_getElapsedTime(int *pElapsed, gfmCtx *pCtx) {
     ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
-    rv = gfmAccumulator_getDelay(pElapsed, pCtx->pUpdateAcc);
+    if (pCtx->stableElapsed) {
+        rv = gfmAccumulator_getStableDelay(pElapsed, pCtx->pUpdateAcc);
+    }
+    else {
+        rv = gfmAccumulator_getDelay(pElapsed, pCtx->pUpdateAcc);
+    }
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     rv = GFMRV_OK;
@@ -1957,7 +1962,12 @@ gfmRV gfm_getElapsedTimef(float *pElapsed, gfmCtx *pCtx) {
     ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
-    rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    if (pCtx->stableElapsed) {
+        rv = gfmAccumulator_getStableDelay(&delay, pCtx->pUpdateAcc);
+    }
+    else {
+        rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    }
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     *pElapsed = (float)delay / 1000.0f;
@@ -1992,7 +2002,12 @@ gfmRV gfm_getElapsedTimed(double *pElapsed, gfmCtx *pCtx) {
     ASSERT_LOG(pCtx->pUpdateAcc, GFMRV_ACC_NOT_INITIALIZED, pCtx->pLog);
     
     // Retrieve the elapsed time
-    rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    if (pCtx->stableElapsed) {
+        rv = gfmAccumulator_getStableDelay(&delay, pCtx->pUpdateAcc);
+    }
+    else {
+        rv = gfmAccumulator_getDelay(&delay, pCtx->pUpdateAcc);
+    }
     ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
     
     *pElapsed = (double)delay / 1000.0;
@@ -3043,7 +3058,12 @@ gfmRV gfm_drawEnd(gfmCtx *pCtx) {
             int delay;
 
             /* Update the animation timer */
-            rv = gfmAccumulator_getDelay(&delay, pCtx->pDrawAcc);
+            if (pCtx->stableElapsed) {
+                rv = gfmAccumulator_getStableDelay(&delay, pCtx->pDrawAcc);
+            }
+            else {
+                rv = gfmAccumulator_getDelay(&delay, pCtx->pDrawAcc);
+            }
             ASSERT_LOG(rv == GFMRV_OK, rv, pCtx->pLog);
 
             pCtx->animationTime -= delay;
@@ -3176,3 +3196,20 @@ __ret:
     return rv;
 }
 
+/**
+ * Ensure the returned elapsed time is always the same.
+ *
+ * @param  pCtx The context
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfm_setStableElapsed(gfmCtx *pCtx) {
+    gfmRV rv;
+
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+
+    pCtx->stableElapsed = 1;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}

@@ -280,6 +280,30 @@ __ret:
 }
 
 /**
+ * Get the delay between frames
+ * ignoring that some frames may take slightly longer.
+ *
+ * @param  pDelay The delay
+ * @param  pCtx   The accumulator
+ * @return         GFMRV_OK, GFMRV_ARGUMENTS_BAD, GFMRV_ACC_NOT_INITIALIZED
+ */
+gfmRV gfmAccumulator_getStableDelay(int *pDelay, gfmAccumulator *pCtx) {
+    gfmRV rv;
+
+    /* Sanitize argments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(pDelay, GFMRV_ARGUMENTS_BAD);
+    /* Check that it was initialized */
+    ASSERT(pCtx->delay > 0, GFMRV_ACC_NOT_INITIALIZED);
+
+    *pDelay = pCtx->delay;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+/**
  * Clear both the accumulated value and the remainder of the time
  * 
  * @param  pCtx The accumulator
