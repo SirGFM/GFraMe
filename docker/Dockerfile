@@ -33,7 +33,8 @@ RUN dpkg --add-architecture i386 && \
 	mv /tmp/SDL2-${SDL_VERSION}/x86_64-w64-mingw32/include/SDL2 /gframe-dev/win/x86_64/include/ && \
 	mv /tmp/SDL2-${SDL_VERSION}/i686-w64-mingw32/lib/* /gframe-dev/win/i686/lib/sdl2/ && \
 	mv /tmp/SDL2-${SDL_VERSION}/i686-w64-mingw32/include/SDL2 /gframe-dev/win/i686/include/ && \
-	rm -f /tmp/sdl2-win64.zip/tmp/sdl2-win32.zip/tmp/sdl2-mingw.zip
+	rm -rf /tmp/SDL2-${SDL_VERSION} && \
+	rm -f /tmp/sdl2-win64.zip /tmp/sdl2-win32.zip /tmp/sdl2-mingw.zip
 
 ARG EMSDK_VERSION=3.1.46
 RUN git clone --depth 1 --branch ${EMSDK_VERSION} https://github.com/emscripten-core/emsdk.git && \
