@@ -45,7 +45,7 @@ int main(int arg, char *argv[]) {
     // Create the inputs
     rv = gfm_addVirtualKey(&click, pCtx);
     ASSERT_NR(rv == GFMRV_OK);
-    rv = gfm_bindInput(pCtx, click, gfmPointer_button);
+    rv = gfm_bindInput(pCtx, click, gfmPointer_leftButton);
     ASSERT_NR(rv == GFMRV_OK);
     rv = gfm_addVirtualKey(&gif, pCtx);
     ASSERT_NR(rv == GFMRV_OK);

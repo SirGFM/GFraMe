@@ -15,6 +15,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <SDL2/SDL_joystick.h>
+#include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_timer.h>
 
 #include <stdlib.h>
@@ -686,14 +687,44 @@ gfmRV gfmEvent_processQueued(gfmEvent *pEv, gfmCtx *pCtx) {
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONDOWN: {
+                gfmInputIface button;
+
                 // Set mouse button as pressed
-                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
+                switch (ev.button.button) {
+                    case SDL_BUTTON_MIDDLE:
+                        button = gfmPointer_middleButton;
+                        break;
+                    case SDL_BUTTON_RIGHT:
+                        button = gfmPointer_rightButton;
+                        break;
+                    case SDL_BUTTON_LEFT:
+                    default:
+                        button = gfmPointer_leftButton;
+                        break;
+                }
+
+                rv = gfmInput_setKeyState(pInput, button,
                         gfmInput_justPressed, ev.button.timestamp);
                 ASSERT_NR(rv == GFMRV_OK);
             } break;
 			case SDL_MOUSEBUTTONUP: {
-                // Set mouse button as released
-                rv = gfmInput_setKeyState(pInput, gfmPointer_button,
+                gfmInputIface button;
+
+                // Set mouse button as pressed
+                switch (ev.button.button) {
+                    case SDL_BUTTON_MIDDLE:
+                        button = gfmPointer_middleButton;
+                        break;
+                    case SDL_BUTTON_RIGHT:
+                        button = gfmPointer_rightButton;
+                        break;
+                    case SDL_BUTTON_LEFT:
+                    default:
+                        button = gfmPointer_leftButton;
+                        break;
+                }
+
+                rv = gfmInput_setKeyState(pInput, button,
                         gfmInput_justReleased, ev.button.timestamp);
                 ASSERT_NR(rv == GFMRV_OK);
             } break;

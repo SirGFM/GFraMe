@@ -123,7 +123,9 @@ enum enGFMInputIface {
     gfmKey_pageUp,
     gfmKey_pageDown,
     /** Mouse button */
-    gfmPointer_button,
+    gfmPointer_leftButton,
+    gfmPointer_middleButton,
+    gfmPointer_rightButton,
     /** Gamepad buttons */
     gfmController_left,
     gfmController_right,
