@@ -99,6 +99,8 @@ struct stGFMGroupDrawCtx {
     int totalElements;
     /** Number of elements to be drawn */
     int usedElements;
+    /** Whether an update was called since the last draw. */
+    int didUpdate;
 };
 typedef struct stGFMGroupDrawCtx gfmGroupDrawCtx;
 
@@ -964,6 +966,7 @@ gfmRV gfmGroup_update(gfmGroup *pGroup, gfmCtx *pCtx) {
     pGroup->pLast = 0;
     /* Reset the list of visible sprites */
     pDrawCtx->usedElements = 0;
+    pDrawCtx->didUpdate = 1;
     /* Reset the list of collideable sprites */
     pGroup->pCollideable = 0;
     /* Don't reset pGroup->skippedCollision so it cycles the starting node
@@ -1367,6 +1370,12 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
         rv = GFMRV_OK;
         goto __ret;
     }
+    else if (pDrawCtx->didUpdate == 0 && pDrawCtx->drawOrder != gfmDrawOrder_linear) {
+        /* Draw the last frame's tree. */
+        rv = gfmGroup_drawTree(&(pDrawCtx->pDrawArr[0]), pCtx);
+        ASSERT(rv == GFMRV_OK, rv);
+        goto __ret;
+    }
 
     i = 0;
     switch (pDrawCtx->drawOrder) {
@@ -1397,6 +1406,7 @@ gfmRV gfmGroup_draw(gfmGroup *pGroup,  gfmCtx *pCtx) {
         }
     }
 
+    pDrawCtx->didUpdate = 0;
     rv = GFMRV_OK;
 __ret:
     return rv;
