@@ -365,6 +365,15 @@ gfmRV gfmGroup_isNodeAlive(gfmGroupNode *pCtx);
 gfmRV gfmGroup_removeNode(gfmGroupNode *pCtx);
 
 /**
+ * Changes for how long this node may stay alive
+ *
+ * @param  pCtx The node
+ * @param  ttl  The node's new duration, in milliseconds.
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_setTimeToLive(gfmGroupNode *pCtx, int ttl);
+
+/**
  * Retrieve the sprite managed by the node
  *
  * @param  [out]ppSpr The sprite

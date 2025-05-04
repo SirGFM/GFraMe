@@ -921,6 +921,29 @@ __ret:
 }
 
 /**
+ * Changes for how long this node may stay alive
+ *
+ * @param  pCtx The node
+ * @param  ttl  The node's new duration, in milliseconds.
+ * @return      GFMRV_OK, GFMRV_ARGUMENTS_BAD
+ */
+gfmRV gfmGroup_setTimeToLive(gfmGroupNode *pCtx, int ttl) {
+    gfmRV rv;
+
+    /* Sanitize arguments */
+    ASSERT(pCtx, GFMRV_ARGUMENTS_BAD);
+    ASSERT(ttl > 0, GFMRV_ARGUMENTS_BAD);
+
+    /* Set the new TTL */
+    pCtx->timeAlive = ttl;
+
+    rv = GFMRV_OK;
+__ret:
+    return rv;
+}
+
+
+/**
  * Retrieve the sprite managed by the node
  *
  * @param  [out]ppSpr The sprite
