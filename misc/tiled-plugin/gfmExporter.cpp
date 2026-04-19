@@ -42,9 +42,10 @@
 #include "map.h"
 #include "mapobject.h"
 #include "objectgroup.h"
-#include "terrain.h"
+#include "wangset.h"
 #include "tile.h"
 #include "tilelayer.h"
+#include "wangset.h"
 
 #include <QDir>
 #include <QFile>
@@ -96,9 +97,11 @@ GFMExporterPlugin::GFMExporterPlugin()
  * @param  map      The tilemap to be exported
  * @param  filename The exported filename
  */
-bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
+bool GFMExporterPlugin::write(const Map *map, const QString &fileName, Options options)
 {
     boundary b;
+
+    Q_UNUSED(options)
 
     /* Get file paths for each layer */
     QStringList layerPaths = outputFiles(map, fileName);
@@ -106,7 +109,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
     /* Export all layers (object and tile alike) */
     uint currentLayer = 0u;
     foreach (const Layer *layer, map->layers()) {
-        QMap<QString, QString>::const_iterator it;
+        QMap<QString, QVariant>::const_iterator it;
 
         /* Check if we know how to parse this map and if it's visible */
         if ((layer->layerType() != Layer::TileLayerType &&
@@ -139,7 +142,7 @@ bool GFMExporterPlugin::write(const Map *map, const QString &fileName)
 
                 /* Retrieve the key's value in its own base (e.g., if it starts
                  * with "0x", its parsed as an hexadecimal) */
-                *pVal = it.value().toInt(&ok, 0);
+                *pVal = it.value().toInt(&ok);
 
                 if (ok == false) {
                     mError = "Got invalid property when parsing layer \"" +
@@ -253,29 +256,29 @@ static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
     /* Loop through the tilemap's iterators */
     tileset = tilesets.begin();
     while (tileset != tilesets.end()) {
-        QMap<int, Tile*>::iterator tile;
-        QMap<int, Tile*> tiles = (*tileset)->tiles();
+        QList<WangSet*>::iterator wangSet;
+        QList<WangSet*> wangSets = (*tileset)->wangSets();
 
         /* Loop through all of it's tiles and print the terrain info */
-        tile = tiles.begin();
-        while (tile != tiles.end()) {
-            Terrain *terrain;
+        wangSet = wangSets.begin();
+        while (wangSet != wangSets.end()) {
+            const auto wangTiles = (*wangSet)->sortedWangTiles();
+            for (const WangTile &wangTile : wangTiles) {
+                /* Retrieve the terrain's index (since we always set tiles to a
+                 * single type, simply retrieve one of the corners) */
+                int i = wangTile.wangId().indexColor(1);
 
-            /* Retrieve the terrain's index (since we always set tiles to a
-             * single type, simply retrieve one of the corners) */
-            terrain = (*tile)->terrainAtCorner(0);
-            /* If we actually found a terrain, output it */
-            if (terrain) {
-                /* Output to the file: 'area <terrain_name> <tile_id>' */
+                /* Output to the file: 'type <terrain_name> <tile_id>' */
                 file.write("type ");
-                file.write(terrain->name().toLatin1());
+                file.write((*wangSet)->colorAt(i)->name().toLatin1());
                 file.write(" ");
-                file.write(QByteArray::number((*tile)->id()));
+                file.write(QByteArray::number(wangTile.tileId()));
                 file.write("\n");
+
             }
 
             /* Iterate to the next node */
-            tile++;
+            wangSet++;
         }
 
         /* Iterate to the next node */
@@ -314,8 +317,7 @@ static bool gfm_writeTilemap(QSaveFile &file, const TileLayer *tileLayer,
         file.write("  ");
         for (int x = b.x; x <= b.width; x++) {
             const Cell &cell = tileLayer->cellAt(x, y);
-            const Tile *tile = cell.tile;
-            const int id = tile ? tile->id() : -1;
+            const int id = cell.tile() ? cell.tile()->id() : -1;
 
             /* Write the curren tile (or -1, if there's none) */
             file.write(QByteArray::number(id));
@@ -360,7 +362,7 @@ static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
         file.write(" ");
         file.write(QByteArray::number((int)pObj->height()));
         if (!pObj->cell().isEmpty() || !pObj->properties().isEmpty()) {
-            QMap<QString, QString>::const_iterator it;
+            QMap<QString, QVariant>::const_iterator it;
             
             /* Output all of its properties */
             it = pObj->properties().begin();
@@ -368,7 +370,7 @@ static void gfm_writeObjects(QSaveFile &file, const ObjectGroup *objectLayer,
                 file.write(" [ ");
                 file.write(it.key().toLatin1());
                 file.write(" , ");
-                file.write(it.value().toLatin1());
+                file.write(it.value().toString().toLatin1());
                 file.write(" ]");
                 
                 it++;

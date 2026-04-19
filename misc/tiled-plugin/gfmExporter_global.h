@@ -17,8 +17,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __GFMEXPORTER_GLOBAL_H__
-#define __GFMEXPORTER_GLOBAL_H__
+#pragma once
 
 #include <QtCore/qglobal.h>
 
@@ -27,6 +26,3 @@
 #else
 #  define GFMEXPORTER_SHARED_EXPORT Q_DECL_IMPORT
 #endif
-
-#endif /** __GFMEXPORTER_GLOBAL_H__ */
-

@@ -17,8 +17,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __GFMEXPORTER_H__
-#define __GFMEXPORTER_H__
+#pragma once
 
 #include "mapformat.h"
 
@@ -26,35 +25,22 @@
 
 namespace GFMExporter {
 
-/** Declare the plugin's class as a QObject */
-class GFMEXPORTER_SHARED_EXPORT GFMExporterPlugin : public
-        Tiled::WritableMapFormat
+class GFMEXPORTER_SHARED_EXPORT GFMExporterPlugin : public Tiled::WritableMapFormat
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.mapeditor.MapFormat" FILE "plugin.json")
 
 public:
-    /** Constructor... that does nothing */
     GFMExporterPlugin();
 
-    /**
-     * Plugin's actual entry point
-     * 
-     * @param  map      The tilemap to be exported
-     * @param  filename The exported filename
-     */
-    bool write(const Tiled::Map *map, const QString &fileName) override;
-    /** Return the occurred error */
+    bool write(const Tiled::Map *map, const QString &fileName, Options options) override;
     QString errorString() const override;
-    /** ??? */
     QStringList outputFiles(const Tiled::Map *map, const QString &fileName) const override;
 
+    QString shortName() const override;
+
 protected:
-    /** Return the plugin's description and file type */
     QString nameFilter() const override;
 }; /** class GFMExporterPlugin */
 
 } /** namespace GFMExporter */
-
-#endif /** __GFMEXPORTER_H__ */
-
